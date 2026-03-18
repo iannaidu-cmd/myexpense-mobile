@@ -1,0 +1,116 @@
+// ─── Typography Tokens ────────────────────────────────────────────────────────
+// Inter font scale for MyExpense
+// Font family names must match the keys passed to useFonts() in _layout.tsx
+
+export type TextStyle = {
+  fontFamily: string;
+  fontSize: number;
+  lineHeight: number;
+  fontWeight?: '400' | '500' | '600' | '700' | '800';
+  letterSpacing?: number;
+};
+
+// Map weight to loaded font family name
+const F = {
+  regular:   'Inter_400Regular',
+  medium:    'Inter_500Medium',
+  semiBold:  'Inter_600SemiBold',
+  bold:      'Inter_700Bold',
+  extraBold: 'Inter_800ExtraBold',
+} as const;
+
+export const typography = {
+  // ── Headings ──────────────────────────────────────────────────────────────
+  h1: {
+    fontFamily: F.extraBold,
+    fontSize: 24,
+    lineHeight: 32,
+  } satisfies TextStyle,
+
+  h2: {
+    fontFamily: F.bold,
+    fontSize: 20,
+    lineHeight: 28,
+  } satisfies TextStyle,
+
+  h3: {
+    fontFamily: F.bold,
+    fontSize: 18,
+    lineHeight: 24,
+  } satisfies TextStyle,
+
+  h4: {
+    fontFamily: F.bold,
+    fontSize: 16,
+    lineHeight: 22,
+  } satisfies TextStyle,
+
+  h5: {
+    fontFamily: F.bold,
+    fontSize: 12,
+    lineHeight: 16,
+  } satisfies TextStyle,
+
+  // ── Body ──────────────────────────────────────────────────────────────────
+  bodyXL: {
+    fontFamily: F.regular,
+    fontSize: 18,
+    lineHeight: 26,
+  } satisfies TextStyle,
+
+  bodyL: {
+    fontFamily: F.regular,
+    fontSize: 16,
+    lineHeight: 24,
+  } satisfies TextStyle,
+
+  bodyM: {
+    fontFamily: F.regular,
+    fontSize: 14,
+    lineHeight: 20,
+  } satisfies TextStyle,
+
+  bodyS: {
+    fontFamily: F.regular,
+    fontSize: 12,
+    lineHeight: 18,
+  } satisfies TextStyle,
+
+  bodyXS: {
+    fontFamily: F.regular,
+    fontSize: 10,
+    lineHeight: 14,
+  } satisfies TextStyle,
+
+  // ── Action (Buttons / CTAs) ───────────────────────────────────────────────
+  actionL: {
+    fontFamily: F.semiBold,
+    fontSize: 16,
+    lineHeight: 24,
+    letterSpacing: 0.2,
+  } satisfies TextStyle,
+
+  actionM: {
+    fontFamily: F.semiBold,
+    fontSize: 14,
+    lineHeight: 20,
+    letterSpacing: 0.2,
+  } satisfies TextStyle,
+
+  actionS: {
+    fontFamily: F.semiBold,
+    fontSize: 12,
+    lineHeight: 16,
+    letterSpacing: 0.2,
+  } satisfies TextStyle,
+
+  // ── Caption ───────────────────────────────────────────────────────────────
+  captionM: {
+    fontFamily: F.semiBold,
+    fontSize: 12,
+    lineHeight: 16,
+    letterSpacing: 0.4,
+  } satisfies TextStyle,
+} as const;
+
+export type TypographyKey = keyof typeof typography;
