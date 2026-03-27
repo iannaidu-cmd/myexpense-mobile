@@ -8,6 +8,8 @@ import React, { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
   ScrollView,
   StatusBar,
   Text,
@@ -217,315 +219,320 @@ export default function AddExpenseTab() {
         </Text>
       </View>
 
-      <ScrollView
-        style={{
-          flex: 1,
-          backgroundColor: colour.surface1,
-          borderTopLeftRadius: radius.xl,
-          borderTopRightRadius: radius.xl,
-        }}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{ paddingBottom: space.xxxl }}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-        {/* Scan shortcuts */}
-        <View
+        <ScrollView
           style={{
-            flexDirection: "row",
-            paddingHorizontal: space.lg,
-            paddingTop: space.lg,
-            gap: space.sm,
-            marginBottom: space.lg,
+            flex: 1,
+            backgroundColor: colour.surface1,
+            borderTopLeftRadius: radius.xl,
+            borderTopRightRadius: radius.xl,
           }}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{ paddingBottom: space.xxxl }}
         >
-          <TouchableOpacity
-            onPress={() => router.push("/scan-receipt-camera")}
+          {/* Scan shortcuts */}
+          <View
             style={{
-              flex: 1,
               flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "center",
-              backgroundColor: colour.primary,
-              borderRadius: radius.md,
-              padding: space.md,
+              paddingHorizontal: space.lg,
+              paddingTop: space.lg,
               gap: space.sm,
-            }}
-          >
-            <Text style={{ fontSize: 18 }}>📷</Text>
-            <Text style={{ ...typography.actionS, color: colour.onPrimary }}>
-              Scan Receipt
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => router.push("/upload-from-gallery")}
-            style={{
-              flex: 1,
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "center",
-              backgroundColor: colour.surface2,
-              borderRadius: radius.md,
-              padding: space.md,
-              gap: space.sm,
-              borderWidth: 1,
-              borderColor: colour.border,
-            }}
-          >
-            <Text style={{ fontSize: 18 }}>🖼️</Text>
-            <Text style={{ ...typography.actionS, color: colour.text }}>
-              From Gallery
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Expense Details */}
-        <View
-          style={{
-            marginHorizontal: space.lg,
-            backgroundColor: colour.white,
-            borderRadius: radius.lg,
-            padding: space.lg,
-            borderWidth: 1,
-            borderColor: colour.border,
-            marginBottom: space.md,
-          }}
-        >
-          <Text
-            style={{
-              ...typography.bodyM,
-              fontWeight: "700",
-              color: colour.text,
               marginBottom: space.lg,
             }}
           >
-            Expense Details
-          </Text>
+            <TouchableOpacity
+              onPress={() => router.push("/scan-receipt-camera")}
+              style={{
+                flex: 1,
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: colour.primary,
+                borderRadius: radius.md,
+                padding: space.md,
+                gap: space.sm,
+              }}
+            >
+              <Text style={{ fontSize: 18 }}>📷</Text>
+              <Text style={{ ...typography.actionS, color: colour.onPrimary }}>
+                Scan Receipt
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => router.push("/upload-from-gallery")}
+              style={{
+                flex: 1,
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: colour.surface2,
+                borderRadius: radius.md,
+                padding: space.md,
+                gap: space.sm,
+                borderWidth: 1,
+                borderColor: colour.border,
+              }}
+            >
+              <Text style={{ fontSize: 18 }}>🖼️</Text>
+              <Text style={{ ...typography.actionS, color: colour.text }}>
+                From Gallery
+              </Text>
+            </TouchableOpacity>
+          </View>
 
-          <FieldLabel label="Amount (ZAR)" />
-          <UnderlineInput
-            value={amount}
-            onChangeText={setAmount}
-            placeholder="0.00"
-            keyboardType="decimal-pad"
-          />
-
-          <FieldLabel label="Vendor / Supplier" />
-          <UnderlineInput
-            value={vendor}
-            onChangeText={setVendor}
-            placeholder="e.g. Engen, Microsoft, Checkers"
-          />
-
-          <FieldLabel label="Date (YYYY-MM-DD)" />
-          <UnderlineInput
-            value={date}
-            onChangeText={setDate}
-            placeholder="YYYY-MM-DD"
-          />
-
-          {/* Category picker */}
-          <FieldLabel label="ITR12 Category" />
-          <TouchableOpacity
-            onPress={() => setShowCatPicker((v) => !v)}
+          {/* Expense Details */}
+          <View
             style={{
-              borderBottomWidth: 1.5,
-              borderBottomColor: colour.border,
-              paddingBottom: space.sm,
-              marginBottom: space.xs,
-              flexDirection: "row",
-              alignItems: "center",
+              marginHorizontal: space.lg,
+              backgroundColor: colour.white,
+              borderRadius: radius.lg,
+              padding: space.lg,
+              borderWidth: 1,
+              borderColor: colour.border,
+              marginBottom: space.md,
             }}
           >
             <Text
               style={{
-                flex: 1,
                 ...typography.bodyM,
-                color: category ? colour.text : colour.textHint,
+                fontWeight: "700",
+                color: colour.text,
+                marginBottom: space.lg,
               }}
             >
-              {selectedCat
-                ? `${selectedCat.icon}  ${selectedCat.label}`
-                : "Select a category…"}
+              Expense Details
             </Text>
-            <Text style={{ color: colour.textSub, fontSize: 16 }}>
-              {showCatPicker ? "∨" : "›"}
-            </Text>
-          </TouchableOpacity>
 
-          {selectedCat && (
-            <View
+            <FieldLabel label="Amount (ZAR)" />
+            <UnderlineInput
+              value={amount}
+              onChangeText={setAmount}
+              placeholder="0.00"
+              keyboardType="decimal-pad"
+            />
+
+            <FieldLabel label="Vendor / Supplier" />
+            <UnderlineInput
+              value={vendor}
+              onChangeText={setVendor}
+              placeholder="e.g. Engen, Microsoft, Checkers"
+            />
+
+            <FieldLabel label="Date (YYYY-MM-DD)" />
+            <UnderlineInput
+              value={date}
+              onChangeText={setDate}
+              placeholder="YYYY-MM-DD"
+            />
+
+            {/* Category picker */}
+            <FieldLabel label="ITR12 Category" />
+            <TouchableOpacity
+              onPress={() => setShowCatPicker((v) => !v)}
               style={{
-                backgroundColor: colour.surface2,
-                borderRadius: radius.sm,
-                paddingHorizontal: space.sm,
-                paddingVertical: 4,
-                marginBottom: space.md,
-                alignSelf: "flex-start",
+                borderBottomWidth: 1.5,
+                borderBottomColor: colour.border,
+                paddingBottom: space.sm,
+                marginBottom: space.xs,
+                flexDirection: "row",
+                alignItems: "center",
               }}
             >
               <Text
                 style={{
-                  ...typography.bodyXS,
-                  fontWeight: "700",
-                  color: colour.primary,
+                  flex: 1,
+                  ...typography.bodyM,
+                  color: category ? colour.text : colour.textHint,
                 }}
               >
-                ITR12 {selectedCat.code} —{" "}
-                {selectedCat.deductible ? "Deductible ✓" : "Non-deductible"}
+                {selectedCat
+                  ? `${selectedCat.icon}  ${selectedCat.label}`
+                  : "Select a category…"}
               </Text>
-            </View>
-          )}
+              <Text style={{ color: colour.textSub, fontSize: 16 }}>
+                {showCatPicker ? "∨" : "›"}
+              </Text>
+            </TouchableOpacity>
 
-          {showCatPicker && (
-            <View style={{ marginBottom: space.md }}>
-              {CATEGORIES.map((cat) => (
-                <TouchableOpacity
-                  key={cat.label}
-                  onPress={() => {
-                    setCategory(cat.label);
-                    setShowCatPicker(false);
-                  }}
+            {selectedCat && (
+              <View
+                style={{
+                  backgroundColor: colour.surface2,
+                  borderRadius: radius.sm,
+                  paddingHorizontal: space.sm,
+                  paddingVertical: 4,
+                  marginBottom: space.md,
+                  alignSelf: "flex-start",
+                }}
+              >
+                <Text
                   style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    paddingVertical: space.md,
-                    borderBottomWidth: 1,
-                    borderBottomColor: colour.borderLight,
+                    ...typography.bodyXS,
+                    fontWeight: "700",
+                    color: colour.primary,
                   }}
                 >
-                  <Text style={{ fontSize: 18, marginRight: space.md }}>
-                    {cat.icon}
-                  </Text>
-                  <Text
-                    style={{ flex: 1, ...typography.bodyM, color: colour.text }}
-                  >
-                    {cat.label}
-                  </Text>
-                  <Text
+                  ITR12 {selectedCat.code} —{" "}
+                  {selectedCat.deductible ? "Deductible ✓" : "Non-deductible"}
+                </Text>
+              </View>
+            )}
+
+            {showCatPicker && (
+              <View style={{ marginBottom: space.md }}>
+                {CATEGORIES.map((cat) => (
+                  <TouchableOpacity
+                    key={cat.label}
+                    onPress={() => {
+                      setCategory(cat.label);
+                      setShowCatPicker(false);
+                    }}
                     style={{
-                      ...typography.bodyXS,
-                      color: colour.primary,
-                      fontWeight: "600",
+                      flexDirection: "row",
+                      alignItems: "center",
+                      paddingVertical: space.md,
+                      borderBottomWidth: 1,
+                      borderBottomColor: colour.borderLight,
                     }}
                   >
-                    {cat.code}
-                  </Text>
-                  {category === cat.label && (
+                    <Text style={{ fontSize: 18, marginRight: space.md }}>
+                      {cat.icon}
+                    </Text>
+                    <Text
+                      style={{ flex: 1, ...typography.bodyM, color: colour.text }}
+                    >
+                      {cat.label}
+                    </Text>
                     <Text
                       style={{
-                        color: colour.success,
-                        marginLeft: space.sm,
-                        fontWeight: "800",
+                        ...typography.bodyXS,
+                        color: colour.primary,
+                        fontWeight: "600",
                       }}
                     >
-                      ✓
+                      {cat.code}
                     </Text>
-                  )}
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
-        </View>
+                    {category === cat.label && (
+                      <Text
+                        style={{
+                          color: colour.success,
+                          marginLeft: space.sm,
+                          fontWeight: "800",
+                        }}
+                      >
+                        ✓
+                      </Text>
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+          </View>
 
-        {/* VAT */}
-        <View
-          style={{
-            marginHorizontal: space.lg,
-            backgroundColor: colour.white,
-            borderRadius: radius.lg,
-            padding: space.lg,
-            borderWidth: 1,
-            borderColor: colour.border,
-            marginBottom: space.md,
-          }}
-        >
-          <Text
+          {/* VAT */}
+          <View
             style={{
-              ...typography.bodyM,
-              fontWeight: "700",
-              color: colour.text,
-              marginBottom: space.lg,
+              marginHorizontal: space.lg,
+              backgroundColor: colour.white,
+              borderRadius: radius.lg,
+              padding: space.lg,
+              borderWidth: 1,
+              borderColor: colour.border,
+              marginBottom: space.md,
             }}
           >
-            VAT Details (optional)
-          </Text>
-          <FieldLabel label="VAT Amount (R)" />
-          <UnderlineInput
-            value={vatAmount}
-            onChangeText={setVatAmount}
-            placeholder="0.00"
-            keyboardType="decimal-pad"
-          />
-        </View>
-
-        {/* Notes */}
-        <View
-          style={{
-            marginHorizontal: space.lg,
-            backgroundColor: colour.white,
-            borderRadius: radius.lg,
-            padding: space.lg,
-            borderWidth: 1,
-            borderColor: colour.border,
-            marginBottom: space.lg,
-          }}
-        >
-          <Text
-            style={{
-              ...typography.bodyM,
-              fontWeight: "700",
-              color: colour.text,
-              marginBottom: space.lg,
-            }}
-          >
-            Notes (optional)
-          </Text>
-          <FieldLabel label="Description / Note" />
-          <UnderlineInput
-            value={note}
-            onChangeText={setNote}
-            placeholder="Optional description or memo…"
-            multiline
-          />
-        </View>
-
-        {/* Save button */}
-        <TouchableOpacity
-          onPress={handleSave}
-          disabled={!canSave || saving}
-          style={{
-            marginHorizontal: space.lg,
-            backgroundColor: canSave ? colour.primary : colour.surface2,
-            borderRadius: radius.lg,
-            height: 52,
-            alignItems: "center",
-            justifyContent: "center",
-            marginBottom: space.sm,
-          }}
-        >
-          {saving ? (
-            <ActivityIndicator color={colour.onPrimary} />
-          ) : (
             <Text
               style={{
-                ...typography.btnL,
-                color: canSave ? colour.onPrimary : colour.textSub,
+                ...typography.bodyM,
+                fontWeight: "700",
+                color: colour.text,
+                marginBottom: space.lg,
               }}
             >
-              {canSave ? "Save Expense" : "Fill in required fields"}
+              VAT Details (optional)
             </Text>
-          )}
-        </TouchableOpacity>
+            <FieldLabel label="VAT Amount (R)" />
+            <UnderlineInput
+              value={vatAmount}
+              onChangeText={setVatAmount}
+              placeholder="0.00"
+              keyboardType="decimal-pad"
+            />
+          </View>
 
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={{ alignItems: "center", paddingVertical: space.sm }}
-        >
-          <Text style={{ ...typography.bodyS, color: colour.textSub }}>
-            Cancel
-          </Text>
-        </TouchableOpacity>
-      </ScrollView>
+          {/* Notes */}
+          <View
+            style={{
+              marginHorizontal: space.lg,
+              backgroundColor: colour.white,
+              borderRadius: radius.lg,
+              padding: space.lg,
+              borderWidth: 1,
+              borderColor: colour.border,
+              marginBottom: space.lg,
+            }}
+          >
+            <Text
+              style={{
+                ...typography.bodyM,
+                fontWeight: "700",
+                color: colour.text,
+                marginBottom: space.lg,
+              }}
+            >
+              Notes (optional)
+            </Text>
+            <FieldLabel label="Description / Note" />
+            <UnderlineInput
+              value={note}
+              onChangeText={setNote}
+              placeholder="Optional description or memo…"
+              multiline
+            />
+          </View>
+
+          {/* Save button */}
+          <TouchableOpacity
+            onPress={handleSave}
+            disabled={!canSave || saving}
+            style={{
+              marginHorizontal: space.lg,
+              backgroundColor: canSave ? colour.primary : colour.surface2,
+              borderRadius: radius.lg,
+              height: 52,
+              alignItems: "center",
+              justifyContent: "center",
+              marginBottom: space.sm,
+            }}
+          >
+            {saving ? (
+              <ActivityIndicator color={colour.onPrimary} />
+            ) : (
+              <Text
+                style={{
+                  ...typography.btnL,
+                  color: canSave ? colour.onPrimary : colour.textSub,
+                }}
+              >
+                {canSave ? "Save Expense" : "Fill in required fields"}
+              </Text>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={{ alignItems: "center", paddingVertical: space.sm }}
+          >
+            <Text style={{ ...typography.bodyS, color: colour.textSub }}>
+              Cancel
+            </Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
