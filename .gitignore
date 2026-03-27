@@ -45,3 +45,6 @@ app-example
 # Environment variables
 .env
 .env.local
+
+startup.log
+supabase/.temp/

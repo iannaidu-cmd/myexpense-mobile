@@ -74,5 +74,5 @@ If you cannot determine a value, use null.`,
       });
     }
   },
-  { verifyJWT: false },
+  { verifyJWT: true },
 );
