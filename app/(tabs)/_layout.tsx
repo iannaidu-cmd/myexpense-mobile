@@ -1,20 +1,43 @@
+import { IconSymbol } from "@/components/ui/icon-symbol";
+import { colour } from "@/tokens";
 import { Tabs } from "expo-router";
 import React from "react";
+import { Platform } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { HapticTab } from "@/components/haptic-tab";
-import { IconSymbol } from "@/components/ui/icon-symbol";
-import { Colors } from "@/constants/theme";
-import { useColorScheme } from "@/hooks/use-color-scheme";
+function TabBarWrapper({ children }: { children: React.ReactNode }) {
+  return <>{children}</>;
+}
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
+  const insets = useSafeAreaInsets();
+
+  // Android with gesture nav: insets.bottom = 0 but we need padding above nav bar
+  // Android with 3-button nav: insets.bottom > 0
+  // iOS: insets.bottom = 34 (home indicator)
+  const bottomPadding = Platform.OS === "ios"
+    ? insets.bottom
+    : Math.max(insets.bottom, 8);
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? "light"].tint,
         headerShown: false,
-        tabBarButton: HapticTab,
+        tabBarStyle: {
+          backgroundColor: colour.navBg,
+          borderTopWidth: 1,
+          borderTopColor: colour.surface2,
+          height: 56 + bottomPadding,
+          paddingBottom: bottomPadding,
+          paddingTop: 8,
+          elevation: 8,
+        },
+        tabBarActiveTintColor: colour.primary,
+        tabBarInactiveTintColor: colour.navInactive,
+        tabBarLabelStyle: {
+          fontSize: 10,
+          fontFamily: "Inter_500Medium",
+        },
       }}
     >
       <Tabs.Screen
@@ -22,16 +45,16 @@ export default function TabLayout() {
         options={{
           title: "Home",
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="house.fill" color={color} />
+            <IconSymbol name="house.fill" size={24} color={color} />
           ),
         }}
       />
       <Tabs.Screen
-        name="DashboardHomeScreen"
+        name="add-expense"
         options={{
-          title: "Dashboard",
+          title: "Add",
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="chart.bar.fill" color={color} />
+            <IconSymbol name="plus.circle.fill" size={24} color={color} />
           ),
         }}
       />
@@ -40,17 +63,7 @@ export default function TabLayout() {
         options={{
           title: "Scan",
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="camera.fill" color={color} />
-          ),
-        }}
-      />
-      {/* Explore tab removed because the screen no longer exists */}
-      <Tabs.Screen
-        name="add-expense"
-        options={{
-          title: "Add expense",
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="plus.circle.fill" color={color} />
+            <IconSymbol name="camera.fill" size={24} color={color} />
           ),
         }}
       />
@@ -59,7 +72,16 @@ export default function TabLayout() {
         options={{
           title: "Reports",
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="chart.bar" color={color} />
+            <IconSymbol name="chart.bar.fill" size={24} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="settings"
+        options={{
+          title: "Settings",
+          tabBarIcon: ({ color }) => (
+            <IconSymbol name="gearshape.fill" size={24} color={color} />
           ),
         }}
       />

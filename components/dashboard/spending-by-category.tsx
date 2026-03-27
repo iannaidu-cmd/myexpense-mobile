@@ -1,6 +1,7 @@
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { useThemeColor } from "@/hooks/use-theme-color";
+import { colour } from "@/tokens";
 import { useState } from "react";
 import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 
@@ -152,7 +153,7 @@ interface CategoryRowProps {
 function CategoryRow({ item, total, onPress }: CategoryRowProps) {
   const pct = ((item.amount / total) * 100).toFixed(1);
   const bgColor = useThemeColor({}, "background");
-  const borderColor = useThemeColor({}, "border");
+  const borderColor = colour.border;
 
   return (
     <TouchableOpacity
@@ -180,7 +181,7 @@ function CategoryRow({ item, total, onPress }: CategoryRowProps) {
             style={[
               styles.categoryProgressFill,
               {
-                width: `${pct}%`,
+                width: `${pct}%` as any,
                 backgroundColor: item.color,
               },
             ]}
@@ -219,7 +220,7 @@ export function SpendingByCategoryScreen({
   const views = ["All", "Deductible", "Personal"];
 
   const bgColor = useThemeColor({}, "background");
-  const borderColor = useThemeColor({}, "border");
+  const borderColor = colour.border;
   const headerBg = "#1565C0";
   const accentColor = "#0288D1";
 

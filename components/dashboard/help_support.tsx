@@ -27,7 +27,15 @@ const C = {
 
 const NAV = { Home: "⊞", Scan: "⊡", Reports: "◈", Settings: "⚙" };
 
-function PhoneShell({ children, activeTab = "Settings", navigation }) {
+function PhoneShell({
+  children,
+  activeTab = "Settings",
+  navigation,
+}: {
+  children: React.ReactNode;
+  activeTab?: string;
+  navigation?: any;
+}) {
   const tabs = [
     { key: "Home", label: "Home", icon: NAV.Home },
     { key: "Scan", label: "Scan", icon: NAV.Scan },
@@ -81,7 +89,7 @@ function PhoneShell({ children, activeTab = "Settings", navigation }) {
 }
 
 // ─── FAQ Item ─────────────────────────────────────────────────────────────────
-function FAQItem({ question, answer }) {
+function FAQItem({ question, answer }: { question: string; answer: string }) {
   const [open, setOpen] = useState(false);
   return (
     <TouchableOpacity
@@ -127,7 +135,21 @@ function FAQItem({ question, answer }) {
 }
 
 // ─── Contact Card ─────────────────────────────────────────────────────────────
-function ContactCard({ icon, label, value, sublabel, onPress, highlight }) {
+function ContactCard({
+  icon,
+  label,
+  value,
+  sublabel,
+  onPress,
+  highlight,
+}: {
+  icon: string;
+  label: string;
+  value: string;
+  sublabel?: string;
+  onPress?: () => void;
+  highlight?: boolean;
+}) {
   return (
     <TouchableOpacity
       onPress={onPress}
@@ -178,7 +200,11 @@ function ContactCard({ icon, label, value, sublabel, onPress, highlight }) {
 }
 
 // ─── SCREEN: Help & Support ───────────────────────────────────────────────────
-export default function HelpSupportScreen({ navigation }) {
+export default function HelpSupportScreen({
+  navigation,
+}: {
+  navigation?: any;
+}) {
   const [searchQuery, setSearchQuery] = useState("");
   const [ticketCategory, setTicketCategory] = useState("");
   const [ticketMessage, setTicketMessage] = useState("");

@@ -1,73 +1,73 @@
-// ─── MXStatCard ───────────────────────────────────────────────────────────────
-// Metric card: icon, UPPERCASE label, large value, sub text
-
 import { colour, radius, space, typography } from "@/tokens";
-import React from "react";
-import { Text, View } from "react-native";
-import { MXCard } from "./MXCard";
+import { Platform, Text, View, ViewStyle } from "react-native";
+
+// ─── MXStatCard ───────────────────────────────────────────────────────────────
+// A small stat display card used on the Home screen header overlap row.
+//
+// Usage:
+//   <MXStatCard label="Total Expenses" value="R 24 850" />
+//   <MXStatCard label="Deductions" value="R 8 420" valueColor={colour.success} />
+// ─────────────────────────────────────────────────────────────────────────────
 
 interface MXStatCardProps {
-  icon: React.ReactNode;
-  label: string; // shown UPPERCASE
-  value: string; // e.g. "R 12,450"
-  subText?: string; // e.g. "vs last month ↑ 8%"
-  accentColor?: string; // icon container bg tint, defaults to primary50
-  onPress?: () => void;
+  label: string;
+  value: string;
+  valueColor?: string;
+  style?: ViewStyle;
 }
 
-export function MXStatCard({
-  icon,
+export default function MXStatCard({
   label,
   value,
-  subText,
-  accentColor = colour.primary50,
+  valueColor,
+  style,
 }: MXStatCardProps) {
+  const shadow =
+    Platform.OS === "ios"
+      ? {
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.08,
+          shadowRadius: 8,
+        }
+      : Platform.OS === "android"
+        ? { elevation: 4 }
+        : { boxShadow: "0px 2px 8px rgba(0,0,0,0.08)" };
+
   return (
-    <MXCard style={{ gap: space.sm }}>
-      {/* Icon pill */}
-      <View
-        style={{
-          width: 40,
-          height: 40,
+    <View
+      style={[
+        {
+          backgroundColor: colour.white,
           borderRadius: radius.md,
-          backgroundColor: accentColor,
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        {icon}
-      </View>
-
-      {/* Label */}
+          padding: space.md,
+          borderWidth: 1,
+          borderColor: colour.borderLight,
+          ...shadow,
+        },
+        style,
+      ]}
+    >
       <Text
         style={{
-          ...typography.captionM,
+          ...typography.bodyXS,
           color: colour.textHint,
-          textTransform: "uppercase",
-          letterSpacing: 0.8,
-        }}
-      >
-        {label}
-      </Text>
-
-      {/* Value */}
-      <Text
-        style={{
-          ...typography.h2,
-          color: colour.text,
-          marginTop: -space.xs,
+          marginBottom: space.xxs,
         }}
         numberOfLines={1}
       >
+        {label}
+      </Text>
+      <Text
+        style={{
+          ...typography.h4,
+          color: valueColor ?? colour.text,
+        }}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+      >
         {value}
       </Text>
-
-      {/* Sub text */}
-      {subText && (
-        <Text style={{ ...typography.captionM, color: colour.textHint }}>
-          {subText}
-        </Text>
-      )}
-    </MXCard>
+    </View>
   );
 }

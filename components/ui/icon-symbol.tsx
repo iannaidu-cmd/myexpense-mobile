@@ -20,8 +20,10 @@ const MAPPING = {
   "house.fill": "home",
   "paperplane.fill": "send",
   "chart.bar.fill": "bar-chart",
+  "chart.bar": "bar-chart",
   "camera.fill": "camera",
   "plus.circle.fill": "add-circle",
+  "gearshape.fill": "settings",
   "chevron.left.forwardslash.chevron.right": "code",
   "chevron.right": "chevron-right",
 } as IconMapping;

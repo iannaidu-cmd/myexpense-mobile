@@ -1,6 +1,7 @@
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { useThemeColor } from "@/hooks/use-theme-color";
+import { colour } from "@/tokens";
 import { useState } from "react";
 import {
     Dimensions,
@@ -96,7 +97,7 @@ interface InsightRowProps {
 }
 
 function InsightRow({ icon, label, value, delta, positive }: InsightRowProps) {
-  const borderColor = useThemeColor({}, "border");
+  const borderColor = colour.border;
 
   return (
     <View style={[styles.insightRow, { borderBottomColor: borderColor }]}>
@@ -139,7 +140,7 @@ export function MonthlyTrendScreen({ navigation }: MonthlyTrendScreenProps) {
   );
 
   const bgColor = useThemeColor({}, "background");
-  const borderColor = useThemeColor({}, "border");
+  const borderColor = colour.border;
   const headerBg = "#1565C0";
   const accentColor = "#0288D1";
 

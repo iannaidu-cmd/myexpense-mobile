@@ -1,6 +1,10 @@
+import { Image, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import { ThemedText } from "@/components/themed-text";
-import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import type { OnboardingSlide } from "./types";
+
+// ─── SlidesCarousel ───────────────────────────────────────────────────────────
+// FIX: White background throughout, navy/blue text, logo rendered as <Image>
+// ─────────────────────────────────────────────────────────────────────────────
 
 interface SlidesCarouselProps {
   slides: OnboardingSlide[];
@@ -10,7 +14,9 @@ interface SlidesCarouselProps {
   onSlideNext: () => void;
   onSlidePrev: () => void;
   onSkip: () => void;
-  logoUri: string;
+  // FIX: was logoUri: string (base64 rendered as text)
+  // Now logoSource accepts a require() asset reference
+  logoSource: number | { uri: string };
 }
 
 export function SlidesCarousel({
@@ -21,40 +27,25 @@ export function SlidesCarousel({
   onSlideNext,
   onSlidePrev,
   onSkip,
-  logoUri,
+  logoSource,
 }: SlidesCarouselProps) {
   const slide = slides[currentSlideIdx];
 
   return (
     <View style={styles.container}>
-      {/* Animated background orbs */}
-      <View
-        style={[
-          styles.orb1,
-          {
-            opacity: orbPulsing ? 0.08 : 0.04,
-            transform: orbPulsing ? [{ scale: 1.2 }] : [{ scale: 1 }],
-          },
-        ]}
-      />
-      <View
-        style={[
-          styles.orb2,
-          {
-            opacity: orbPulsing ? 0.06 : 0.02,
-            transform: orbPulsing ? [{ scale: 1.1 }] : [{ scale: 1 }],
-          },
-        ]}
-      />
 
       {/* Skip button */}
       <TouchableOpacity style={styles.skipButton} onPress={onSkip}>
         <ThemedText style={styles.skipText}>Skip</ThemedText>
       </TouchableOpacity>
 
-      {/* Logo */}
+      {/* Logo — FIX: was <ThemedText>{logoUri}</ThemedText>, now proper Image */}
       <View style={styles.logoContainer}>
-        <ThemedText style={styles.logo}>{slide.emoji}</ThemedText>
+        <Image
+          source={logoSource}
+          style={styles.logoImage}
+          resizeMode="contain"
+        />
       </View>
 
       {/* Slide content */}
@@ -62,7 +53,7 @@ export function SlidesCarousel({
         contentContainerStyle={styles.slideContent}
         scrollEventThrottle={16}
       >
-        {/* Big emoji illustration */}
+        {/* Emoji illustration box */}
         <View style={styles.emojiBox}>
           <ThemedText style={styles.emojiLarge}>{slide.emoji}</ThemedText>
         </View>
@@ -121,7 +112,6 @@ export function SlidesCarousel({
             <ThemedText style={styles.backButtonText}>← Back</ThemedText>
           </TouchableOpacity>
         )}
-
         <TouchableOpacity
           style={[
             styles.nextButton,
@@ -129,9 +119,7 @@ export function SlidesCarousel({
           ]}
           onPress={onSlideNext}
           accessibilityRole="button"
-          accessibilityLabel={
-            currentSlideIdx < 2 ? "Next slide" : "Get started"
-          }
+          accessibilityLabel={currentSlideIdx < 2 ? "Next slide" : "Get started"}
         >
           <ThemedText style={styles.nextButtonText}>
             {currentSlideIdx < 2 ? "Next →" : "Get Started →"}
@@ -151,49 +139,34 @@ export function SlidesCarousel({
 }
 
 const styles = StyleSheet.create({
+  // FIX: was backgroundColor: "#0D47A1" — now white
   container: {
     flex: 1,
-    backgroundColor: "#0D47A1",
-    position: "relative",
-    overflow: "hidden",
+    backgroundColor: "#FFFFFF",
     flexDirection: "column",
-  },
-  orb1: {
-    position: "absolute",
-    top: -60,
-    right: -60,
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    backgroundColor: "#0288D1",
-  },
-  orb2: {
-    position: "absolute",
-    bottom: 160,
-    left: -40,
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    backgroundColor: "#0288D1",
   },
   skipButton: {
     position: "absolute",
     top: 16,
     right: 22,
     marginTop: 10,
+    zIndex: 10,
   },
+  // FIX: was color: "#757575" on dark bg — now mid-grey on white works fine
   skipText: {
-    color: "#757575",
+    color: "#9E9E9E",
     fontSize: 13,
     fontWeight: "600",
   },
   logoContainer: {
-    paddingVertical: 18,
+    paddingTop: 52,
+    paddingBottom: 8,
     paddingHorizontal: 24,
   },
-  logo: {
-    fontSize: 28,
-    height: 28,
+  // FIX: was fontSize:28 text rendering base64 — now proper image dimensions
+  logoImage: {
+    width: "60%",
+    height: 36,
   },
   slideContent: {
     flexGrow: 1,
@@ -201,13 +174,14 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingVertical: 20,
   },
+  // FIX: was backgroundColor: "#1565C0" (dark) — now light primary blue tint
   emojiBox: {
     width: 110,
     height: 110,
     borderRadius: 32,
-    backgroundColor: "#1565C0",
+    backgroundColor: "#EAF2FF",
     borderWidth: 1.5,
-    borderColor: "#1976D2",
+    borderColor: "#B4D8FF",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 36,
@@ -215,33 +189,37 @@ const styles = StyleSheet.create({
   emojiLarge: {
     fontSize: 54,
   },
+  // FIX: was color: "#fff" on dark bg — now navy on white
   headline: {
-    color: "#fff",
+    color: "#1F2024",
     fontSize: 30,
     fontWeight: "800",
     marginBottom: 16,
   },
+  // FIX: was color: "#9E9E9E" on dark bg — now proper mid-grey on white
   subtitle: {
-    color: "#9E9E9E",
+    color: "#494A50",
     fontSize: 14,
+    lineHeight: 22,
     marginBottom: 32,
   },
+  // FIX: was backgroundColor: "#1565C0" (dark pill) — now light blue tint
   statPill: {
-    backgroundColor: "#1565C0",
+    backgroundColor: "#EAF2FF",
     borderRadius: 16,
     paddingVertical: 14,
     paddingHorizontal: 20,
     borderWidth: 1,
-    borderColor: "#0288D1",
+    borderColor: "#B4D8FF",
     alignSelf: "flex-start",
   },
   statValue: {
-    color: "#0288D1",
+    color: "#006FFD",
     fontSize: 26,
     fontWeight: "800",
   },
   statLabel: {
-    color: "#757575",
+    color: "#71727A",
     fontSize: 11,
   },
   featuresList: {
@@ -252,24 +230,25 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 12,
   },
+  // FIX: was backgroundColor: "#1565C0" (dark) — now light blue tint
   featureCheckmark: {
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: "#1565C0",
+    backgroundColor: "#EAF2FF",
     borderWidth: 1,
-    borderColor: "#0288D1",
+    borderColor: "#006FFD",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 12,
   },
   checkmark: {
     fontSize: 13,
-    color: "#0288D1",
+    color: "#006FFD",
     fontWeight: "700",
   },
   featureText: {
-    color: "#9E9E9E",
+    color: "#494A50",
     fontSize: 14,
   },
   dotsContainer: {
@@ -282,26 +261,27 @@ const styles = StyleSheet.create({
   dot: {
     height: 4,
     borderRadius: 2,
-    backgroundColor: "#0288D1",
+    backgroundColor: "#006FFD",
   },
   buttonContainer: {
     flexDirection: "row",
     paddingHorizontal: 20,
     paddingVertical: 10,
   },
+  // FIX: was backgroundColor: "#1565C0" (dark) — now light border button
   backButton: {
     flex: 1,
     paddingVertical: 15,
     borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#1565C0",
+    backgroundColor: "#FFFFFF",
     borderWidth: 1.5,
-    borderColor: "#1976D2",
+    borderColor: "#006FFD",
     marginHorizontal: 5,
   },
   backButtonText: {
-    color: "#fff",
+    color: "#006FFD",
     fontWeight: "600",
     fontSize: 14,
   },
@@ -311,14 +291,14 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#0288D1",
+    backgroundColor: "#006FFD",
     marginHorizontal: 5,
   },
   nextButtonExpanded: {
     flex: 2,
   },
   nextButtonText: {
-    color: "#0D47A1",
+    color: "#FFFFFF",
     fontWeight: "800",
     fontSize: 15,
   },
@@ -328,11 +308,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   signInText: {
-    color: "#757575",
+    color: "#9E9E9E",
     fontSize: 12,
   },
   signInLink: {
-    color: "#0288D1",
+    color: "#006FFD",
     fontWeight: "600",
   },
 });

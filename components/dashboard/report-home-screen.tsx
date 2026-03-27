@@ -1,6 +1,7 @@
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { useThemeColor } from "@/hooks/use-theme-color";
+import { colour } from "@/tokens";
 import { useState } from "react";
 import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 
@@ -28,7 +29,7 @@ interface MetricCardProps {
 function MetricCard({ label, value, sub, color, onPress }: MetricCardProps) {
   const textColor = useThemeColor({}, "text");
   const backgroundColor = useThemeColor({}, "background");
-  const borderColor = useThemeColor({}, "border");
+  const borderColor = colour.border;
 
   return (
     <TouchableOpacity
@@ -74,7 +75,7 @@ function ReportNavCard({
   onPress,
 }: ReportNavCardProps) {
   const backgroundColor = useThemeColor({}, "background");
-  const borderColor = useThemeColor({}, "border");
+  const borderColor = colour.border;
   const textColor = useThemeColor({}, "text");
 
   return (

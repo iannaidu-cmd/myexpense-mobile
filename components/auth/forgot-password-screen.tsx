@@ -1,226 +1,140 @@
-import { AuthHeader } from "@/components/auth/auth-header";
-import { AuthInput } from "@/components/auth/auth-input";
-import { ThemedText } from "@/components/themed-text";
-import { ThemedView } from "@/components/themed-view";
+import { colour, radius, space, typography } from "@/tokens";
+import { useRouter } from "expo-router";
 import { useState } from "react";
-import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
-import type { FormErrors } from "./types";
+import {
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-interface ForgotPasswordScreenProps {
-  onNavigate: (screen: string) => void;
-}
+export function ForgotPasswordScreen() {
+  const router = useRouter();
 
-export function ForgotPasswordScreen({
-  onNavigate,
-}: ForgotPasswordScreenProps) {
-  const [email, setEmail] = useState("");
+  const [email, setEmail]     = useState("");
   const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<FormErrors>({});
-  const [sent, setSent] = useState(false);
+  const [emailError, setEmailError] = useState("");
+  const [sent, setSent]       = useState(false);
 
-  const validate = () => {
-    const e: FormErrors = {};
-    if (!email.includes("@")) e.email = "Enter a valid email address";
-    return e;
-  };
-
-  const handleSubmit = () => {
-    const e = validate();
-    if (Object.keys(e).length) {
-      setErrors(e);
+  const handleSubmit = async () => {
+    if (!email.includes("@")) {
+      setEmailError("Enter a valid email address");
       return;
     }
+    setEmailError("");
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      // TODO: wire to Supabase password reset
+      await new Promise(r => setTimeout(r, 1400));
       setSent(true);
-    }, 1400);
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (sent) {
     return (
-      <ThemedView style={styles.container}>
-        <AuthHeader
-          title="Check your email"
-          subtitle="We've sent password reset instructions to your email address."
-        />
+      <SafeAreaView style={{ flex: 1, backgroundColor: colour.white }}>
+        <ScrollView contentContainerStyle={{ flexGrow: 1, paddingHorizontal: space.lg, paddingTop: space["2xl"] }}>
 
-        <ScrollView
-          style={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Illustration */}
-          <View style={styles.illustrationBox}>
-            <ThemedText style={styles.illustrationEmoji}>✉️</ThemedText>
-          </View>
-
-          <ThemedText style={styles.sentEmail}>{email}</ThemedText>
-
-          <ThemedText style={styles.instructions}>
-            Click the link in the email to reset your password. The link expires
-            in 1 hour.
-          </ThemedText>
-
-          {/* Tips box */}
-          <View style={styles.tipsBox}>
-            <ThemedText style={styles.tipsTitle}>
-              💡 Can't find the email?
-            </ThemedText>
-            <ThemedText style={styles.tip}>• Check your spam folder</ThemedText>
-            <ThemedText style={styles.tip}>• Link expires in 1 hour</ThemedText>
-            <ThemedText style={styles.tip}>
-              • Sent from noreply@myexpense.co.za
-            </ThemedText>
-          </View>
-
-          {/* Back button */}
-          <TouchableOpacity
-            style={styles.primaryBtn}
-            onPress={() => onNavigate("signin")}
-          >
-            <ThemedText style={styles.primaryBtnText}>
-              Back to Sign In
-            </ThemedText>
+          {/* Back */}
+          <TouchableOpacity onPress={() => router.back()} style={{ marginBottom: space.xl }}>
+            <Text style={{ ...typography.bodyM, color: colour.primary, fontWeight: "600" }}>← Back to Sign In</Text>
           </TouchableOpacity>
+
+          {/* Icon */}
+          <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: colour.primary50, alignItems: "center", justifyContent: "center", marginBottom: space.xl }}>
+            <Text style={{ fontSize: 32 }}>✉️</Text>
+          </View>
+
+          <Text style={{ ...typography.h2, fontWeight: "800", color: colour.text, marginBottom: space.sm }}>
+            Check your email
+          </Text>
+          <Text style={{ ...typography.bodyM, color: colour.textSub, marginBottom: space.xl, lineHeight: 24 }}>
+            We've sent password reset instructions to:
+          </Text>
+          <Text style={{ ...typography.bodyM, fontWeight: "700", color: colour.primary, marginBottom: space.xl }}>
+            {email}
+          </Text>
+
+          {/* Tips */}
+          <View style={{ backgroundColor: colour.primary50, borderRadius: radius.md, padding: space.md, marginBottom: space.xl }}>
+            <Text style={{ ...typography.labelS, color: colour.primary, fontWeight: "700", marginBottom: space.sm }}>
+              Can't find the email?
+            </Text>
+            <Text style={{ ...typography.bodyS, color: colour.textSub, marginBottom: 4 }}>• Check your spam or junk folder</Text>
+            <Text style={{ ...typography.bodyS, color: colour.textSub, marginBottom: 4 }}>• The link expires in 1 hour</Text>
+            <Text style={{ ...typography.bodyS, color: colour.textSub }}>• Sent from noreply@myexpense.co.za</Text>
+          </View>
+
+          <TouchableOpacity
+            onPress={() => router.replace("/sign-in")}
+            style={{ backgroundColor: colour.primary, borderRadius: radius.pill, height: 52, alignItems: "center", justifyContent: "center" }}
+          >
+            <Text style={{ ...typography.btnL, color: colour.onPrimary }}>Back to Sign In</Text>
+          </TouchableOpacity>
+
         </ScrollView>
-      </ThemedView>
+      </SafeAreaView>
     );
   }
 
   return (
-    <ThemedView style={styles.container}>
-      <AuthHeader
-        title="Reset password"
-        subtitle="Enter your email address and we'll send you a link to reset your password."
-      />
+    <SafeAreaView style={{ flex: 1, backgroundColor: colour.white }}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+        <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
 
-      <ScrollView
-        style={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        <AuthInput
-          label="EMAIL ADDRESS"
-          placeholder="you@example.co.za"
-          icon="📧"
-          keyboardType="email-address"
-          value={email}
-          onChangeText={setEmail}
-          error={errors.email}
-        />
+          {/* Header */}
+          <View style={{ backgroundColor: colour.primary, paddingHorizontal: space.lg, paddingTop: space["2xl"], paddingBottom: space["3xl"] }}>
+            <TouchableOpacity onPress={() => router.back()} style={{ marginBottom: space.lg }}>
+              <Text style={{ color: colour.onPrimary, fontSize: 26, lineHeight: 30 }}>‹</Text>
+            </TouchableOpacity>
+            <Text style={{ ...typography.h2, fontWeight: "800", color: colour.onPrimary, marginBottom: space.xs }}>
+              Reset password
+            </Text>
+            <Text style={{ ...typography.bodyM, color: "rgba(255,255,255,0.75)" }}>
+              Enter your email and we'll send you a reset link.
+            </Text>
+          </View>
 
-        {/* Submit button */}
-        <TouchableOpacity
-          style={[styles.primaryBtn, loading && styles.primaryBtnDisabled]}
-          onPress={handleSubmit}
-          disabled={loading}
-        >
-          <ThemedText style={styles.primaryBtnText}>
-            {loading ? "Sending…" : "Send Reset Link"}
-          </ThemedText>
-        </TouchableOpacity>
+          {/* Card */}
+          <View style={{ flex: 1, backgroundColor: colour.white, borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl, marginTop: -20, padding: space.lg, paddingTop: space["2xl"] }}>
 
-        {/* Back button */}
-        <TouchableOpacity
-          style={styles.secondaryBtn}
-          onPress={() => onNavigate("signin")}
-        >
-          <ThemedText style={styles.secondaryBtnText}>
-            Back to Sign In
-          </ThemedText>
-        </TouchableOpacity>
-      </ScrollView>
-    </ThemedView>
+            <Text style={{ ...typography.labelM, color: colour.textSub, marginBottom: space.xs }}>EMAIL ADDRESS</Text>
+            <TextInput
+              value={email} onChangeText={setEmail}
+              placeholder="you@example.co.za" placeholderTextColor={colour.textHint}
+              keyboardType="email-address" autoCapitalize="none"
+              style={{ ...typography.bodyM, color: colour.text, borderBottomWidth: 1.5, borderBottomColor: emailError ? colour.danger : colour.border, paddingVertical: space.sm, marginBottom: emailError ? space.xs : space["2xl"] }}
+            />
+            {emailError ? <Text style={{ ...typography.bodyXS, color: colour.danger, marginBottom: space.xl }}>{emailError}</Text> : null}
+
+            <TouchableOpacity
+              onPress={handleSubmit}
+              disabled={loading}
+              style={{ backgroundColor: loading ? colour.border : colour.primary, borderRadius: radius.pill, height: 52, alignItems: "center", justifyContent: "center", marginBottom: space.md }}
+            >
+              {loading
+                ? <ActivityIndicator color={colour.onPrimary} />
+                : <Text style={{ ...typography.btnL, color: colour.onPrimary }}>Send Reset Link</Text>
+              }
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => router.back()}
+              style={{ borderRadius: radius.pill, height: 52, alignItems: "center", justifyContent: "center", borderWidth: 1.5, borderColor: colour.border }}
+            >
+              <Text style={{ ...typography.btnL, color: colour.textSub }}>Back to Sign In</Text>
+            </TouchableOpacity>
+
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  scrollContent: {
-    flex: 1,
-    paddingHorizontal: 22,
-    paddingVertical: 24,
-  },
-  illustrationBox: {
-    height: 120,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 24,
-  },
-  illustrationEmoji: {
-    fontSize: 64,
-  },
-  sentEmail: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#0D47A1",
-    textAlign: "center",
-    marginBottom: 12,
-  },
-  instructions: {
-    fontSize: 13,
-    color: "#0D47A1",
-    textAlign: "center",
-    lineHeight: 1.6,
-    marginBottom: 24,
-  },
-  tipsBox: {
-    backgroundColor: "rgba(2,136,209,0.08)",
-    borderWidth: 1,
-    borderColor: "rgba(2,136,209,0.2)",
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 24,
-  },
-  tipsTitle: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#0D47A1",
-    marginBottom: 8,
-  },
-  tip: {
-    fontSize: 12,
-    color: "#757575",
-    marginBottom: 4,
-    lineHeight: 1.5,
-  },
-  primaryBtn: {
-    backgroundColor: "#0288D1",
-    borderRadius: 18,
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    marginBottom: 12,
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#0288D1",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  primaryBtnDisabled: {
-    backgroundColor: "#E0E0E0",
-    shadowOpacity: 0,
-  },
-  primaryBtnText: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#fff",
-  },
-  secondaryBtn: {
-    borderRadius: 18,
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    borderWidth: 1,
-    borderColor: "#E0E0E0",
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 24,
-  },
-  secondaryBtnText: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#FFFFFF",
-  },
-});

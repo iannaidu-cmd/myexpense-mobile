@@ -18,10 +18,10 @@ export function AuthHeader({ title, subtitle }: AuthHeaderProps) {
 const styles = StyleSheet.create({
   container: {
     backgroundColor: "#0D47A1",
-    paddingVertical: 32,
+    paddingTop: 56,
+    paddingBottom: 28,
     paddingHorizontal: 22,
     justifyContent: "flex-end",
-    minHeight: 140,
   },
   title: {
     fontSize: 22,
@@ -33,6 +33,6 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 13,
     color: "rgba(255,255,255,0.55)",
-    lineHeight: 1.6,
+    lineHeight: 21,
   },
 });

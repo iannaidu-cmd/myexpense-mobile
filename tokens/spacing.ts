@@ -1,23 +1,38 @@
 // ─── Spacing & Radius Tokens ──────────────────────────────────────────────────
-// Consistent spatial scale for MyExpense
+// Consistent spatial scale for MyExpense — matches repo exactly.
+// Import via the barrel:  import { space, radius } from '@/tokens';
 
 export const space = {
-  xxs: 2,
-  xs: 4,
-  sm: 8,
-  md: 12,
-  lg: 16,
-  xl: 20,
-  xxl: 24,
-  xxxl: 32,
-} as const;
-
-export const radius = {
-  sm: 8,
-  md: 12,
-  lg: 16,
-  pill: 100,
+  xxs:   2,
+  xs:    4,
+  sm:    8,
+  md:    12,
+  lg:    16,
+  xl:    20,
+  xxl:   24,
+  xxxl:  32,
+  // Extended scale (bracket-notation aliases)
+  '2xl': 24,
+  '3xl': 32,
+  '4xl': 40,
+  '5xl': 48,
 } as const;
 
 export type SpaceKey = keyof typeof space;
+
+export const radius = {
+  /** 8px – inputs, small cards */
+  sm:   8,
+  /** 12px – standard cards */
+  md:   12,
+  /** 16px – large cards, modals */
+  lg:   16,
+  /** 24px – large radius for bottom-sheet cards */
+  xl:   24,
+  /** 100px – pill buttons */
+  pill: 100,
+  /** 100px – alias for pill, fully rounded */
+  full: 100,
+} as const;
+
 export type RadiusKey = keyof typeof radius;

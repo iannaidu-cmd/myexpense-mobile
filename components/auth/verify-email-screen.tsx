@@ -1,322 +1,157 @@
-import { ThemedText } from "@/components/themed-text";
-import { ThemedView } from "@/components/themed-view";
+import { colour, radius, space, typography } from "@/tokens";
+import { useRouter } from "expo-router";
 import { useRef, useState } from "react";
 import {
-    ScrollView,
-    StyleSheet,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import { AuthHeader } from "./auth-header";
-import type { FormErrors } from "./types";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 interface VerifyEmailScreenProps {
   email?: string;
-  onNavigate: (screen: string) => void;
 }
 
-export function VerifyEmailScreen({
-  email = "your@email.com",
-  onNavigate,
-}: VerifyEmailScreenProps) {
-  const [code, setCode] = useState("");
+export function VerifyEmailScreen({ email = "your@email.com" }: VerifyEmailScreenProps) {
+  const router = useRouter();
+
+  const [code, setCode]           = useState("");
   const [focusedIdx, setFocusedIdx] = useState(-1);
-  const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<FormErrors>({});
-  const codeInputs = useRef<(TextInput | null)[]>([]);
+  const [loading, setLoading]     = useState(false);
+  const [codeError, setCodeError] = useState("");
+  const codeInputs                = useRef<(TextInput | null)[]>([]);
 
   const handleCodeChange = (text: string, idx: number) => {
-    // Only allow digits
     const cleaned = text.replace(/[^0-9]/g, "").slice(0, 1);
-
-    const newCode = code.split("");
-    newCode[idx] = cleaned;
-    const fullCode = newCode.join("");
-
-    // Max 6 digits
-    if (fullCode.length <= 6) {
-      setCode(fullCode);
-
-      // Auto-focus next input
-      if (cleaned && idx < 5) {
-        setTimeout(() => {
-          codeInputs.current[idx + 1]?.focus();
-        }, 0);
-      }
+    const chars = code.split("");
+    chars[idx] = cleaned;
+    const full = chars.join("").slice(0, 6);
+    setCode(full);
+    if (cleaned && idx < 5) {
+      setTimeout(() => codeInputs.current[idx + 1]?.focus(), 0);
     }
   };
 
-  const handleCodeBackspace = (idx: number) => {
+  const handleBackspace = (idx: number) => {
     if (idx > 0 && !code[idx]) {
-      setTimeout(() => {
-        codeInputs.current[idx - 1]?.focus();
-      }, 0);
+      setTimeout(() => codeInputs.current[idx - 1]?.focus(), 0);
     }
   };
 
-  const validate = () => {
-    const e: FormErrors = {};
-    if (code.length !== 6) e.code = "Verification code must be 6 digits";
-    return e;
-  };
-
-  const handleSubmit = () => {
-    const e = validate();
-    if (Object.keys(e).length) {
-      setErrors(e);
+  const handleSubmit = async () => {
+    if (code.length !== 6) {
+      setCodeError("Verification code must be 6 digits");
       return;
     }
+    setCodeError("");
     setLoading(true);
-    setTimeout(() => {
+    try {
+      // TODO: verify with Supabase
+      await new Promise(r => setTimeout(r, 1400));
+      router.replace("/sign-in");
+    } finally {
       setLoading(false);
-      // TODO: verify with backend and navigate to home
-      onNavigate("signin");
-    }, 1400);
+    }
   };
 
   return (
-    <ThemedView style={styles.container}>
-      <AuthHeader
-        title="Verify your email"
-        subtitle="We've sent a 6-digit code to your email. Enter it below to continue."
-      />
+    <SafeAreaView style={{ flex: 1, backgroundColor: colour.white }}>
+      <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
 
-      <ScrollView
-        style={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Email display */}
-        <View style={styles.emailBox}>
-          <ThemedText style={styles.emailLabel}>Sent to</ThemedText>
-          <ThemedText style={styles.emailValue}>{email}</ThemedText>
+        {/* Header */}
+        <View style={{ backgroundColor: colour.primary, paddingHorizontal: space.lg, paddingTop: space["2xl"], paddingBottom: space["3xl"] }}>
+          <Text style={{ ...typography.h2, fontWeight: "800", color: colour.onPrimary, marginBottom: space.xs }}>
+            Verify your email
+          </Text>
+          <Text style={{ ...typography.bodyM, color: "rgba(255,255,255,0.75)" }}>
+            We've sent a 6-digit code to your email address.
+          </Text>
         </View>
 
-        {/* Code input grid */}
-        <View style={styles.codeContainer}>
-          {[0, 1, 2, 3, 4, 5].map((i) => (
-            <TextInput
-              key={i}
-              ref={(ref) => {
-                if (ref) codeInputs.current[i] = ref;
-              }}
-              style={[
-                styles.codeInput,
-                focusedIdx === i && styles.codeInputFocused,
-                code[i] && styles.codeInputFilled,
-              ]}
-              placeholder="0"
-              placeholderTextColor="#E0E0E0"
-              value={code[i] || ""}
-              onChangeText={(text) => handleCodeChange(text, i)}
-              onKeyPress={({ nativeEvent }) => {
-                if (nativeEvent.key === "Backspace") {
-                  handleCodeBackspace(i);
-                }
-              }}
-              keyboardType="number-pad"
-              maxLength={1}
-              onFocus={() => setFocusedIdx(i)}
-              onBlur={() => setFocusedIdx(-1)}
-            />
-          ))}
+        {/* Card */}
+        <View style={{ flex: 1, backgroundColor: colour.white, borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl, marginTop: -20, padding: space.lg, paddingTop: space["2xl"] }}>
+
+          {/* Email display */}
+          <View style={{ backgroundColor: colour.surface1, borderRadius: radius.md, paddingVertical: space.sm, paddingHorizontal: space.md, marginBottom: space.xl }}>
+            <Text style={{ ...typography.bodyXS, color: colour.textSub, fontWeight: "700", letterSpacing: 0.5, marginBottom: 4 }}>SENT TO</Text>
+            <Text style={{ ...typography.bodyM, fontWeight: "600", color: colour.primary }}>{email}</Text>
+          </View>
+
+          {/* 6-digit code inputs */}
+          <View style={{ flexDirection: "row", gap: 10, justifyContent: "center", marginBottom: space.md }}>
+            {[0, 1, 2, 3, 4, 5].map((i) => (
+              <TextInput
+                key={i}
+                ref={(ref) => { if (ref) codeInputs.current[i] = ref; }}
+                value={code[i] || ""}
+                onChangeText={(t) => handleCodeChange(t, i)}
+                onKeyPress={({ nativeEvent }) => { if (nativeEvent.key === "Backspace") handleBackspace(i); }}
+                onFocus={() => setFocusedIdx(i)}
+                onBlur={() => setFocusedIdx(-1)}
+                keyboardType="number-pad"
+                maxLength={1}
+                placeholder="0"
+                placeholderTextColor={colour.border}
+                style={{
+                  width: 48, height: 56,
+                  borderRadius: radius.md,
+                  borderWidth: 1.5,
+                  borderColor: focusedIdx === i ? colour.primary : code[i] ? colour.primary : colour.border,
+                  backgroundColor: code[i] ? colour.primary50 : colour.white,
+                  fontSize: 20, fontWeight: "700",
+                  textAlign: "center",
+                  color: colour.text,
+                }}
+              />
+            ))}
+          </View>
+
+          {codeError ? (
+            <Text style={{ ...typography.bodyXS, color: colour.danger, textAlign: "center", marginBottom: space.md }}>{codeError}</Text>
+          ) : null}
+
+          {/* Resend */}
+          <View style={{ backgroundColor: colour.primary50, borderRadius: radius.md, padding: space.md, marginBottom: space.lg, alignItems: "center" }}>
+            <Text style={{ ...typography.bodyS, color: colour.textSub, marginBottom: 4 }}>
+              Didn't receive the code?{" "}
+              <Text style={{ color: colour.primary, fontWeight: "600" }}>Resend</Text>
+            </Text>
+            <Text style={{ ...typography.bodyXS, color: colour.textSub }}>Code expires in 10 minutes</Text>
+          </View>
+
+          {/* Tips */}
+          <View style={{ backgroundColor: colour.surface1, borderRadius: radius.md, padding: space.md, marginBottom: space.xl }}>
+            <Text style={{ ...typography.labelS, color: colour.textSub, fontWeight: "700", marginBottom: space.sm }}>Can't find the code?</Text>
+            <Text style={{ ...typography.bodyS, color: colour.textSub, marginBottom: 4 }}>• Check your spam or junk folder</Text>
+            <Text style={{ ...typography.bodyS, color: colour.textSub, marginBottom: 4 }}>• Code expires in 10 minutes</Text>
+            <Text style={{ ...typography.bodyS, color: colour.textSub }}>• Sent from noreply@myexpense.co.za</Text>
+          </View>
+
+          {/* Verify button */}
+          <TouchableOpacity
+            onPress={handleSubmit}
+            disabled={loading || code.length !== 6}
+            style={{ backgroundColor: (loading || code.length !== 6) ? colour.border : colour.primary, borderRadius: radius.pill, height: 52, alignItems: "center", justifyContent: "center", marginBottom: space.md }}
+          >
+            {loading
+              ? <ActivityIndicator color={colour.onPrimary} />
+              : <Text style={{ ...typography.btnL, color: code.length !== 6 ? colour.textSub : colour.onPrimary }}>Verify Email</Text>
+            }
+          </TouchableOpacity>
+
+          {/* Back to sign up */}
+          <TouchableOpacity
+            onPress={() => router.replace("/sign-up")}
+            style={{ borderRadius: radius.pill, height: 52, alignItems: "center", justifyContent: "center", borderWidth: 1.5, borderColor: colour.border }}
+          >
+            <Text style={{ ...typography.btnL, color: colour.textSub }}>Create different account</Text>
+          </TouchableOpacity>
+
         </View>
-
-        {/* Error message */}
-        {errors.code && (
-          <ThemedText style={styles.error}>{errors.code}</ThemedText>
-        )}
-
-        {/* Resend info */}
-        <View style={styles.resendBox}>
-          <ThemedText style={styles.resendText}>
-            Didn't receive the code?{" "}
-            <ThemedText style={styles.resendLink}>Resend</ThemedText>
-          </ThemedText>
-          <ThemedText style={styles.resendHint}>
-            Code expires in 10 minutes
-          </ThemedText>
-        </View>
-
-        {/* Tips */}
-        <View style={styles.tipsBox}>
-          <ThemedText style={styles.tipsTitle}>
-            💡 Can't find the code?
-          </ThemedText>
-          <ThemedText style={styles.tip}>
-            • Check your spam or junk folder
-          </ThemedText>
-          <ThemedText style={styles.tip}>
-            • Code expires in 10 minutes
-          </ThemedText>
-          <ThemedText style={styles.tip}>
-            • Sent from noreply@myexpense.co.za
-          </ThemedText>
-        </View>
-
-        {/* Verify button */}
-        <TouchableOpacity
-          style={[
-            styles.primaryBtn,
-            (loading || code.length !== 6) && styles.primaryBtnDisabled,
-          ]}
-          onPress={handleSubmit}
-          disabled={loading || code.length !== 6}
-        >
-          <ThemedText style={styles.primaryBtnText}>
-            {loading ? "Verifying…" : "Verify Email"}
-          </ThemedText>
-        </TouchableOpacity>
-
-        {/* Back button */}
-        <TouchableOpacity
-          style={styles.secondaryBtn}
-          onPress={() => onNavigate("signup")}
-        >
-          <ThemedText style={styles.secondaryBtnText}>
-            Create different account
-          </ThemedText>
-        </TouchableOpacity>
       </ScrollView>
-    </ThemedView>
+    </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  scrollContent: {
-    flex: 1,
-    paddingHorizontal: 22,
-    paddingVertical: 24,
-  },
-  emailBox: {
-    backgroundColor: "#F5F5F5",
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    marginBottom: 28,
-  },
-  emailLabel: {
-    fontSize: 10,
-    fontWeight: "700",
-    color: "#757575",
-    marginBottom: 4,
-    letterSpacing: 0.5,
-  },
-  emailValue: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#0D47A1",
-  },
-  codeContainer: {
-    flexDirection: "row",
-    gap: 10,
-    marginBottom: 16,
-    justifyContent: "center",
-  },
-  codeInput: {
-    width: 50,
-    height: 50,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: "#E0E0E0",
-    backgroundColor: "#fff",
-    fontSize: 18,
-    fontWeight: "700",
-    textAlign: "center",
-    color: "#0D47A1",
-  },
-  codeInputFocused: {
-    borderColor: "#1565C0",
-    backgroundColor: "#F5F5F5",
-  },
-  codeInputFilled: {
-    borderColor: "#0288D1",
-    backgroundColor: "rgba(2,136,209,0.05)",
-  },
-  error: {
-    fontSize: 11,
-    color: "#E05555",
-    textAlign: "center",
-    marginBottom: 16,
-  },
-  resendBox: {
-    backgroundColor: "rgba(2,136,209,0.08)",
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    marginBottom: 16,
-    alignItems: "center",
-  },
-  resendText: {
-    fontSize: 13,
-    color: "#0D47A1",
-    marginBottom: 4,
-  },
-  resendLink: {
-    color: "#0288D1",
-    fontWeight: "600",
-  },
-  resendHint: {
-    fontSize: 11,
-    color: "#757575",
-  },
-  tipsBox: {
-    backgroundColor: "rgba(2,136,209,0.08)",
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 24,
-  },
-  tipsTitle: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#0D47A1",
-    marginBottom: 8,
-  },
-  tip: {
-    fontSize: 12,
-    color: "#757575",
-    marginBottom: 4,
-    lineHeight: 1.5,
-  },
-  primaryBtn: {
-    backgroundColor: "#0288D1",
-    borderRadius: 18,
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    marginBottom: 12,
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#0288D1",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  primaryBtnDisabled: {
-    backgroundColor: "#E0E0E0",
-    shadowOpacity: 0,
-  },
-  primaryBtnText: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#fff",
-  },
-  secondaryBtn: {
-    borderRadius: 18,
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    borderWidth: 1,
-    borderColor: "#E0E0E0",
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 24,
-  },
-  secondaryBtnText: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#FFFFFF",
-  },
-});

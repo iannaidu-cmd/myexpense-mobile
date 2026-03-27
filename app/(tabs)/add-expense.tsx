@@ -1,84 +1,77 @@
-import { colour, space } from "@/tokens";
-import { NavigationProp } from "@react-navigation/native";
+import { expenseService } from "@/services/expenseService";
+import { scheduleReceiptReminder } from "@/services/notificationService";
+import { useAuthStore } from "@/stores/authStore";
+import { colour, radius, space, typography } from "@/tokens";
+import { ACTIVE_TAX_YEAR } from "@/types/database";
+import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
+  ActivityIndicator,
+  Alert,
   ScrollView,
+  StatusBar,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-interface Props {
-  navigation?: NavigationProp<any>;
-}
-
-const NAV = { Home: "⊞", Scan: "⊡", Reports: "◈", Settings: "⚙" };
-
-function PhoneShell({
-  children,
-  navigation,
-}: {
-  children: React.ReactNode;
-  navigation?: NavigationProp<any>;
-}) {
-  const tabs = [
-    { key: "Home", label: "Home", icon: NAV.Home },
-    { key: "Scan", label: "Scan", icon: NAV.Scan },
-    { key: "Reports", label: "Reports", icon: NAV.Reports },
-    { key: "Settings", label: "Settings", icon: NAV.Settings },
-  ];
-  return (
-    <View style={{ flex: 1, backgroundColor: colour.surface1 }}>
-      <ScrollView
-        style={{ flex: 1 }}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-      >
-        {children}
-      </ScrollView>
-      <View
-        style={{
-          flexDirection: "row",
-          backgroundColor: colour.surface2,
-          borderTopWidth: 1,
-          borderTopColor: colour.border,
-          paddingBottom: space.xs,
-          paddingTop: space.xs,
-        }}
-      >
-        {tabs.map((t) => (
-          <TouchableOpacity
-            key={t.key}
-            onPress={() => navigation?.navigate(t.key)}
-            style={{ flex: 1, alignItems: "center" }}
-          >
-            <Text style={{ fontSize: 20, color: colour.textSub }}>
-              {t.icon}
-            </Text>
-            <Text style={{ fontSize: 10, marginTop: 2, color: colour.textSub }}>
-              {t.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-    </View>
-  );
-}
+const CATEGORIES = [
+  { label: "Travel & Transport", icon: "🚗", code: "S11(a)", deductible: true },
+  { label: "Home Office", icon: "🏠", code: "S11(a)", deductible: true },
+  { label: "Equipment & Tools", icon: "🔧", code: "S11(e)", deductible: true },
+  {
+    label: "Software & Subscriptions",
+    icon: "💻",
+    code: "S11(a)",
+    deductible: true,
+  },
+  {
+    label: "Meals & Entertainment",
+    icon: "🍽",
+    code: "S11(a)",
+    deductible: true,
+  },
+  { label: "Professional Fees", icon: "📋", code: "S11(a)", deductible: true },
+  { label: "Telephone & Cell", icon: "📱", code: "S11(a)", deductible: true },
+  {
+    label: "Marketing & Advertising",
+    icon: "📣",
+    code: "S11(a)",
+    deductible: true,
+  },
+  { label: "Bank Charges", icon: "🏦", code: "S11(a)", deductible: true },
+  { label: "Insurance", icon: "🛡️", code: "S11(a)", deductible: true },
+  { label: "Rent", icon: "🏢", code: "S11(a)", deductible: true },
+  {
+    label: "Repairs & Maintenance",
+    icon: "🔨",
+    code: "S11(a)",
+    deductible: true,
+  },
+  { label: "Education", icon: "📚", code: "S11(a)", deductible: true },
+  { label: "Medical Aid", icon: "💊", code: "S11(a)", deductible: true },
+  { label: "Vehicle Expenses", icon: "🚘", code: "Page 24", deductible: true },
+  {
+    label: "Personal / Non-deductible",
+    icon: "👤",
+    code: "N/A",
+    deductible: false,
+  },
+];
 
 function FieldLabel({ label }: { label: string }) {
   return (
     <Text
       style={{
-        fontSize: 11,
-        fontWeight: "700",
+        ...typography.labelS,
         color: colour.textSub,
         letterSpacing: 0.5,
-        textTransform: "uppercase",
-        marginBottom: 8,
+        marginBottom: space.xs,
       }}
     >
-      {label}
+      {label.toUpperCase()}
     </Text>
   );
 }
@@ -101,223 +94,213 @@ function UnderlineInput({
       value={value}
       onChangeText={onChangeText}
       placeholder={placeholder}
-      placeholderTextColor={colour.textSub}
+      placeholderTextColor={colour.textHint}
       keyboardType={keyboardType}
       multiline={multiline}
       textAlignVertical={multiline ? "top" : "auto"}
       style={{
-        fontSize: 15,
+        ...typography.bodyM,
         color: colour.text,
-        borderBottomWidth: 1,
+        borderBottomWidth: 1.5,
         borderBottomColor: colour.border,
-        paddingBottom: 10,
-        paddingTop: 4,
-        marginBottom: 20,
+        paddingBottom: space.sm,
+        paddingTop: space.xxs,
+        marginBottom: space.lg,
         minHeight: multiline ? 60 : undefined,
       }}
     />
   );
 }
 
-const ITR12_CATEGORIES = [
-  { label: "Travel & Transport", icon: "🚗", code: "S11(a)" },
-  { label: "Home Office", icon: "🏠", code: "S11(a)" },
-  { label: "Equipment & Tools", icon: "🔧", code: "S11(e)" },
-  { label: "Software & Subscr.", icon: "💻", code: "S11(a)" },
-  { label: "Meals & Entertain.", icon: "🍽", code: "S11(a)" },
-  { label: "Professional Fees", icon: "📋", code: "S11(a)" },
-  { label: "Utilities", icon: "⚡", code: "S11(a)" },
-  { label: "Marketing & Adverts", icon: "📣", code: "S11(a)" },
-  { label: "Bank Charges", icon: "🏦", code: "S11(a)" },
-  { label: "Personal / Other", icon: "👤", code: "N/A" },
-];
+export default function AddExpenseTab() {
+  const router = useRouter();
+  const { user } = useAuthStore();
 
-export default function AddExpenseTab({ navigation }: Props) {
   const [amount, setAmount] = useState("");
   const [vendor, setVendor] = useState("");
-  const [date, setDate] = useState(
-    new Date().toLocaleDateString("en-ZA", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    }),
-  );
+  const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [category, setCategory] = useState("");
-  const [expType, setExpType] = useState<"business" | "personal">("business");
-  const [vatNumber, setVatNumber] = useState("");
   const [vatAmount, setVatAmount] = useState("");
   const [note, setNote] = useState("");
   const [showCatPicker, setShowCatPicker] = useState(false);
+  const [saving, setSaving] = useState(false);
 
-  const selectedCat = ITR12_CATEGORIES.find((c) => c.label === category);
-  const canSave = !!amount && !!vendor && !!category;
+  const selectedCat = CATEGORIES.find((c) => c.label === category);
+  const canSave = !!amount && !!vendor && !!category && parseFloat(amount) > 0;
+
+  const handleSave = async () => {
+    if (!canSave || !user) return;
+
+    // Parse date from DD/MM/YYYY or YYYY-MM-DD
+    let expenseDate = date;
+    if (date.includes("/")) {
+      const parts = date.split("/");
+      if (parts.length === 3) {
+        expenseDate = `${parts[2]}-${parts[1].padStart(2, "0")}-${parts[0].padStart(2, "0")}`;
+      }
+    }
+
+    setSaving(true);
+    try {
+      const savedExpense = await expenseService.addExpense(user.id, {
+        vendor: vendor.trim(),
+        amount: parseFloat(amount),
+        category,
+        itr12_code: selectedCat?.code ?? null,
+        tax_year: ACTIVE_TAX_YEAR,
+        expense_date: expenseDate,
+        is_deductible: selectedCat?.deductible ?? false,
+        vat_amount: vatAmount ? parseFloat(vatAmount) : undefined,
+        notes: note.trim() || undefined,
+      });
+
+      // Schedule receipt reminder if no receipt attached and expense is deductible
+      if (savedExpense?.id && selectedCat?.deductible) {
+        try {
+          await scheduleReceiptReminder(
+            savedExpense.id,
+            vendor.trim(),
+            parseFloat(amount),
+          );
+        } catch (e) {
+          // Non-critical — don't block the save flow
+          console.warn("Receipt reminder scheduling failed:", e);
+        }
+      }
+
+      // Reset form
+      setAmount("");
+      setVendor("");
+      setDate(new Date().toISOString().split("T")[0]);
+      setCategory("");
+      setVatAmount("");
+      setNote("");
+
+      Alert.alert(
+        "Expense Saved ✓",
+        `${vendor} — R ${parseFloat(amount).toLocaleString("en-ZA", { minimumFractionDigits: 2 })} has been saved.`,
+        [
+          { text: "Add Another", style: "cancel" },
+          { text: "Go Home", onPress: () => router.replace("/(tabs)") },
+        ],
+      );
+    } catch (e: any) {
+      Alert.alert("Error saving expense", e.message);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
-    <PhoneShell navigation={navigation}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colour.primary }}>
+      <StatusBar barStyle="light-content" backgroundColor={colour.primary} />
+
       {/* Header */}
       <View
         style={{
-          backgroundColor: colour.primary,
-          paddingTop: 52,
-          paddingBottom: 28,
-          paddingHorizontal: 20,
+          paddingHorizontal: space.lg,
+          paddingTop: space.lg,
+          paddingBottom: space["4xl"],
         }}
       >
-        <TouchableOpacity
-          onPress={() => navigation?.goBack()}
-          style={{ marginBottom: 10 }}
-        >
-          <Text style={{ color: colour.accent, fontSize: 13 }}>‹ Home</Text>
-        </TouchableOpacity>
-        <Text
-          style={{
-            color: colour.accent,
-            fontSize: 12,
-            fontWeight: "600",
-            letterSpacing: 1,
-          }}
-        >
-          EXPENSES
+        <Text style={{ ...typography.h3, color: colour.onPrimary }}>
+          Add Expense
         </Text>
         <Text
           style={{
-            color: colour.onPrimary,
-            fontSize: 22,
-            fontWeight: "800",
-            marginTop: 4,
+            ...typography.bodyS,
+            color: "rgba(255,255,255,0.7)",
+            marginTop: 2,
           }}
         >
-          Add Expense
+          Track your tax deductions
         </Text>
       </View>
 
-      <View
+      <ScrollView
         style={{
+          flex: 1,
           backgroundColor: colour.surface1,
-          borderTopLeftRadius: 24,
-          borderTopRightRadius: 24,
-          marginTop: -16,
-          paddingBottom: 30,
+          borderTopLeftRadius: radius.xl,
+          borderTopRightRadius: radius.xl,
         }}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{ paddingBottom: space.xxxl }}
       >
-        {/* Receipt capture shortcuts */}
+        {/* Scan shortcuts */}
         <View
           style={{
             flexDirection: "row",
-            paddingHorizontal: 16,
-            paddingTop: 20,
-            gap: 10,
-            marginBottom: 20,
+            paddingHorizontal: space.lg,
+            paddingTop: space.lg,
+            gap: space.sm,
+            marginBottom: space.lg,
           }}
         >
           <TouchableOpacity
-            onPress={() => navigation?.navigate("ScanReceiptCamera")}
+            onPress={() => router.push("/scan-receipt-camera")}
             style={{
               flex: 1,
               flexDirection: "row",
               alignItems: "center",
               justifyContent: "center",
               backgroundColor: colour.primary,
-              borderRadius: 12,
-              padding: 12,
-              gap: 8,
+              borderRadius: radius.md,
+              padding: space.md,
+              gap: space.sm,
             }}
           >
             <Text style={{ fontSize: 18 }}>📷</Text>
-            <Text
-              style={{
-                fontSize: 13,
-                fontWeight: "700",
-                color: colour.onPrimary,
-              }}
-            >
+            <Text style={{ ...typography.actionS, color: colour.onPrimary }}>
               Scan Receipt
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={() => navigation?.navigate("UploadFromGallery")}
+            onPress={() => router.push("/upload-from-gallery")}
             style={{
               flex: 1,
               flexDirection: "row",
               alignItems: "center",
               justifyContent: "center",
               backgroundColor: colour.surface2,
-              borderRadius: 12,
-              padding: 12,
-              gap: 8,
+              borderRadius: radius.md,
+              padding: space.md,
+              gap: space.sm,
               borderWidth: 1,
               borderColor: colour.border,
             }}
           >
-            <Text style={{ fontSize: 18 }}>🖼</Text>
-            <Text
-              style={{ fontSize: 13, fontWeight: "700", color: colour.text }}
-            >
+            <Text style={{ fontSize: 18 }}>🖼️</Text>
+            <Text style={{ ...typography.actionS, color: colour.text }}>
               From Gallery
             </Text>
           </TouchableOpacity>
         </View>
 
+        {/* Expense Details */}
         <View
           style={{
-            marginHorizontal: 16,
-            backgroundColor: colour.surface2,
-            borderRadius: 14,
-            padding: 20,
+            marginHorizontal: space.lg,
+            backgroundColor: colour.white,
+            borderRadius: radius.lg,
+            padding: space.lg,
             borderWidth: 1,
             borderColor: colour.border,
-            marginBottom: 12,
+            marginBottom: space.md,
           }}
         >
           <Text
             style={{
-              fontSize: 13,
+              ...typography.bodyM,
               fontWeight: "700",
               color: colour.text,
-              marginBottom: 18,
+              marginBottom: space.lg,
             }}
           >
             Expense Details
           </Text>
 
-          {/* Business / Personal toggle */}
-          <FieldLabel label="Expense Type" />
-          <View
-            style={{
-              flexDirection: "row",
-              backgroundColor: colour.surface2,
-              borderRadius: 10,
-              padding: 3,
-              marginBottom: 20,
-            }}
-          >
-            {(["business", "personal"] as const).map((t) => (
-              <TouchableOpacity
-                key={t}
-                onPress={() => setExpType(t)}
-                style={{
-                  flex: 1,
-                  paddingVertical: 8,
-                  borderRadius: 8,
-                  backgroundColor:
-                    expType === t ? colour.primary : "transparent",
-                  alignItems: "center",
-                }}
-              >
-                <Text
-                  style={{
-                    fontSize: 12,
-                    fontWeight: "600",
-                    color: expType === t ? colour.onPrimary : colour.textSub,
-                  }}
-                >
-                  {t === "business" ? "💼 Business" : "👤 Personal"}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          {/* Amount */}
           <FieldLabel label="Amount (ZAR)" />
           <UnderlineInput
             value={amount}
@@ -326,7 +309,6 @@ export default function AddExpenseTab({ navigation }: Props) {
             keyboardType="decimal-pad"
           />
 
-          {/* Vendor */}
           <FieldLabel label="Vendor / Supplier" />
           <UnderlineInput
             value={vendor}
@@ -334,24 +316,22 @@ export default function AddExpenseTab({ navigation }: Props) {
             placeholder="e.g. Engen, Microsoft, Checkers"
           />
 
-          {/* Date */}
-          <FieldLabel label="Date" />
+          <FieldLabel label="Date (YYYY-MM-DD)" />
           <UnderlineInput
             value={date}
             onChangeText={setDate}
-            placeholder="DD/MM/YYYY"
-            keyboardType="numeric"
+            placeholder="YYYY-MM-DD"
           />
 
-          {/* Category */}
+          {/* Category picker */}
           <FieldLabel label="ITR12 Category" />
           <TouchableOpacity
             onPress={() => setShowCatPicker((v) => !v)}
             style={{
-              borderBottomWidth: 1,
+              borderBottomWidth: 1.5,
               borderBottomColor: colour.border,
-              paddingBottom: 10,
-              marginBottom: 8,
+              paddingBottom: space.sm,
+              marginBottom: space.xs,
               flexDirection: "row",
               alignItems: "center",
             }}
@@ -359,43 +339,46 @@ export default function AddExpenseTab({ navigation }: Props) {
             <Text
               style={{
                 flex: 1,
-                fontSize: 15,
-                color: category ? colour.text : colour.textSub,
+                ...typography.bodyM,
+                color: category ? colour.text : colour.textHint,
               }}
             >
               {selectedCat
                 ? `${selectedCat.icon}  ${selectedCat.label}`
                 : "Select a category…"}
             </Text>
-            <Text style={{ color: colour.textMid, fontSize: 16 }}>
+            <Text style={{ color: colour.textSub, fontSize: 16 }}>
               {showCatPicker ? "∨" : "›"}
             </Text>
           </TouchableOpacity>
+
           {selectedCat && (
             <View
               style={{
                 backgroundColor: colour.surface2,
-                borderRadius: 8,
-                paddingHorizontal: 10,
-                paddingVertical: 5,
-                marginBottom: 16,
+                borderRadius: radius.sm,
+                paddingHorizontal: space.sm,
+                paddingVertical: 4,
+                marginBottom: space.md,
                 alignSelf: "flex-start",
               }}
             >
               <Text
                 style={{
-                  fontSize: 11,
+                  ...typography.bodyXS,
                   fontWeight: "700",
-                  color: colour.accent,
+                  color: colour.primary,
                 }}
               >
-                ITR12 {selectedCat.code} — Deductible
+                ITR12 {selectedCat.code} —{" "}
+                {selectedCat.deductible ? "Deductible ✓" : "Non-deductible"}
               </Text>
             </View>
           )}
+
           {showCatPicker && (
-            <View style={{ marginBottom: 16 }}>
-              {ITR12_CATEGORIES.map((cat) => (
+            <View style={{ marginBottom: space.md }}>
+              {CATEGORIES.map((cat) => (
                 <TouchableOpacity
                   key={cat.label}
                   onPress={() => {
@@ -405,21 +388,23 @@ export default function AddExpenseTab({ navigation }: Props) {
                   style={{
                     flexDirection: "row",
                     alignItems: "center",
-                    paddingVertical: 11,
+                    paddingVertical: space.md,
                     borderBottomWidth: 1,
-                    borderBottomColor: colour.border,
+                    borderBottomColor: colour.borderLight,
                   }}
                 >
-                  <Text style={{ fontSize: 18, marginRight: 12 }}>
+                  <Text style={{ fontSize: 18, marginRight: space.md }}>
                     {cat.icon}
                   </Text>
-                  <Text style={{ flex: 1, fontSize: 14, color: colour.text }}>
+                  <Text
+                    style={{ flex: 1, ...typography.bodyM, color: colour.text }}
+                  >
                     {cat.label}
                   </Text>
                   <Text
                     style={{
-                      fontSize: 11,
-                      color: colour.accent,
+                      ...typography.bodyXS,
+                      color: colour.primary,
                       fontWeight: "600",
                     }}
                   >
@@ -428,8 +413,8 @@ export default function AddExpenseTab({ navigation }: Props) {
                   {category === cat.label && (
                     <Text
                       style={{
-                        color: colour.accent,
-                        marginLeft: 8,
+                        color: colour.success,
+                        marginLeft: space.sm,
                         fontWeight: "800",
                       }}
                     >
@@ -442,35 +427,28 @@ export default function AddExpenseTab({ navigation }: Props) {
           )}
         </View>
 
-        {/* VAT Section */}
+        {/* VAT */}
         <View
           style={{
-            marginHorizontal: 16,
-            backgroundColor: colour.surface2,
-            borderRadius: 14,
-            padding: 20,
+            marginHorizontal: space.lg,
+            backgroundColor: colour.white,
+            borderRadius: radius.lg,
+            padding: space.lg,
             borderWidth: 1,
             borderColor: colour.border,
-            marginBottom: 12,
+            marginBottom: space.md,
           }}
         >
           <Text
             style={{
-              fontSize: 13,
+              ...typography.bodyM,
               fontWeight: "700",
               color: colour.text,
-              marginBottom: 18,
+              marginBottom: space.lg,
             }}
           >
             VAT Details (optional)
           </Text>
-          <FieldLabel label="Supplier VAT Number" />
-          <UnderlineInput
-            value={vatNumber}
-            onChangeText={setVatNumber}
-            placeholder="e.g. 4123456789"
-            keyboardType="numeric"
-          />
           <FieldLabel label="VAT Amount (R)" />
           <UnderlineInput
             value={vatAmount}
@@ -480,27 +458,27 @@ export default function AddExpenseTab({ navigation }: Props) {
           />
         </View>
 
-        {/* Note */}
+        {/* Notes */}
         <View
           style={{
-            marginHorizontal: 16,
+            marginHorizontal: space.lg,
             backgroundColor: colour.white,
-            borderRadius: 14,
-            padding: 20,
+            borderRadius: radius.lg,
+            padding: space.lg,
             borderWidth: 1,
             borderColor: colour.border,
-            marginBottom: 20,
+            marginBottom: space.lg,
           }}
         >
           <Text
             style={{
-              fontSize: 13,
+              ...typography.bodyM,
               fontWeight: "700",
               color: colour.text,
-              marginBottom: 18,
+              marginBottom: space.lg,
             }}
           >
-            Notes
+            Notes (optional)
           </Text>
           <FieldLabel label="Description / Note" />
           <UnderlineInput
@@ -511,41 +489,43 @@ export default function AddExpenseTab({ navigation }: Props) {
           />
         </View>
 
-        {/* Save */}
+        {/* Save button */}
         <TouchableOpacity
-          onPress={() =>
-            canSave &&
-            navigation?.navigate("SuccessConfirmation", {
-              context: "expense_saved",
-            })
-          }
-          disabled={!canSave}
+          onPress={handleSave}
+          disabled={!canSave || saving}
           style={{
-            marginHorizontal: 16,
-            backgroundColor: canSave ? colour.accent : colour.surface2,
-            borderRadius: 14,
-            padding: 16,
+            marginHorizontal: space.lg,
+            backgroundColor: canSave ? colour.primary : colour.surface2,
+            borderRadius: radius.lg,
+            height: 52,
             alignItems: "center",
-            marginBottom: 10,
+            justifyContent: "center",
+            marginBottom: space.sm,
           }}
         >
-          <Text
-            style={{
-              color: canSave ? colour.onPrimary : colour.textSub,
-              fontSize: 15,
-              fontWeight: "700",
-            }}
-          >
-            {canSave ? "Save Expense" : "Fill in required fields"}
+          {saving ? (
+            <ActivityIndicator color={colour.onPrimary} />
+          ) : (
+            <Text
+              style={{
+                ...typography.btnL,
+                color: canSave ? colour.onPrimary : colour.textSub,
+              }}
+            >
+              {canSave ? "Save Expense" : "Fill in required fields"}
+            </Text>
+          )}
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={{ alignItems: "center", paddingVertical: space.sm }}
+        >
+          <Text style={{ ...typography.bodyS, color: colour.textSub }}>
+            Cancel
           </Text>
         </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => navigation?.goBack()}
-          style={{ alignItems: "center", paddingVertical: 8 }}
-        >
-          <Text style={{ color: colour.textSub, fontSize: 13 }}>Cancel</Text>
-        </TouchableOpacity>
-      </View>
-    </PhoneShell>
+      </ScrollView>
+    </SafeAreaView>
   );
 }

@@ -1,5 +1,6 @@
 import { ThemedText } from "@/components/themed-text";
 import {
+    Image,
     ScrollView,
     StyleSheet,
     TextInput,
@@ -8,12 +9,15 @@ import {
 } from "react-native";
 import type { OnboardingData, WorkType } from "./types";
 
+// ─── SetupForm ────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+
 interface SetupFormProps {
   data: OnboardingData;
   workTypes: WorkType[];
   onChange: (updates: Partial<OnboardingData>) => void;
   onContinue: () => void;
-  logoUri: string;
+  logoSource: number | { uri: string };
 }
 
 export function SetupForm({
@@ -21,7 +25,7 @@ export function SetupForm({
   workTypes,
   onChange,
   onContinue,
-  logoUri,
+  logoSource,
 }: SetupFormProps) {
   const isValid = data.name.trim().length > 0 && data.workTypeIdx !== null;
 
@@ -29,7 +33,11 @@ export function SetupForm({
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <ThemedText style={styles.logo}>{logoUri}</ThemedText>
+        <Image
+          source={logoSource}
+          style={styles.logoImage}
+          resizeMode="contain"
+        />
         <ThemedText style={styles.title}>Let's set you up</ThemedText>
         <ThemedText style={styles.subtitle}>
           Just 3 quick steps — takes under a minute
@@ -64,7 +72,7 @@ export function SetupForm({
             onChangeText={(name) => onChange({ name })}
             placeholder="e.g. Ian van der Merwe"
             style={styles.textInput}
-            placeholderTextColor="rgba(139, 136, 187, 0.4)"
+            placeholderTextColor="#C5C6CC"
           />
         </View>
 
@@ -79,7 +87,7 @@ export function SetupForm({
             onChangeText={(taxNumber) => onChange({ taxNumber })}
             placeholder="e.g. 1234567890"
             style={styles.textInput}
-            placeholderTextColor="rgba(139, 136, 187, 0.4)"
+            placeholderTextColor="#C5C6CC"
           />
           <ThemedText style={styles.fieldHint}>
             Used to pre-fill your ITR12 export
@@ -97,8 +105,8 @@ export function SetupForm({
                   styles.workTypeOption,
                   {
                     backgroundColor:
-                      data.workTypeIdx === i ? "rgba(21,101,192,0.08)" : "#fff",
-                    borderColor: data.workTypeIdx === i ? "#1565C0" : "#F5F5F5",
+                      data.workTypeIdx === i ? "#EAF2FF" : "#FFFFFF",
+                    borderColor: data.workTypeIdx === i ? "#006FFD" : "#E8E9F1",
                   },
                 ]}
                 onPress={() => onChange({ workTypeIdx: i })}
@@ -111,9 +119,7 @@ export function SetupForm({
                 <ThemedText
                   style={[
                     styles.workTypeLabel,
-                    {
-                      color: data.workTypeIdx === i ? "#1565C0" : "#757575",
-                    },
+                    { color: data.workTypeIdx === i ? "#006FFD" : "#494A50" },
                   ]}
                 >
                   {workType.label}
@@ -148,26 +154,30 @@ export function SetupForm({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F5F5F5",
+    backgroundColor: "#F8F9FE",
     flexDirection: "column",
   },
   header: {
-    backgroundColor: "#1565C0",
-    paddingVertical: 20,
+    backgroundColor: "#FFFFFF",
+    paddingTop: 52,
+    paddingBottom: 20,
     paddingHorizontal: 24,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E8E9F1",
   },
-  logo: {
-    height: 30,
+  logoImage: {
+    width: "55%",
+    height: 32,
     marginBottom: 20,
   },
   title: {
-    color: "#fff",
+    color: "#1F2024",
     fontSize: 22,
     fontWeight: "800",
     marginBottom: 6,
   },
   subtitle: {
-    color: "#9E9E9E",
+    color: "#494A50",
     fontSize: 13,
     marginBottom: 16,
   },
@@ -178,7 +188,7 @@ const styles = StyleSheet.create({
   progressDot: {
     height: 4,
     borderRadius: 2,
-    backgroundColor: "#0288D1",
+    backgroundColor: "#006FFD",
   },
   scrollContent: {
     paddingVertical: 24,
@@ -190,26 +200,26 @@ const styles = StyleSheet.create({
   fieldLabel: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#1565C0",
+    color: "#006FFD",
     marginBottom: 8,
   },
   optional: {
-    color: "#757575",
+    color: "#9E9E9E",
     fontWeight: "400",
   },
   textInput: {
     borderRadius: 14,
     borderWidth: 1.5,
-    borderColor: "#E0E0E0",
+    borderColor: "#D4D6DD",
     paddingVertical: 13,
     paddingHorizontal: 16,
     fontSize: 14,
-    color: "#0D47A1",
-    backgroundColor: "#fff",
+    color: "#1F2024",
+    backgroundColor: "#FFFFFF",
   },
   fieldHint: {
     fontSize: 11,
-    color: "#757575",
+    color: "#71727A",
     marginTop: 6,
     paddingLeft: 4,
   },
@@ -245,24 +255,26 @@ const styles = StyleSheet.create({
     width: 16,
     height: 16,
     borderRadius: 8,
-    backgroundColor: "#1565C0",
+    backgroundColor: "#006FFD",
     alignItems: "center",
     justifyContent: "center",
   },
   checkmarkIcon: {
-    color: "#fff",
+    color: "#FFFFFF",
     fontSize: 10,
     fontWeight: "800",
   },
   footer: {
     paddingVertical: 16,
     paddingHorizontal: 20,
+    backgroundColor: "#FFFFFF",
+    borderTopWidth: 1,
+    borderTopColor: "#E8E9F1",
   },
   continueButton: {
-    backgroundColor: "#0288D1",
+    backgroundColor: "#006FFD",
     borderRadius: 18,
     paddingVertical: 16,
-    paddingHorizontal: 16,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -270,7 +282,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   continueButtonText: {
-    color: "#0D47A1",
+    color: "#FFFFFF",
     fontWeight: "800",
     fontSize: 15,
   },

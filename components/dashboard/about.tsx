@@ -25,7 +25,15 @@ const NAV = { Home: "⊞", Scan: "⊡", Reports: "◈", Settings: "⚙" };
 // Replace FULL_LOGO with your actual base64 gif constant
 const FULL_LOGO = null; // e.g. require('../assets/logo-full.gif')
 
-function PhoneShell({ children, activeTab = "Settings", navigation }) {
+function PhoneShell({
+  children,
+  activeTab = "Settings",
+  navigation,
+}: {
+  children: React.ReactNode;
+  activeTab?: string;
+  navigation?: any;
+}) {
   const tabs = [
     { key: "Home", label: "Home", icon: NAV.Home },
     { key: "Scan", label: "Scan", icon: NAV.Scan },
@@ -79,7 +87,17 @@ function PhoneShell({ children, activeTab = "Settings", navigation }) {
 }
 
 // ─── About Row ────────────────────────────────────────────────────────────────
-function AboutRow({ icon, label, value, onPress }) {
+function AboutRow({
+  icon,
+  label,
+  value,
+  onPress,
+}: {
+  icon: string;
+  label: string;
+  value?: string;
+  onPress?: () => void;
+}) {
   return (
     <TouchableOpacity
       onPress={onPress}
@@ -131,7 +149,7 @@ function AboutRow({ icon, label, value, onPress }) {
 }
 
 // ─── Licence Chip ─────────────────────────────────────────────────────────────
-function LicenceChip({ name, version }) {
+function LicenceChip({ name, version }: { name: string; version: string }) {
   return (
     <View
       style={{
@@ -152,7 +170,15 @@ function LicenceChip({ name, version }) {
 }
 
 // ─── What's New Row ───────────────────────────────────────────────────────────
-function ChangelogItem({ version, date, items }) {
+function ChangelogItem({
+  version,
+  date,
+  items,
+}: {
+  version: string;
+  date: string;
+  items: string[];
+}) {
   const [open, setOpen] = useState(false);
   return (
     <TouchableOpacity
@@ -223,7 +249,7 @@ function ChangelogItem({ version, date, items }) {
 }
 
 // ─── SCREEN: About ────────────────────────────────────────────────────────────
-export default function AboutScreen({ navigation }) {
+export default function AboutScreen({ navigation }: { navigation?: any }) {
   const [tapCount, setTapCount] = useState(0);
   const handleLogoTap = () => {
     setTapCount((c) => {

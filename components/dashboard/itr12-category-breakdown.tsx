@@ -405,7 +405,7 @@ const styles = StyleSheet.create({
   chartLabelText: {
     fontSize: 12,
     fontWeight: "700",
-    marginBottomB: 4,
+    marginBottom: 4,
   },
   chartDescription: {
     fontSize: 11,

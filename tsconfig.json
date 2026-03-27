@@ -5,6 +5,10 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./*"],
+      "@/lib/*": ["./lib/*"],
+      "@/types/*": ["./types/*"],
+      "@/services/*": ["./services/*"],
+      "@/stores/*": ["./stores/*"],
       "@/components/*": ["components/*"],
       "@/tokens/*": ["tokens/*"]
     }

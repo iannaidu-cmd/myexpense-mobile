@@ -21,7 +21,15 @@ const C = {
 
 const NAV = { Home: "⊞", Scan: "⊡", Reports: "◈", Settings: "⚙" };
 
-function PhoneShell({ children, activeTab = "Settings", navigation }) {
+function PhoneShell({
+  children,
+  activeTab = "Settings",
+  navigation,
+}: {
+  children: React.ReactNode;
+  activeTab?: string;
+  navigation?: any;
+}) {
   const tabs = [
     { key: "Home", label: "Home", icon: NAV.Home },
     { key: "Scan", label: "Scan", icon: NAV.Scan },
@@ -75,7 +83,21 @@ function PhoneShell({ children, activeTab = "Settings", navigation }) {
 }
 
 // ─── Toggle Row ───────────────────────────────────────────────────────────────
-function ToggleRow({ icon, label, sublabel, value, onToggle, indent = false }) {
+function ToggleRow({
+  icon,
+  label,
+  sublabel,
+  value,
+  onToggle,
+  indent = false,
+}: {
+  icon?: string;
+  label: string;
+  sublabel?: string;
+  value: boolean;
+  onToggle: (v: boolean) => void;
+  indent?: boolean;
+}) {
   return (
     <View
       style={{
@@ -141,7 +163,17 @@ function ToggleRow({ icon, label, sublabel, value, onToggle, indent = false }) {
 }
 
 // ─── Frequency Selector ───────────────────────────────────────────────────────
-function FrequencySelector({ label, options, value, onChange }) {
+function FrequencySelector({
+  label,
+  options,
+  value,
+  onChange,
+}: {
+  label: string;
+  options: string[];
+  value: string;
+  onChange: (v: string) => void;
+}) {
   return (
     <View
       style={{
@@ -191,7 +223,11 @@ function FrequencySelector({ label, options, value, onChange }) {
 }
 
 // ─── SCREEN: Notification Preferences ────────────────────────────────────────
-export default function NotificationPrefsScreen({ navigation }) {
+export default function NotificationPrefsScreen({
+  navigation,
+}: {
+  navigation?: any;
+}) {
   const [prefs, setPrefs] = useState({
     masterPush: true,
     receiptReminder: true,
@@ -211,7 +247,8 @@ export default function NotificationPrefsScreen({ navigation }) {
   const [quietStart, setQuietStart] = useState("22:00");
   const [quietEnd, setQuietEnd] = useState("07:00");
 
-  const toggle = (key) => setPrefs((p) => ({ ...p, [key]: !p[key] }));
+  const toggle = (key: string) =>
+    setPrefs((p) => ({ ...p, [key]: !p[key as keyof typeof p] }));
 
   return (
     <PhoneShell activeTab="Settings" navigation={navigation}>

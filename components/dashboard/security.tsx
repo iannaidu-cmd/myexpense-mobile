@@ -21,7 +21,15 @@ const C = {
 
 const NAV = { Home: "⊞", Scan: "⊡", Reports: "◈", Settings: "⚙" };
 
-function PhoneShell({ children, activeTab = "Settings", navigation }) {
+function PhoneShell({
+  children,
+  activeTab = "Settings",
+  navigation,
+}: {
+  children: React.ReactNode;
+  activeTab?: string;
+  navigation?: any;
+}) {
   const tabs = [
     { key: "Home", label: "Home", icon: NAV.Home },
     { key: "Scan", label: "Scan", icon: NAV.Scan },
@@ -85,6 +93,16 @@ function SecurityRow({
   onToggle,
   onPress,
   danger = false,
+}: {
+  icon: string;
+  label: string;
+  sublabel?: string;
+  value?: string;
+  toggle?: boolean;
+  toggleValue?: boolean;
+  onToggle?: (v: boolean) => void;
+  onPress?: () => void;
+  danger?: boolean;
 }) {
   return (
     <TouchableOpacity
@@ -153,7 +171,17 @@ function SecurityRow({
 }
 
 // ─── Session Row ──────────────────────────────────────────────────────────────
-function SessionRow({ device, location, lastActive, current }) {
+function SessionRow({
+  device,
+  location,
+  lastActive,
+  current,
+}: {
+  device: string;
+  location: string;
+  lastActive: string;
+  current?: boolean;
+}) {
   return (
     <View
       style={{
@@ -217,7 +245,7 @@ function SessionRow({ device, location, lastActive, current }) {
 }
 
 // ─── SCREEN: Security ─────────────────────────────────────────────────────────
-export default function SecurityScreen({ navigation }) {
+export default function SecurityScreen({ navigation }: { navigation?: any }) {
   const [biometrics, setBiometrics] = useState(true);
   const [pin, setPin] = useState(true);
   const [twoFactor, setTwoFactor] = useState(false);

@@ -1,169 +1,416 @@
-import { ProcessingStageComponent } from "@/components/scan/processing-stage";
-import { ReviewStageComponent } from "@/components/scan/review-stage";
-import { ScanStageComponent } from "@/components/scan/scan-stage";
-import { SuccessStageComponent } from "@/components/scan/success-stage";
-import type { Category, Receipt, ScanStage } from "@/components/scan/types";
-import { UploadGalleryScreen } from "@/components/scan/upload-gallery";
-import { ThemedView } from "@/components/themed-view";
-import { useThemeColor } from "@/hooks/use-theme-color";
-import { useEffect, useState } from "react";
-import { ScrollView, StyleSheet } from "react-native";
+import { useAuthStore } from "@/stores/authStore";
+import { colour, radius, space, typography } from "@/tokens";
+import { useFocusEffect, useRouter } from "expo-router";
+import React, { useCallback, useState } from "react";
+import {
+  ActivityIndicator,
+  ScrollView,
+  StatusBar,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-import { colour } from "@/tokens";
+const STATUS_CONFIG = {
+  pending: { label: "Pending", bg: colour.warningLight, text: colour.warning },
+  processing: { label: "Processing", bg: colour.infoLight, text: colour.info },
+  done: { label: "Processed", bg: colour.successLight, text: colour.success },
+  failed: { label: "Failed", bg: colour.dangerLight, text: colour.danger },
+} as const;
 
-export const CATEGORIES: Category[] = [
-  {
-    code: "TRAVEL",
-    label: "Travel & Transport",
-    icon: "🚗",
-    color: colour.primary,
-  },
-  {
-    code: "OFFICE",
-    label: "Office & Stationery",
-    icon: "💼",
-    color: colour.primary,
-  },
-  {
-    code: "SOFTWARE",
-    label: "Software & Tech",
-    icon: "💻",
-    color: colour.primary,
-  },
-  {
-    code: "MEALS",
-    label: "Meals & Entertainment",
-    icon: "🍽️",
-    color: colour.accent,
-  },
-  {
-    code: "PROF",
-    label: "Professional Services",
-    icon: "📋",
-    color: colour.primary,
-  },
-  { code: "OTHER", label: "Other", icon: "📦", color: colour.primary50 },
-];
+const formatDate = (dateStr: string) => {
+  const d = new Date(dateStr);
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+  if (d.toDateString() === today.toDateString()) return "Today";
+  if (d.toDateString() === yesterday.toDateString()) return "Yesterday";
+  return d.toLocaleDateString("en-ZA", { day: "numeric", month: "short" });
+};
 
-export function CameraScanScreen() {
-  const [stage, setStage] = useState<ScanStage>("scan");
-  const [selectedCatIdx, setSelectedCatIdx] = useState(2); // Software by default
-  const [scanProgress, setScanProgress] = useState(0);
-  const [scanLine, setScanLine] = useState(0);
-  const [pulseRing, setPulseRing] = useState(false);
+export default function ScanTabScreen() {
+  const router = useRouter();
+  const { user } = useAuthStore();
+  const [tab, setTab] = useState<"scan" | "history">("scan");
+  const [receipts, setReceipts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  const backgroundColor = useThemeColor({}, "background");
+  const loadReceipts = useCallback(async () => {
+    if (!user || tab !== "history") return;
+    setLoading(true);
+    try {
+      const { supabase } = await import("@/lib/supabase");
+      const { data } = await supabase
+        .from("receipts")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(20);
+      setReceipts(data ?? []);
+    } catch (e) {
+      console.error("Receipts load error:", e);
+    } finally {
+      setLoading(false);
+    }
+  }, [user, tab]);
 
-  // Mock receipt - replace with real data from API
-  const mockReceipt: Receipt = {
-    id: "rec_1",
-    vendor: "Incredible Connection",
-    date: "12 Mar 2026",
-    total: 1249,
-    vat: 162.87,
-    items: [
-      { description: "USB-C Hub", quantity: 1 },
-      { description: "HDMI Cable", quantity: 2 },
-    ],
-    categoryCode: CATEGORIES[selectedCatIdx].code,
-    categoryLabel: CATEGORIES[selectedCatIdx].label,
-    confidence: 94,
-    deductible: true,
-  };
-
-  // Animate scan line during processing
-  useEffect(() => {
-    if (stage !== "processing") return;
-    let p = 0;
-    const interval = setInterval(() => {
-      p += 2;
-      setScanProgress(p);
-      setScanLine(p % 100);
-      if (p >= 100) {
-        clearInterval(interval);
-        setTimeout(() => setStage("review"), 400);
-      }
-    }, 30);
-    return () => clearInterval(interval);
-  }, [stage]);
-
-  // Pulse animation for camera button
-  useEffect(() => {
-    const timer = setInterval(() => setPulseRing((p) => !p), 1400);
-    return () => clearInterval(timer);
-  }, []);
-
-  const handleBack = () => {
-    if (stage === "review") setStage("scan");
-    else if (stage === "done") setStage("scan");
-  };
-
-  const handleSave = () => {
-    setStage("done");
-  };
-
-  const handleStartOver = () => {
-    setScanProgress(0);
-    setScanLine(0);
-    setSelectedCatIdx(2);
-    setStage("scan");
-  };
+  useFocusEffect(
+    useCallback(() => {
+      loadReceipts();
+    }, [loadReceipts]),
+  );
 
   return (
-    <ThemedView style={[styles.container, { backgroundColor }]}>
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        scrollEventThrottle={16}
-        showsVerticalScrollIndicator={false}
-        nestedScrollEnabled={true}
+    <SafeAreaView style={{ flex: 1, backgroundColor: colour.primary }}>
+      <StatusBar barStyle="light-content" backgroundColor={colour.primary} />
+
+      {/* Header */}
+      <View
+        style={{
+          paddingHorizontal: space.lg,
+          paddingTop: space.lg,
+          paddingBottom: space["4xl"],
+        }}
       >
-        {stage === "scan" && (
-          <ScanStageComponent
-            pulseRing={pulseRing}
-            onCapture={() => setStage("processing")}
-          />
-        )}
+        <Text style={{ ...typography.h3, color: colour.onPrimary }}>
+          Scan & Upload
+        </Text>
+        <Text
+          style={{
+            ...typography.bodyS,
+            color: "rgba(255,255,255,0.7)",
+            marginTop: 2,
+          }}
+        >
+          OCR-powered receipt capture
+        </Text>
+      </View>
 
-        {stage === "processing" && (
-          <ProcessingStageComponent
-            scanProgress={scanProgress}
-            scanLine={scanLine}
-          />
-        )}
+      <ScrollView
+        style={{
+          flex: 1,
+          backgroundColor: colour.bgPage,
+          borderTopLeftRadius: radius.xl,
+          borderTopRightRadius: radius.xl,
+        }}
+        contentContainerStyle={{ paddingBottom: space["5xl"] }}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Tab toggle */}
+        <View style={{ flexDirection: "row", margin: space.lg, gap: space.sm }}>
+          {(["scan", "history"] as const).map((t) => (
+            <TouchableOpacity
+              key={t}
+              onPress={() => {
+                setTab(t);
+                if (t === "history") loadReceipts();
+              }}
+              style={{
+                flex: 1,
+                height: 40,
+                borderRadius: radius.pill,
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: tab === t ? colour.primary : "transparent",
+                borderWidth: 1.5,
+                borderColor: tab === t ? colour.primary : colour.border,
+              }}
+            >
+              <Text
+                style={{
+                  ...typography.btnM,
+                  color:
+                    tab === t ? colour.textOnPrimary : colour.textSecondary,
+                }}
+              >
+                {t === "scan" ? "Capture" : "History"}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
 
-        {stage === "review" && (
-          <ReviewStageComponent
-            receipt={mockReceipt}
-            categories={CATEGORIES}
-            selectedCatIdx={selectedCatIdx}
-            onBack={handleBack}
-            onCategorySelect={setSelectedCatIdx}
-            onSave={handleSave}
-          />
-        )}
+        {tab === "scan" ? (
+          <View style={{ paddingHorizontal: space.lg }}>
+            {/* Camera CTA */}
+            <TouchableOpacity
+              onPress={() => router.push("/scan-receipt-camera")}
+              style={{
+                backgroundColor: colour.primary,
+                borderRadius: radius.lg,
+                padding: space["3xl"],
+                alignItems: "center",
+                marginBottom: space.lg,
+              }}
+            >
+              <View
+                style={{
+                  width: 80,
+                  height: 80,
+                  borderRadius: 40,
+                  backgroundColor: "rgba(255,255,255,0.2)",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginBottom: space.lg,
+                }}
+              >
+                <Text style={{ fontSize: 40 }}>📸</Text>
+              </View>
+              <Text
+                style={{
+                  ...typography.h4,
+                  color: colour.textOnPrimary,
+                  marginBottom: space.xs,
+                }}
+              >
+                Scan Receipt
+              </Text>
+              <Text
+                style={{
+                  ...typography.bodyM,
+                  color: "rgba(255,255,255,0.8)",
+                  textAlign: "center",
+                }}
+              >
+                Point your camera at a receipt to auto-capture amount, date and
+                vendor
+              </Text>
+            </TouchableOpacity>
 
-        {stage === "done" && (
-          <SuccessStageComponent
-            receipt={mockReceipt}
-            onStartOver={handleStartOver}
-          />
+            {/* Upload from gallery */}
+            <TouchableOpacity
+              onPress={() => router.push("/upload-from-gallery")}
+              style={{
+                backgroundColor: colour.bgCard,
+                borderRadius: radius.lg,
+                padding: space.xl,
+                flexDirection: "row",
+                alignItems: "center",
+                marginBottom: space.md,
+                borderWidth: 1,
+                borderColor: colour.border,
+              }}
+            >
+              <View
+                style={{
+                  width: 52,
+                  height: 52,
+                  borderRadius: radius.md,
+                  backgroundColor: colour.primaryLight,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginRight: space.lg,
+                }}
+              >
+                <Text style={{ fontSize: 26 }}>🖼️</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ ...typography.h4, color: colour.textPrimary }}>
+                  Upload from Gallery
+                </Text>
+                <Text
+                  style={{ ...typography.bodyS, color: colour.textSecondary }}
+                >
+                  Select photos or PDFs from your device
+                </Text>
+              </View>
+              <Text style={{ color: colour.textSecondary, fontSize: 18 }}>
+                ›
+              </Text>
+            </TouchableOpacity>
+
+            {/* Add manually */}
+            <TouchableOpacity
+              onPress={() => router.push("/(tabs)/add-expense")}
+              style={{
+                backgroundColor: colour.bgCard,
+                borderRadius: radius.lg,
+                padding: space.xl,
+                flexDirection: "row",
+                alignItems: "center",
+                marginBottom: space.xl,
+                borderWidth: 1,
+                borderColor: colour.border,
+              }}
+            >
+              <View
+                style={{
+                  width: 52,
+                  height: 52,
+                  borderRadius: radius.md,
+                  backgroundColor: colour.tealLight,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginRight: space.lg,
+                }}
+              >
+                <Text style={{ fontSize: 26 }}>✏️</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ ...typography.h4, color: colour.textPrimary }}>
+                  Enter Manually
+                </Text>
+                <Text
+                  style={{ ...typography.bodyS, color: colour.textSecondary }}
+                >
+                  Type in expense details directly
+                </Text>
+              </View>
+              <Text style={{ color: colour.textSecondary, fontSize: 18 }}>
+                ›
+              </Text>
+            </TouchableOpacity>
+
+            {/* Tips */}
+            <View
+              style={{
+                backgroundColor: colour.infoLight,
+                borderRadius: radius.md,
+                padding: space.lg,
+              }}
+            >
+              <Text
+                style={{
+                  ...typography.labelM,
+                  color: colour.info,
+                  marginBottom: space.sm,
+                }}
+              >
+                📋 Tips for best scan results
+              </Text>
+              {[
+                "Ensure good lighting — avoid shadows on the receipt",
+                "Keep the receipt flat and uncrumpled",
+                "Capture the full receipt including the total amount",
+                "JPEG and PDF formats are supported",
+              ].map((tip, i) => (
+                <View
+                  key={i}
+                  style={{ flexDirection: "row", marginBottom: space.xs }}
+                >
+                  <Text style={{ ...typography.bodyS, color: colour.info }}>
+                    • {tip}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        ) : (
+          <View style={{ paddingHorizontal: space.lg }}>
+            <Text
+              style={{
+                ...typography.labelM,
+                color: colour.textSecondary,
+                marginBottom: space.sm,
+              }}
+            >
+              RECENT RECEIPTS
+            </Text>
+            {loading ? (
+              <View style={{ alignItems: "center", paddingTop: space["3xl"] }}>
+                <ActivityIndicator color={colour.primary} />
+              </View>
+            ) : receipts.length === 0 ? (
+              <View
+                style={{ alignItems: "center", paddingVertical: space["4xl"] }}
+              >
+                <Text style={{ fontSize: 40, marginBottom: space.md }}>🧾</Text>
+                <Text style={{ ...typography.h4, color: colour.textPrimary }}>
+                  No receipts yet
+                </Text>
+                <Text
+                  style={{
+                    ...typography.bodyM,
+                    color: colour.textSecondary,
+                    textAlign: "center",
+                    marginTop: space.xs,
+                  }}
+                >
+                  Scan your first receipt to get started
+                </Text>
+              </View>
+            ) : (
+              <View
+                style={{
+                  backgroundColor: colour.bgCard,
+                  borderRadius: radius.md,
+                  borderWidth: 1,
+                  borderColor: colour.border,
+                }}
+              >
+                {receipts.map((receipt, i) => {
+                  const status =
+                    receipt.ocr_status as keyof typeof STATUS_CONFIG;
+                  const cfg = STATUS_CONFIG[status] ?? STATUS_CONFIG.pending;
+                  return (
+                    <TouchableOpacity
+                      key={receipt.id}
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        padding: space.lg,
+                        borderBottomWidth: i < receipts.length - 1 ? 1 : 0,
+                        borderBottomColor: colour.border,
+                      }}
+                    >
+                      <View
+                        style={{
+                          width: 44,
+                          height: 44,
+                          borderRadius: radius.sm,
+                          backgroundColor: colour.primaryLight,
+                          alignItems: "center",
+                          justifyContent: "center",
+                          marginRight: space.md,
+                        }}
+                      >
+                        <Text style={{ fontSize: 20 }}>🧾</Text>
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text
+                          style={{
+                            ...typography.labelM,
+                            color: colour.textPrimary,
+                          }}
+                          numberOfLines={1}
+                        >
+                          {receipt.file_name ?? "Receipt"}
+                        </Text>
+                        <Text
+                          style={{
+                            ...typography.caption,
+                            color: colour.textSecondary,
+                          }}
+                        >
+                          {formatDate(receipt.created_at)}
+                        </Text>
+                      </View>
+                      <View
+                        style={{
+                          backgroundColor: cfg.bg,
+                          borderRadius: radius.full,
+                          paddingHorizontal: space.xs,
+                          paddingVertical: 2,
+                        }}
+                      >
+                        <Text
+                          style={{
+                            ...typography.micro,
+                            color: cfg.text,
+                            fontWeight: "600",
+                          }}
+                        >
+                          {cfg.label}
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            )}
+          </View>
         )}
       </ScrollView>
-    </ThemedView>
+    </SafeAreaView>
   );
 }
-
-export function ScanTab() {
-  return <UploadGalleryScreen />;
-}
-
-export default ScanTab;
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingBottom: 100,
-  },
-});

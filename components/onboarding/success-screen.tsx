@@ -73,7 +73,7 @@ export function SuccessScreen({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#1565C0",
+    backgroundColor: "#FFFFFF",
     flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
@@ -84,38 +84,41 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: "#0288D1",
+    backgroundColor: "#006FFD",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 28,
   },
+  // Checkmark stays white — it's on the blue circle
   checkmark: {
     fontSize: 48,
-    color: "#fff",
+    color: "#FFFFFF",
     fontWeight: "900",
   },
   heading: {
-    color: "#fff",
+    color: "#1F2024",
     fontSize: 26,
     fontWeight: "800",
     marginBottom: 10,
     textAlign: "center",
   },
   subtitle: {
-    color: "#9E9E9E",
+    color: "#494A50",
     fontSize: 14,
+    lineHeight: 22,
     marginBottom: 36,
     textAlign: "center",
   },
+  // FIX: was rgba(255,255,255,0.05) near-invisible on dark — now clean card on white
   summaryCard: {
-    backgroundColor: "rgba(255,255,255,0.05)",
+    backgroundColor: "#F8F9FE",
     borderRadius: 20,
     paddingVertical: 20,
     paddingHorizontal: 24,
     width: "100%",
     marginBottom: 32,
     borderWidth: 1,
-    borderColor: "#1976D2",
+    borderColor: "#E8E9F1",
   },
   summaryRow: {
     flexDirection: "row",
@@ -125,19 +128,19 @@ const styles = StyleSheet.create({
   },
   summaryRowBorder: {
     borderBottomWidth: 1,
-    borderBottomColor: "#1976D2",
+    borderBottomColor: "#E8E9F1",
   },
   summaryLabel: {
-    color: "#757575",
+    color: "#71727A",
     fontSize: 12,
   },
   summaryValue: {
-    color: "#fff",
+    color: "#1F2024",
     fontSize: 13,
     fontWeight: "600",
   },
   dashboardButton: {
-    backgroundColor: "#0288D1",
+    backgroundColor: "#006FFD",
     borderRadius: 18,
     paddingVertical: 16,
     paddingHorizontal: 16,
@@ -146,7 +149,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   dashboardButtonText: {
-    color: "#0D47A1",
+    color: "#FFFFFF",
     fontWeight: "800",
     fontSize: 15,
   },

@@ -21,3 +21,14 @@ export interface ExpenseData {
   paymentMethodIdx: number;
   isDeductible: boolean;
 }
+
+/** Alias used by external consumers */
+export type AddExpenseFormData = ExpenseData;
+
+export interface CategoryPickerProps {
+  visible: boolean;
+  categories: Category[];
+  selectedIdx: number | null;
+  onSelect: (idx: number) => void;
+  onClose: () => void;
+}

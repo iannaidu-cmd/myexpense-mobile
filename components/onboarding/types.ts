@@ -10,6 +10,8 @@ export interface OnboardingSlide {
   sub: string;
   accent?: string;
   bg?: string[];
+  textColor?: string;
+  subColor?: string;
   stat?: {
     value: string;
     label: string;

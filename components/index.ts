@@ -11,5 +11,5 @@ export { MXNavRow } from "./MXNavRow";
 export { MXScreenHeader } from "./MXScreenHeader";
 export { MXShell } from "./MXShell";
 export type { MXTab } from "./MXShell";
-export { MXStatCard } from "./MXStatCard";
+export { default as MXStatCard } from "./MXStatCard";
 

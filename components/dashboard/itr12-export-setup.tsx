@@ -89,6 +89,11 @@ const EXPORT_CATEGORIES: ExportCategory[] = [
     name: "Home Office",
     icon: "🏠",
     color: "#0288D1",
+    amount: 4800,
+    included: true,
+    note: "Calculated %",
+  },
+];
 
 const EXPORT_FORMATS: ExportFormat[] = [
   {

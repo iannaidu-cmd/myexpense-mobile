@@ -21,7 +21,15 @@ const C = {
 
 const NAV = { Home: "⊞", Scan: "⊡", Reports: "◈", Settings: "⚙" };
 
-function PhoneShell({ children, activeTab = "Settings", navigation }) {
+function PhoneShell({
+  children,
+  activeTab = "Settings",
+  navigation,
+}: {
+  children: React.ReactNode;
+  activeTab?: string;
+  navigation?: any;
+}) {
   const tabs = [
     { key: "Home", label: "Home", icon: NAV.Home },
     { key: "Scan", label: "Scan", icon: NAV.Scan },
@@ -83,6 +91,14 @@ function PlanCard({
   current,
   recommended,
   onSelect,
+}: {
+  name: string;
+  price: string;
+  period: string;
+  features: string[];
+  current?: boolean;
+  recommended?: boolean;
+  onSelect?: () => void;
 }) {
   return (
     <TouchableOpacity
@@ -197,7 +213,17 @@ function PlanCard({
 }
 
 // ─── Billing History Row ──────────────────────────────────────────────────────
-function BillingRow({ date, description, amount, status }) {
+function BillingRow({
+  date,
+  description,
+  amount,
+  status,
+}: {
+  date: string;
+  description: string;
+  amount: string;
+  status: string;
+}) {
   return (
     <View
       style={{
@@ -246,7 +272,11 @@ function BillingRow({ date, description, amount, status }) {
 }
 
 // ─── SCREEN: Subscription & Billing ──────────────────────────────────────────
-export default function SubscriptionBillingScreen({ navigation }) {
+export default function SubscriptionBillingScreen({
+  navigation,
+}: {
+  navigation?: any;
+}) {
   const [billingCycle, setBillingCycle] = useState("monthly");
 
   const plans = [

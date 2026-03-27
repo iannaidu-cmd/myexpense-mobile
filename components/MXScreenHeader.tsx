@@ -1,13 +1,15 @@
 // ─── MXScreenHeader ───────────────────────────────────────────────────────────
 // white (default) or tinted (primary50 #EAF2FF) variant, back button
 
+import { IconSymbol } from "@/components/ui/icon-symbol";
 import { colour, space } from "@/tokens";
 import React from "react";
 import {
     Platform,
     StatusBar,
+    Text,
     TouchableOpacity,
-    View
+    View,
 } from "react-native";
 
 type HeaderVariant = "white" | "tinted";
@@ -56,11 +58,32 @@ export function MXScreenHeader({
             onPress={onBack}
             activeOpacity={0.7}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            style={{ marginRight: space.sm }}
           >
-            {/* Icon here */}
+            <IconSymbol name="chevron.left" size={22} color={colour.text} />
           </TouchableOpacity>
         )}
-        {/* ...rest of component... */}
+        {/* Title + subtitle */}
+        <View style={{ flex: 1 }}>
+          <Text
+            style={{ fontSize: 16, fontWeight: "600", color: colour.text }}
+            numberOfLines={1}
+          >
+            {title}
+          </Text>
+          {subtitle ? (
+            <Text
+              style={{ fontSize: 12, color: colour.textHint, marginTop: 2 }}
+              numberOfLines={1}
+            >
+              {subtitle}
+            </Text>
+          ) : null}
+        </View>
+        {/* Right action */}
+        {rightAction ? (
+          <View style={{ marginLeft: space.sm }}>{rightAction}</View>
+        ) : null}
       </View>
     </View>
   );
