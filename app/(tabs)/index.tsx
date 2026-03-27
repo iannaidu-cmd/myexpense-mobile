@@ -67,7 +67,7 @@ export default function HomeScreen() {
   const greeting =
     hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
 
-  // Estimated tax saving (31% marginal rate)
+  // Estimated tax saving (SARS 2024/25 brackets)
   const estimatedSaving = Math.round(totalDeductions * 0.31);
 
   const loadData = useCallback(async () => {

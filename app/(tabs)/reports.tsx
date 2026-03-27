@@ -1,7 +1,7 @@
+import { MXHeader } from "@/components/MXHeader";
 import { expenseService } from "@/services/expenseService";
 import { incomeService } from "@/services/incomeService";
 import { useAuthStore } from "@/stores/authStore";
-import { MXHeader } from "@/components/MXHeader";
 import { colour, radius, space, typography } from "@/tokens";
 import { ACTIVE_TAX_YEAR } from "@/types/database";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -17,12 +17,48 @@ import {
 } from "react-native";
 
 const REPORT_TILES = [
-  { icon: "📊", title: "Income vs Expenses", sub: "Monthly comparison",        route: "/tax-summary",        accent: colour.primary },
-  { icon: "💰", title: "Tax Savings",         sub: "ITR12 deduction summary",   route: "/tax-summary",        accent: colour.success },
-  { icon: "🗂️", title: "Category Breakdown",  sub: "Expenses by SARS category", route: "/category-breakdown", accent: colour.warning },
-  { icon: "📤", title: "Export Centre",        sub: "PDF · CSV · ITR12",         route: "/itr12-export-setup", accent: colour.danger  },
-  { icon: "🧾", title: "VAT Summary",          sub: "Input tax claimable",       route: "/vat-summary",        accent: colour.info    },
-  { icon: "🚗", title: "Mileage Tracker",      sub: "Logbook & travel claims",   route: "/mileage-tracker",    accent: colour.teal    },
+  {
+    icon: "📊",
+    title: "Income vs Expenses",
+    sub: "Monthly comparison",
+    route: "/tax-summary",
+    accent: colour.primary,
+  },
+  {
+    icon: "💰",
+    title: "Tax Savings",
+    sub: "ITR12 deduction summary",
+    route: "/tax-summary",
+    accent: colour.success,
+  },
+  {
+    icon: "🗂️",
+    title: "Category Breakdown",
+    sub: "Expenses by SARS category",
+    route: "/category-breakdown",
+    accent: colour.warning,
+  },
+  {
+    icon: "📤",
+    title: "Export Centre",
+    sub: "PDF · CSV · ITR12",
+    route: "/itr12-export-setup",
+    accent: colour.danger,
+  },
+  {
+    icon: "🧾",
+    title: "VAT Summary",
+    sub: "Input tax claimable",
+    route: "/vat-summary",
+    accent: colour.info,
+  },
+  {
+    icon: "🚗",
+    title: "Mileage Tracker",
+    sub: "Logbook & travel claims",
+    route: "/mileage-tracker",
+    accent: colour.teal,
+  },
 ];
 
 const fmt = (n: number) =>
@@ -33,7 +69,7 @@ const fmt = (n: number) =>
 
 const fmtShort = (n: number) => {
   if (n >= 1_000_000) return `R ${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000)     return `R ${(n / 1_000).toFixed(1)}k`;
+  if (n >= 1_000) return `R ${(n / 1_000).toFixed(1)}k`;
   return `R ${n.toFixed(0)}`;
 };
 
@@ -41,11 +77,11 @@ export default function ReportsTabScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
 
-  const [loading, setLoading]               = useState(true);
-  const [totalIncome, setTotalIncome]       = useState(0);
-  const [totalExpenses, setTotalExpenses]   = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [totalIncome, setTotalIncome] = useState(0);
+  const [totalExpenses, setTotalExpenses] = useState(0);
   const [totalDeductions, setTotalDeductions] = useState(0);
-  const [monthlyData, setMonthlyData]       = useState<
+  const [monthlyData, setMonthlyData] = useState<
     { label: string; income: number; expense: number }[]
   >([]);
 
@@ -69,9 +105,9 @@ export default function ReportsTabScreen() {
       const now = new Date();
       for (let i = 5; i >= 0; i--) {
         const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        const label    = d.toLocaleString("en-ZA", { month: "short" });
+        const label = d.toLocaleString("en-ZA", { month: "short" });
         const monthStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-        const incomeTotal  = allIncome
+        const incomeTotal = allIncome
           .filter((e) => e.date.startsWith(monthStr))
           .reduce((s, e) => s + Number(e.amount), 0);
         const expenseTotal = allExpenses
@@ -87,12 +123,16 @@ export default function ReportsTabScreen() {
     }
   }, [user]);
 
-  useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [loadData]),
+  );
 
   const estTaxSaving = Math.round(totalDeductions * 0.31);
   const maxVal = Math.max(
     ...monthlyData.flatMap((d) => [d.income, d.expense]),
-    1
+    1,
   );
 
   return (
@@ -102,7 +142,9 @@ export default function ReportsTabScreen() {
       <MXHeader
         title="Reports"
         right={
-          <TouchableOpacity onPress={() => router.push("/tax-year-selector" as any)}>
+          <TouchableOpacity
+            onPress={() => router.push("/tax-year-selector" as any)}
+          >
             <Text style={{ ...typography.labelS, color: colour.onPrimary }}>
               FY {ACTIVE_TAX_YEAR} ›
             </Text>
@@ -136,9 +178,21 @@ export default function ReportsTabScreen() {
               }}
             >
               {[
-                { label: "Income",    value: fmtShort(totalIncome),      accent: colour.success },
-                { label: "Expenses",  value: fmtShort(totalExpenses),    accent: colour.danger  },
-                { label: "Claimable", value: fmtShort(totalDeductions),  accent: colour.primary },
+                {
+                  label: "Income",
+                  value: fmtShort(totalIncome),
+                  accent: colour.success,
+                },
+                {
+                  label: "Expenses",
+                  value: fmtShort(totalExpenses),
+                  accent: colour.danger,
+                },
+                {
+                  label: "Claimable",
+                  value: fmtShort(totalDeductions),
+                  accent: colour.primary,
+                },
               ].map((k) => (
                 <View
                   key={k.label}
@@ -153,7 +207,9 @@ export default function ReportsTabScreen() {
                     borderColor: colour.border,
                   }}
                 >
-                  <Text style={{ ...typography.micro, color: colour.textSecondary }}>
+                  <Text
+                    style={{ ...typography.micro, color: colour.textSecondary }}
+                  >
                     {k.label}
                   </Text>
                   <Text
@@ -190,8 +246,12 @@ export default function ReportsTabScreen() {
                 6-month overview
               </Text>
               {monthlyData.every((d) => d.income === 0 && d.expense === 0) ? (
-                <View style={{ alignItems: "center", paddingVertical: space.xl }}>
-                  <Text style={{ ...typography.bodyS, color: colour.textSecondary }}>
+                <View
+                  style={{ alignItems: "center", paddingVertical: space.xl }}
+                >
+                  <Text
+                    style={{ ...typography.bodyS, color: colour.textSecondary }}
+                  >
                     No data yet for this period
                   </Text>
                 </View>
@@ -206,7 +266,10 @@ export default function ReportsTabScreen() {
                     }}
                   >
                     {monthlyData.map((d) => (
-                      <View key={d.label} style={{ flex: 1, alignItems: "center" }}>
+                      <View
+                        key={d.label}
+                        style={{ flex: 1, alignItems: "center" }}
+                      >
                         <View
                           style={{
                             width: "100%",
@@ -220,7 +283,7 @@ export default function ReportsTabScreen() {
                               width: "100%",
                               height: Math.max(
                                 (d.income / maxVal) * 56,
-                                d.income > 0 ? 3 : 0
+                                d.income > 0 ? 3 : 0,
                               ),
                               backgroundColor: colour.primary,
                               borderRadius: 2,
@@ -232,7 +295,7 @@ export default function ReportsTabScreen() {
                               width: "100%",
                               height: Math.max(
                                 (d.expense / maxVal) * 56,
-                                d.expense > 0 ? 3 : 0
+                                d.expense > 0 ? 3 : 0,
                               ),
                               backgroundColor: colour.danger,
                               borderRadius: 2,
@@ -260,8 +323,8 @@ export default function ReportsTabScreen() {
                     }}
                   >
                     {[
-                      { c: colour.primary, l: "Income"   },
-                      { c: colour.danger,  l: "Expenses" },
+                      { c: colour.primary, l: "Income" },
+                      { c: colour.danger, l: "Expenses" },
                     ].map((item) => (
                       <View
                         key={item.l}
@@ -314,7 +377,7 @@ export default function ReportsTabScreen() {
                   Estimated tax saving
                 </Text>
                 <Text style={{ ...typography.caption, color: colour.success }}>
-                  Based on 31% marginal rate
+                  Estimated based on SARS 2024/25 brackets
                 </Text>
               </View>
               <Text style={{ ...typography.amountM, color: colour.success }}>
