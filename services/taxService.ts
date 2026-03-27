@@ -9,18 +9,37 @@ import { expenseService } from './expenseService';
 
 // SARS 2024/25 tax brackets (ZAR)
 const TAX_BRACKETS = [
-  { limit: 237100,  rate: 0.18, base: 0 },
-  { limit: 370500,  rate: 0.26, base: 42678 },
-  { limit: 512800,  rate: 0.31, base: 77362 },
-  { limit: 673000,  rate: 0.36, base: 121475 },
-  { limit: 857900,  rate: 0.39, base: 179147 },
-  { limit: 1817000, rate: 0.41, base: 251258 },
+  { limit: 237100,   rate: 0.18, base: 0      },
+  { limit: 370500,   rate: 0.26, base: 42678  },
+  { limit: 512800,   rate: 0.31, base: 77362  },
+  { limit: 673000,   rate: 0.36, base: 121475 },
+  { limit: 857900,   rate: 0.39, base: 179147 },
+  { limit: 1817000,  rate: 0.41, base: 251258 },
   { limit: Infinity, rate: 0.45, base: 644489 },
 ];
 
+// ── Calculate tax on a given taxable income using SARS 2024/25 brackets ──────
+const calculateTax = (taxableIncome: number): number => {
+  if (taxableIncome <= 0) return 0;
+  const bracket = TAX_BRACKETS.find((b) => taxableIncome <= b.limit)
+    ?? TAX_BRACKETS[TAX_BRACKETS.length - 1];
+  const prevLimit = TAX_BRACKETS[TAX_BRACKETS.indexOf(bracket) - 1]?.limit ?? 0;
+  return bracket.base + (taxableIncome - prevLimit) * bracket.rate;
+};
+
+// ── Estimate the actual rand saving from a set of deductions ─────────────────
+// Uses a conservative assumed gross income of R500,000 (middle of bracket 3)
+// as a proxy when we don't know the user's actual income. The saving is the
+// difference in tax liability with and without the deductions applied.
+// A user in a higher bracket will see a larger saving in practice; this is
+// the floor estimate, not a ceiling.
+const ASSUMED_GROSS_INCOME = 500_000;
+
 const estimateTaxSaving = (deductions: number): number => {
-  // Estimate saving using 31% marginal rate (middle bracket — conservative)
-  return Math.round(deductions * 0.31);
+  if (deductions <= 0) return 0;
+  const taxBefore = calculateTax(ASSUMED_GROSS_INCOME);
+  const taxAfter  = calculateTax(Math.max(0, ASSUMED_GROSS_INCOME - deductions));
+  return Math.round(taxBefore - taxAfter);
 };
 
 export const taxService = {
@@ -40,7 +59,6 @@ export const taxService = {
 
   // ── Recalculate and upsert tax summary ───────────────────────────────────
   recalculateSummary: async (userId: string, taxYear: string): Promise<TaxSummary> => {
-    // Pull live data from expenses
     const [totals, categoryBreakdown] = await Promise.all([
       expenseService.getTotals(userId, taxYear),
       expenseService.getByCategory(userId, taxYear),
