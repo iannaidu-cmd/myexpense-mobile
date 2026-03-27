@@ -48,7 +48,9 @@ export const useAuthStore = create<AuthState>((set) => ({
         set({ isInitialised: true });
       }
 
-      supabase.auth.onAuthStateChange((_event, session) => {
+      const {
+        data: { subscription },
+      } = supabase.auth.onAuthStateChange((_event, session) => {
         if (session?.user) {
           set({
             user: { id: session.user.id, email: session.user.email ?? "" },
@@ -58,6 +60,7 @@ export const useAuthStore = create<AuthState>((set) => ({
           set({ user: null, isAuthenticated: false });
         }
       });
+      return () => subscription.unsubscribe();
     } catch {
       set({ isInitialised: true });
     }
