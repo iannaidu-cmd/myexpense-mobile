@@ -7,9 +7,7 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
-  KeyboardAvoidingView,
   Modal,
-  Platform,
   SafeAreaView,
   ScrollView,
   StatusBar,
@@ -57,6 +55,7 @@ export default function EditExpenseScreen() {
   const [notes, setNotes] = useState("");
   const [showCatModal, setShowCatModal] = useState(false);
 
+  // Load existing expense on mount
   useEffect(() => {
     if (!id) return;
     expenseService.getExpenseById(id).then((expense) => {
@@ -133,111 +132,106 @@ export default function EditExpenseScreen() {
       </View>
 
       {/* Form */}
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      <ScrollView
+        style={{ flex: 1, backgroundColor: colour.bgCard, borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl }}
+        contentContainerStyle={{ padding: space.lg, paddingBottom: 100 }}
+        keyboardShouldPersistTaps="handled"
       >
-        <ScrollView
-          style={{ flex: 1, backgroundColor: colour.bgCard, borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl }}
-          contentContainerStyle={{ padding: space.lg, paddingBottom: 100 }}
-          keyboardShouldPersistTaps="handled"
+        {/* Amount */}
+        <Text style={{ ...typography.labelM, color: colour.textSecondary, marginBottom: space.xs }}>
+          Amount (ZAR) *
+        </Text>
+        <View style={{ flexDirection: "row", alignItems: "center", borderBottomWidth: 1.5, borderBottomColor: colour.border, marginBottom: space.lg }}>
+          <Text style={{ ...typography.bodyL, color: colour.textSecondary, marginRight: space.xs }}>R</Text>
+          <TextInput
+            value={amount}
+            onChangeText={setAmount}
+            placeholder="0.00"
+            placeholderTextColor={colour.textHint}
+            keyboardType="decimal-pad"
+            style={{ ...typography.amountM, flex: 1, color: colour.textPrimary, paddingVertical: space.sm }}
+          />
+        </View>
+
+        {/* Category */}
+        <Text style={{ ...typography.labelM, color: colour.textSecondary, marginBottom: space.xs }}>
+          ITR12 Category *
+        </Text>
+        <TouchableOpacity
+          onPress={() => setShowCatModal(true)}
+          style={{ borderBottomWidth: 1.5, borderBottomColor: category ? colour.primary : colour.border, paddingVertical: space.sm, marginBottom: space.lg, flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}
         >
-          {/* Amount */}
-          <Text style={{ ...typography.labelM, color: colour.textSecondary, marginBottom: space.xs }}>
-            Amount (ZAR) *
+          <Text style={{ ...typography.bodyM, color: category ? colour.textPrimary : colour.textHint }}>
+            {category || "Select SARS ITR12 category"}
           </Text>
-          <View style={{ flexDirection: "row", alignItems: "center", borderBottomWidth: 1.5, borderBottomColor: colour.border, marginBottom: space.lg }}>
-            <Text style={{ ...typography.bodyL, color: colour.textSecondary, marginRight: space.xs }}>R</Text>
-            <TextInput
-              value={amount}
-              onChangeText={setAmount}
-              placeholder="0.00"
-              placeholderTextColor={colour.textHint}
-              keyboardType="decimal-pad"
-              style={{ ...typography.amountM, flex: 1, color: colour.textPrimary, paddingVertical: space.sm }}
-            />
-          </View>
+          <Text style={{ color: colour.textSecondary }}>›</Text>
+        </TouchableOpacity>
 
-          {/* Category */}
-          <Text style={{ ...typography.labelM, color: colour.textSecondary, marginBottom: space.xs }}>
-            ITR12 Category *
-          </Text>
-          <TouchableOpacity
-            onPress={() => setShowCatModal(true)}
-            style={{ borderBottomWidth: 1.5, borderBottomColor: category ? colour.primary : colour.border, paddingVertical: space.sm, marginBottom: space.lg, flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}
-          >
-            <Text style={{ ...typography.bodyM, color: category ? colour.textPrimary : colour.textHint }}>
-              {category || "Select SARS ITR12 category"}
+        {selectedCat && (
+          <View style={{ backgroundColor: selectedCat.deductible ? colour.successLight : colour.dangerBg, borderRadius: radius.sm, padding: space.sm, marginBottom: space.lg }}>
+            <Text style={{ ...typography.bodyS, color: selectedCat.deductible ? colour.success : colour.danger }}>
+              {selectedCat.deductible ? "✓" : "✗"} {selectedCat.section} · {selectedCat.deductible ? "Deductible" : "Non-deductible"}
             </Text>
-            <Text style={{ color: colour.textSecondary }}>›</Text>
-          </TouchableOpacity>
+          </View>
+        )}
 
-          {selectedCat && (
-            <View style={{ backgroundColor: selectedCat.deductible ? colour.successLight : colour.dangerBg, borderRadius: radius.sm, padding: space.sm, marginBottom: space.lg }}>
-              <Text style={{ ...typography.bodyS, color: selectedCat.deductible ? colour.success : colour.danger }}>
-                {selectedCat.deductible ? "✓" : "✗"} {selectedCat.section} · {selectedCat.deductible ? "Deductible" : "Non-deductible"}
-              </Text>
-            </View>
-          )}
+        {/* Vendor */}
+        <Text style={{ ...typography.labelM, color: colour.textSecondary, marginBottom: space.xs }}>
+          Vendor / Supplier
+        </Text>
+        <TextInput
+          value={vendor}
+          onChangeText={setVendor}
+          placeholder="e.g. Telkom SA"
+          placeholderTextColor={colour.textHint}
+          style={{ ...typography.bodyM, color: colour.textPrimary, borderBottomWidth: 1.5, borderBottomColor: colour.border, paddingVertical: space.sm, marginBottom: space.lg }}
+        />
 
-          {/* Vendor */}
-          <Text style={{ ...typography.labelM, color: colour.textSecondary, marginBottom: space.xs }}>
-            Vendor / Supplier
-          </Text>
-          <TextInput
-            value={vendor}
-            onChangeText={setVendor}
-            placeholder="e.g. Telkom SA"
-            placeholderTextColor={colour.textHint}
-            style={{ ...typography.bodyM, color: colour.textPrimary, borderBottomWidth: 1.5, borderBottomColor: colour.border, paddingVertical: space.sm, marginBottom: space.lg }}
-          />
+        {/* Date */}
+        <Text style={{ ...typography.labelM, color: colour.textSecondary, marginBottom: space.xs }}>
+          Date (YYYY-MM-DD)
+        </Text>
+        <TextInput
+          value={date}
+          onChangeText={setDate}
+          placeholder="YYYY-MM-DD"
+          placeholderTextColor={colour.textHint}
+          style={{ ...typography.bodyM, color: colour.textPrimary, borderBottomWidth: 1.5, borderBottomColor: colour.border, paddingVertical: space.sm, marginBottom: space.lg }}
+        />
 
-          {/* Date */}
-          <Text style={{ ...typography.labelM, color: colour.textSecondary, marginBottom: space.xs }}>
-            Date (YYYY-MM-DD)
-          </Text>
-          <TextInput
-            value={date}
-            onChangeText={setDate}
-            placeholder="YYYY-MM-DD"
-            placeholderTextColor={colour.textHint}
-            style={{ ...typography.bodyM, color: colour.textPrimary, borderBottomWidth: 1.5, borderBottomColor: colour.border, paddingVertical: space.sm, marginBottom: space.lg }}
-          />
+        {/* Notes */}
+        <Text style={{ ...typography.labelM, color: colour.textSecondary, marginBottom: space.xs }}>
+          Notes (optional)
+        </Text>
+        <TextInput
+          value={notes}
+          onChangeText={setNotes}
+          placeholder="Any additional notes..."
+          placeholderTextColor={colour.textHint}
+          multiline
+          numberOfLines={3}
+          style={{ ...typography.bodyM, color: colour.textPrimary, borderBottomWidth: 1.5, borderBottomColor: colour.border, paddingVertical: space.sm, marginBottom: space["2xl"], minHeight: 72 }}
+        />
 
-          {/* Notes */}
-          <Text style={{ ...typography.labelM, color: colour.textSecondary, marginBottom: space.xs }}>
-            Notes (optional)
-          </Text>
-          <TextInput
-            value={notes}
-            onChangeText={setNotes}
-            placeholder="Any additional notes..."
-            placeholderTextColor={colour.textHint}
-            multiline
-            numberOfLines={3}
-            style={{ ...typography.bodyM, color: colour.textPrimary, borderBottomWidth: 1.5, borderBottomColor: colour.border, paddingVertical: space.sm, marginBottom: space["2xl"], minHeight: 72 }}
-          />
+        {/* Error */}
+        {error ? (
+          <View style={{ backgroundColor: colour.dangerLight, borderRadius: radius.sm, padding: space.md, marginBottom: space.lg }}>
+            <Text style={{ ...typography.bodyS, color: colour.danger }}>{error}</Text>
+          </View>
+        ) : null}
 
-          {/* Error */}
-          {error ? (
-            <View style={{ backgroundColor: colour.dangerLight, borderRadius: radius.sm, padding: space.md, marginBottom: space.lg }}>
-              <Text style={{ ...typography.bodyS, color: colour.danger }}>{error}</Text>
-            </View>
-          ) : null}
-
-          {/* Save */}
-          <TouchableOpacity
-            onPress={handleSave}
-            disabled={saving}
-            style={{ backgroundColor: saving ? colour.border : colour.primary, borderRadius: radius.pill, height: 52, alignItems: "center", justifyContent: "center" }}
-          >
-            {saving
-              ? <ActivityIndicator color={colour.textOnPrimary} />
-              : <Text style={{ ...typography.btnL, color: colour.textOnPrimary }}>Save Changes</Text>
-            }
-          </TouchableOpacity>
-        </ScrollView>
-      </KeyboardAvoidingView>
+        {/* Save */}
+        <TouchableOpacity
+          onPress={handleSave}
+          disabled={saving}
+          style={{ backgroundColor: saving ? colour.border : colour.primary, borderRadius: radius.pill, height: 52, alignItems: "center", justifyContent: "center" }}
+        >
+          {saving
+            ? <ActivityIndicator color={colour.textOnPrimary} />
+            : <Text style={{ ...typography.btnL, color: colour.textOnPrimary }}>Save Changes</Text>
+          }
+        </TouchableOpacity>
+      </ScrollView>
 
       {/* Category Modal */}
       <Modal visible={showCatModal} animationType="slide" presentationStyle="pageSheet">

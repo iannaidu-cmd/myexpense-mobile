@@ -141,8 +141,6 @@ export const expenseService = {
   },
 
   // ── Upload receipt and link to expense ────────────────────────────────────
-  // Uses createSignedUrl (not getPublicUrl) because the receipts bucket is
-  // private. Signed URLs expire after 1 hour — sufficient for in-session use.
   uploadReceipt: async (
     userId: string,
     expenseId: string,
@@ -160,19 +158,14 @@ export const expenseService = {
 
     if (uploadError) throw new Error(uploadError.message);
 
-    // Private bucket — use a signed URL (valid for 1 hour)
-    const { data: signedData, error: signedError } = await supabase.storage
+    const { data: urlData } = supabase.storage
       .from('receipts')
-      .createSignedUrl(storagePath, 3600);
+      .getPublicUrl(storagePath);
 
-    if (signedError) throw new Error(signedError.message);
-
-    const signedUrl = signedData.signedUrl;
-
-    // Store the storage path (not the signed URL) so we can regenerate later
+    // Update expense with receipt_url
     await supabase
       .from('expenses')
-      .update({ receipt_url: storagePath })
+      .update({ receipt_url: urlData.publicUrl })
       .eq('id', expenseId);
 
     // Insert receipt record
@@ -184,19 +177,6 @@ export const expenseService = {
       ocr_status: 'pending',
     });
 
-    // Return the signed URL for immediate display in the current session
-    return signedUrl;
-  },
-
-  // ── Get a fresh signed URL for a stored receipt ───────────────────────────
-  // Call this when displaying a receipt image — the stored receipt_url is the
-  // storage path, not a signed URL, so we need to generate one on demand.
-  getReceiptSignedUrl: async (storagePath: string): Promise<string | null> => {
-    const { data, error } = await supabase.storage
-      .from('receipts')
-      .createSignedUrl(storagePath, 3600);
-
-    if (error) return null;
-    return data.signedUrl;
+    return urlData.publicUrl;
   },
 };

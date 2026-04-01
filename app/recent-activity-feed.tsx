@@ -1,5 +1,6 @@
 import { MXTabBar } from "@/components/MXTabBar";
 import { NavigationProp } from "@react-navigation/native";
+import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 
@@ -297,6 +298,7 @@ function ActivityRow({
 }
 
 export default function RecentActivityFeedScreen({ navigation }: Props) {
+  const router = useRouter();
   const [filter, setFilter] = useState<
     "All" | "Unread" | "Expenses" | "Alerts"
   >("All");
@@ -333,8 +335,8 @@ export default function RecentActivityFeedScreen({ navigation }: Props) {
         }}
       >
         <TouchableOpacity
-          onPress={() => navigation?.goBack()}
-          style={{ marginBottom: 10 }}
+          onPress={() => router.back()}
+          style={{ marginBottom: 10 }}>
         >
           <Text style={{ color: C.teal, fontSize: 13 }}>‹ Home</Text>
         </TouchableOpacity>
@@ -480,7 +482,7 @@ export default function RecentActivityFeedScreen({ navigation }: Props) {
                     key={item.id}
                     item={item}
                     onPress={() =>
-                      item.navTarget && navigation?.navigate(item.navTarget)
+                      item.navTarget && router.push(item.navTarget as any)
                     }
                   />
                 ))}

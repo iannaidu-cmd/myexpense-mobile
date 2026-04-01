@@ -1,7 +1,7 @@
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { colour, space } from "@/tokens";
-import { NavigationProp } from "@react-navigation/native";
+import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
     Animated,
@@ -17,7 +17,6 @@ const C = colour;
 type ErrorSeverity = "warning" | "error" | "critical";
 
 interface Props {
-  navigation?: NavigationProp<any>;
   /** Controls icon colour and urgency language */
   severity?: ErrorSeverity;
   /** Short title shown under icon */
@@ -37,49 +36,10 @@ interface Props {
 
 const NAV_ICONS = { Home: "⊞", Scan: "⊡", Reports: "◈", Settings: "⚙" };
 
-function PhoneShell({
-  children,
-  navigation,
-}: {
-  children: React.ReactNode;
-  navigation?: NavigationProp<any>;
-}) {
-  const tabs = [
-    { key: "Home", label: "Home", icon: NAV_ICONS.Home },
-    { key: "Scan", label: "Scan", icon: NAV_ICONS.Scan },
-    { key: "Reports", label: "Reports", icon: NAV_ICONS.Reports },
-    { key: "Settings", label: "Settings", icon: NAV_ICONS.Settings },
-  ];
+function PhoneShell({ children }: { children: React.ReactNode }) {
   return (
     <ThemedView style={{ flex: 1, backgroundColor: colour.surface1 }}>
       <View style={{ flex: 1 }}>{children}</View>
-      <View
-        style={{
-          flexDirection: "row",
-          backgroundColor: colour.background,
-          borderTopWidth: 1,
-          borderTopColor: colour.border,
-          paddingBottom: space.xs,
-          paddingTop: space.xxs,
-        }}
-      >
-        {tabs.map((t) => (
-          <TouchableOpacity
-            key={t.key}
-            onPress={() => navigation?.navigate(t.key)}
-            style={{ flex: 1, alignItems: "center" }}
-          >
-            <ThemedText style={{ fontSize: 20, color: colour.textSub }}>
-              {t.icon}
-            </ThemedText>
-            <ThemedText
-              style={{ fontSize: 10, marginTop: 2, color: colour.textSub }}
-            >
-              {t.label}
-            </ThemedText>
-          </TouchableOpacity>
-        ))}
-      </View>
     </ThemedView>
   );
 }
@@ -232,7 +192,6 @@ function TechnicalDetail({ errorCode }: { errorCode: string }) {
 
 // ─── SCREEN: Error — Generic ─────────────────────────────────────────────────
 export default function ErrorGenericScreen({
-  navigation,
   severity = "error",
   title,
   message,
@@ -242,6 +201,7 @@ export default function ErrorGenericScreen({
   onGoHome,
   onContactSupport,
 }: Props) {
+  const router = useRouter();
   const severityDefaults: Record<
     ErrorSeverity,
     { title: string; message: string; cta: string }
@@ -270,15 +230,15 @@ export default function ErrorGenericScreen({
   const displayTitle = title ?? defaults.title;
   const displayMessage = message ?? defaults.message;
 
-  const handleRetry = onRetry ?? (() => navigation?.goBack());
-  const handleHome = onGoHome ?? (() => navigation?.navigate("Home"));
+  const handleRetry = onRetry ?? (() => router.back());
+  const handleHome = onGoHome ?? (() => router.replace("/(tabs)" as any));
   const handleSupport =
-    onContactSupport ?? (() => navigation?.navigate("HelpSupport"));
+    onContactSupport ?? (() => router.push("/settings-screens" as any));
 
   const accentColour = severity === "warning" ? C.warning : C.danger;
 
   return (
-    <PhoneShell navigation={navigation}>
+    <PhoneShell>
       {/* Header */}
       <ThemedView
         style={{

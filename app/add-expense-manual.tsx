@@ -1,6 +1,5 @@
 import { MXTabBar } from "@/components/MXTabBar";
 import { colour } from "@/tokens";
-import { NavigationProp } from "@react-navigation/native";
 import React, { useState } from "react";
 import {
     ScrollView,
@@ -10,19 +9,11 @@ import {
     View,
 } from "react-native";
 
-interface Props {
-  navigation?: NavigationProp<any>;
-}
+interface Props {}
 
 const NAV = { Home: "⊞", Scan: "⊡", Reports: "◈", Settings: "⚙" };
 
-function PhoneShell({
-  children,
-  navigation,
-}: {
-  children: React.ReactNode;
-  navigation?: NavigationProp<any>;
-}) {
+function PhoneShell({ children }: { children: React.ReactNode }) {
   return (
     <View style={{ flex: 1, backgroundColor: colour.surface1 }}>
       <ScrollView
@@ -103,7 +94,8 @@ const ITR12_CATEGORIES = [
   { label: "Personal / Other", icon: "👤", code: "N/A" },
 ];
 
-export default function AddExpenseScreen({ navigation }: Props) {
+export default function AddExpenseScreen() {
+  const router = useRouter();
   const [amount, setAmount] = useState("");
   const [vendor, setVendor] = useState("");
   const [date, setDate] = useState(
@@ -124,7 +116,7 @@ export default function AddExpenseScreen({ navigation }: Props) {
   const canSave = !!amount && !!vendor && !!category;
 
   return (
-    <PhoneShell navigation={navigation}>
+    <PhoneShell>
       {/* Header */}
       <View
         style={{
@@ -134,10 +126,7 @@ export default function AddExpenseScreen({ navigation }: Props) {
           paddingHorizontal: 20,
         }}
       >
-        <TouchableOpacity
-          onPress={() => navigation?.goBack()}
-          style={{ marginBottom: 10 }}
-        >
+        <TouchableOpacity onPress={() => router.back()}>
           <Text style={{ color: colour.accent, fontSize: 13 }}>‹ Home</Text>
         </TouchableOpacity>
         <Text
@@ -182,7 +171,7 @@ export default function AddExpenseScreen({ navigation }: Props) {
           }}
         >
           <TouchableOpacity
-            onPress={() => navigation?.navigate("scan-receipt-camera")}
+            onPress={() => router.push("/scan-receipt-camera" as any)}
             style={{
               flex: 1,
               flexDirection: "row",
@@ -206,7 +195,7 @@ export default function AddExpenseScreen({ navigation }: Props) {
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={() => navigation?.navigate("upload-from-gallery")}
+            onPress={() => router.push("/upload-from-gallery" as any)}
             style={{
               flex: 1,
               flexDirection: "row",
@@ -484,12 +473,7 @@ export default function AddExpenseScreen({ navigation }: Props) {
 
         {/* Save */}
         <TouchableOpacity
-          onPress={() =>
-            canSave &&
-            navigation?.navigate("success-confirmation", {
-              context: "expense_saved",
-            })
-          }
+          onPress={() => canSave && router.replace("/(tabs)" as any)}
           disabled={!canSave}
           style={{
             marginHorizontal: 16,
@@ -511,7 +495,7 @@ export default function AddExpenseScreen({ navigation }: Props) {
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          onPress={() => navigation?.goBack()}
+          onPress={() => router.back()}
           style={{ alignItems: "center", paddingVertical: 8 }}
         >
           <Text style={{ color: colour.textSub, fontSize: 13 }}>Cancel</Text>

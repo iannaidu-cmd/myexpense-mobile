@@ -7,13 +7,13 @@ import { ACTIVE_TAX_YEAR } from "@/types/database";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
 import {
-  ActivityIndicator,
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    SafeAreaView,
+    ScrollView,
+    StatusBar,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
 const REPORT_TILES = [
@@ -21,7 +21,7 @@ const REPORT_TILES = [
     icon: "📊",
     title: "Income vs Expenses",
     sub: "Monthly comparison",
-    route: "/tax-summary",
+    route: "/expense-history",
     accent: colour.primary,
   },
   {
@@ -377,7 +377,7 @@ export default function ReportsTabScreen() {
                   Estimated tax saving
                 </Text>
                 <Text style={{ ...typography.caption, color: colour.success }}>
-                  Estimated based on SARS 2024/25 brackets
+                  Based on 31% marginal rate
                 </Text>
               </View>
               <Text style={{ ...typography.amountM, color: colour.success }}>

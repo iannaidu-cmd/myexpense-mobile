@@ -1,4 +1,5 @@
 import { colour, radius, space, typography } from "@/tokens";
+import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
     SafeAreaView,
@@ -63,7 +64,16 @@ const BAR_DATA = [
   { month: "Mar", income: 14100, expense: 7520 },
 ];
 
-export default function ReportsDashboardScreen({ navigation }: any) {
+const SCREEN_TO_ROUTE: Record<string, string> = {
+  IncomeVsExpensesScreen: "/expense-history",
+  MonthlyTrendsScreen: "/tax-summary",
+  TaxSavingsReportScreen: "/tax-summary",
+  CategoryBreakdownScreen: "/category-breakdown",
+  ExportCentreScreen: "/itr12-export-setup",
+};
+
+export default function ReportsDashboardScreen() {
+  const router = useRouter();
   const [activeYear, setActiveYear] = useState("2025/26");
   const maxVal = Math.max(...BAR_DATA.flatMap((d) => [d.income, d.expense]));
   const fmt = (n: number) => `R ${n.toLocaleString("en-ZA")}`;
@@ -89,7 +99,7 @@ export default function ReportsDashboardScreen({ navigation }: any) {
           }}
         >
           <TouchableOpacity
-            onPress={() => navigation?.goBack()}
+            onPress={() => router.back()}
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           >
             <Text
@@ -108,7 +118,7 @@ export default function ReportsDashboardScreen({ navigation }: any) {
             Reports & Analytics
           </Text>
           <TouchableOpacity
-            onPress={() => navigation?.navigate("TaxYearSelectorScreen")}
+            onPress={() => router.push("/tax-year-selector" as any)}
           >
             <Text style={[typography.labelS, { color: colour.textOnPrimary }]}>
               FY {activeYear} ›
@@ -330,7 +340,11 @@ export default function ReportsDashboardScreen({ navigation }: any) {
         {QUICK_REPORTS.map((r) => (
           <TouchableOpacity
             key={r.id}
-            onPress={() => navigation?.navigate(r.screen)}
+            onPress={() =>
+              router.push(
+                (SCREEN_TO_ROUTE[r.screen] ?? "/(tabs)/reports") as any,
+              )
+            }
             style={{
               flexDirection: "row",
               alignItems: "center",

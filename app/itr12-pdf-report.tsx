@@ -1,6 +1,6 @@
 import { MXTabBar } from "@/components/MXTabBar";
 import { colour as C } from "@/tokens";
-import { NavigationProp } from "@react-navigation/native";
+import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
     Animated,
@@ -11,19 +11,9 @@ import {
     View,
 } from "react-native";
 
-interface Props {
-  navigation?: NavigationProp<any>;
-}
-
 const NAV = { Home: "⊞", Scan: "⊡", Reports: "◈", Settings: "⚙" };
 
-function PhoneShell({
-  children,
-  navigation,
-}: {
-  children: React.ReactNode;
-  navigation?: NavigationProp<any>;
-}) {
+function PhoneShell({ children }: { children: React.ReactNode }) {
   return (
     <View style={{ flex: 1 }}>
       <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
@@ -34,7 +24,8 @@ function PhoneShell({
   );
 }
 
-export default function ITR12PDFReportScreen({ navigation }: Props) {
+export default function ITR12PDFReportScreen() {
+  const router = useRouter();
   const [generating, setGenerating] = useState(true);
   const [progress, setProgress] = useState(0);
   const progressAnim = useRef(new Animated.Value(0)).current;
@@ -90,7 +81,7 @@ export default function ITR12PDFReportScreen({ navigation }: Props) {
   ];
 
   return (
-    <PhoneShell navigation={navigation}>
+    <PhoneShell>
       <View
         style={{
           backgroundColor: C.navy,
@@ -100,7 +91,7 @@ export default function ITR12PDFReportScreen({ navigation }: Props) {
         }}
       >
         <TouchableOpacity
-          onPress={() => navigation?.goBack()}
+          onPress={() => router.back()}
           style={{ marginBottom: 10 }}
         >
           <Text style={{ color: C.teal, fontSize: 13 }}>‹ Preview</Text>

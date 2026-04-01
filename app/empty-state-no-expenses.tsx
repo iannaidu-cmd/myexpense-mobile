@@ -2,13 +2,11 @@ import { MXTabBar } from "@/components/MXTabBar";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { colour, space } from "@/tokens";
-import { NavigationProp } from "@react-navigation/native";
 import React, { useEffect, useRef } from "react";
 import { Animated, Easing, TouchableOpacity, View } from "react-native";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// ─── Types ────────────────────────────────────────────────────────────────────────
 interface Props {
-  navigation?: NavigationProp<any>;
   /** Optional context: which part of the app triggered the empty state */
   context?: "expenses" | "search" | "filtered" | "category";
   /** Only used when context = 'category' or 'filtered' */
@@ -26,11 +24,9 @@ const NAV_ICONS = { Home: "⊞", Scan: "⊡", Reports: "◈", Settings: "⚙" };
 function PhoneShell({
   children,
   activeTab = "Home",
-  navigation,
 }: {
   children: React.ReactNode;
   activeTab?: string;
-  navigation?: NavigationProp<any>;
 }) {
   return (
     <ThemedView style={{ flex: 1, backgroundColor: colour.surface1 }}>
@@ -203,13 +199,13 @@ function ReceiptIllustration() {
 
 // ─── SCREEN: Empty State — No Expenses ───────────────────────────────────────
 export default function EmptyStateNoExpensesScreen({
-  navigation,
   context = "expenses",
   filterLabel,
   onAddExpense,
   onScanReceipt,
   onClearFilter,
 }: Props) {
+  const router = useRouter();
   // Derive copy from context
   const copy = {
     expenses: {
@@ -247,13 +243,13 @@ export default function EmptyStateNoExpensesScreen({
   }[context];
 
   const handleCta1 =
-    onAddExpense ?? (() => navigation?.navigate("add-expense-manual"));
+    onAddExpense ?? (() => router.push("/add-expense-manual" as any));
   const handleCta2 =
-    onScanReceipt ?? (() => navigation?.navigate("scan-receipt-camera"));
-  const handleClear = onClearFilter ?? (() => navigation?.goBack());
+    onScanReceipt ?? (() => router.push("/(tabs)/scan" as any));
+  const handleClear = onClearFilter ?? (() => router.back());
 
   return (
-    <PhoneShell activeTab="Home" navigation={navigation}>
+    <PhoneShell activeTab="Home">
       {/* Header */}
       <ThemedView
         style={{

@@ -1,18 +1,18 @@
+import { MXTabBar } from "@/components/MXTabBar";
 import { incomeService } from "@/services/incomeService";
 import { useAuthStore } from "@/stores/authStore";
-import { MXTabBar } from "@/components/MXTabBar";
 import { colour, radius, space, typography } from "@/tokens";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  StatusBar,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    FlatList,
+    StatusBar,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -21,15 +21,21 @@ const fmt = (n: number) =>
 
 const formatDate = (dateStr: string) => {
   const d = new Date(dateStr);
-  return d.toLocaleDateString("en-ZA", { day: "numeric", month: "short", year: "numeric" });
+  return d.toLocaleDateString("en-ZA", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
 };
 
 // Source → emoji mapping for visual variety
 const sourceIcon = (source: string) => {
   const s = source.toLowerCase();
-  if (s.includes("salary") || s.includes("wage") || s.includes("employment")) return "💵";
+  if (s.includes("salary") || s.includes("wage") || s.includes("employment"))
+    return "💵";
   if (s.includes("commission")) return "🤝";
-  if (s.includes("consult") || s.includes("fees") || s.includes("services")) return "💼";
+  if (s.includes("consult") || s.includes("fees") || s.includes("services"))
+    return "💼";
   if (s.includes("rental") || s.includes("rent")) return "🏠";
   if (s.includes("investment")) return "📈";
   if (s.includes("bonus")) return "🎉";
@@ -65,7 +71,33 @@ export default function IncomeHistoryScreen() {
     }
   }, [user]);
 
-  useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [loadData]),
+  );
+
+  const handleView = (item: any) => {
+    Alert.alert(
+      item.source,
+      [
+        `Amount: ${fmt(item.amount)}`,
+        `Date: ${formatDate(item.date)}`,
+        item.description ? `Notes: ${item.description}` : null,
+        item.category ? `Category: ${item.category}` : null,
+      ]
+        .filter(Boolean)
+        .join("\n"),
+      [
+        { text: "Close", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => handleDelete(item.id, item.source),
+        },
+      ],
+    );
+  };
 
   const handleDelete = (id: string, source: string) => {
     Alert.alert(
@@ -88,7 +120,7 @@ export default function IncomeHistoryScreen() {
             }
           },
         },
-      ]
+      ],
     );
   };
 
@@ -103,42 +135,104 @@ export default function IncomeHistoryScreen() {
   const totalIncome = filtered.reduce((s, e) => s + Number(e.amount), 0);
 
   return (
-    <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colour.success }}>
+    <SafeAreaView
+      edges={["top"]}
+      style={{ flex: 1, backgroundColor: colour.success }}
+    >
       <StatusBar barStyle="light-content" backgroundColor={colour.success} />
 
       {/* Header */}
-      <View style={{ paddingHorizontal: space.lg, paddingTop: 3, paddingBottom: space["3xl"] }}>
-        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: space.md }}>
-          <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-            <Text style={{ color: colour.onPrimary, fontSize: 26, lineHeight: 30 }}>‹</Text>
+      <View
+        style={{
+          paddingHorizontal: space.lg,
+          paddingTop: 3,
+          paddingBottom: space["3xl"],
+        }}
+      >
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: space.md,
+          }}
+        >
+          <TouchableOpacity
+            onPress={() => router.back()}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          >
+            <Text
+              style={{ color: colour.onPrimary, fontSize: 26, lineHeight: 30 }}
+            >
+              ‹
+            </Text>
           </TouchableOpacity>
-          <Text style={{ ...typography.labelM, color: "rgba(255,255,255,0.85)" }}>Income History</Text>
+          <Text
+            style={{ ...typography.labelM, color: "rgba(255,255,255,0.85)" }}
+          >
+            Income History
+          </Text>
           <TouchableOpacity
             onPress={() => router.push("/add-income" as any)}
-            style={{ backgroundColor: "rgba(255,255,255,0.2)", borderRadius: radius.pill, paddingHorizontal: space.md, paddingVertical: space.xs }}
+            style={{
+              backgroundColor: "rgba(255,255,255,0.2)",
+              borderRadius: radius.pill,
+              paddingHorizontal: space.md,
+              paddingVertical: space.xs,
+            }}
           >
-            <Text style={{ ...typography.labelS, color: colour.onPrimary }}>+ Add</Text>
+            <Text style={{ ...typography.labelS, color: colour.onPrimary }}>
+              + Add
+            </Text>
           </TouchableOpacity>
         </View>
 
         {/* Summary */}
         <View style={{ flexDirection: "row", gap: space.md }}>
           <View style={{ flex: 1 }}>
-            <Text style={{ ...typography.caption, color: "rgba(255,255,255,0.7)" }}>Total Income</Text>
-            <Text style={{ ...typography.amountM, color: colour.onPrimary }}>{fmt(totalIncome)}</Text>
+            <Text
+              style={{ ...typography.caption, color: "rgba(255,255,255,0.7)" }}
+            >
+              Total Income
+            </Text>
+            <Text style={{ ...typography.amountM, color: colour.onPrimary }}>
+              {fmt(totalIncome)}
+            </Text>
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={{ ...typography.caption, color: "rgba(255,255,255,0.7)" }}>Entries</Text>
-            <Text style={{ ...typography.amountM, color: colour.onPrimary }}>{filtered.length}</Text>
+            <Text
+              style={{ ...typography.caption, color: "rgba(255,255,255,0.7)" }}
+            >
+              Entries
+            </Text>
+            <Text style={{ ...typography.amountM, color: colour.onPrimary }}>
+              {filtered.length}
+            </Text>
           </View>
         </View>
       </View>
 
       {/* Card */}
-      <View style={{ flex: 1, backgroundColor: colour.bgCard, borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl }}>
-
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: colour.bgCard,
+          borderTopLeftRadius: radius.xl,
+          borderTopRightRadius: radius.xl,
+        }}
+      >
         {/* Search */}
-        <View style={{ margin: space.lg, flexDirection: "row", alignItems: "center", backgroundColor: colour.bgPage, borderRadius: radius.pill, paddingHorizontal: space.md, height: 44 }}>
+        <View
+          style={{
+            margin: space.lg,
+            flexDirection: "row",
+            alignItems: "center",
+            backgroundColor: colour.bgPage,
+            borderRadius: radius.pill,
+            paddingHorizontal: space.md,
+            height: 44,
+          }}
+        >
           <Text style={{ fontSize: 16, marginRight: space.sm }}>🔍</Text>
           <TextInput
             value={search}
@@ -149,7 +243,9 @@ export default function IncomeHistoryScreen() {
           />
           {search ? (
             <TouchableOpacity onPress={() => setSearch("")}>
-              <Text style={{ color: colour.textSecondary, fontSize: 18 }}>×</Text>
+              <Text style={{ color: colour.textSecondary, fontSize: 18 }}>
+                ×
+              </Text>
             </TouchableOpacity>
           ) : null}
         </View>
@@ -162,55 +258,120 @@ export default function IncomeHistoryScreen() {
           <FlatList
             data={filtered}
             keyExtractor={(item) => item.id}
-            contentContainerStyle={{ paddingHorizontal: space.lg, paddingBottom: space["4xl"] }}
+            contentContainerStyle={{
+              paddingHorizontal: space.lg,
+              paddingBottom: space["4xl"],
+            }}
             showsVerticalScrollIndicator={false}
             ListEmptyComponent={
               <View style={{ alignItems: "center", paddingTop: space["4xl"] }}>
                 <Text style={{ fontSize: 40, marginBottom: space.md }}>💵</Text>
-                <Text style={{ ...typography.h4, color: colour.textPrimary }}>No income recorded</Text>
-                <Text style={{ ...typography.bodyM, color: colour.textSecondary, textAlign: "center", marginTop: space.xs, marginBottom: space.xl }}>
-                  {search ? "Try adjusting your search" : "Add your first income entry to get started"}
+                <Text style={{ ...typography.h4, color: colour.textPrimary }}>
+                  No income recorded
+                </Text>
+                <Text
+                  style={{
+                    ...typography.bodyM,
+                    color: colour.textSecondary,
+                    textAlign: "center",
+                    marginTop: space.xs,
+                    marginBottom: space.xl,
+                  }}
+                >
+                  {search
+                    ? "Try adjusting your search"
+                    : "Add your first income entry to get started"}
                 </Text>
                 {!search && (
                   <TouchableOpacity
                     onPress={() => router.push("/add-income" as any)}
-                    style={{ backgroundColor: colour.success, borderRadius: radius.pill, paddingVertical: space.md, paddingHorizontal: space.xl }}
+                    style={{
+                      backgroundColor: colour.success,
+                      borderRadius: radius.pill,
+                      paddingVertical: space.md,
+                      paddingHorizontal: space.xl,
+                    }}
                   >
-                    <Text style={{ ...typography.btnL, color: colour.onPrimary }}>Add Income</Text>
+                    <Text
+                      style={{ ...typography.btnL, color: colour.onPrimary }}
+                    >
+                      Add Income
+                    </Text>
                   </TouchableOpacity>
                 )}
               </View>
             }
             renderItem={({ item }) => (
               <TouchableOpacity
+                onPress={() => handleView(item)}
                 onLongPress={() => handleDelete(item.id, item.source)}
                 delayLongPress={500}
-                style={{ flexDirection: "row", alignItems: "center", paddingVertical: space.md, borderBottomWidth: 1, borderBottomColor: colour.border }}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  paddingVertical: space.md,
+                  borderBottomWidth: 1,
+                  borderBottomColor: colour.border,
+                }}
               >
                 {/* Icon */}
-                <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: colour.successBg, alignItems: "center", justifyContent: "center", marginRight: space.md }}>
-                  {deletingId === item.id
-                    ? <ActivityIndicator color={colour.success} size="small" />
-                    : <Text style={{ fontSize: 20 }}>{sourceIcon(item.source)}</Text>
-                  }
+                <View
+                  style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: 22,
+                    backgroundColor: colour.successBg,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    marginRight: space.md,
+                  }}
+                >
+                  {deletingId === item.id ? (
+                    <ActivityIndicator color={colour.success} size="small" />
+                  ) : (
+                    <Text style={{ fontSize: 20 }}>
+                      {sourceIcon(item.source)}
+                    </Text>
+                  )}
                 </View>
 
                 {/* Details */}
                 <View style={{ flex: 1 }}>
-                  <Text style={{ ...typography.labelM, color: colour.textPrimary }} numberOfLines={1}>
+                  <Text
+                    style={{ ...typography.labelM, color: colour.textPrimary }}
+                    numberOfLines={1}
+                  >
                     {item.source}
                   </Text>
-                  <Text style={{ ...typography.caption, color: colour.textSecondary }}>
-                    {item.description ? `${item.description} · ` : ""}{formatDate(item.date)}
+                  <Text
+                    style={{
+                      ...typography.caption,
+                      color: colour.textSecondary,
+                    }}
+                  >
+                    {item.description ? `${item.description} · ` : ""}
+                    {formatDate(item.date)}
                   </Text>
                 </View>
 
                 {/* Amount */}
                 <View style={{ alignItems: "flex-end" }}>
-                  <Text style={{ ...typography.amountS, color: colour.success, fontWeight: "700" }}>
+                  <Text
+                    style={{
+                      ...typography.amountS,
+                      color: colour.success,
+                      fontWeight: "700",
+                    }}
+                  >
                     {fmt(item.amount)}
                   </Text>
-                  <Text style={{ ...typography.micro, color: colour.textSecondary, marginTop: 2 }}>
+                  <Text
+                    style={{
+                      ...typography.micro,
+                      color: colour.textSecondary,
+                      marginTop: 2,
+                    }}
+                  >
                     ITR12
                   </Text>
                 </View>
@@ -222,9 +383,21 @@ export default function IncomeHistoryScreen() {
 
       {/* Hint */}
       {income.length > 0 && !loading && (
-        <View style={{ backgroundColor: colour.bgCard, paddingHorizontal: space.lg, paddingVertical: space.sm }}>
-          <Text style={{ ...typography.micro, color: colour.textHint, textAlign: "center" }}>
-            Long press any entry to delete it
+        <View
+          style={{
+            backgroundColor: colour.bgCard,
+            paddingHorizontal: space.lg,
+            paddingVertical: space.sm,
+          }}
+        >
+          <Text
+            style={{
+              ...typography.micro,
+              color: colour.textHint,
+              textAlign: "center",
+            }}
+          >
+            Tap to view details · Long press to delete
           </Text>
         </View>
       )}

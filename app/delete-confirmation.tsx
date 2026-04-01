@@ -1,5 +1,6 @@
 import { MXTabBar } from "@/components/MXTabBar";
 import { colour, radius, space, typography } from "@/tokens";
+import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
     ActivityIndicator,
@@ -10,8 +11,9 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-export default function DeleteConfirmationScreen({ navigation, route }: any) {
-  const expense = route?.params?.expense ?? {
+export default function DeleteConfirmationScreen() {
+  const router = useRouter();
+  const expense = {
     description: "Telkom Fibre — March 2026",
     amount: 1250,
     category: "Phone & Internet",
@@ -25,7 +27,7 @@ export default function DeleteConfirmationScreen({ navigation, route }: any) {
     await new Promise((r) => setTimeout(r, 800));
     setLoading(false);
     setDeleted(true);
-    setTimeout(() => navigation?.navigate("ExpenseHistoryScreen"), 1200);
+    setTimeout(() => router.replace("/expense-history" as any), 1200);
   };
 
   if (deleted) {
@@ -94,7 +96,7 @@ export default function DeleteConfirmationScreen({ navigation, route }: any) {
         }}
       >
         <TouchableOpacity
-          onPress={() => navigation?.goBack()}
+          onPress={() => router.back()}
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
         >
           <Text
@@ -287,7 +289,7 @@ export default function DeleteConfirmationScreen({ navigation, route }: any) {
             )}
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={() => navigation?.goBack()}
+            onPress={() => router.back()}
             style={{
               borderRadius: radius.pill,
               borderWidth: 1.5,

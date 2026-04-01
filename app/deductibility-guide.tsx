@@ -2,23 +2,13 @@ import { MXTabBar } from "@/components/MXTabBar";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { colour, space } from "@/tokens";
-import { NavigationProp } from "@react-navigation/native";
+import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import { ScrollView, TextInput, TouchableOpacity, View } from "react-native";
 
-interface Props {
-  navigation?: NavigationProp<any>;
-}
-
 const NAV = { Home: "⊞", Scan: "⊡", Reports: "◈", Settings: "⚙" };
 
-function PhoneShell({
-  children,
-  navigation,
-}: {
-  children: React.ReactNode;
-  navigation?: NavigationProp<any>;
-}) {
+function PhoneShell({ children }: { children: React.ReactNode }) {
   return (
     <ThemedView style={{ flex: 1, backgroundColor: colour.surface1 }}>
       <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
@@ -275,7 +265,8 @@ function GuideCard({
   );
 }
 
-export default function DeductibilityGuideScreen({ navigation }: Props) {
+export default function DeductibilityGuideScreen() {
+  const router = useRouter();
   const [search, setSearch] = useState("");
   const [expanded, setExpanded] = useState<string | null>(null);
   const [filter, setFilter] = useState<"All" | "Deductible" | "Not Deductible">(
@@ -296,7 +287,7 @@ export default function DeductibilityGuideScreen({ navigation }: Props) {
   });
 
   return (
-    <PhoneShell navigation={navigation}>
+    <PhoneShell>
       <ThemedView
         style={{
           backgroundColor: colour.primary,
@@ -306,7 +297,7 @@ export default function DeductibilityGuideScreen({ navigation }: Props) {
         }}
       >
         <TouchableOpacity
-          onPress={() => navigation?.goBack()}
+          onPress={() => router.back()}
           style={{ marginBottom: space.md }}
         >
           <ThemedText style={{ color: colour.accent, fontSize: 13 }}>

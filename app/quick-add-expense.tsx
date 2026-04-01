@@ -1,6 +1,5 @@
 import { MXTabBar } from "@/components/MXTabBar";
 import { colour } from "@/tokens";
-import { NavigationProp } from "@react-navigation/native";
 import React, { useEffect, useRef, useState } from "react";
 import {
     Animated,
@@ -16,7 +15,6 @@ const C = colour;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Props {
-  navigation?: NavigationProp<any>;
   /** When used as a modal overlay — pass visible + onClose instead of standalone navigation */
   visible?: boolean;
   onClose?: () => void;
@@ -45,11 +43,11 @@ const QUICK_CATS = [
 
 // ─── SCREEN: Quick Add Expense (Bottom Sheet) ─────────────────────────────────
 export default function QuickAddExpenseScreen({
-  navigation,
   visible = true,
   onClose,
   onSaved,
 }: Props) {
+  const router = useRouter();
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState("");
   const [vendor, setVendor] = useState("");
@@ -93,7 +91,7 @@ export default function QuickAddExpenseScreen({
       }),
     ]).start(() => {
       onClose?.();
-      navigation?.goBack();
+      router.back();
     });
   };
 
@@ -197,7 +195,7 @@ export default function QuickAddExpenseScreen({
             </Text>
           </View>
           <TouchableOpacity
-            onPress={() => navigation?.navigate("add-expense-manual")}
+            onPress={() => router.push("/add-expense-manual" as any)}
             style={{
               paddingHorizontal: 12,
               paddingVertical: 6,
@@ -473,7 +471,7 @@ export default function QuickAddExpenseScreen({
               <TouchableOpacity
                 onPress={() => {
                   handleClose();
-                  navigation?.navigate("ScanReceiptCamera");
+                  router.push("/(tabs)/scan" as any);
                 }}
                 style={{ alignItems: "center", marginTop: 14 }}
               >

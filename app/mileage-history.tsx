@@ -5,24 +5,30 @@ import { ACTIVE_TAX_YEAR } from "@/types/database";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Platform,
-  ScrollView,
-  StatusBar,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    Platform,
+    ScrollView,
+    StatusBar,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const SARS_RATE_PER_KM = 4.84;
 
-const platformShadow = Platform.select({
-  ios:     { shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 8 },
-  android: { elevation: 4 },
-  default: { boxShadow: "0 2px 8px rgba(0,0,0,0.10)" },
-}) ?? {};
+const platformShadow =
+  Platform.select({
+    ios: {
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 8,
+    },
+    android: { elevation: 4 },
+    default: { boxShadow: "0 2px 8px rgba(0,0,0,0.10)" },
+  }) ?? {};
 
 function formatElapsed(seconds: number): string {
   const h = Math.floor(seconds / 3600);
@@ -38,7 +44,11 @@ function formatDate(dateStr: string): string {
   yesterday.setDate(today.getDate() - 1);
   if (d.toDateString() === today.toDateString()) return "Today";
   if (d.toDateString() === yesterday.toDateString()) return "Yesterday";
-  return d.toLocaleDateString("en-ZA", { day: "numeric", month: "short", year: "numeric" });
+  return d.toLocaleDateString("en-ZA", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
 }
 
 interface MileageTrip {
@@ -57,8 +67,8 @@ export default function MileageHistoryScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
 
-  const [loading, setLoading]   = useState(true);
-  const [trips, setTrips]       = useState<MileageTrip[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [trips, setTrips] = useState<MileageTrip[]>([]);
   const [deleting, setDeleting] = useState<string | null>(null);
 
   const loadTrips = useCallback(async () => {
@@ -73,16 +83,29 @@ export default function MileageHistoryScreen() {
         .eq("tax_year", ACTIVE_TAX_YEAR)
         .order("trip_date", { ascending: false });
 
-      if (error) throw error;
-      setTrips(data ?? []);
+      if (error) {
+        // PGRST205 = table not in schema cache yet — treat as empty rather than crashing
+        if (error.code === "PGRST205") {
+          setTrips([]);
+        } else {
+          throw error;
+        }
+      } else {
+        setTrips(data ?? []);
+      }
     } catch (e: any) {
       console.error("MileageHistory load error:", e);
+      setTrips([]);
     } finally {
       setLoading(false);
     }
   }, [user]);
 
-  useFocusEffect(useCallback(() => { loadTrips(); }, [loadTrips]));
+  useFocusEffect(
+    useCallback(() => {
+      loadTrips();
+    }, [loadTrips]),
+  );
 
   const handleDelete = (id: string) => {
     Alert.alert(
@@ -106,61 +129,167 @@ export default function MileageHistoryScreen() {
             }
           },
         },
-      ]
+      ],
     );
   };
 
   // Totals
-  const totalKm         = trips.reduce((s, t) => s + Number(t.distance_km), 0);
+  const totalKm = trips.reduce((s, t) => s + Number(t.distance_km), 0);
   const totalDeductions = totalKm * SARS_RATE_PER_KM;
-  const totalTrips      = trips.length;
+  const totalTrips = trips.length;
 
   return (
-    <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colour.primary }}>
+    <SafeAreaView
+      edges={["top"]}
+      style={{ flex: 1, backgroundColor: colour.primary }}
+    >
       <StatusBar barStyle="light-content" backgroundColor={colour.primary} />
 
       {/* Header */}
-      <View style={{ paddingHorizontal: space.lg, paddingTop: space.lg, paddingBottom: space["4xl"] }}>
-        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: space.md }}>
-          <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-            <Text style={{ color: colour.onPrimary, fontSize: 26, lineHeight: 30 }}>‹</Text>
+      <View
+        style={{
+          paddingHorizontal: space.lg,
+          paddingTop: space.lg,
+          paddingBottom: space["4xl"],
+        }}
+      >
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: space.md,
+          }}
+        >
+          <TouchableOpacity
+            onPress={() => router.back()}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          >
+            <Text
+              style={{ color: colour.onPrimary, fontSize: 26, lineHeight: 30 }}
+            >
+              ‹
+            </Text>
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => router.push("/mileage-tracker")}
-            style={{ backgroundColor: "rgba(255,255,255,0.18)", borderRadius: radius.pill, paddingHorizontal: space.md, paddingVertical: space.xs }}
+            style={{
+              backgroundColor: "rgba(255,255,255,0.18)",
+              borderRadius: radius.pill,
+              paddingHorizontal: space.md,
+              paddingVertical: space.xs,
+            }}
           >
-            <Text style={{ ...typography.actionS, color: colour.onPrimary }}>+ New Trip</Text>
+            <Text style={{ ...typography.actionS, color: colour.onPrimary }}>
+              + New Trip
+            </Text>
           </TouchableOpacity>
         </View>
-        <Text style={{ ...typography.labelS, color: "rgba(255,255,255,0.75)" }}>Mileage Tracker</Text>
-        <Text style={{ ...typography.h3, color: colour.onPrimary }}>Trip Logbook</Text>
-        <Text style={{ ...typography.bodyS, color: "rgba(255,255,255,0.7)", marginTop: 2 }}>
+        <Text style={{ ...typography.labelS, color: "rgba(255,255,255,0.75)" }}>
+          Mileage Tracker
+        </Text>
+        <Text style={{ ...typography.h3, color: colour.onPrimary }}>
+          Trip Logbook
+        </Text>
+        <Text
+          style={{
+            ...typography.bodyS,
+            color: "rgba(255,255,255,0.7)",
+            marginTop: 2,
+          }}
+        >
           Tax Year {ACTIVE_TAX_YEAR}
         </Text>
       </View>
 
       <ScrollView
-        style={{ flex: 1, backgroundColor: colour.bgPage, borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl }}
+        style={{
+          flex: 1,
+          backgroundColor: colour.bgPage,
+          borderTopLeftRadius: radius.xl,
+          borderTopRightRadius: radius.xl,
+        }}
         contentContainerStyle={{ padding: space.lg, paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
       >
         {/* Summary cards */}
-        <View style={{ flexDirection: "row", gap: space.sm, marginBottom: space.lg }}>
-          <View style={{ flex: 1, backgroundColor: colour.primary, borderRadius: radius.md, padding: space.md }}>
-            <Text style={{ ...typography.caption, color: "rgba(255,255,255,0.7)" }}>Total Distance</Text>
-            <Text style={{ ...typography.amountS, color: colour.onPrimary, marginTop: 2 }}>
+        <View
+          style={{
+            flexDirection: "row",
+            gap: space.sm,
+            marginBottom: space.lg,
+          }}
+        >
+          <View
+            style={{
+              flex: 1,
+              backgroundColor: colour.primary,
+              borderRadius: radius.md,
+              padding: space.md,
+            }}
+          >
+            <Text
+              style={{ ...typography.caption, color: "rgba(255,255,255,0.7)" }}
+            >
+              Total Distance
+            </Text>
+            <Text
+              style={{
+                ...typography.amountS,
+                color: colour.onPrimary,
+                marginTop: 2,
+              }}
+            >
               {totalKm.toFixed(1)} km
             </Text>
           </View>
-          <View style={{ flex: 1, backgroundColor: colour.white, borderRadius: radius.md, padding: space.md, borderWidth: 1, borderColor: colour.border }}>
-            <Text style={{ ...typography.caption, color: colour.textSecondary }}>Est. Deduction</Text>
-            <Text style={{ ...typography.amountS, color: colour.success, marginTop: 2 }}>
+          <View
+            style={{
+              flex: 1,
+              backgroundColor: colour.white,
+              borderRadius: radius.md,
+              padding: space.md,
+              borderWidth: 1,
+              borderColor: colour.border,
+            }}
+          >
+            <Text
+              style={{ ...typography.caption, color: colour.textSecondary }}
+            >
+              Est. Deduction
+            </Text>
+            <Text
+              style={{
+                ...typography.amountS,
+                color: colour.success,
+                marginTop: 2,
+              }}
+            >
               R{totalDeductions.toFixed(0)}
             </Text>
           </View>
-          <View style={{ flex: 1, backgroundColor: colour.white, borderRadius: radius.md, padding: space.md, borderWidth: 1, borderColor: colour.border }}>
-            <Text style={{ ...typography.caption, color: colour.textSecondary }}>Trips</Text>
-            <Text style={{ ...typography.amountS, color: colour.textPrimary, marginTop: 2 }}>
+          <View
+            style={{
+              flex: 1,
+              backgroundColor: colour.white,
+              borderRadius: radius.md,
+              padding: space.md,
+              borderWidth: 1,
+              borderColor: colour.border,
+            }}
+          >
+            <Text
+              style={{ ...typography.caption, color: colour.textSecondary }}
+            >
+              Trips
+            </Text>
+            <Text
+              style={{
+                ...typography.amountS,
+                color: colour.textPrimary,
+                marginTop: 2,
+              }}
+            >
               {totalTrips}
             </Text>
           </View>
@@ -173,73 +302,219 @@ export default function MileageHistoryScreen() {
         ) : trips.length === 0 ? (
           <View style={{ alignItems: "center", paddingTop: space["4xl"] }}>
             <Text style={{ fontSize: 48, marginBottom: space.md }}>🚗</Text>
-            <Text style={{ ...typography.h4, color: colour.textPrimary }}>No trips yet</Text>
-            <Text style={{ ...typography.bodyM, color: colour.textSecondary, textAlign: "center", marginTop: space.xs, marginBottom: space.xl }}>
+            <Text style={{ ...typography.h4, color: colour.textPrimary }}>
+              No trips yet
+            </Text>
+            <Text
+              style={{
+                ...typography.bodyM,
+                color: colour.textSecondary,
+                textAlign: "center",
+                marginTop: space.xs,
+                marginBottom: space.xl,
+              }}
+            >
               Start tracking your business travel for SARS ITR12 deductions
             </Text>
             <TouchableOpacity
               onPress={() => router.push("/mileage-tracker")}
-              style={{ backgroundColor: colour.primary, borderRadius: radius.pill, paddingVertical: space.md, paddingHorizontal: space.xl }}
+              style={{
+                backgroundColor: colour.primary,
+                borderRadius: radius.pill,
+                paddingVertical: space.md,
+                paddingHorizontal: space.xl,
+              }}
             >
-              <Text style={{ ...typography.btnL, color: colour.onPrimary }}>Start First Trip</Text>
+              <Text style={{ ...typography.btnL, color: colour.onPrimary }}>
+                Start First Trip
+              </Text>
             </TouchableOpacity>
           </View>
         ) : (
           <>
-            <Text style={{ ...typography.labelM, color: colour.textSecondary, marginBottom: space.sm }}>
+            <Text
+              style={{
+                ...typography.labelM,
+                color: colour.textSecondary,
+                marginBottom: space.sm,
+              }}
+            >
               ALL TRIPS
             </Text>
             {trips.map((trip) => (
               <View
                 key={trip.id}
-                style={{ backgroundColor: colour.white, borderRadius: radius.lg, padding: space.lg, marginBottom: space.md, borderWidth: 1, borderColor: colour.border, ...platformShadow }}
+                style={{
+                  backgroundColor: colour.white,
+                  borderRadius: radius.lg,
+                  padding: space.lg,
+                  marginBottom: space.md,
+                  borderWidth: 1,
+                  borderColor: colour.border,
+                  ...platformShadow,
+                }}
               >
-                <View style={{ flexDirection: "row", alignItems: "flex-start", marginBottom: space.sm }}>
-                  <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: colour.primaryLight, alignItems: "center", justifyContent: "center", marginRight: space.md }}>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "flex-start",
+                    marginBottom: space.sm,
+                  }}
+                >
+                  <View
+                    style={{
+                      width: 44,
+                      height: 44,
+                      borderRadius: 12,
+                      backgroundColor: colour.primaryLight,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      marginRight: space.md,
+                    }}
+                  >
                     <Text style={{ fontSize: 22 }}>🚗</Text>
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={{ ...typography.labelM, color: colour.textPrimary }}>{trip.purpose}</Text>
-                    <Text style={{ ...typography.caption, color: colour.textSecondary }}>
-                      {formatDate(trip.trip_date)} · {formatElapsed(trip.duration_seconds)}
+                    <Text
+                      style={{
+                        ...typography.labelM,
+                        color: colour.textPrimary,
+                      }}
+                    >
+                      {trip.purpose}
+                    </Text>
+                    <Text
+                      style={{
+                        ...typography.caption,
+                        color: colour.textSecondary,
+                      }}
+                    >
+                      {formatDate(trip.trip_date)} ·{" "}
+                      {formatElapsed(trip.duration_seconds)}
                     </Text>
                   </View>
                   <View style={{ alignItems: "flex-end" }}>
-                    <Text style={{ ...typography.labelM, color: colour.primary }}>
+                    <Text
+                      style={{ ...typography.labelM, color: colour.primary }}
+                    >
                       {Number(trip.distance_km).toFixed(2)} km
                     </Text>
-                    <Text style={{ ...typography.caption, color: colour.success }}>
-                      R{(Number(trip.distance_km) * SARS_RATE_PER_KM).toFixed(2)}
+                    <Text
+                      style={{ ...typography.caption, color: colour.success }}
+                    >
+                      R
+                      {(Number(trip.distance_km) * SARS_RATE_PER_KM).toFixed(2)}
                     </Text>
                   </View>
                 </View>
 
                 {/* Detail row */}
-                <View style={{ flexDirection: "row", backgroundColor: colour.bgPage, borderRadius: radius.sm, padding: space.sm, marginBottom: space.sm }}>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    backgroundColor: colour.bgPage,
+                    borderRadius: radius.sm,
+                    padding: space.sm,
+                    marginBottom: space.sm,
+                  }}
+                >
                   <View style={{ flex: 1, alignItems: "center" }}>
-                    <Text style={{ ...typography.micro, color: colour.textSecondary }}>Distance</Text>
-                    <Text style={{ ...typography.labelS, color: colour.textPrimary }}>{Number(trip.distance_km).toFixed(2)} km</Text>
+                    <Text
+                      style={{
+                        ...typography.micro,
+                        color: colour.textSecondary,
+                      }}
+                    >
+                      Distance
+                    </Text>
+                    <Text
+                      style={{
+                        ...typography.labelS,
+                        color: colour.textPrimary,
+                      }}
+                    >
+                      {Number(trip.distance_km).toFixed(2)} km
+                    </Text>
                   </View>
-                  <View style={{ flex: 1, alignItems: "center", borderLeftWidth: 1, borderRightWidth: 1, borderColor: colour.border }}>
-                    <Text style={{ ...typography.micro, color: colour.textSecondary }}>Duration</Text>
-                    <Text style={{ ...typography.labelS, color: colour.textPrimary }}>{formatElapsed(trip.duration_seconds)}</Text>
+                  <View
+                    style={{
+                      flex: 1,
+                      alignItems: "center",
+                      borderLeftWidth: 1,
+                      borderRightWidth: 1,
+                      borderColor: colour.border,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        ...typography.micro,
+                        color: colour.textSecondary,
+                      }}
+                    >
+                      Duration
+                    </Text>
+                    <Text
+                      style={{
+                        ...typography.labelS,
+                        color: colour.textPrimary,
+                      }}
+                    >
+                      {formatElapsed(trip.duration_seconds)}
+                    </Text>
                   </View>
                   <View style={{ flex: 1, alignItems: "center" }}>
-                    <Text style={{ ...typography.micro, color: colour.textSecondary }}>Deduction</Text>
-                    <Text style={{ ...typography.labelS, color: colour.success }}>R{(Number(trip.distance_km) * SARS_RATE_PER_KM).toFixed(2)}</Text>
+                    <Text
+                      style={{
+                        ...typography.micro,
+                        color: colour.textSecondary,
+                      }}
+                    >
+                      Deduction
+                    </Text>
+                    <Text
+                      style={{ ...typography.labelS, color: colour.success }}
+                    >
+                      R
+                      {(Number(trip.distance_km) * SARS_RATE_PER_KM).toFixed(2)}
+                    </Text>
                   </View>
                 </View>
 
                 {trip.notes && (
-                  <Text style={{ ...typography.bodyXS, color: colour.textSecondary, marginBottom: space.sm }}>
+                  <Text
+                    style={{
+                      ...typography.bodyXS,
+                      color: colour.textSecondary,
+                      marginBottom: space.sm,
+                    }}
+                  >
                     📝 {trip.notes}
                   </Text>
                 )}
 
                 {/* ITR12 badge + delete */}
-                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-                  <View style={{ backgroundColor: colour.primaryLight, borderRadius: radius.pill, paddingHorizontal: space.sm, paddingVertical: 2 }}>
-                    <Text style={{ ...typography.micro, color: colour.primary, fontWeight: "700" }}>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <View
+                    style={{
+                      backgroundColor: colour.primaryLight,
+                      borderRadius: radius.pill,
+                      paddingHorizontal: space.sm,
+                      paddingVertical: 2,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        ...typography.micro,
+                        color: colour.primary,
+                        fontWeight: "700",
+                      }}
+                    >
                       S11(a) · ITR12 Deductible
                     </Text>
                   </View>
@@ -248,20 +523,49 @@ export default function MileageHistoryScreen() {
                     disabled={deleting === trip.id}
                     hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                   >
-                    {deleting === trip.id
-                      ? <ActivityIndicator color={colour.danger} size="small" />
-                      : <Text style={{ ...typography.caption, color: colour.danger }}>Delete</Text>
-                    }
+                    {deleting === trip.id ? (
+                      <ActivityIndicator color={colour.danger} size="small" />
+                    ) : (
+                      <Text
+                        style={{ ...typography.caption, color: colour.danger }}
+                      >
+                        Delete
+                      </Text>
+                    )}
                   </TouchableOpacity>
                 </View>
               </View>
             ))}
 
             {/* SARS note */}
-            <View style={{ backgroundColor: colour.infoLight, borderRadius: radius.md, padding: space.md, marginTop: space.sm }}>
-              <Text style={{ ...typography.labelS, color: colour.info, marginBottom: space.xs }}>ℹ️ SARS Logbook Requirement</Text>
-              <Text style={{ ...typography.bodyXS, color: colour.info, lineHeight: 18 }}>
-                SARS requires a travel logbook for vehicle expense claims. This logbook records each business trip with date, distance, purpose and calculated deduction at the deemed rate of R4.84/km for the 2024/25 tax year.
+            <View
+              style={{
+                backgroundColor: colour.infoLight,
+                borderRadius: radius.md,
+                padding: space.md,
+                marginTop: space.sm,
+              }}
+            >
+              <Text
+                style={{
+                  ...typography.labelS,
+                  color: colour.info,
+                  marginBottom: space.xs,
+                }}
+              >
+                ℹ️ SARS Logbook Requirement
+              </Text>
+              <Text
+                style={{
+                  ...typography.bodyXS,
+                  color: colour.info,
+                  lineHeight: 18,
+                }}
+              >
+                SARS requires a travel logbook for vehicle expense claims. This
+                logbook records each business trip with date, distance, purpose
+                and calculated deduction at the deemed rate of R4.84/km for the
+                2024/25 tax year.
               </Text>
             </View>
           </>

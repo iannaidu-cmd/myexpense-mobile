@@ -111,13 +111,9 @@ export default function ScanReceiptCameraScreen() {
 
       if (uploadError) throw new Error(uploadError.message);
 
-      // Private bucket — use a signed URL (valid for 1 hour) instead of getPublicUrl
-      const { data: signedData, error: signedError } = await supabase.storage
+      const { data: urlData } = supabase.storage
         .from("receipts")
-        .createSignedUrl(storagePath, 3600);
-
-      if (signedError) throw new Error(signedError.message);
-      const receiptUrl = signedData.signedUrl;
+        .getPublicUrl(storagePath);
 
       // Insert receipt record
       await supabase.from("receipts").insert({
@@ -130,9 +126,7 @@ export default function ScanReceiptCameraScreen() {
       // Resize image and convert to base64 for OCR
       const base64 = await toBase64(uri);
       console.log("Base64 length after resize:", base64?.length ?? 0);
-
-      // Pass signed URL and storage path to receipt review screen
-      receiptState.set(base64, receiptUrl, storagePath);
+      receiptState.set(base64, urlData.publicUrl, storagePath);
 
       router.push("/scan-receipt-processing" as any);
     } catch (e: any) {

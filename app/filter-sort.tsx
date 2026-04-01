@@ -1,5 +1,6 @@
 import { MXTabBar } from "@/components/MXTabBar";
 import { colour, radius, space, typography } from "@/tokens";
+import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
     ScrollView,
@@ -61,7 +62,8 @@ const DEDUCTIBILITY = [
   "Non-deductible (0%)",
 ];
 
-export default function FilterSortScreen({ navigation, route }: any) {
+export default function FilterSortScreen() {
+  const router = useRouter();
   const [sortBy, setSortBy] = useState<SortKey>("date_desc");
   const [category, setCategory] = useState("All categories");
   const [dateRange, setDateRange] = useState("This month");
@@ -85,7 +87,7 @@ export default function FilterSortScreen({ navigation, route }: any) {
     setMaxAmount("");
   };
 
-  const handleApply = () => navigation?.goBack();
+  const handleApply = () => router.back();
 
   const RadioGroup = ({
     label,
@@ -168,7 +170,7 @@ export default function FilterSortScreen({ navigation, route }: any) {
           borderBottomColor: colour.border,
         }}
       >
-        <TouchableOpacity onPress={() => navigation?.goBack()}>
+        <TouchableOpacity onPress={() => router.back()}>
           <Text
             style={{
               fontSize: 26,
