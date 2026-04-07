@@ -1,29 +1,30 @@
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
-  registerForPushNotifications,
-  savePushToken,
-  scheduleSARSDeadlineReminders,
-  scheduleWeeklyExpenseReminder,
-  setupNotificationResponseHandler,
+    registerForPushNotifications,
+    savePushToken,
+    scheduleSARSDeadlineReminders,
+    scheduleWeeklyExpenseReminder,
+    setupNotificationResponseHandler,
 } from "@/services/notificationService";
 import { useAuthStore } from "@/stores/authStore";
 import {
-  Inter_400Regular,
-  Inter_500Medium,
-  Inter_600SemiBold,
-  Inter_700Bold,
-  Inter_800ExtraBold,
-  useFonts,
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+    Inter_700Bold,
+    Inter_800ExtraBold,
+    useFonts,
 } from "@expo-google-fonts/inter";
 import {
-  DarkTheme,
-  DefaultTheme,
-  ThemeProvider,
+    DarkTheme,
+    DefaultTheme,
+    ThemeProvider,
 } from "@react-navigation/native";
 import { Stack, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Animated, Image } from "react-native";
 import "react-native-reanimated";
 import "react-native-url-polyfill/auto";
 
@@ -56,9 +57,7 @@ function AuthGate() {
       segments[0] === "splash";
 
     // Legal screens are always accessible regardless of auth state
-    const inLegal =
-      segments[0] === "terms" ||
-      segments[0] === "privacy";
+    const inLegal = segments[0] === "terms" || segments[0] === "privacy";
 
     if (!user && !inAuthGroup && !inOnboarding && !inLegal) {
       router.replace("/onboarding-step-1");
@@ -78,14 +77,19 @@ function NotificationSetup() {
   useEffect(() => {
     if (!user) return;
 
-    let responseSub: ReturnType<typeof setupNotificationResponseHandler> | null = null;
+    let responseSub: ReturnType<
+      typeof setupNotificationResponseHandler
+    > | null = null;
 
     const setup = async () => {
       try {
         const token = await registerForPushNotifications();
         if (token) await savePushToken(user.id, token);
       } catch (e) {
-        console.warn("Push token registration skipped (works in production build):", e);
+        console.warn(
+          "Push token registration skipped (works in production build):",
+          e,
+        );
       }
 
       try {
@@ -105,7 +109,9 @@ function NotificationSetup() {
     };
 
     setup();
-    return () => { responseSub?.remove(); };
+    return () => {
+      responseSub?.remove();
+    };
   }, [user?.id]);
 
   return null;
@@ -114,6 +120,9 @@ function NotificationSetup() {
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const { initialise } = useAuthStore();
+  const [splashDone, setSplashDone] = useState(false);
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [fontsLoaded, fontError] = useFonts({
     Inter_400Regular,
@@ -127,7 +136,18 @@ export default function RootLayout() {
     if (fontsLoaded || fontError) {
       SplashScreen.hideAsync();
       initialise();
+      // Show in-app logo splash for 3 seconds then fade out
+      timerRef.current = setTimeout(() => {
+        Animated.timing(fadeAnim, {
+          toValue: 0,
+          duration: 400,
+          useNativeDriver: true,
+        }).start(() => setSplashDone(true));
+      }, 3000);
     }
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
   }, [fontsLoaded, fontError]);
 
   if (!fontsLoaded && !fontError) return null;
@@ -137,12 +157,21 @@ export default function RootLayout() {
       <AuthGate />
       <NotificationSetup />
       <Stack>
+        {" "}
         {/* ── Entry ── */}
         <Stack.Screen name="splash" options={{ headerShown: false }} />
-        <Stack.Screen name="onboarding-step-1" options={{ headerShown: false }} />
-        <Stack.Screen name="onboarding-step-2" options={{ headerShown: false }} />
-        <Stack.Screen name="onboarding-step-3" options={{ headerShown: false }} />
-
+        <Stack.Screen
+          name="onboarding-step-1"
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="onboarding-step-2"
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="onboarding-step-3"
+          options={{ headerShown: false }}
+        />
         {/* ── Auth ── */}
         <Stack.Screen name="auth" options={{ headerShown: false }} />
         <Stack.Screen name="sign-in" options={{ headerShown: false }} />
@@ -150,72 +179,164 @@ export default function RootLayout() {
         <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
         <Stack.Screen name="forgot-password" options={{ headerShown: false }} />
         <Stack.Screen name="reset-password" options={{ headerShown: false }} />
-        <Stack.Screen name="email-verification" options={{ headerShown: false }} />
-
+        <Stack.Screen
+          name="email-verification"
+          options={{ headerShown: false }}
+        />
         {/* ── Legal (accessible without login) ── */}
         <Stack.Screen name="terms" options={{ headerShown: false }} />
         <Stack.Screen name="privacy" options={{ headerShown: false }} />
-
         {/* ── Main tabs ── */}
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-
         {/* ── Income ── */}
         <Stack.Screen name="add-income" options={{ headerShown: false }} />
         <Stack.Screen name="income-history" options={{ headerShown: false }} />
-
         {/* ── Expense Management ── */}
-        <Stack.Screen name="add-expense-manual" options={{ title: "Add Expense", headerBackTitle: "Back" }} />
-        <Stack.Screen name="quick-add-expense" options={{ title: "Quick Add", headerBackTitle: "Back" }} />
+        <Stack.Screen
+          name="add-expense-manual"
+          options={{ title: "Add Expense", headerBackTitle: "Back" }}
+        />
+        <Stack.Screen
+          name="quick-add-expense"
+          options={{ title: "Quick Add", headerBackTitle: "Back" }}
+        />
         <Stack.Screen name="expense-detail" options={{ headerShown: false }} />
         <Stack.Screen name="expense-history" options={{ headerShown: false }} />
         <Stack.Screen name="edit-expense" options={{ headerShown: false }} />
-        <Stack.Screen name="receipt-review" options={{ title: "Review Receipt", headerBackTitle: "Back" }} />
-        <Stack.Screen name="scan-receipt-camera" options={{ headerShown: false }} />
-        <Stack.Screen name="scan-receipt-processing" options={{ headerShown: false }} />
-        <Stack.Screen name="recent-activity-feed" options={{ title: "Recent Activity", headerBackTitle: "Back" }} />
-        <Stack.Screen name="upload-from-gallery" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="receipt-review"
+          options={{ title: "Review Receipt", headerBackTitle: "Back" }}
+        />
+        <Stack.Screen
+          name="scan-receipt-camera"
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="scan-receipt-processing"
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="recent-activity-feed"
+          options={{ title: "Recent Activity", headerBackTitle: "Back" }}
+        />
+        <Stack.Screen
+          name="upload-from-gallery"
+          options={{ headerShown: false }}
+        />
         <Stack.Screen name="filter-sort" options={{ headerShown: false }} />
-        <Stack.Screen name="delete-confirmation" options={{ headerShown: false }} />
-
+        <Stack.Screen
+          name="delete-confirmation"
+          options={{ headerShown: false }}
+        />
         {/* ── Tax & ITR12 ── */}
         <Stack.Screen name="tax-summary" options={{ headerShown: false }} />
-        <Stack.Screen name="itr12-export-setup" options={{ headerShown: false }} />
-        <Stack.Screen name="itr12-export-preview" options={{ headerShown: false }} />
-        <Stack.Screen name="itr12-pdf-report" options={{ headerShown: false }} />
-        <Stack.Screen name="itr12-efiling-guide" options={{ headerShown: false }} />
-        <Stack.Screen name="category-breakdown" options={{ headerShown: false }} />
-        <Stack.Screen name="deductibility-guide" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="itr12-export-setup"
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="itr12-export-preview"
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="itr12-pdf-report"
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="itr12-efiling-guide"
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="category-breakdown"
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="deductibility-guide"
+          options={{ headerShown: false }}
+        />
         <Stack.Screen name="vat-summary" options={{ headerShown: false }} />
-        <Stack.Screen name="tax-year-selector" options={{ headerShown: false }} />
-
+        <Stack.Screen
+          name="tax-year-selector"
+          options={{ headerShown: false }}
+        />
         {/* ── Reports ── */}
-        <Stack.Screen name="reports-dashboard" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="reports-dashboard"
+          options={{ headerShown: false }}
+        />
         <Stack.Screen name="mileage-tracker" options={{ headerShown: false }} />
         <Stack.Screen name="mileage-history" options={{ headerShown: false }} />
-        <Stack.Screen name="mileage-trip-summary" options={{ headerShown: false }} />
-
+        <Stack.Screen
+          name="mileage-trip-summary"
+          options={{ headerShown: false }}
+        />
         {/* ── Settings ── */}
         <Stack.Screen name="bank-accounts" options={{ headerShown: false }} />
-
         {/* ── Paywall ── */}
-        <Stack.Screen name="paywall-upgrade" options={{ title: "Upgrade", headerBackTitle: "Back", presentation: "modal" }} />
-
+        <Stack.Screen
+          name="paywall-upgrade"
+          options={{
+            title: "Upgrade",
+            headerBackTitle: "Back",
+            presentation: "modal",
+          }}
+        />
         {/* ── Utility ── */}
-        <Stack.Screen name="success-confirmation" options={{ headerShown: false }} />
-        <Stack.Screen name="loading-skeleton" options={{ headerShown: false }} />
-        <Stack.Screen name="empty-state-no-expenses" options={{ headerShown: false }} />
-        <Stack.Screen name="empty-state-no-reports" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="success-confirmation"
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="loading-skeleton"
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="empty-state-no-expenses"
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="empty-state-no-reports"
+          options={{ headerShown: false }}
+        />
         <Stack.Screen name="error-generic" options={{ headerShown: false }} />
-        <Stack.Screen name="error-no-internet" options={{ headerShown: false }} />
-
+        <Stack.Screen
+          name="error-no-internet"
+          options={{ headerShown: false }}
+        />
         {/* ── Stubs ── */}
         <Stack.Screen name="reports-screens" options={{ headerShown: false }} />
-        <Stack.Screen name="settings-screens" options={{ headerShown: false }} />
-
+        <Stack.Screen
+          name="settings-screens"
+          options={{ headerShown: false }}
+        />
         {/* ── Modal ── */}
         <Stack.Screen name="modal" options={{ presentation: "modal" }} />
       </Stack>
       <StatusBar style="auto" />
+
+      {/* ── In-app logo splash overlay — visible for 3 s then fades out ── */}
+      {!splashDone && (
+        <Animated.View
+          pointerEvents="none"
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "#FFFFFF",
+            alignItems: "center",
+            justifyContent: "center",
+            opacity: fadeAnim,
+          }}
+        >
+          <Image
+            source={require("../assets/images/sm_logo.gif")}
+            style={{ width: 120, height: 120 }}
+            resizeMode="contain"
+          />
+        </Animated.View>
+      )}
     </ThemeProvider>
   );
 }
