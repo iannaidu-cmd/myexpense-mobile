@@ -10,73 +10,113 @@ import {
     View,
 } from "react-native";
 
-const SUMMARY = {
-  income: 84500,
-  expenses: 48320,
-  claimable: 36240,
-  taxSaving: 9060,
-};
-
 const QUICK_REPORTS = [
   {
     id: "1",
     icon: "📊",
     title: "Income vs Expenses",
     sub: "Monthly comparison",
-    screen: "IncomeVsExpensesScreen",
+    route: "/expense-history",
   },
   {
     id: "2",
-    icon: "📈",
-    title: "Monthly Trends",
-    sub: "12-month overview",
-    screen: "MonthlyTrendsScreen",
-  },
-  {
-    id: "3",
     icon: "💰",
     title: "Tax Savings Report",
     sub: "ITR12 deduction summary",
-    screen: "TaxSavingsReportScreen",
+    route: "/tax-summary",
   },
   {
-    id: "4",
+    id: "3",
     icon: "🗂️",
     title: "Category Breakdown",
     sub: "Expenses by SARS category",
-    screen: "CategoryBreakdownScreen",
+    route: "/category-breakdown",
   },
   {
-    id: "5",
+    id: "4",
     icon: "📤",
     title: "Export Centre",
     sub: "PDF · CSV · ITR12",
-    screen: "ExportCentreScreen",
+    route: "/itr12-export-setup",
+  },
+  {
+    id: "5",
+    icon: "🧾",
+    title: "VAT Summary",
+    sub: "Input tax claimable",
+    route: "/vat-summary",
   },
 ];
 
-const BAR_DATA = [
-  { month: "Oct", income: 14200, expense: 7800 },
-  { month: "Nov", income: 13500, expense: 8200 },
-  { month: "Dec", income: 12000, expense: 9500 },
-  { month: "Jan", income: 15800, expense: 7200 },
-  { month: "Feb", income: 14900, expense: 8100 },
-  { month: "Mar", income: 14100, expense: 7520 },
-];
-
-const SCREEN_TO_ROUTE: Record<string, string> = {
-  IncomeVsExpensesScreen: "/expense-history",
-  MonthlyTrendsScreen: "/tax-summary",
-  TaxSavingsReportScreen: "/tax-summary",
-  CategoryBreakdownScreen: "/category-breakdown",
-  ExportCentreScreen: "/itr12-export-setup",
+const fmtShort = (n: number) => {
+  if (n >= 1_000_000) return `R ${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `R ${(n / 1_000).toFixed(1)}k`;
+  return `R ${n.toFixed(0)}`;
 };
+const fmt = (n: number) =>
+  `R ${n.toLocaleString("en-ZA", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 
 export default function ReportsDashboardScreen() {
   const router = useRouter();
-  const [activeYear, setActiveYear] = useState("2025/26");
-  const maxVal = Math.max(...BAR_DATA.flatMap((d) => [d.income, d.expense]));
-  const fmt = (n: number) => `R ${n.toLocaleString("en-ZA")}`;
+  const { user } = useAuthStore();
+  const { activeTaxYear } = useExpenseStore();
+
+  const [loading, setLoading] = useState(true);
+  const [totalIncome, setTotalIncome] = useState(0);
+  const [totalExpenses, setTotalExpenses] = useState(0);
+  const [totalDeductions, setTotalDeductions] = useState(0);
+  const [monthlyData, setMonthlyData] = useState<
+    { month: string; income: number; expense: number }[]
+  >([]);
+
+  const loadData = useCallback(async () => {
+    if (!user) return;
+    setLoading(true);
+    try {
+      const [incomeTotals, expenseTotals, allExpenses, allIncome] =
+        await Promise.all([
+          incomeService.getTotals(user.id),
+          expenseService.getTotals(user.id, activeTaxYear),
+          expenseService.getExpenses(user.id, activeTaxYear),
+          incomeService.getIncome(user.id),
+        ]);
+      setTotalIncome(incomeTotals.totalIncome);
+      setTotalExpenses(expenseTotals.totalExpenses);
+      setTotalDeductions(expenseTotals.totalDeductions);
+
+      const now = new Date();
+      const months = [];
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const month = d.toLocaleString("en-ZA", { month: "short" });
+        const monthStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+        const income = allIncome
+          .filter((e) => e.date.startsWith(monthStr))
+          .reduce((s, e) => s + Number(e.amount), 0);
+        const expense = allExpenses
+          .filter((e) => e.expense_date.startsWith(monthStr))
+          .reduce((s, e) => s + Number(e.amount), 0);
+        months.push({ month, income, expense });
+      }
+      setMonthlyData(months);
+    } catch (e) {
+      console.error("ReportsDashboard load error:", e);
+    } finally {
+      setLoading(false);
+    }
+  }, [user, activeTaxYear]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [loadData]),
+  );
+
+  const estTaxSaving = Math.round(totalDeductions * 0.31);
+  const maxVal = Math.max(
+    ...monthlyData.flatMap((d) => [d.income, d.expense]),
+    1,
+  );
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colour.primary }}>
@@ -121,7 +161,7 @@ export default function ReportsDashboardScreen() {
             onPress={() => router.push("/tax-year-selector" as any)}
           >
             <Text style={[typography.labelS, { color: colour.textOnPrimary }]}>
-              FY {activeYear} ›
+              FY {activeTaxYear} ›
             </Text>
           </TouchableOpacity>
         </View>
@@ -143,242 +183,272 @@ export default function ReportsDashboardScreen() {
           paddingBottom: space["4xl"],
         }}
       >
-        {/* KPI row */}
-        <View
-          style={{
-            flexDirection: "row",
-            gap: space.sm,
-            marginBottom: space.xl,
-          }}
-        >
-          {[
-            {
-              label: "Income",
-              value: fmt(SUMMARY.income),
-              accent: colour.primary,
-            },
-            {
-              label: "Expenses",
-              value: fmt(SUMMARY.expenses),
-              accent: colour.danger,
-            },
-            {
-              label: "Claimable",
-              value: fmt(SUMMARY.claimable),
-              accent: colour.success,
-            },
-          ].map((k) => (
+        {loading ? (
+          <View style={{ alignItems: "center", paddingTop: space["5xl"] }}>
+            <ActivityIndicator color={colour.primary} size="large" />
+          </View>
+        ) : (
+          <>
+            {/* KPI row */}
             <View
-              key={k.label}
               style={{
-                flex: 1,
-                backgroundColor: colour.bgPage,
-                borderRadius: radius.md,
-                padding: space.md,
-                borderLeftWidth: 3,
-                borderLeftColor: k.accent,
+                flexDirection: "row",
+                gap: space.sm,
+                marginBottom: space.xl,
               }}
             >
-              <Text style={[typography.micro, { color: colour.textSecondary }]}>
-                {k.label}
-              </Text>
+              {[
+                {
+                  label: "Income",
+                  value: fmtShort(totalIncome),
+                  accent: colour.primary,
+                },
+                {
+                  label: "Expenses",
+                  value: fmtShort(totalExpenses),
+                  accent: colour.danger,
+                },
+                {
+                  label: "Claimable",
+                  value: fmtShort(totalDeductions),
+                  accent: colour.success,
+                },
+              ].map((k) => (
+                <View
+                  key={k.label}
+                  style={{
+                    flex: 1,
+                    backgroundColor: colour.bgPage,
+                    borderRadius: radius.md,
+                    padding: space.md,
+                    borderLeftWidth: 3,
+                    borderLeftColor: k.accent,
+                  }}
+                >
+                  <Text
+                    style={[typography.micro, { color: colour.textSecondary }]}
+                  >
+                    {k.label}
+                  </Text>
+                  <Text
+                    style={[
+                      typography.labelM,
+                      { color: colour.textPrimary, marginTop: 2 },
+                    ]}
+                  >
+                    {k.value}
+                  </Text>
+                </View>
+              ))}
+            </View>
+
+            {/* Mini bar chart */}
+            <View
+              style={{
+                backgroundColor: colour.bgPage,
+                borderRadius: radius.md,
+                padding: space.lg,
+                marginBottom: space.xl,
+              }}
+            >
               <Text
                 style={[
                   typography.labelM,
-                  { color: colour.textPrimary, marginTop: 2 },
+                  { color: colour.textPrimary, marginBottom: space.md },
                 ]}
               >
-                {k.value}
+                6-Month Overview
               </Text>
-            </View>
-          ))}
-        </View>
-
-        {/* Mini bar chart */}
-        <View
-          style={{
-            backgroundColor: colour.bgPage,
-            borderRadius: radius.md,
-            padding: space.lg,
-            marginBottom: space.xl,
-          }}
-        >
-          <Text
-            style={[
-              typography.labelM,
-              { color: colour.textPrimary, marginBottom: space.md },
-            ]}
-          >
-            6-Month Overview
-          </Text>
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "flex-end",
-              height: 80,
-              gap: space.xs,
-            }}
-          >
-            {BAR_DATA.map((d) => (
-              <View key={d.month} style={{ flex: 1, alignItems: "center" }}>
+              {monthlyData.every((d) => d.income === 0 && d.expense === 0) ? (
+                <View
+                  style={{ alignItems: "center", paddingVertical: space.lg }}
+                >
+                  <Text
+                    style={[typography.bodyS, { color: colour.textSecondary }]}
+                  >
+                    No data for this period
+                  </Text>
+                </View>
+              ) : (
                 <View
                   style={{
-                    width: "100%",
-                    gap: 2,
-                    justifyContent: "flex-end",
-                    height: 64,
+                    flexDirection: "row",
+                    alignItems: "flex-end",
+                    height: 80,
+                    gap: space.xs,
                   }}
                 >
-                  <View
-                    style={{
-                      width: "100%",
-                      height: (d.income / maxVal) * 60,
-                      backgroundColor: colour.primary,
-                      borderRadius: 2,
-                      opacity: 0.85,
-                    }}
-                  />
-                  <View
-                    style={{
-                      width: "100%",
-                      height: (d.expense / maxVal) * 60,
-                      backgroundColor: colour.danger,
-                      borderRadius: 2,
-                      opacity: 0.7,
-                    }}
-                  />
+                  {monthlyData.map((d) => (
+                    <View
+                      key={d.month}
+                      style={{ flex: 1, alignItems: "center" }}
+                    >
+                      <View
+                        style={{
+                          width: "100%",
+                          gap: 2,
+                          justifyContent: "flex-end",
+                          height: 64,
+                        }}
+                      >
+                        <View
+                          style={{
+                            width: "100%",
+                            height: Math.max(
+                              (d.income / maxVal) * 60,
+                              d.income > 0 ? 3 : 0,
+                            ),
+                            backgroundColor: colour.primary,
+                            borderRadius: 2,
+                            opacity: 0.85,
+                          }}
+                        />
+                        <View
+                          style={{
+                            width: "100%",
+                            height: Math.max(
+                              (d.expense / maxVal) * 60,
+                              d.expense > 0 ? 3 : 0,
+                            ),
+                            backgroundColor: colour.danger,
+                            borderRadius: 2,
+                            opacity: 0.7,
+                          }}
+                        />
+                      </View>
+                      <Text
+                        style={[
+                          typography.micro,
+                          { color: colour.textSecondary, marginTop: space.xs },
+                        ]}
+                      >
+                        {d.month}
+                      </Text>
+                    </View>
+                  ))}
                 </View>
-                <Text
-                  style={[
-                    typography.micro,
-                    { color: colour.textSecondary, marginTop: space.xs },
-                  ]}
-                >
-                  {d.month}
+              )}
+              <View
+                style={{
+                  flexDirection: "row",
+                  gap: space.lg,
+                  marginTop: space.sm,
+                }}
+              >
+                {[
+                  { c: colour.primary, l: "Income" },
+                  { c: colour.danger, l: "Expenses" },
+                ].map((item) => (
+                  <View
+                    key={item.l}
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: space.xs,
+                    }}
+                  >
+                    <View
+                      style={{
+                        width: 10,
+                        height: 10,
+                        borderRadius: 2,
+                        backgroundColor: item.c,
+                      }}
+                    />
+                    <Text
+                      style={[
+                        typography.micro,
+                        { color: colour.textSecondary },
+                      ]}
+                    >
+                      {item.l}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+
+            {/* Tax saving callout */}
+            <View
+              style={{
+                backgroundColor: colour.successLight,
+                borderRadius: radius.md,
+                padding: space.lg,
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: space.xl,
+              }}
+            >
+              <View>
+                <Text style={[typography.labelM, { color: colour.success }]}>
+                  Estimated Tax Saving
+                </Text>
+                <Text style={[typography.caption, { color: colour.success }]}>
+                  Based on 31% marginal rate
                 </Text>
               </View>
-            ))}
-          </View>
-          <View
-            style={{ flexDirection: "row", gap: space.lg, marginTop: space.sm }}
-          >
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: space.xs,
-              }}
-            >
-              <View
-                style={{
-                  width: 10,
-                  height: 10,
-                  borderRadius: 2,
-                  backgroundColor: colour.primary,
-                }}
-              />
-              <Text style={[typography.micro, { color: colour.textSecondary }]}>
-                Income
+              <Text style={[typography.amountM, { color: colour.success }]}>
+                {fmt(estTaxSaving)}
               </Text>
             </View>
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: space.xs,
-              }}
-            >
-              <View
-                style={{
-                  width: 10,
-                  height: 10,
-                  borderRadius: 2,
-                  backgroundColor: colour.danger,
-                }}
-              />
-              <Text style={[typography.micro, { color: colour.textSecondary }]}>
-                Expenses
-              </Text>
-            </View>
-          </View>
-        </View>
 
-        {/* Tax saving callout */}
-        <View
-          style={{
-            backgroundColor: colour.successLight,
-            borderRadius: radius.md,
-            padding: space.lg,
-            flexDirection: "row",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: space.xl,
-          }}
-        >
-          <View>
-            <Text style={[typography.labelM, { color: colour.success }]}>
-              Estimated Tax Saving
-            </Text>
-            <Text style={[typography.caption, { color: colour.success }]}>
-              Based on 25% effective rate
-            </Text>
-          </View>
-          <Text style={[typography.amountM, { color: colour.success }]}>
-            {fmt(SUMMARY.taxSaving)}
-          </Text>
-        </View>
-
-        {/* Quick report tiles */}
-        <Text
-          style={[
-            typography.labelM,
-            { color: colour.textSecondary, marginBottom: space.sm },
-          ]}
-        >
-          REPORTS
-        </Text>
-        {QUICK_REPORTS.map((r) => (
-          <TouchableOpacity
-            key={r.id}
-            onPress={() =>
-              router.push(
-                (SCREEN_TO_ROUTE[r.screen] ?? "/(tabs)/reports") as any,
-              )
-            }
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              paddingVertical: space.md,
-              borderBottomWidth: 1,
-              borderBottomColor: colour.border,
-            }}
-          >
-            <View
-              style={{
-                width: 44,
-                height: 44,
-                borderRadius: radius.sm,
-                backgroundColor: colour.primaryLight,
-                alignItems: "center",
-                justifyContent: "center",
-                marginRight: space.md,
-              }}
+            {/* Quick report tiles */}
+            <Text
+              style={[
+                typography.labelM,
+                { color: colour.textSecondary, marginBottom: space.sm },
+              ]}
             >
-              <Text style={{ fontSize: 22 }}>{r.icon}</Text>
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={[typography.labelM, { color: colour.textPrimary }]}>
-                {r.title}
-              </Text>
-              <Text
-                style={[typography.caption, { color: colour.textSecondary }]}
+              REPORTS
+            </Text>
+            {QUICK_REPORTS.map((r) => (
+              <TouchableOpacity
+                key={r.id}
+                onPress={() => router.push(r.route as any)}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  paddingVertical: space.md,
+                  borderBottomWidth: 1,
+                  borderBottomColor: colour.border,
+                }}
               >
-                {r.sub}
-              </Text>
-            </View>
-            <Text style={{ color: colour.textSecondary, fontSize: 18 }}>›</Text>
-          </TouchableOpacity>
-        ))}
+                <View
+                  style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: radius.sm,
+                    backgroundColor: colour.primaryLight,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    marginRight: space.md,
+                  }}
+                >
+                  <Text style={{ fontSize: 22 }}>{r.icon}</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text
+                    style={[typography.labelM, { color: colour.textPrimary }]}
+                  >
+                    {r.title}
+                  </Text>
+                  <Text
+                    style={[
+                      typography.caption,
+                      { color: colour.textSecondary },
+                    ]}
+                  >
+                    {r.sub}
+                  </Text>
+                </View>
+                <Text style={{ color: colour.textSecondary, fontSize: 18 }}>
+                  ›
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </>
+        )}
       </ScrollView>
     </SafeAreaView>
   );

@@ -13,10 +13,10 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const STATUS_CONFIG = {
-  pending: { label: "Pending", bg: colour.warningLight, text: colour.warning },
-  processing: { label: "Processing", bg: colour.infoLight, text: colour.info },
-  done: { label: "Processed", bg: colour.successLight, text: colour.success },
-  failed: { label: "Failed", bg: colour.dangerLight, text: colour.danger },
+  pending:    { label: "Pending",    bg: colour.warningLight, text: colour.warning },
+  processing: { label: "Processing", bg: colour.infoLight,   text: colour.info    },
+  done:       { label: "Processed",  bg: colour.successLight, text: colour.success },
+  failed:     { label: "Failed",     bg: colour.dangerLight,  text: colour.danger  },
 } as const;
 
 const formatDate = (dateStr: string) => {
@@ -66,23 +66,11 @@ export default function ScanTabScreen() {
       <StatusBar barStyle="light-content" backgroundColor={colour.primary} />
 
       {/* Header */}
-      <View
-        style={{
-          paddingHorizontal: space.lg,
-          paddingTop: space.lg,
-          paddingBottom: space["4xl"],
-        }}
-      >
+      <View style={{ paddingHorizontal: space.lg, paddingTop: space.lg, paddingBottom: space["4xl"] }}>
         <Text style={{ ...typography.h3, color: colour.onPrimary }}>
-          Scan & Upload
+          Scan and upload
         </Text>
-        <Text
-          style={{
-            ...typography.bodyS,
-            color: "rgba(255,255,255,0.7)",
-            marginTop: 2,
-          }}
-        >
+        <Text style={{ ...typography.bodyS, color: "rgba(255,255,255,0.7)", marginTop: 2 }}>
           OCR-powered receipt capture
         </Text>
       </View>
@@ -120,8 +108,7 @@ export default function ScanTabScreen() {
               <Text
                 style={{
                   ...typography.btnM,
-                  color:
-                    tab === t ? colour.textOnPrimary : colour.textSecondary,
+                  color: tab === t ? colour.textOnPrimary : colour.textSecondary,
                 }}
               >
                 {t === "scan" ? "Capture" : "History"}
@@ -132,50 +119,6 @@ export default function ScanTabScreen() {
 
         {tab === "scan" ? (
           <View style={{ paddingHorizontal: space.lg }}>
-            {/* Camera CTA */}
-            <TouchableOpacity
-              onPress={() => router.push("/scan-receipt-camera")}
-              style={{
-                backgroundColor: colour.primary,
-                borderRadius: radius.lg,
-                padding: space["3xl"],
-                alignItems: "center",
-                marginBottom: space.lg,
-              }}
-            >
-              <View
-                style={{
-                  width: 80,
-                  height: 80,
-                  borderRadius: 40,
-                  backgroundColor: "rgba(255,255,255,0.2)",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  marginBottom: space.lg,
-                }}
-              >
-                <Text style={{ fontSize: 40 }}>📸</Text>
-              </View>
-              <Text
-                style={{
-                  ...typography.h4,
-                  color: colour.textOnPrimary,
-                  marginBottom: space.xs,
-                }}
-              >
-                Scan Receipt
-              </Text>
-              <Text
-                style={{
-                  ...typography.bodyM,
-                  color: "rgba(255,255,255,0.8)",
-                  textAlign: "center",
-                }}
-              >
-                Point your camera at a receipt to auto-capture amount, date and
-                vendor
-              </Text>
-            </TouchableOpacity>
 
             {/* Upload from gallery */}
             <TouchableOpacity
@@ -206,20 +149,18 @@ export default function ScanTabScreen() {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={{ ...typography.h4, color: colour.textPrimary }}>
-                  Upload from Gallery
+                  Upload from gallery
                 </Text>
-                <Text
-                  style={{ ...typography.bodyS, color: colour.textSecondary }}
-                >
+                <Text style={{ ...typography.bodyS, color: colour.textSecondary }}>
                   Select photos or PDFs from your device
                 </Text>
               </View>
               <Text style={{ color: colour.textSecondary, fontSize: 18 }}>
-                ›
+                {String.fromCharCode(8250)}
               </Text>
             </TouchableOpacity>
 
-            {/* Add manually */}
+            {/* Enter manually */}
             <TouchableOpacity
               onPress={() => router.push("/(tabs)/add-expense")}
               style={{
@@ -228,7 +169,7 @@ export default function ScanTabScreen() {
                 padding: space.xl,
                 flexDirection: "row",
                 alignItems: "center",
-                marginBottom: space.xl,
+                marginBottom: space.lg,
                 borderWidth: 1,
                 borderColor: colour.border,
               }}
@@ -248,16 +189,58 @@ export default function ScanTabScreen() {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={{ ...typography.h4, color: colour.textPrimary }}>
-                  Enter Manually
+                  Enter manually
                 </Text>
-                <Text
-                  style={{ ...typography.bodyS, color: colour.textSecondary }}
-                >
+                <Text style={{ ...typography.bodyS, color: colour.textSecondary }}>
                   Type in expense details directly
                 </Text>
               </View>
               <Text style={{ color: colour.textSecondary, fontSize: 18 }}>
-                ›
+                {String.fromCharCode(8250)}
+              </Text>
+            </TouchableOpacity>
+
+            {/* Scan receipt — large CTA at bottom */}
+            <TouchableOpacity
+              onPress={() => router.push("/scan-receipt-camera")}
+              style={{
+                backgroundColor: colour.primary,
+                borderRadius: radius.lg,
+                padding: space["3xl"],
+                alignItems: "center",
+                marginBottom: space.lg,
+              }}
+            >
+              <View
+                style={{
+                  width: 80,
+                  height: 80,
+                  borderRadius: 40,
+                  backgroundColor: "rgba(255,255,255,0.2)",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginBottom: space.lg,
+                }}
+              >
+                <Text style={{ fontSize: 40 }}>📸</Text>
+              </View>
+              <Text
+                style={{
+                  ...typography.h4,
+                  color: colour.textOnPrimary,
+                  marginBottom: space.xs,
+                }}
+              >
+                Scan receipt
+              </Text>
+              <Text
+                style={{
+                  ...typography.bodyM,
+                  color: "rgba(255,255,255,0.8)",
+                  textAlign: "center",
+                }}
+              >
+                Point your camera at a receipt to auto-capture amount, date and vendor
               </Text>
             </TouchableOpacity>
 
@@ -276,7 +259,7 @@ export default function ScanTabScreen() {
                   marginBottom: space.sm,
                 }}
               >
-                📋 Tips for best scan results
+                Tips for best scan results
               </Text>
               {[
                 "Ensure good lighting — avoid shadows on the receipt",
@@ -284,12 +267,9 @@ export default function ScanTabScreen() {
                 "Capture the full receipt including the total amount",
                 "JPEG and PDF formats are supported",
               ].map((tip, i) => (
-                <View
-                  key={i}
-                  style={{ flexDirection: "row", marginBottom: space.xs }}
-                >
+                <View key={i} style={{ flexDirection: "row", marginBottom: space.xs }}>
                   <Text style={{ ...typography.bodyS, color: colour.info }}>
-                    • {tip}
+                    {"\u2022"} {tip}
                   </Text>
                 </View>
               ))}
@@ -304,16 +284,14 @@ export default function ScanTabScreen() {
                 marginBottom: space.sm,
               }}
             >
-              RECENT RECEIPTS
+              Recent receipts
             </Text>
             {loading ? (
               <View style={{ alignItems: "center", paddingTop: space["3xl"] }}>
                 <ActivityIndicator color={colour.primary} />
               </View>
             ) : receipts.length === 0 ? (
-              <View
-                style={{ alignItems: "center", paddingVertical: space["4xl"] }}
-              >
+              <View style={{ alignItems: "center", paddingVertical: space["4xl"] }}>
                 <Text style={{ fontSize: 40, marginBottom: space.md }}>🧾</Text>
                 <Text style={{ ...typography.h4, color: colour.textPrimary }}>
                   No receipts yet
@@ -339,8 +317,7 @@ export default function ScanTabScreen() {
                 }}
               >
                 {receipts.map((receipt, i) => {
-                  const status =
-                    receipt.ocr_status as keyof typeof STATUS_CONFIG;
+                  const status = receipt.ocr_status as keyof typeof STATUS_CONFIG;
                   const cfg = STATUS_CONFIG[status] ?? STATUS_CONFIG.pending;
                   return (
                     <TouchableOpacity

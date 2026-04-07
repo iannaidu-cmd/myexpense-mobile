@@ -15,8 +15,6 @@ type TaxYear = {
   label: string;
   period: string;
   status: "current" | "filing" | "closed";
-  expenses: number;
-  claimable: number;
 };
 
 const TAX_YEARS: TaxYear[] = [
@@ -25,40 +23,30 @@ const TAX_YEARS: TaxYear[] = [
     label: "2025/26",
     period: "1 Mar 2025 – 28 Feb 2026",
     status: "current",
-    expenses: 48320,
-    claimable: 36240,
   },
   {
     id: "fy2025",
     label: "2024/25",
     period: "1 Mar 2024 – 28 Feb 2025",
     status: "filing",
-    expenses: 62150,
-    claimable: 51200,
   },
   {
     id: "fy2024",
     label: "2023/24",
     period: "1 Mar 2023 – 29 Feb 2024",
     status: "closed",
-    expenses: 55400,
-    claimable: 44800,
   },
   {
     id: "fy2023",
     label: "2022/23",
     period: "1 Mar 2022 – 28 Feb 2023",
     status: "closed",
-    expenses: 41200,
-    claimable: 32900,
   },
   {
     id: "fy2022",
     label: "2021/22",
     period: "1 Mar 2021 – 28 Feb 2022",
     status: "closed",
-    expenses: 38700,
-    claimable: 30200,
   },
 ];
 
@@ -85,10 +73,49 @@ const STATUS_CONFIG = {
 
 export default function TaxYearSelectorScreen() {
   const router = useRouter();
-  const [selected, setSelected] = useState("fy2026");
+  const { user } = useAuthStore();
+  const { activeTaxYear, setActiveTaxYear } = useExpenseStore();
+
+  // Initialise selected from the store's active tax year
+  const [selected, setSelected] = useState(
+    () => TAX_YEARS.find((y) => y.label === activeTaxYear)?.id ?? "fy2025",
+  );
+  const [loadingTotals, setLoadingTotals] = useState(true);
+  const [totals, setTotals] = useState<
+    Record<string, { expenses: number; claimable: number }>
+  >({});
+
+  const loadTotals = useCallback(async () => {
+    if (!user) return;
+    setLoadingTotals(true);
+    try {
+      const results = await Promise.all(
+        TAX_YEARS.map((y) => expenseService.getTotals(user.id, y.label)),
+      );
+      const map: Record<string, { expenses: number; claimable: number }> = {};
+      TAX_YEARS.forEach((y, i) => {
+        map[y.id] = {
+          expenses: results[i].totalExpenses,
+          claimable: results[i].totalDeductions,
+        };
+      });
+      setTotals(map);
+    } catch (e) {
+      console.error("TaxYearSelector load error:", e);
+    } finally {
+      setLoadingTotals(false);
+    }
+  }, [user]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadTotals();
+    }, [loadTotals]),
+  );
 
   const handleSelect = (year: TaxYear) => {
     setSelected(year.id);
+    setActiveTaxYear(year.label);
     setTimeout(() => router.back(), 150);
   };
 
@@ -280,7 +307,7 @@ export default function TaxYearSelectorScreen() {
                   <Text
                     style={[typography.labelM, { color: colour.textPrimary }]}
                   >
-                    {fmt(year.expenses)}
+                    {loadingTotals ? "—" : fmt(totals[year.id]?.expenses ?? 0)}
                   </Text>
                 </View>
                 <View style={{ flex: 1 }}>
@@ -290,7 +317,7 @@ export default function TaxYearSelectorScreen() {
                     ITR12 Claimable
                   </Text>
                   <Text style={[typography.labelM, { color: colour.success }]}>
-                    {fmt(year.claimable)}
+                    {loadingTotals ? "—" : fmt(totals[year.id]?.claimable ?? 0)}
                   </Text>
                 </View>
               </View>

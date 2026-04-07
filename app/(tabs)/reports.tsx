@@ -2,8 +2,8 @@ import { MXHeader } from "@/components/MXHeader";
 import { expenseService } from "@/services/expenseService";
 import { incomeService } from "@/services/incomeService";
 import { useAuthStore } from "@/stores/authStore";
+import { useExpenseStore } from "@/stores/expenseStore";
 import { colour, radius, space, typography } from "@/tokens";
-import { ACTIVE_TAX_YEAR } from "@/types/database";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
 import {
@@ -76,6 +76,7 @@ const fmtShort = (n: number) => {
 export default function ReportsTabScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
+  const { activeTaxYear } = useExpenseStore();
 
   const [loading, setLoading] = useState(true);
   const [totalIncome, setTotalIncome] = useState(0);
@@ -92,8 +93,8 @@ export default function ReportsTabScreen() {
       const [incomeTotals, expenseTotals, allExpenses, allIncome] =
         await Promise.all([
           incomeService.getTotals(user.id),
-          expenseService.getTotals(user.id, ACTIVE_TAX_YEAR),
-          expenseService.getExpenses(user.id, ACTIVE_TAX_YEAR),
+          expenseService.getTotals(user.id, activeTaxYear),
+          expenseService.getExpenses(user.id, activeTaxYear),
           incomeService.getIncome(user.id),
         ]);
 
@@ -121,7 +122,7 @@ export default function ReportsTabScreen() {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, activeTaxYear]);
 
   useFocusEffect(
     useCallback(() => {
@@ -146,7 +147,7 @@ export default function ReportsTabScreen() {
             onPress={() => router.push("/tax-year-selector" as any)}
           >
             <Text style={{ ...typography.labelS, color: colour.onPrimary }}>
-              FY {ACTIVE_TAX_YEAR} ›
+              FY {activeTaxYear} ›
             </Text>
           </TouchableOpacity>
         }

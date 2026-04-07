@@ -1,5 +1,5 @@
-import { supabase } from '@/lib/supabase';
-import type { Expense, NewExpense, UpdateExpense } from '@/types/database';
+import { supabase } from "@/lib/supabase";
+import type { Expense, NewExpense, UpdateExpense } from "@/types/database";
 
 // ─── Expense Service ──────────────────────────────────────────────────────────
 // All Supabase database operations for expenses.
@@ -13,15 +13,14 @@ export interface ExpenseTotals {
 }
 
 export const expenseService = {
-
   // ── Get all expenses for a user + tax year ────────────────────────────────
   getExpenses: async (userId: string, taxYear: string): Promise<Expense[]> => {
     const { data, error } = await supabase
-      .from('expenses')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('tax_year', taxYear)
-      .order('expense_date', { ascending: false });
+      .from("expenses")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("tax_year", taxYear)
+      .order("expense_date", { ascending: false });
 
     if (error) throw new Error(error.message);
     return data ?? [];
@@ -30,10 +29,10 @@ export const expenseService = {
   // ── Get recent expenses (for Home screen) ─────────────────────────────────
   getRecentExpenses: async (userId: string, limit = 10): Promise<Expense[]> => {
     const { data, error } = await supabase
-      .from('expenses')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
+      .from("expenses")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
       .limit(limit);
 
     if (error) throw new Error(error.message);
@@ -43,9 +42,9 @@ export const expenseService = {
   // ── Get a single expense by id ────────────────────────────────────────────
   getExpenseById: async (id: string): Promise<Expense> => {
     const { data, error } = await supabase
-      .from('expenses')
-      .select('*')
-      .eq('id', id)
+      .from("expenses")
+      .select("*")
+      .eq("id", id)
       .single();
 
     if (error) throw new Error(error.message);
@@ -53,12 +52,15 @@ export const expenseService = {
   },
 
   // ── Get totals for a user + tax year ─────────────────────────────────────
-  getTotals: async (userId: string, taxYear: string): Promise<ExpenseTotals> => {
+  getTotals: async (
+    userId: string,
+    taxYear: string,
+  ): Promise<ExpenseTotals> => {
     const { data, error } = await supabase
-      .from('expenses')
-      .select('amount, is_deductible')
-      .eq('user_id', userId)
-      .eq('tax_year', taxYear);
+      .from("expenses")
+      .select("amount, is_deductible")
+      .eq("user_id", userId)
+      .eq("tax_year", taxYear);
 
     if (error) throw new Error(error.message);
 
@@ -75,12 +77,12 @@ export const expenseService = {
   // ── Add a new expense ─────────────────────────────────────────────────────
   addExpense: async (userId: string, expense: NewExpense): Promise<Expense> => {
     const { data, error } = await supabase
-      .from('expenses')
+      .from("expenses")
       .insert({
         user_id: userId,
         vendor: expense.vendor,
         amount: expense.amount,
-        currency: 'ZAR',
+        currency: "ZAR",
         category: expense.category,
         itr12_code: expense.itr12_code ?? null,
         tax_year: expense.tax_year,
@@ -88,6 +90,8 @@ export const expenseService = {
         is_deductible: expense.is_deductible ?? false,
         vat_amount: expense.vat_amount ?? null,
         notes: expense.notes ?? null,
+        receipt_url: expense.receipt_url ?? null,
+        storage_path: expense.storage_path ?? null,
       })
       .select()
       .single();
@@ -100,9 +104,9 @@ export const expenseService = {
   updateExpense: async (expense: UpdateExpense): Promise<Expense> => {
     const { id, ...fields } = expense;
     const { data, error } = await supabase
-      .from('expenses')
+      .from("expenses")
       .update(fields)
-      .eq('id', id)
+      .eq("id", id)
       .select()
       .single();
 
@@ -112,10 +116,7 @@ export const expenseService = {
 
   // ── Delete an expense ─────────────────────────────────────────────────────
   deleteExpense: async (id: string): Promise<void> => {
-    const { error } = await supabase
-      .from('expenses')
-      .delete()
-      .eq('id', id);
+    const { error } = await supabase.from("expenses").delete().eq("id", id);
 
     if (error) throw new Error(error.message);
   },
@@ -123,14 +124,14 @@ export const expenseService = {
   // ── Get expenses grouped by category ─────────────────────────────────────
   getByCategory: async (
     userId: string,
-    taxYear: string
+    taxYear: string,
   ): Promise<Record<string, number>> => {
     const { data, error } = await supabase
-      .from('expenses')
-      .select('category, amount')
-      .eq('user_id', userId)
-      .eq('tax_year', taxYear)
-      .eq('is_deductible', true);
+      .from("expenses")
+      .select("category, amount")
+      .eq("user_id", userId)
+      .eq("tax_year", taxYear)
+      .eq("is_deductible", true);
 
     if (error) throw new Error(error.message);
 
@@ -145,7 +146,7 @@ export const expenseService = {
     userId: string,
     expenseId: string,
     uri: string,
-    fileName: string
+    fileName: string,
   ): Promise<string> => {
     const storagePath = `${userId}/${expenseId}/${fileName}`;
 
@@ -153,28 +154,28 @@ export const expenseService = {
     const blob = await response.blob();
 
     const { error: uploadError } = await supabase.storage
-      .from('receipts')
+      .from("receipts")
       .upload(storagePath, blob, { upsert: true });
 
     if (uploadError) throw new Error(uploadError.message);
 
     const { data: urlData } = supabase.storage
-      .from('receipts')
+      .from("receipts")
       .getPublicUrl(storagePath);
 
     // Update expense with receipt_url
     await supabase
-      .from('expenses')
+      .from("expenses")
       .update({ receipt_url: urlData.publicUrl })
-      .eq('id', expenseId);
+      .eq("id", expenseId);
 
     // Insert receipt record
-    await supabase.from('receipts').insert({
+    await supabase.from("receipts").insert({
       user_id: userId,
       expense_id: expenseId,
       storage_path: storagePath,
       file_name: fileName,
-      ocr_status: 'pending',
+      ocr_status: "pending",
     });
 
     return urlData.publicUrl;

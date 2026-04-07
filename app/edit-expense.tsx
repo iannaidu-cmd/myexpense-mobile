@@ -24,7 +24,7 @@ const ITR12_CATEGORIES = [
   { name: "Courier & Delivery",             section: "S11(a)", deductible: true  },
   { name: "Fuel & Oil",                     section: "S11(a)", deductible: true  },
   { name: "Home Office",                    section: "S11(a)", deductible: true  },
-  { name: "Insurance – Business",           section: "S11(a)", deductible: true  },
+  { name: "Insurance - Business",           section: "S11(a)", deductible: true  },
   { name: "Legal & Professional Fees",      section: "S11(a)", deductible: true  },
   { name: "Motor Vehicle Expenses",         section: "S11(a)", deductible: true  },
   { name: "Office Rental",                  section: "S11(a)", deductible: true  },
@@ -34,10 +34,10 @@ const ITR12_CATEGORIES = [
   { name: "Repairs & Maintenance",          section: "S11(a)", deductible: true  },
   { name: "Software & Subscriptions",       section: "S11(a)", deductible: true  },
   { name: "Staff Costs",                    section: "S11(a)", deductible: true  },
-  { name: "Travel – Business",              section: "S11(a)", deductible: true  },
+  { name: "Travel - Business",              section: "S11(a)", deductible: true  },
   { name: "Uniforms & Protective Clothing", section: "S11(a)", deductible: true  },
-  { name: "Utilities – Business Share",     section: "S11(a)", deductible: true  },
-  { name: "Meals – Client Entertainment",   section: "S11(a)", deductible: false },
+  { name: "Utilities - Business Share",     section: "S11(a)", deductible: true  },
+  { name: "Meals - Client Entertainment",   section: "S11(a)", deductible: false },
 ];
 
 export default function EditExpenseScreen() {
@@ -48,11 +48,12 @@ export default function EditExpenseScreen() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  const [amount, setAmount] = useState("");
-  const [vendor, setVendor] = useState("");
-  const [date, setDate] = useState("");
-  const [category, setCategory] = useState("");
-  const [notes, setNotes] = useState("");
+  const [expenseType, setExpenseType] = useState<"business" | "personal">("business");
+  const [amount,       setAmount]       = useState("");
+  const [vendor,       setVendor]       = useState("");
+  const [date,         setDate]         = useState("");
+  const [category,     setCategory]     = useState("");
+  const [notes,        setNotes]        = useState("");
   const [showCatModal, setShowCatModal] = useState(false);
 
   // Load existing expense on mount
@@ -64,6 +65,8 @@ export default function EditExpenseScreen() {
       setDate(expense.expense_date ?? "");
       setCategory(expense.category ?? "");
       setNotes(expense.notes ?? "");
+      // Derive toggle state from saved is_deductible flag
+      setExpenseType(expense.is_deductible ? "business" : "personal");
       setLoadingExpense(false);
     }).catch((e) => {
       Alert.alert("Error", e.message);
@@ -72,6 +75,11 @@ export default function EditExpenseScreen() {
   }, [id]);
 
   const selectedCat = ITR12_CATEGORIES.find((c) => c.name === category);
+
+  // Personal toggle overrides category deductibility
+  const isDeductible = expenseType === "business"
+    ? (selectedCat?.deductible ?? false)
+    : false;
 
   const handleSave = async () => {
     if (!amount || !category) {
@@ -87,16 +95,16 @@ export default function EditExpenseScreen() {
     try {
       await expenseService.updateExpense({
         id: id!,
-        amount: parseFloat(amount),
-        vendor: vendor.trim(),
-        expense_date: date,
-        category: category,
-        itr12_code: selectedCat?.section ?? null,
-        is_deductible: selectedCat?.deductible ?? false,
-        notes: notes.trim() || undefined,
+        amount:        parseFloat(amount),
+        vendor:        vendor.trim(),
+        expense_date:  date,
+        category:      category,
+        itr12_code:    expenseType === "personal" ? null : (selectedCat?.section ?? null),
+        is_deductible: isDeductible,
+        notes:         notes.trim() || undefined,
       });
       Alert.alert(
-        "Saved ✓",
+        "Saved",
         "Your expense has been updated.",
         [{ text: "OK", onPress: () => router.back() }]
       );
@@ -123,9 +131,11 @@ export default function EditExpenseScreen() {
       <View style={{ paddingHorizontal: space.lg, paddingTop: 3, paddingBottom: space["3xl"] }}>
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: space.md }}>
           <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-            <Text style={{ color: colour.textOnPrimary, fontSize: 26, lineHeight: 30 }}>‹</Text>
+            <Text style={{ color: colour.textOnPrimary, fontSize: 26, lineHeight: 30 }}>
+              {String.fromCharCode(8249)}
+            </Text>
           </TouchableOpacity>
-          <Text style={{ ...typography.labelM, color: "rgba(255,255,255,0.85)" }}>Edit Expense</Text>
+          <Text style={{ ...typography.labelM, color: "rgba(255,255,255,0.85)" }}>Edit expense</Text>
           <View style={{ width: 40 }} />
         </View>
         <Text style={{ ...typography.h3, color: colour.textOnPrimary }}>Update details</Text>
@@ -133,15 +143,73 @@ export default function EditExpenseScreen() {
 
       {/* Form */}
       <ScrollView
-        style={{ flex: 1, backgroundColor: colour.bgCard, borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl }}
+        style={{
+          flex: 1,
+          backgroundColor: colour.bgCard,
+          borderTopLeftRadius: radius.xl,
+          borderTopRightRadius: radius.xl,
+        }}
         contentContainerStyle={{ padding: space.lg, paddingBottom: 100 }}
         keyboardShouldPersistTaps="handled"
       >
+        {/* Business / Personal toggle */}
+        <Text style={{ ...typography.labelM, color: colour.textSecondary, marginBottom: space.xs }}>
+          Expense type
+        </Text>
+        <View style={{
+          flexDirection: "row",
+          backgroundColor: colour.surface1,
+          borderRadius: radius.md,
+          padding: 3,
+          marginBottom: space.lg,
+        }}>
+          {(["business", "personal"] as const).map((t) => (
+            <TouchableOpacity
+              key={t}
+              onPress={() => setExpenseType(t)}
+              style={{
+                flex: 1,
+                paddingVertical: space.sm,
+                borderRadius: radius.sm,
+                backgroundColor: expenseType === t ? colour.primary : "transparent",
+                alignItems: "center",
+              }}
+            >
+              <Text style={{
+                ...typography.labelM,
+                color: expenseType === t ? colour.onPrimary : colour.textSub,
+              }}>
+                {t === "business" ? "Business" : "Personal"}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Personal notice */}
+        {expenseType === "personal" && (
+          <View style={{
+            backgroundColor: colour.warningBg,
+            borderRadius: radius.sm,
+            padding: space.sm,
+            marginBottom: space.lg,
+          }}>
+            <Text style={{ ...typography.bodyXS, color: colour.warning }}>
+              Personal expenses are not deductible and will not be included in your ITR12 calculations.
+            </Text>
+          </View>
+        )}
+
         {/* Amount */}
         <Text style={{ ...typography.labelM, color: colour.textSecondary, marginBottom: space.xs }}>
           Amount (ZAR) *
         </Text>
-        <View style={{ flexDirection: "row", alignItems: "center", borderBottomWidth: 1.5, borderBottomColor: colour.border, marginBottom: space.lg }}>
+        <View style={{
+          flexDirection: "row",
+          alignItems: "center",
+          borderBottomWidth: 1.5,
+          borderBottomColor: colour.border,
+          marginBottom: space.lg,
+        }}>
           <Text style={{ ...typography.bodyL, color: colour.textSecondary, marginRight: space.xs }}>R</Text>
           <TextInput
             value={amount}
@@ -155,36 +223,62 @@ export default function EditExpenseScreen() {
 
         {/* Category */}
         <Text style={{ ...typography.labelM, color: colour.textSecondary, marginBottom: space.xs }}>
-          ITR12 Category *
+          ITR12 category *
         </Text>
         <TouchableOpacity
           onPress={() => setShowCatModal(true)}
-          style={{ borderBottomWidth: 1.5, borderBottomColor: category ? colour.primary : colour.border, paddingVertical: space.sm, marginBottom: space.lg, flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}
+          style={{
+            borderBottomWidth: 1.5,
+            borderBottomColor: category ? colour.primary : colour.border,
+            paddingVertical: space.sm,
+            marginBottom: space.lg,
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
         >
           <Text style={{ ...typography.bodyM, color: category ? colour.textPrimary : colour.textHint }}>
             {category || "Select SARS ITR12 category"}
           </Text>
-          <Text style={{ color: colour.textSecondary }}>›</Text>
+          <Text style={{ color: colour.textSecondary, fontSize: 18 }}>
+            {String.fromCharCode(8250)}
+          </Text>
         </TouchableOpacity>
 
+        {/* Deductibility badge — reflects both toggle and category */}
         {selectedCat && (
-          <View style={{ backgroundColor: selectedCat.deductible ? colour.successLight : colour.dangerBg, borderRadius: radius.sm, padding: space.sm, marginBottom: space.lg }}>
-            <Text style={{ ...typography.bodyS, color: selectedCat.deductible ? colour.success : colour.danger }}>
-              {selectedCat.deductible ? "✓" : "✗"} {selectedCat.section} · {selectedCat.deductible ? "Deductible" : "Non-deductible"}
+          <View style={{
+            backgroundColor: isDeductible ? colour.successLight : colour.dangerBg,
+            borderRadius: radius.sm,
+            padding: space.sm,
+            marginBottom: space.lg,
+          }}>
+            <Text style={{ ...typography.bodyS, color: isDeductible ? colour.success : colour.danger }}>
+              {isDeductible ? "Deductible" : "Non-deductible"}{" "}
+              {expenseType === "personal"
+                ? "(personal expense)"
+                : selectedCat.section}
             </Text>
           </View>
         )}
 
         {/* Vendor */}
         <Text style={{ ...typography.labelM, color: colour.textSecondary, marginBottom: space.xs }}>
-          Vendor / Supplier
+          Vendor / supplier
         </Text>
         <TextInput
           value={vendor}
           onChangeText={setVendor}
           placeholder="e.g. Telkom SA"
           placeholderTextColor={colour.textHint}
-          style={{ ...typography.bodyM, color: colour.textPrimary, borderBottomWidth: 1.5, borderBottomColor: colour.border, paddingVertical: space.sm, marginBottom: space.lg }}
+          style={{
+            ...typography.bodyM,
+            color: colour.textPrimary,
+            borderBottomWidth: 1.5,
+            borderBottomColor: colour.border,
+            paddingVertical: space.sm,
+            marginBottom: space.lg,
+          }}
         />
 
         {/* Date */}
@@ -196,7 +290,14 @@ export default function EditExpenseScreen() {
           onChangeText={setDate}
           placeholder="YYYY-MM-DD"
           placeholderTextColor={colour.textHint}
-          style={{ ...typography.bodyM, color: colour.textPrimary, borderBottomWidth: 1.5, borderBottomColor: colour.border, paddingVertical: space.sm, marginBottom: space.lg }}
+          style={{
+            ...typography.bodyM,
+            color: colour.textPrimary,
+            borderBottomWidth: 1.5,
+            borderBottomColor: colour.border,
+            paddingVertical: space.sm,
+            marginBottom: space.lg,
+          }}
         />
 
         {/* Notes */}
@@ -210,12 +311,25 @@ export default function EditExpenseScreen() {
           placeholderTextColor={colour.textHint}
           multiline
           numberOfLines={3}
-          style={{ ...typography.bodyM, color: colour.textPrimary, borderBottomWidth: 1.5, borderBottomColor: colour.border, paddingVertical: space.sm, marginBottom: space["2xl"], minHeight: 72 }}
+          style={{
+            ...typography.bodyM,
+            color: colour.textPrimary,
+            borderBottomWidth: 1.5,
+            borderBottomColor: colour.border,
+            paddingVertical: space.sm,
+            marginBottom: space["2xl"],
+            minHeight: 72,
+          }}
         />
 
         {/* Error */}
         {error ? (
-          <View style={{ backgroundColor: colour.dangerLight, borderRadius: radius.sm, padding: space.md, marginBottom: space.lg }}>
+          <View style={{
+            backgroundColor: colour.dangerLight,
+            borderRadius: radius.sm,
+            padding: space.md,
+            marginBottom: space.lg,
+          }}>
             <Text style={{ ...typography.bodyS, color: colour.danger }}>{error}</Text>
           </View>
         ) : null}
@@ -224,11 +338,17 @@ export default function EditExpenseScreen() {
         <TouchableOpacity
           onPress={handleSave}
           disabled={saving}
-          style={{ backgroundColor: saving ? colour.border : colour.primary, borderRadius: radius.pill, height: 52, alignItems: "center", justifyContent: "center" }}
+          style={{
+            backgroundColor: saving ? colour.border : colour.primary,
+            borderRadius: radius.pill,
+            height: 52,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
         >
           {saving
             ? <ActivityIndicator color={colour.textOnPrimary} />
-            : <Text style={{ ...typography.btnL, color: colour.textOnPrimary }}>Save Changes</Text>
+            : <Text style={{ ...typography.btnL, color: colour.textOnPrimary }}>Save changes</Text>
           }
         </TouchableOpacity>
       </ScrollView>
@@ -236,8 +356,15 @@ export default function EditExpenseScreen() {
       {/* Category Modal */}
       <Modal visible={showCatModal} animationType="slide" presentationStyle="pageSheet">
         <SafeAreaView style={{ flex: 1, backgroundColor: colour.bgCard }}>
-          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: space.lg, borderBottomWidth: 1, borderBottomColor: colour.border }}>
-            <Text style={{ ...typography.h4, color: colour.textPrimary }}>Select Category</Text>
+          <View style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: space.lg,
+            borderBottomWidth: 1,
+            borderBottomColor: colour.border,
+          }}>
+            <Text style={{ ...typography.h4, color: colour.textPrimary }}>Select category</Text>
             <TouchableOpacity onPress={() => setShowCatModal(false)}>
               <Text style={{ ...typography.labelM, color: colour.primary }}>Done</Text>
             </TouchableOpacity>
@@ -248,7 +375,15 @@ export default function EditExpenseScreen() {
             renderItem={({ item }) => (
               <TouchableOpacity
                 onPress={() => { setCategory(item.name); setShowCatModal(false); }}
-                style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: space.lg, borderBottomWidth: 1, borderBottomColor: colour.border, backgroundColor: category === item.name ? colour.primaryLight : colour.bgCard }}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: space.lg,
+                  borderBottomWidth: 1,
+                  borderBottomColor: colour.border,
+                  backgroundColor: category === item.name ? colour.primaryLight : colour.bgCard,
+                }}
               >
                 <View style={{ flex: 1 }}>
                   <Text style={{ ...typography.bodyM, color: colour.textPrimary }}>{item.name}</Text>
