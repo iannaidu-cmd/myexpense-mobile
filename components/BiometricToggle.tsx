@@ -3,13 +3,13 @@
 // Shows a toggle to enable/disable biometric login.
 
 import {
-  authenticateWithBiometrics,
-  getBiometricLabel,
-  isBiometricAvailable,
-  isBiometricEnabled,
-  saveBiometricSession,
-  setBiometricEnabled,
-  clearBiometricSession,
+    authenticateWithBiometrics,
+    clearBiometricSession,
+    getBiometricLabel,
+    isBiometricAvailable,
+    isBiometricEnabled,
+    saveBiometricSession,
+    setBiometricEnabled,
 } from "@/services/biometricService";
 import { colour, radius, space, typography } from "@/tokens";
 import { useEffect, useState } from "react";
@@ -17,8 +17,8 @@ import { Alert, Switch, Text, View } from "react-native";
 
 export function BiometricToggle() {
   const [available, setAvailable] = useState(false);
-  const [enabled, setEnabled]     = useState(false);
-  const [label, setLabel]         = useState("Biometrics");
+  const [enabled, setEnabled] = useState(false);
+  const [label, setLabel] = useState("Biometrics");
 
   useEffect(() => {
     (async () => {
@@ -35,18 +35,31 @@ export function BiometricToggle() {
     if (value) {
       // Verify with biometrics before enabling
       const success = await authenticateWithBiometrics(
-        `Enable ${label} for MyExpense`
+        `Enable ${label} for MyExpense`,
       );
       if (!success) return;
 
       try {
         const { supabase } = await import("@/lib/supabase");
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.access_token || !session?.user?.email) {
-          Alert.alert("Error", "Could not enable biometrics. Please sign in again.");
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        if (
+          !session?.access_token ||
+          !session?.refresh_token ||
+          !session?.user?.email
+        ) {
+          Alert.alert(
+            "Error",
+            "Could not enable biometrics. Please sign in again.",
+          );
           return;
         }
-        await saveBiometricSession(session.user.email, session.access_token);
+        await saveBiometricSession(
+          session.user.email,
+          session.access_token,
+          session.refresh_token,
+        );
         await setBiometricEnabled(true);
         setEnabled(true);
         Alert.alert("Enabled", `${label} sign-in is now active.`);
@@ -68,7 +81,7 @@ export function BiometricToggle() {
               setEnabled(false);
             },
           },
-        ]
+        ],
       );
     }
   };
@@ -76,21 +89,29 @@ export function BiometricToggle() {
   if (!available) return null;
 
   return (
-    <View style={{
-      flexDirection: "row",
-      alignItems: "center",
-      padding: space.lg,
-      backgroundColor: colour.bgCard,
-      borderRadius: radius.md,
-      borderWidth: 1,
-      borderColor: colour.border,
-      marginBottom: space.sm,
-    }}>
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        padding: space.lg,
+        backgroundColor: colour.bgCard,
+        borderRadius: radius.md,
+        borderWidth: 1,
+        borderColor: colour.border,
+        marginBottom: space.sm,
+      }}
+    >
       <View style={{ flex: 1 }}>
         <Text style={{ ...typography.labelM, color: colour.textPrimary }}>
           {label === "Face ID" ? "🔐" : "👆"} {label} Sign-In
         </Text>
-        <Text style={{ ...typography.caption, color: colour.textSecondary, marginTop: 2 }}>
+        <Text
+          style={{
+            ...typography.caption,
+            color: colour.textSecondary,
+            marginTop: 2,
+          }}
+        >
           {enabled
             ? `Sign in with ${label} instead of your password`
             : `Enable ${label} for faster sign-in`}

@@ -83,7 +83,15 @@ export function MXInput({
           {...inputProps}
         />
         {trailingIcon && (
-          <TouchableOpacity onPress={onTrailingPress}>
+          <TouchableOpacity
+            onPress={onTrailingPress}
+            style={{
+              minWidth: 44,
+              minHeight: 44,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
             {trailingIcon}
           </TouchableOpacity>
         )}

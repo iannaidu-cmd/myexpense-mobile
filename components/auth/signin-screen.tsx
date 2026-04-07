@@ -1,3 +1,4 @@
+import { MXInput } from "@/components/MXInput";
 import { supabase } from "@/lib/supabase";
 import {
     authenticateWithBiometrics,
@@ -21,7 +22,6 @@ import {
     Platform,
     ScrollView,
     Text,
-    TextInput,
     TouchableOpacity,
     View,
 } from "react-native";
@@ -156,23 +156,6 @@ export function SigninScreen() {
     })();
   }, []);
 
-  // ── Profile-setup gate ────────────────────────────────────────────────────
-  // After any successful sign-in, check if the user has a tax number on record.
-  // First-time users (or users who skipped setup) are redirected to profile-setup.
-  const navigateAfterSignIn = async (userId: string) => {
-    try {
-      const profile = await profileService.getProfile(userId);
-      if (!profile?.tax_number) {
-        router.replace("/profile-setup" as any);
-      } else {
-        router.replace("/(tabs)");
-      }
-    } catch {
-      // If the profile check fails, just go to tabs — don't block the user
-      router.replace("/(tabs)");
-    }
-  };
-
   // ── Biometric login ───────────────────────────────────────────────────────
   // 1. Prompt biometric (fingerprint/face)
   // 2. Load stored access_token + refresh_token from SecureStore
@@ -223,7 +206,7 @@ export function SigninScreen() {
         data.session.refresh_token,
       );
 
-      await navigateAfterSignIn(user.id);
+      router.replace("/(tabs)");
     } catch {
       Alert.alert(
         "Sign in failed",
@@ -250,12 +233,6 @@ export function SigninScreen() {
     try {
       await signIn(email, password);
 
-      // Get the signed-in user id for profile check
-      const {
-        data: { session: currentSession },
-      } = await supabase.auth.getSession();
-      const signedInUserId = currentSession?.user?.id;
-
       // Offer biometrics after first successful password login
       const available = await isBiometricAvailable();
       const enabled = await isBiometricEnabled();
@@ -267,10 +244,7 @@ export function SigninScreen() {
             {
               text: "Not now",
               style: "cancel",
-              onPress: () =>
-                signedInUserId
-                  ? navigateAfterSignIn(signedInUserId)
-                  : router.replace("/(tabs)"),
+              onPress: () => router.replace("/(tabs)"),
             },
             {
               text: "Enable",
@@ -288,21 +262,13 @@ export function SigninScreen() {
                   await setBiometricEnabled(true);
                   setBiometricEnabledState(true);
                 }
-                if (signedInUserId) {
-                  await navigateAfterSignIn(signedInUserId);
-                } else {
-                  router.replace("/(tabs)");
-                }
+                router.replace("/(tabs)");
               },
             },
           ],
         );
       } else {
-        if (signedInUserId) {
-          await navigateAfterSignIn(signedInUserId);
-        } else {
-          router.replace("/(tabs)");
-        }
+        router.replace("/(tabs)");
       }
     } catch {
       setErrors({ password: "Invalid email or password. Please try again." });
@@ -316,14 +282,7 @@ export function SigninScreen() {
     try {
       const result = await signInWithGoogle();
       if (result.success) {
-        const {
-          data: { session: s },
-        } = await supabase.auth.getSession();
-        if (s?.user?.id) {
-          await navigateAfterSignIn(s.user.id);
-        } else {
-          router.replace("/(tabs)");
-        }
+        router.replace("/(tabs)");
       } else if (result.error !== "cancelled") {
         Alert.alert(
           "Google Sign-In failed",
@@ -353,7 +312,7 @@ export function SigninScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: colour.white }}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         <ScrollView
           contentContainerStyle={{ flexGrow: 1 }}
@@ -399,103 +358,44 @@ export function SigninScreen() {
             }}
           >
             {/* Email */}
-            <Text
-              style={{
-                ...typography.labelM,
-                color: colour.textSub,
-                marginBottom: space.xs,
-              }}
-            >
-              EMAIL ADDRESS
-            </Text>
-            <TextInput
-              value={email}
-              onChangeText={setEmail}
-              placeholder="you@example.co.za"
-              placeholderTextColor={colour.textHint}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              style={{
-                ...typography.bodyM,
-                color: colour.text,
-                borderBottomWidth: 1.5,
-                borderBottomColor: errors.email ? colour.danger : colour.border,
-                paddingVertical: space.sm,
-                marginBottom: errors.email ? space.xs : space.lg,
-              }}
-            />
-            {errors.email && (
-              <Text
-                style={{
-                  ...typography.bodyXS,
-                  color: colour.danger,
-                  marginBottom: space.md,
-                }}
-              >
-                {errors.email}
-              </Text>
-            )}
+            <View style={{ marginBottom: space.lg }}>
+              <MXInput
+                label="Email address"
+                value={email}
+                onChangeText={setEmail}
+                placeholder="you@example.co.za"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                error={errors.email}
+              />
+            </View>
 
             {/* Password */}
-            <Text
-              style={{
-                ...typography.labelM,
-                color: colour.textSub,
-                marginBottom: space.xs,
-              }}
-            >
-              PASSWORD
-            </Text>
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                borderBottomWidth: 1.5,
-                borderBottomColor: errors.password
-                  ? colour.danger
-                  : colour.border,
-                marginBottom: errors.password ? space.xs : space.xs,
-              }}
-            >
-              <TextInput
+            <View style={{ marginBottom: space.xs }}>
+              <MXInput
+                label="Password"
                 value={password}
                 onChangeText={setPassword}
                 placeholder="Your password"
-                placeholderTextColor={colour.textHint}
                 secureTextEntry={!showPassword}
-                style={{
-                  ...typography.bodyM,
-                  flex: 1,
-                  color: colour.text,
-                  paddingVertical: space.sm,
-                }}
+                trailingIcon={
+                  <Text style={{ fontSize: 18 }}>
+                    {showPassword ? "🙈" : "👁️"}
+                  </Text>
+                }
+                onTrailingPress={() => setShowPassword(!showPassword)}
+                error={errors.password}
               />
-              <TouchableOpacity
-                onPress={() => setShowPassword(!showPassword)}
-                style={{ padding: space.xs }}
-              >
-                <Text style={{ ...typography.labelS, color: colour.primary }}>
-                  {showPassword ? "Hide" : "Show"}
-                </Text>
-              </TouchableOpacity>
             </View>
-            {errors.password && (
-              <Text
-                style={{
-                  ...typography.bodyXS,
-                  color: colour.danger,
-                  marginBottom: space.sm,
-                }}
-              >
-                {errors.password}
-              </Text>
-            )}
 
             {/* Forgot password */}
             <TouchableOpacity
               onPress={() => router.push("/forgot-password")}
               style={{
                 alignSelf: "flex-start",
+                minHeight: 44,
+                justifyContent: "center",
                 marginBottom: space["2xl"],
                 marginTop: space.sm,
               }}
@@ -534,30 +434,30 @@ export function SigninScreen() {
               )}
             </TouchableOpacity>
 
-            {/* Biometric button — fingerprint only, no Face ID button shown */}
-            {biometricAvailable &&
-              biometricEnabled &&
-              biometricLabel !== "Face ID" && (
-                <TouchableOpacity
-                  onPress={handleBiometricLogin}
-                  style={{
-                    borderWidth: 1.5,
-                    borderColor: colour.primary,
-                    borderRadius: radius.pill,
-                    height: 52,
-                    alignItems: "center",
-                    justifyContent: "center",
-                    flexDirection: "row",
-                    gap: space.sm,
-                    marginBottom: space.xl,
-                  }}
-                >
-                  <Text style={{ fontSize: 22 }}>👆</Text>
-                  <Text style={{ ...typography.btnL, color: colour.primary }}>
-                    Sign in with {biometricLabel}
-                  </Text>
-                </TouchableOpacity>
-              )}
+            {/* Biometric button — shown for both fingerprint and Face ID */}
+            {biometricAvailable && biometricEnabled && (
+              <TouchableOpacity
+                onPress={handleBiometricLogin}
+                style={{
+                  borderWidth: 1.5,
+                  borderColor: colour.primary,
+                  borderRadius: radius.pill,
+                  height: 52,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexDirection: "row",
+                  gap: space.sm,
+                  marginBottom: space.xl,
+                }}
+              >
+                <Text style={{ fontSize: 22 }}>
+                  {biometricLabel === "Face ID" ? "🔐" : "👆"}
+                </Text>
+                <Text style={{ ...typography.btnL, color: colour.primary }}>
+                  Sign in with {biometricLabel}
+                </Text>
+              </TouchableOpacity>
+            )}
 
             {/* Social divider */}
             <View style={{ alignItems: "center", marginBottom: space.xl }}>
@@ -614,7 +514,10 @@ export function SigninScreen() {
               <Text style={{ ...typography.bodyM, color: colour.textSub }}>
                 Don't have an account?{" "}
               </Text>
-              <TouchableOpacity onPress={() => router.replace("/sign-up")}>
+              <TouchableOpacity
+                onPress={() => router.replace("/sign-up")}
+                style={{ minHeight: 44, justifyContent: "center" }}
+              >
                 <Text
                   style={{
                     ...typography.bodyM,

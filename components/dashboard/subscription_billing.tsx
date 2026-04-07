@@ -307,21 +307,6 @@ export default function SubscriptionBillingScreen({
       current: true,
       recommended: true,
     },
-    {
-      name: "Pro+",
-      price: billingCycle === "monthly" ? "R 199" : "R 159",
-      period: "month",
-      features: [
-        "Everything in Pro",
-        "VAT tracking & VAT201",
-        "Client invoicing",
-        "Accountant portal",
-        "Priority support",
-        "API access (Xero/Sage)",
-      ],
-      current: false,
-      recommended: false,
-    },
   ];
 
   const billingHistory = [
