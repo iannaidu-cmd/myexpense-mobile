@@ -349,7 +349,7 @@ export default function HelpSupportScreen({
           <View style={{ flexDirection: "row", gap: 10, marginBottom: 20 }}>
             <ContactCard
               icon="💬"
-              label="Live Chat"
+              label="Live chat"
               value="Chat now"
               sublabel="Avg. response: 2 min"
               onPress={() => {}}
@@ -413,10 +413,9 @@ export default function HelpSupportScreen({
             paddingHorizontal: 16,
             paddingTop: 16,
             paddingBottom: 8,
-            textTransform: "uppercase",
           }}
         >
-          Frequently Asked Questions{" "}
+          Frequently asked questions{" "}
           {filtered.length < faqs.length ? `(${filtered.length} results)` : ""}
         </Text>
         <View
@@ -455,10 +454,9 @@ export default function HelpSupportScreen({
             paddingHorizontal: 16,
             paddingTop: 20,
             paddingBottom: 8,
-            textTransform: "uppercase",
           }}
         >
-          Submit a Support Ticket
+          Submit a support ticket
         </Text>
         <View
           style={{
@@ -518,7 +516,6 @@ export default function HelpSupportScreen({
                   color: C.textSub,
                   letterSpacing: 0.5,
                   marginBottom: 8,
-                  textTransform: "uppercase",
                 }}
               >
                 Category
@@ -562,10 +559,9 @@ export default function HelpSupportScreen({
                   color: C.textSub,
                   letterSpacing: 0.5,
                   marginBottom: 8,
-                  textTransform: "uppercase",
                 }}
               >
-                Describe Your Issue
+                Describe your issue
               </Text>
               <TextInput
                 value={ticketMessage}

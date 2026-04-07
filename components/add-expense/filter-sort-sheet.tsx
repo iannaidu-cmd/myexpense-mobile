@@ -70,7 +70,6 @@ export function FilterSortSheet({
       fontWeight: "700",
       color: textColor,
       marginBottom: 12,
-      textTransform: "uppercase",
       letterSpacing: 0.5,
     },
     optionContainer: {
@@ -144,16 +143,16 @@ export function FilterSortSheet({
   ];
 
   const filterOptions = [
-    { id: "all", label: "All Expenses" },
-    { id: "deductible", label: "✓ Deductible Only" },
+    { id: "all", label: "All expenses" },
+    { id: "deductible", label: "✓ Deductible only" },
     { id: "non-deductible", label: "✗ Non-deductible" },
-    { id: "month", label: "📅 This Month" },
+    { id: "month", label: "📅 This month" },
   ];
 
   return (
     <ThemedView style={styles.container}>
       <ThemedView style={styles.header}>
-        <ThemedText style={styles.headerTitle}>Filter & Sort</ThemedText>
+        <ThemedText style={styles.headerTitle}>Filter & sort</ThemedText>
         <Pressable onPress={onCancel}>
           <ThemedText style={styles.closeButton}>✕</ThemedText>
         </Pressable>
@@ -162,7 +161,7 @@ export function FilterSortSheet({
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Sort Section */}
         <View style={styles.section}>
-          <ThemedText style={styles.sectionTitle}>Sort By</ThemedText>
+          <ThemedText style={styles.sectionTitle}>Sort by</ThemedText>
           <View style={styles.optionContainer}>
             {sortOptions.map((option, index) => (
               <Pressable
@@ -187,7 +186,7 @@ export function FilterSortSheet({
 
         {/* Filter Section */}
         <View style={styles.section}>
-          <ThemedText style={styles.sectionTitle}>Filter By</ThemedText>
+          <ThemedText style={styles.sectionTitle}>Filter by</ThemedText>
           <View style={styles.optionContainer}>
             {filterOptions.map((option, index) => (
               <Pressable

@@ -101,7 +101,7 @@ export default function IncomeHistoryScreen() {
 
   const handleDelete = (id: string, source: string) => {
     Alert.alert(
-      "Delete Income",
+      "Delete income",
       `Remove "${source}" from your income records? This cannot be undone.`,
       [
         { text: "Cancel", style: "cancel" },

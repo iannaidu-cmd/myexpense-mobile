@@ -62,8 +62,8 @@ function ToggleRow({
 
 const YEARS = ["2025/26", "2024/25", "2023/24", "2022/23"];
 const FORMATS = [
-  { key: "pdf", label: "PDF Report", icon: "📄" },
-  { key: "csv", label: "CSV Spreadsheet", icon: "📊" },
+  { key: "pdf", label: "PDF report", icon: "📄" },
+  { key: "csv", label: "CSV spreadsheet", icon: "📊" },
   { key: "both", label: "Both", icon: "📦" },
 ] as const;
 type FormatKey = "pdf" | "csv" | "both";
@@ -209,7 +209,7 @@ export default function ITR12ExportSetupScreen() {
                   marginBottom: 14,
                 }}
               >
-                Tax Year
+                Tax year
               </Text>
               <View style={{ flexDirection: "row", gap: 8 }}>
                 {YEARS.map((y) => (
@@ -262,7 +262,7 @@ export default function ITR12ExportSetupScreen() {
                   marginBottom: 14,
                 }}
               >
-                Export Format
+                Export format
               </Text>
               <View style={{ flexDirection: "row", gap: 8 }}>
                 {FORMATS.map((f) => (
@@ -306,12 +306,11 @@ export default function ITR12ExportSetupScreen() {
                 fontWeight: "700",
                 color: colour.textHint,
                 letterSpacing: 0.8,
-                textTransform: "uppercase",
                 paddingHorizontal: space.md,
                 marginBottom: 8,
               }}
             >
-              Include in Export
+              Include in export
             </Text>
             <View
               style={{
@@ -373,7 +372,7 @@ export default function ITR12ExportSetupScreen() {
                   marginBottom: 10,
                 }}
               >
-                Export Summary
+                Export summary
               </Text>
               {[
                 { label: "Tax Year", value: taxYear },
@@ -432,7 +431,7 @@ export default function ITR12ExportSetupScreen() {
               <Text
                 style={{ color: colour.white, fontSize: 15, fontWeight: "700" }}
               >
-                Preview Export
+                Preview export
               </Text>
             </TouchableOpacity>
 
@@ -458,7 +457,7 @@ export default function ITR12ExportSetupScreen() {
                     fontWeight: "700",
                   }}
                 >
-                  Generate & Share Export
+                  Generate & share export
                 </Text>
               )}
             </TouchableOpacity>

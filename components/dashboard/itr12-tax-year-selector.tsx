@@ -27,7 +27,7 @@ const DEFAULT_YEARS: TaxYear[] = [
     expenses: 143,
     saved: "R 18,450",
     total: "R 41,000",
-    status: "In Progress",
+    status: "In progress",
     statusColor: "#0288D1",
   },
   {
@@ -174,7 +174,7 @@ export function ITR12TaxYearSelectorScreen({
           <View style={styles.yearStats}>
             {[
               { label: "Expenses", value: yr.expenses },
-              { label: "Tax Saved", value: yr.saved },
+              { label: "Tax saved", value: yr.saved },
               { label: "Total", value: yr.total },
             ].map((s, j) => (
               <View

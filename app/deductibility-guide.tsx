@@ -222,7 +222,6 @@ function GuideCard({
                 fontSize: 11,
                 fontWeight: "700",
                 color: colour.textSub,
-                textTransform: "uppercase",
                 letterSpacing: 0.5,
                 marginBottom: 4,
               }}
@@ -241,12 +240,11 @@ function GuideCard({
                 fontSize: 11,
                 fontWeight: "700",
                 color: colour.textSub,
-                textTransform: "uppercase",
                 letterSpacing: 0.5,
                 marginBottom: 4,
               }}
             >
-              Required Documentation
+              Required documentation
             </ThemedText>
             <ThemedText
               style={{ fontSize: 13, color: colour.text, lineHeight: 19 }}
@@ -301,7 +299,7 @@ export default function DeductibilityGuideScreen() {
           style={{ marginBottom: space.md }}
         >
           <ThemedText style={{ color: colour.accent, fontSize: 13 }}>
-            ‹ Tax Summary
+            ‹ Tax summary
           </ThemedText>
         </TouchableOpacity>
         <ThemedText

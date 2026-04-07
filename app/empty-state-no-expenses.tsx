@@ -212,8 +212,8 @@ export default function EmptyStateNoExpensesScreen({
       emoji: null,
       title: "No expenses yet",
       body: "Start capturing your business expenses to track spending and maximise your SARS ITR12 deductions.",
-      cta1: "Add Your First Expense",
-      cta2: "Scan a Receipt",
+      cta1: "Add your first expense",
+      cta2: "Scan a receipt",
     },
     search: {
       emoji: "🔍",
@@ -237,7 +237,7 @@ export default function EmptyStateNoExpensesScreen({
       body: filterLabel
         ? `You haven't logged any expenses under "${filterLabel}" yet.`
         : "No expenses logged under this category yet.",
-      cta1: "Add Expense Here",
+      cta1: "Add expense here",
       cta2: null,
     },
   }[context];
@@ -267,7 +267,7 @@ export default function EmptyStateNoExpensesScreen({
             letterSpacing: 1,
           }}
         >
-          EXPENSES
+          Expenses
         </ThemedText>
         <ThemedText
           style={{
@@ -277,7 +277,7 @@ export default function EmptyStateNoExpensesScreen({
             marginTop: 4,
           }}
         >
-          My Expenses
+          My expenses
         </ThemedText>
       </ThemedView>
 

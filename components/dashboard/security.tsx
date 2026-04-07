@@ -363,10 +363,9 @@ export default function SecurityScreen({ navigation }: { navigation?: any }) {
             paddingHorizontal: 16,
             paddingTop: 4,
             paddingBottom: 8,
-            textTransform: "uppercase",
           }}
         >
-          App Lock
+          App lock
         </Text>
         <View
           style={{
@@ -466,10 +465,9 @@ export default function SecurityScreen({ navigation }: { navigation?: any }) {
             paddingHorizontal: 16,
             paddingTop: 18,
             paddingBottom: 8,
-            textTransform: "uppercase",
           }}
         >
-          Two-Factor Authentication
+          Two-factor authentication
         </Text>
         <View
           style={{
@@ -511,10 +509,9 @@ export default function SecurityScreen({ navigation }: { navigation?: any }) {
             paddingHorizontal: 16,
             paddingTop: 18,
             paddingBottom: 8,
-            textTransform: "uppercase",
           }}
         >
-          Active Sessions
+          Active sessions
         </Text>
         <View
           style={{
@@ -554,7 +551,6 @@ export default function SecurityScreen({ navigation }: { navigation?: any }) {
             paddingHorizontal: 16,
             paddingTop: 18,
             paddingBottom: 8,
-            textTransform: "uppercase",
           }}
         >
           Password

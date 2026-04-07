@@ -675,7 +675,7 @@ export function UploadGalleryScreen() {
         {/* Filter pills */}
         <View style={styles.filterContainer}>
           {[
-            { value: "all", label: "All Photos" },
+            { value: "all", label: "All photos" },
             { value: "receipts", label: "📄 Receipts Only" },
           ].map(({ value, label }) => (
             <Pressable

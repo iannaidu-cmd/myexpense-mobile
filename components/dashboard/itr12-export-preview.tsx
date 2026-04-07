@@ -209,7 +209,7 @@ export function ITR12ExportPreviewScreen({
         </ThemedView>
         <View style={styles.metaCardContent}>
           {[
-            { label: "Tax Year", value: taxYear },
+            { label: "Tax year", value: taxYear },
             { label: "Format", value: format },
             { label: "Generated", value: "12 Mar 2026, 09:41" },
             { label: "VAT included", value: includeVAT ? "Yes (15%)" : "No" },
@@ -232,12 +232,12 @@ export function ITR12ExportPreviewScreen({
         <View style={styles.summaryGrid}>
           {[
             {
-              label: "Gross Expenses",
+              label: "Gross expenses",
               value: `R ${totalGross.toLocaleString()}`,
             },
             { label: "VAT (Input)", value: `R ${totalVAT.toLocaleString()}` },
             {
-              label: "Net Deductible",
+              label: "Net deductible",,
               value: `R ${totalNet.toLocaleString()}`,
             },
           ].map((s, i) => (

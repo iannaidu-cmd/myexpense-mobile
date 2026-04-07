@@ -4,62 +4,76 @@ import { colour, radius, space, typography } from "@/tokens";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    SafeAreaView,
+    ScrollView,
+    StatusBar,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
 // ─── Income Categories ────────────────────────────────────────────────────────
 const QUICK_PICKS = [
-  { label: "Salary / Wage",   icon: "💵", source: "Income of Employment (Salary / Wage)" },
-  { label: "Freelance",       icon: "💼", source: "Fees from Companies / CC for Services Rendered" },
-  { label: "Commission",      icon: "🤝", source: "Commission" },
-  { label: "Rental Income",   icon: "🏠", source: "Rental Income" },
-  { label: "Other",           icon: "📋", source: "Other" },
+  {
+    label: "Salary / Wage",
+    icon: "💵",
+    source: "Income of Employment (Salary / Wage)",
+  },
+  {
+    label: "Freelance",
+    icon: "💼",
+    source: "Fees from Companies / CC for Services Rendered",
+  },
+  { label: "Commission", icon: "🤝", source: "Commission" },
+  { label: "Rental Income", icon: "🏠", source: "Rental Income" },
+  { label: "Other", icon: "📋", source: "Other" },
 ];
 
 const FULL_CATEGORIES = [
-  { label: "Commission",                                   icon: "🤝" },
-  { label: "Consulting",                                   icon: "💼" },
-  { label: "Cost of Goods Sold",                          icon: "📦" },
-  { label: "Delivery Expenses",                           icon: "🚚" },
-  { label: "Interest Received",                           icon: "💹" },
-  { label: "Petrol Allowance",                            icon: "⛽" },
-  { label: "Car Allowance",                               icon: "🚗" },
-  { label: "Income of Employment (Salary / Wage)",        icon: "💵" },
-  { label: "Bonuses",                                     icon: "🎉" },
-  { label: "Overtime",                                    icon: "⏱️" },
-  { label: "Fridge Benefits",                             icon: "❄️" },
+  { label: "Commission", icon: "🤝" },
+  { label: "Consulting", icon: "💼" },
+  { label: "Cost of Goods Sold", icon: "📦" },
+  { label: "Delivery Expenses", icon: "🚚" },
+  { label: "Interest Received", icon: "💹" },
+  { label: "Petrol Allowance", icon: "⛽" },
+  { label: "Car Allowance", icon: "🚗" },
+  { label: "Income of Employment (Salary / Wage)", icon: "💵" },
+  { label: "Bonuses", icon: "🎉" },
+  { label: "Overtime", icon: "⏱️" },
+  { label: "Fridge Benefits", icon: "❄️" },
   { label: "Income or Profits (Beneficiary of a Trust)", icon: "📑" },
-  { label: "Cell Phone Allowance",                        icon: "📱" },
+  { label: "Cell Phone Allowance", icon: "📱" },
   { label: "Fees from Companies / CC for Services Rendered", icon: "🏢" },
-  { label: "Investment Income",                           icon: "📈" },
-  { label: "Rental Income",                               icon: "🏠" },
-  { label: "Income of Royalties",                         icon: "©️" },
-  { label: "Annuities",                                   icon: "📋" },
+  { label: "Investment Income", icon: "📈" },
+  { label: "Rental Income", icon: "🏠" },
+  { label: "Income of Royalties", icon: "©️" },
+  { label: "Annuities", icon: "📋" },
 ];
 
 function FieldLabel({ label }: { label: string }) {
   return (
-    <Text style={{
-      ...typography.labelS,
-      color: colour.textSub,
-      letterSpacing: 0.5,
-      marginBottom: space.xs,
-    }}>
-      {label.toUpperCase()}
+    <Text
+      style={{
+        ...typography.labelS,
+        color: colour.textSub,
+        letterSpacing: 0.5,
+        marginBottom: space.xs,
+      }}
+    >
+      {label}
     </Text>
   );
 }
 
 function UnderlineInput({
-  value, onChangeText, placeholder, keyboardType, multiline,
+  value,
+  onChangeText,
+  placeholder,
+  keyboardType,
+  multiline,
 }: {
   value: string;
   onChangeText: (v: string) => void;
@@ -137,9 +151,9 @@ export default function AddIncomeScreen() {
         "Income Saved ✓",
         `R ${parseFloat(amount).toLocaleString("en-ZA", { minimumFractionDigits: 2 })} from ${source} has been saved.`,
         [
-          { text: "Add Another", style: "cancel" },
-          { text: "Go Home", onPress: () => router.replace("/(tabs)") },
-        ]
+          { text: "Add another", style: "cancel" },
+          { text: "Go home", onPress: () => router.replace("/(tabs)") },
+        ],
       );
     } catch (e: any) {
       Alert.alert("Error saving income", e.message);
@@ -153,16 +167,31 @@ export default function AddIncomeScreen() {
       <StatusBar barStyle="light-content" backgroundColor={colour.success} />
 
       {/* Header */}
-      <View style={{
-        paddingHorizontal: space.lg,
-        paddingTop: space.lg,
-        paddingBottom: space["4xl"],
-      }}>
-        <TouchableOpacity onPress={() => router.back()} style={{ marginBottom: space.sm }}>
-          <Text style={{ ...typography.bodyS, color: "rgba(255,255,255,0.8)" }}>‹ Back</Text>
+      <View
+        style={{
+          paddingHorizontal: space.lg,
+          paddingTop: space.lg,
+          paddingBottom: space["4xl"],
+        }}
+      >
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={{ marginBottom: space.sm }}
+        >
+          <Text style={{ ...typography.bodyS, color: "rgba(255,255,255,0.8)" }}>
+            ‹ Back
+          </Text>
         </TouchableOpacity>
-        <Text style={{ ...typography.h3, color: colour.onPrimary }}>Add Income</Text>
-        <Text style={{ ...typography.bodyS, color: "rgba(255,255,255,0.7)", marginTop: 2 }}>
+        <Text style={{ ...typography.h3, color: colour.onPrimary }}>
+          Add income
+        </Text>
+        <Text
+          style={{
+            ...typography.bodyS,
+            color: "rgba(255,255,255,0.7)",
+            marginTop: 2,
+          }}
+        >
           Track your earnings for ITR12
         </Text>
       </View>
@@ -178,11 +207,22 @@ export default function AddIncomeScreen() {
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ paddingBottom: space.xxxl }}
       >
-
         {/* Quick pick */}
-        <View style={{ paddingHorizontal: space.lg, paddingTop: space.lg, marginBottom: space.md }}>
-          <Text style={{ ...typography.labelM, color: colour.textSub, marginBottom: space.sm }}>
-            QUICK SELECT
+        <View
+          style={{
+            paddingHorizontal: space.lg,
+            paddingTop: space.lg,
+            marginBottom: space.md,
+          }}
+        >
+          <Text
+            style={{
+              ...typography.labelM,
+              color: colour.textSub,
+              marginBottom: space.sm,
+            }}
+          >
+            Quick select
           </Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <View style={{ flexDirection: "row", gap: space.sm }}>
@@ -194,20 +234,25 @@ export default function AddIncomeScreen() {
                     paddingHorizontal: space.md,
                     paddingVertical: space.sm,
                     borderRadius: radius.pill,
-                    backgroundColor: source === q.source ? colour.success : colour.surface2,
+                    backgroundColor:
+                      source === q.source ? colour.success : colour.surface2,
                     borderWidth: 1.5,
-                    borderColor: source === q.source ? colour.success : colour.border,
+                    borderColor:
+                      source === q.source ? colour.success : colour.border,
                     flexDirection: "row",
                     alignItems: "center",
                     gap: space.xs,
                   }}
                 >
                   <Text style={{ fontSize: 14 }}>{q.icon}</Text>
-                  <Text style={{
-                    ...typography.bodyS,
-                    fontWeight: "600",
-                    color: source === q.source ? colour.onPrimary : colour.text,
-                  }}>
+                  <Text
+                    style={{
+                      ...typography.bodyS,
+                      fontWeight: "600",
+                      color:
+                        source === q.source ? colour.onPrimary : colour.text,
+                    }}
+                  >
                     {q.label}
                   </Text>
                 </TouchableOpacity>
@@ -217,17 +262,26 @@ export default function AddIncomeScreen() {
         </View>
 
         {/* Income details */}
-        <View style={{
-          marginHorizontal: space.lg,
-          backgroundColor: colour.white,
-          borderRadius: radius.lg,
-          padding: space.lg,
-          borderWidth: 1,
-          borderColor: colour.border,
-          marginBottom: space.md,
-        }}>
-          <Text style={{ ...typography.bodyM, fontWeight: "700", color: colour.text, marginBottom: space.lg }}>
-            Income Details
+        <View
+          style={{
+            marginHorizontal: space.lg,
+            backgroundColor: colour.white,
+            borderRadius: radius.lg,
+            padding: space.lg,
+            borderWidth: 1,
+            borderColor: colour.border,
+            marginBottom: space.md,
+          }}
+        >
+          <Text
+            style={{
+              ...typography.bodyM,
+              fontWeight: "700",
+              color: colour.text,
+              marginBottom: space.lg,
+            }}
+          >
+            Income details
           </Text>
 
           <FieldLabel label="Amount (ZAR)" />
@@ -239,7 +293,7 @@ export default function AddIncomeScreen() {
           />
 
           {/* Income source */}
-          <FieldLabel label="Income Source" />
+          <FieldLabel label="Income source" />
           <TouchableOpacity
             onPress={() => setShowFullList((v) => !v)}
             style={{
@@ -251,7 +305,13 @@ export default function AddIncomeScreen() {
               alignItems: "center",
             }}
           >
-            <Text style={{ flex: 1, ...typography.bodyM, color: source ? colour.text : colour.textHint }}>
+            <Text
+              style={{
+                flex: 1,
+                ...typography.bodyM,
+                color: source ? colour.text : colour.textHint,
+              }}
+            >
               {source || "Select income source…"}
             </Text>
             <Text style={{ color: colour.textSub, fontSize: 16 }}>
@@ -260,15 +320,23 @@ export default function AddIncomeScreen() {
           </TouchableOpacity>
 
           {source ? (
-            <View style={{
-              backgroundColor: colour.successBg,
-              borderRadius: radius.sm,
-              paddingHorizontal: space.sm,
-              paddingVertical: 4,
-              marginBottom: space.md,
-              alignSelf: "flex-start",
-            }}>
-              <Text style={{ ...typography.bodyXS, fontWeight: "700", color: colour.success }}>
+            <View
+              style={{
+                backgroundColor: colour.successBg,
+                borderRadius: radius.sm,
+                paddingHorizontal: space.sm,
+                paddingVertical: 4,
+                marginBottom: space.md,
+                alignSelf: "flex-start",
+              }}
+            >
+              <Text
+                style={{
+                  ...typography.bodyXS,
+                  fontWeight: "700",
+                  color: colour.success,
+                }}
+              >
                 ITR12 Income ✓
               </Text>
             </View>
@@ -276,8 +344,14 @@ export default function AddIncomeScreen() {
 
           {showFullList && (
             <View style={{ marginBottom: space.md }}>
-              <Text style={{ ...typography.labelS, color: colour.textSub, marginBottom: space.sm }}>
-                ALL CATEGORIES
+              <Text
+                style={{
+                  ...typography.labelS,
+                  color: colour.textSub,
+                  marginBottom: space.sm,
+                }}
+              >
+                All categories
               </Text>
               {FULL_CATEGORIES.map((cat) => (
                 <TouchableOpacity
@@ -291,10 +365,18 @@ export default function AddIncomeScreen() {
                     borderBottomColor: colour.borderLight,
                   }}
                 >
-                  <Text style={{ fontSize: 18, marginRight: space.md }}>{cat.icon}</Text>
-                  <Text style={{ flex: 1, ...typography.bodyM, color: colour.text }}>{cat.label}</Text>
+                  <Text style={{ fontSize: 18, marginRight: space.md }}>
+                    {cat.icon}
+                  </Text>
+                  <Text
+                    style={{ flex: 1, ...typography.bodyM, color: colour.text }}
+                  >
+                    {cat.label}
+                  </Text>
                   {source === cat.label && (
-                    <Text style={{ color: colour.success, fontWeight: "800" }}>✓</Text>
+                    <Text style={{ color: colour.success, fontWeight: "800" }}>
+                      ✓
+                    </Text>
                   )}
                 </TouchableOpacity>
               ))}
@@ -331,21 +413,28 @@ export default function AddIncomeScreen() {
             marginBottom: space.sm,
           }}
         >
-          {saving
-            ? <ActivityIndicator color={colour.onPrimary} />
-            : <Text style={{ ...typography.btnL, color: canSave ? colour.onPrimary : colour.textSub }}>
-                {canSave ? "Save Income" : "Fill in required fields"}
-              </Text>
-          }
+          {saving ? (
+            <ActivityIndicator color={colour.onPrimary} />
+          ) : (
+            <Text
+              style={{
+                ...typography.btnL,
+                color: canSave ? colour.onPrimary : colour.textSub,
+              }}
+            >
+              {canSave ? "Save income" : "Fill in required fields"}
+            </Text>
+          )}
         </TouchableOpacity>
 
         <TouchableOpacity
           onPress={() => router.back()}
           style={{ alignItems: "center", paddingVertical: space.sm }}
         >
-          <Text style={{ ...typography.bodyS, color: colour.textSub }}>Cancel</Text>
+          <Text style={{ ...typography.bodyS, color: colour.textSub }}>
+            Cancel
+          </Text>
         </TouchableOpacity>
-
       </ScrollView>
     </SafeAreaView>
   );

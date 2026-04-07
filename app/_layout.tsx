@@ -50,6 +50,9 @@ function AuthGate() {
       segments[0] === "email-verification" ||
       segments[0] === "auth/callback";
 
+    // profile-setup is NOT in inAuthGroup so authenticated users can access it
+    const inProfileSetup = segments[0] === "profile-setup";
+
     const inOnboarding =
       segments[0] === "onboarding-step-1" ||
       segments[0] === "onboarding-step-2" ||
@@ -59,7 +62,7 @@ function AuthGate() {
     // Legal screens are always accessible regardless of auth state
     const inLegal = segments[0] === "terms" || segments[0] === "privacy";
 
-    if (!user && !inAuthGroup && !inOnboarding && !inLegal) {
+    if (!user && !inAuthGroup && !inOnboarding && !inLegal && !inProfileSetup) {
       router.replace("/onboarding-step-1");
     } else if (user && (inAuthGroup || inOnboarding)) {
       router.replace("/(tabs)");
@@ -176,6 +179,7 @@ export default function RootLayout() {
         <Stack.Screen name="auth" options={{ headerShown: false }} />
         <Stack.Screen name="sign-in" options={{ headerShown: false }} />
         <Stack.Screen name="sign-up" options={{ headerShown: false }} />
+        <Stack.Screen name="profile-setup" options={{ headerShown: false }} />
         <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
         <Stack.Screen name="forgot-password" options={{ headerShown: false }} />
         <Stack.Screen name="reset-password" options={{ headerShown: false }} />

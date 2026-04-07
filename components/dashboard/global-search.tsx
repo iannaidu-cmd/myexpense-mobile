@@ -106,7 +106,7 @@ export function GlobalSearch({ onClose }: GlobalSearchProps) {
               <ThemedText style={styles.recentTitle}>
                 Recent Searches
               </ThemedText>
-              {["Travel", "Coffee", "Office Supplies"].map((item, i) => (
+              {["Travel", "Coffee", "Office supplies"].map((item, i) => (
                 <TouchableOpacity
                   key={i}
                   style={styles.recentItem}

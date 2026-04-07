@@ -353,21 +353,21 @@ export function MonthlyTrendScreen({ navigation }: MonthlyTrendScreenProps) {
             </View>
             <InsightRow
               icon="📈"
-              label="Spend vs Last Month"
+              label="Spend vs last month"
               value="Expenses increased in March"
               delta={`+${latestVsPrev}%`}
               positive={false}
             />
             <InsightRow
               icon="✅"
-              label="Deduction Consistency"
+              label="Deduction consistency"
               value="Avg 62% deductibility maintained"
               delta="+2.1%"
               positive={true}
             />
             <InsightRow
               icon="💡"
-              label="Highest Month"
+              label="Highest month"
               value="January — R15,200 total spend"
               delta="Jan"
               positive={false}
@@ -375,7 +375,7 @@ export function MonthlyTrendScreen({ navigation }: MonthlyTrendScreenProps) {
             <View style={{ borderBottomWidth: 0 }}>
               <InsightRow
                 icon="🎯"
-                label="On-Track for Tax Year"
+                label="On-track for tax year"
                 value="Projected R138k total deductions"
                 delta="On Track"
                 positive={true}

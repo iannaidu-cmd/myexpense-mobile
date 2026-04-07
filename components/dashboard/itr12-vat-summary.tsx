@@ -108,11 +108,11 @@ export function ITR12VATSummaryScreen({
         <View style={styles.headerStats}>
           {[
             {
-              label: "Total Input VAT",
+              label: "Total input VAT",
               value: `R ${totalVAT.toLocaleString()}`,
             },
-            { label: "VAT Receipts", value: "111" },
-            { label: "VAT Rate", value: "15%" },
+            { label: "VAT receipts", value: "111" },
+            { label: "VAT rate", value: "15%" },
           ].map((s, i) => (
             <View
               key={i}
@@ -128,9 +128,9 @@ export function ITR12VATSummaryScreen({
       {/* Period filter */}
       <View style={styles.periodFilter}>
         {[
-          ["this_month", "This Month"],
-          ["last_month", "Last Month"],
-          ["tax_year", "Tax Year"],
+          ["this_month", "This month"],
+          ["last_month", "Last month"],
+          ["tax_year", "Tax year"],
         ].map(([val, lbl]) => (
           <Pressable
             key={val}

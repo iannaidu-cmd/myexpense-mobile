@@ -90,7 +90,7 @@ export function ExpenseDetailScreen({
   const errorColor = "#E53935";
 
   const actions = [
-    { icon: "✏️", label: "Edit Expense", color: "#1565C0", onPress: onEdit },
+    { icon: "✏️", label: "Edit expense", color: "#1565C0", onPress: onEdit },
     {
       icon: "📤",
       label: "Export to ITR12",
@@ -100,7 +100,7 @@ export function ExpenseDetailScreen({
     { icon: "📋", label: "Duplicate", color: "#1976D2", onPress: onDuplicate },
     {
       icon: "🗑️",
-      label: "Delete Expense",
+      label: "Delete expense",
       color: errorColor,
       onPress: onDelete,
     },
@@ -190,7 +190,6 @@ export function ExpenseDetailScreen({
       fontWeight: "700",
       color: mutedColor,
       marginBottom: 10,
-      textTransform: "uppercase",
       letterSpacing: 0.5,
     },
     detailRow: {

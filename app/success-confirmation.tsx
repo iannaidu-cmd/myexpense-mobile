@@ -47,21 +47,21 @@ const CONTEXT_CONFIG: Record<
 > = {
   expense: {
     icon: "✅",
-    defaultTitle: "Expense Saved!",
+    defaultTitle: "Expense saved!",
     defaultSubtitle:
       "Your expense has been recorded and categorised for ITR12.",
     accentColour: colour.success,
   },
   receipt: {
     icon: "🧾",
-    defaultTitle: "Receipt Scanned!",
+    defaultTitle: "Receipt scanned!",
     defaultSubtitle:
       "Your receipt was processed and matched to an ITR12 category.",
     accentColour: colour.primary,
   },
   report: {
     icon: "📊",
-    defaultTitle: "Report Exported!",
+    defaultTitle: "Report exported!",
     defaultSubtitle:
       "Your tax summary report is ready to share with your accountant.",
     accentColour: colour.teal,
@@ -196,7 +196,7 @@ export default function SuccessConfirmationScreen() {
   const title = params.title ?? config.defaultTitle;
   const subtitle = params.subtitle ?? config.defaultSubtitle;
   const nextRoute = params.nextRoute ?? "/";
-  const nextLabel = params.nextLabel ?? "Go to Dashboard";
+  const nextLabel = params.nextLabel ?? "Go to dashboard";
   const details: Array<{ label: string; value: string }> = params.details
     ? JSON.parse(params.details)
     : [];

@@ -170,7 +170,7 @@ export default function ResetPasswordScreen() {
                   <Text
                     style={[typography.btnL, { color: colour.textOnPrimary }]}
                   >
-                    Sign In
+                    Sign in
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -333,7 +333,7 @@ export default function ResetPasswordScreen() {
                     <Text
                       style={[typography.btnL, { color: colour.textOnPrimary }]}
                     >
-                      Reset Password
+                      Reset password
                     </Text>
                   )}
                 </TouchableOpacity>

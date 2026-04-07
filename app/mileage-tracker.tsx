@@ -496,7 +496,7 @@ export default function MileageTrackerScreen() {
               marginBottom: space.xs,
             }}
           >
-            DISTANCE TRAVELLED
+            Distance travelled
           </Text>
           <OdometerDisplay km={distanceKm} />
           <Text
@@ -668,7 +668,7 @@ export default function MileageTrackerScreen() {
                 <Text
                   style={{ ...typography.actionL, color: colour.onPrimary }}
                 >
-                  Pause Trip
+                  Pause trip
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -695,7 +695,7 @@ export default function MileageTrackerScreen() {
                     <Text
                       style={{ ...typography.actionL, color: colour.danger }}
                     >
-                      End & Save Trip
+                      End & save trip
                     </Text>
                   </>
                 )}
@@ -749,7 +749,7 @@ export default function MileageTrackerScreen() {
                     <Text
                       style={{ ...typography.actionL, color: colour.danger }}
                     >
-                      End & Save Trip
+                      End & save trip
                     </Text>
                   </>
                 )}

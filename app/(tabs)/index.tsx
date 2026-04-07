@@ -10,29 +10,29 @@ import { ACTIVE_TAX_YEAR } from "@/types/database";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
 import {
-  ActivityIndicator,
-  Modal,
-  Platform,
-  ScrollView,
-  StatusBar,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Modal,
+    Platform,
+    ScrollView,
+    StatusBar,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const MENU_ITEMS = [
-  { label: "My Expenses", icon: "💳", route: "/(tabs)/reports" as const },
-  { label: "Income History", icon: "💵", route: "/income-history" as any },
-  { label: "Scan Receipt", icon: "📷", route: "/(tabs)/scan" as const },
-  { label: "ITR12 Export", icon: "📄", route: "/itr12-export-setup" as const },
-  { label: "Tax Summary", icon: "🧾", route: "/tax-summary" as const },
+  { label: "My expenses", icon: "💳", route: "/(tabs)/reports" as const },
+  { label: "Income history", icon: "💵", route: "/income-history" as any },
+  { label: "Scan receipt", icon: "📷", route: "/(tabs)/scan" as const },
+  { label: "ITR12 export", icon: "📄", route: "/itr12-export-setup" as const },
+  { label: "Tax summary", icon: "🧾", route: "/tax-summary" as const },
   {
-    label: "Deductibility Guide",
+    label: "Deductibility guide",
     icon: "📘",
     route: "/deductibility-guide" as const,
   },
-  { label: "Mileage Tracker", icon: "🚗", route: "/mileage-tracker" as const },
+  { label: "Mileage tracker", icon: "🚗", route: "/mileage-tracker" as const },
 ];
 
 const formatZAR = (amount: number) =>
@@ -394,7 +394,7 @@ export default function HomeScreen() {
                 <Text
                   style={{ ...typography.actionM, color: colour.onPrimary }}
                 >
-                  + Add Expense
+                  + Add expense
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -410,7 +410,7 @@ export default function HomeScreen() {
                 <Text
                   style={{ ...typography.actionM, color: colour.onPrimary }}
                 >
-                  + Add Income
+                  + Add income
                 </Text>
               </TouchableOpacity>
             </View>
@@ -435,7 +435,7 @@ export default function HomeScreen() {
                     marginBottom: space.xs,
                   }}
                 >
-                  Scan Receipt
+                  Scan receipt
                 </Text>
                 <Text
                   style={{
@@ -463,7 +463,7 @@ export default function HomeScreen() {
               >
                 <View style={{ flex: 1 }}>
                   <Text style={{ ...typography.h4, color: colour.text }}>
-                    Recent Expenses
+                    Recent expenses
                   </Text>
                   <Text
                     style={{
@@ -609,7 +609,7 @@ export default function HomeScreen() {
                   Generate your SARS-ready report now.
                 </Text>
                 <MXButton
-                  label="Prepare ITR12 Export"
+                  label="Prepare ITR12 export"
                   onPress={() => router.push("/itr12-export-setup")}
                   size="M"
                 />

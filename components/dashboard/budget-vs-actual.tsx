@@ -149,7 +149,7 @@ export function BudgetVsActualScreen({
   navigation,
 }: BudgetVsActualScreenProps) {
   const [filterMode, setFilterMode] = useState("All");
-  const filters = ["All", "Over Budget", "Under Budget"];
+  const filters = ["All", "Over budget", "Under budget"];
 
   const bgColor = useThemeColor({}, "background");
   const borderColor = "#E0E0E0";
@@ -157,8 +157,8 @@ export function BudgetVsActualScreen({
   const accentColor = "#0288D1";
 
   const filtered = BUDGETS.filter((b) => {
-    if (filterMode === "Over Budget") return b.actual > b.budget;
-    if (filterMode === "Under Budget") return b.actual <= b.budget;
+    if (filterMode === "Over budget") return b.actual > b.budget;
+    if (filterMode === "Under budget") return b.actual <= b.budget;
     return true;
   });
 
@@ -324,7 +324,7 @@ export function BudgetVsActualScreen({
                       ]}
                     >
                       {f}
-                      {f === "Over Budget" ? ` (${OVER_BUDGET.length})` : ""}
+                      {f === "Over budget" ? ` (${OVER_BUDGET.length})` : ""}
                     </ThemedText>
                   </TouchableOpacity>
                 ))}

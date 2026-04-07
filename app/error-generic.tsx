@@ -207,22 +207,22 @@ export default function ErrorGenericScreen({
     { title: string; message: string; cta: string }
   > = {
     warning: {
-      title: "Something Needs Attention",
+      title: "Something needs attention",
       message:
         "There was a minor issue processing your request. Your data is safe — please try again.",
-      cta: "Try Again",
+      cta: "Try again",
     },
     error: {
-      title: "Something Went Wrong",
+      title: "Something went wrong",
       message:
         "An unexpected error occurred. We've logged the issue and our team will look into it.",
       cta: "Retry",
     },
     critical: {
-      title: "Critical Error",
+      title: "Critical error",
       message:
         "A critical error has occurred. Please restart the app. If the issue persists, contact support.",
-      cta: "Restart App",
+      cta: "Restart app",
     },
   };
 

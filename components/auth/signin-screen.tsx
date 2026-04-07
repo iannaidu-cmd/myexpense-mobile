@@ -1,29 +1,29 @@
+import { supabase } from "@/lib/supabase";
 import {
-  authenticateWithBiometrics,
-  clearBiometricSession,
-  getBiometricLabel,
-  getBiometricSession,
-  isBiometricAvailable,
-  isBiometricEnabled,
-  saveBiometricSession,
-  setBiometricEnabled,
+    authenticateWithBiometrics,
+    clearBiometricSession,
+    getBiometricLabel,
+    getBiometricSession,
+    isBiometricAvailable,
+    isBiometricEnabled,
+    saveBiometricSession,
+    setBiometricEnabled,
 } from "@/services/biometricService";
 import { signInWithGoogle } from "@/services/googleAuthService";
 import { useAuthStore } from "@/stores/authStore";
 import { colour, radius, space, typography } from "@/tokens";
-import { supabase } from "@/lib/supabase";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { ClipPath, Defs, G, Path, Rect } from "react-native-svg";
@@ -38,10 +38,22 @@ function GoogleLogo({ size = 24 }: { size?: number }) {
         </ClipPath>
       </Defs>
       <G clipPath="url(#clipGSI)">
-        <Path d="M21.8 12.2c0-.7-.06-1.37-.17-2.02H12v3.82h5.5a4.7 4.7 0 01-2.04 3.08v2.56h3.3c1.93-1.78 3.04-4.4 3.04-7.44z" fill="#4285F4" />
-        <Path d="M12 22c2.76 0 5.08-.92 6.77-2.48l-3.3-2.56c-.92.62-2.08.98-3.47.98-2.67 0-4.93-1.8-5.73-4.22H2.87v2.64A10 10 0 0012 22z" fill="#34A853" />
-        <Path d="M6.27 13.72A6.02 6.02 0 016 12c0-.6.1-1.18.27-1.72V7.64H2.87A10 10 0 002 12c0 1.61.38 3.13 1.05 4.48l3.22-2.76z" fill="#FBBC05" />
-        <Path d="M12 5.8c1.5 0 2.85.52 3.9 1.53l2.93-2.93C17.07 2.72 14.76 1.8 12 1.8a10 10 0 00-9.13 5.84l3.4 2.64C7.07 7.6 9.33 5.8 12 5.8z" fill="#EA4335" />
+        <Path
+          d="M21.8 12.2c0-.7-.06-1.37-.17-2.02H12v3.82h5.5a4.7 4.7 0 01-2.04 3.08v2.56h3.3c1.93-1.78 3.04-4.4 3.04-7.44z"
+          fill="#4285F4"
+        />
+        <Path
+          d="M12 22c2.76 0 5.08-.92 6.77-2.48l-3.3-2.56c-.92.62-2.08.98-3.47.98-2.67 0-4.93-1.8-5.73-4.22H2.87v2.64A10 10 0 0012 22z"
+          fill="#34A853"
+        />
+        <Path
+          d="M6.27 13.72A6.02 6.02 0 016 12c0-.6.1-1.18.27-1.72V7.64H2.87A10 10 0 002 12c0 1.61.38 3.13 1.05 4.48l3.22-2.76z"
+          fill="#FBBC05"
+        />
+        <Path
+          d="M12 5.8c1.5 0 2.85.52 3.9 1.53l2.93-2.93C17.07 2.72 14.76 1.8 12 1.8a10 10 0 00-9.13 5.84l3.4 2.64C7.07 7.6 9.33 5.8 12 5.8z"
+          fill="#EA4335"
+        />
       </G>
     </Svg>
   );
@@ -61,7 +73,13 @@ function FacebookLogo({ size = 24 }: { size?: number }) {
 }
 
 // ── Social icon button ────────────────────────────────────────────────────────
-function SocialIconButton({ icon, onPress, disabled, loading, label }: {
+function SocialIconButton({
+  icon,
+  onPress,
+  disabled,
+  loading,
+  label,
+}: {
   icon: React.ReactNode;
   onPress: () => void;
   disabled?: boolean;
@@ -75,21 +93,31 @@ function SocialIconButton({ icon, onPress, disabled, loading, label }: {
       activeOpacity={0.8}
       accessibilityLabel={`Sign in with ${label}`}
       style={{
-        width: 56, height: 56, borderRadius: 28,
+        width: 56,
+        height: 56,
+        borderRadius: 28,
         backgroundColor: colour.white,
-        borderWidth: 1.5, borderColor: colour.border,
-        alignItems: "center", justifyContent: "center",
+        borderWidth: 1.5,
+        borderColor: colour.border,
+        alignItems: "center",
+        justifyContent: "center",
         opacity: disabled ? 0.5 : 1,
         ...Platform.select({
-          ios: { shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 6 },
+          ios: {
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.08,
+            shadowRadius: 6,
+          },
           android: { elevation: 3 },
         }),
       }}
     >
-      {loading
-        ? <ActivityIndicator color={colour.textSecondary} size="small" />
-        : icon
-      }
+      {loading ? (
+        <ActivityIndicator color={colour.textSecondary} size="small" />
+      ) : (
+        icon
+      )}
     </TouchableOpacity>
   );
 }
@@ -99,22 +127,24 @@ export function SigninScreen() {
   const router = useRouter();
   const { signIn } = useAuthStore();
 
-  const [email, setEmail]                   = useState("");
-  const [password, setPassword]             = useState("");
-  const [showPassword, setShowPassword]     = useState(false);
-  const [loading, setLoading]               = useState(false);
-  const [googleLoading, setGoogleLoading]   = useState(false);
-  const [fbLoading, setFbLoading]           = useState(false);
-  const [errors, setErrors]                 = useState<{ email?: string; password?: string }>({});
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [fbLoading, setFbLoading] = useState(false);
+  const [errors, setErrors] = useState<{ email?: string; password?: string }>(
+    {},
+  );
   const [biometricAvailable, setBiometricAvailable] = useState(false);
   const [biometricEnabled, setBiometricEnabledState] = useState(false);
-  const [biometricLabel, setBiometricLabel]         = useState("Biometrics");
+  const [biometricLabel, setBiometricLabel] = useState("Biometrics");
 
   useEffect(() => {
     (async () => {
       const available = await isBiometricAvailable();
-      const enabled   = await isBiometricEnabled();
-      const label     = await getBiometricLabel();
+      const enabled = await isBiometricEnabled();
+      const label = await getBiometricLabel();
       setBiometricAvailable(available);
       setBiometricEnabledState(enabled);
       setBiometricLabel(label);
@@ -126,6 +156,23 @@ export function SigninScreen() {
     })();
   }, []);
 
+  // ── Profile-setup gate ────────────────────────────────────────────────────
+  // After any successful sign-in, check if the user has a tax number on record.
+  // First-time users (or users who skipped setup) are redirected to profile-setup.
+  const navigateAfterSignIn = async (userId: string) => {
+    try {
+      const profile = await profileService.getProfile(userId);
+      if (!profile?.tax_number) {
+        router.replace("/profile-setup" as any);
+      } else {
+        router.replace("/(tabs)");
+      }
+    } catch {
+      // If the profile check fails, just go to tabs — don't block the user
+      router.replace("/(tabs)");
+    }
+  };
+
   // ── Biometric login ───────────────────────────────────────────────────────
   // 1. Prompt biometric (fingerprint/face)
   // 2. Load stored access_token + refresh_token from SecureStore
@@ -133,7 +180,9 @@ export function SigninScreen() {
   // 4. Manually update the authStore user state
   // 5. Navigate — AuthGate now sees a valid user
   const handleBiometricLogin = async () => {
-    const authenticated = await authenticateWithBiometrics("Sign in to MyExpense");
+    const authenticated = await authenticateWithBiometrics(
+      "Sign in to MyExpense",
+    );
     if (!authenticated) return;
 
     const stored = await getBiometricSession();
@@ -174,9 +223,12 @@ export function SigninScreen() {
         data.session.refresh_token,
       );
 
-      router.replace("/(tabs)");
+      await navigateAfterSignIn(user.id);
     } catch {
-      Alert.alert("Sign in failed", "Please sign in with your email and password.");
+      Alert.alert(
+        "Sign in failed",
+        "Please sign in with your email and password.",
+      );
     }
   };
 
@@ -189,38 +241,68 @@ export function SigninScreen() {
 
   const handleSubmit = async () => {
     const e = validate();
-    if (Object.keys(e).length) { setErrors(e); return; }
+    if (Object.keys(e).length) {
+      setErrors(e);
+      return;
+    }
     setErrors({});
     setLoading(true);
     try {
       await signIn(email, password);
 
+      // Get the signed-in user id for profile check
+      const {
+        data: { session: currentSession },
+      } = await supabase.auth.getSession();
+      const signedInUserId = currentSession?.user?.id;
+
       // Offer biometrics after first successful password login
       const available = await isBiometricAvailable();
-      const enabled   = await isBiometricEnabled();
+      const enabled = await isBiometricEnabled();
       if (available && !enabled) {
         Alert.alert(
           `Enable ${biometricLabel}?`,
           `Use ${biometricLabel} to sign in faster next time.`,
           [
-            { text: "Not now", style: "cancel", onPress: () => router.replace("/(tabs)") },
+            {
+              text: "Not now",
+              style: "cancel",
+              onPress: () =>
+                signedInUserId
+                  ? navigateAfterSignIn(signedInUserId)
+                  : router.replace("/(tabs)"),
+            },
             {
               text: "Enable",
               onPress: async () => {
-                const { data: { session: s } } = await supabase.auth.getSession();
+                const {
+                  data: { session: s },
+                } = await supabase.auth.getSession();
                 if (s?.access_token && s?.refresh_token) {
                   // Store BOTH tokens so biometric login can fully restore session
-                  await saveBiometricSession(email, s.access_token, s.refresh_token);
+                  await saveBiometricSession(
+                    email,
+                    s.access_token,
+                    s.refresh_token,
+                  );
                   await setBiometricEnabled(true);
                   setBiometricEnabledState(true);
                 }
-                router.replace("/(tabs)");
+                if (signedInUserId) {
+                  await navigateAfterSignIn(signedInUserId);
+                } else {
+                  router.replace("/(tabs)");
+                }
               },
             },
-          ]
+          ],
         );
       } else {
-        router.replace("/(tabs)");
+        if (signedInUserId) {
+          await navigateAfterSignIn(signedInUserId);
+        } else {
+          router.replace("/(tabs)");
+        }
       }
     } catch {
       setErrors({ password: "Invalid email or password. Please try again." });
@@ -234,9 +316,19 @@ export function SigninScreen() {
     try {
       const result = await signInWithGoogle();
       if (result.success) {
-        router.replace("/(tabs)");
+        const {
+          data: { session: s },
+        } = await supabase.auth.getSession();
+        if (s?.user?.id) {
+          await navigateAfterSignIn(s.user.id);
+        } else {
+          router.replace("/(tabs)");
+        }
       } else if (result.error !== "cancelled") {
-        Alert.alert("Google Sign-In failed", result.error ?? "Please try again.");
+        Alert.alert(
+          "Google Sign-In failed",
+          result.error ?? "Please try again.",
+        );
       }
     } finally {
       setGoogleLoading(false);
@@ -246,7 +338,10 @@ export function SigninScreen() {
   const handleFacebookSignIn = async () => {
     setFbLoading(true);
     try {
-      Alert.alert("Coming Soon", "Facebook Sign-In will be available in the next update.");
+      Alert.alert(
+        "Coming Soon",
+        "Facebook Sign-In will be available in the next update.",
+      );
     } finally {
       setFbLoading(false);
     }
@@ -256,88 +351,247 @@ export function SigninScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colour.white }}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-        <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
+        <ScrollView
+          contentContainerStyle={{ flexGrow: 1 }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
           {/* Header */}
-          <View style={{ backgroundColor: colour.primary, paddingHorizontal: space.lg, paddingTop: space["2xl"], paddingBottom: space["3xl"] }}>
-            <Text style={{ ...typography.h2, fontWeight: "800", color: colour.onPrimary, marginBottom: space.xs }}>
+          <View
+            style={{
+              backgroundColor: colour.primary,
+              paddingHorizontal: space.lg,
+              paddingTop: space["2xl"],
+              paddingBottom: space["3xl"],
+            }}
+          >
+            <Text
+              style={{
+                ...typography.h2,
+                fontWeight: "800",
+                color: colour.onPrimary,
+                marginBottom: space.xs,
+              }}
+            >
               Welcome back
             </Text>
-            <Text style={{ ...typography.bodyM, color: "rgba(255,255,255,0.75)" }}>
+            <Text
+              style={{ ...typography.bodyM, color: "rgba(255,255,255,0.75)" }}
+            >
               Sign in to your MyExpense account and pick up where you left off.
             </Text>
           </View>
 
           {/* Card */}
-          <View style={{ flex: 1, backgroundColor: colour.white, borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl, marginTop: -20, padding: space.lg, paddingTop: space["2xl"] }}>
-
+          <View
+            style={{
+              flex: 1,
+              backgroundColor: colour.white,
+              borderTopLeftRadius: radius.xl,
+              borderTopRightRadius: radius.xl,
+              marginTop: -20,
+              padding: space.lg,
+              paddingTop: space["2xl"],
+            }}
+          >
             {/* Email */}
-            <Text style={{ ...typography.labelM, color: colour.textSub, marginBottom: space.xs }}>EMAIL ADDRESS</Text>
+            <Text
+              style={{
+                ...typography.labelM,
+                color: colour.textSub,
+                marginBottom: space.xs,
+              }}
+            >
+              EMAIL ADDRESS
+            </Text>
             <TextInput
-              value={email} onChangeText={setEmail}
-              placeholder="you@example.co.za" placeholderTextColor={colour.textHint}
-              keyboardType="email-address" autoCapitalize="none"
-              style={{ ...typography.bodyM, color: colour.text, borderBottomWidth: 1.5, borderBottomColor: errors.email ? colour.danger : colour.border, paddingVertical: space.sm, marginBottom: errors.email ? space.xs : space.lg }}
+              value={email}
+              onChangeText={setEmail}
+              placeholder="you@example.co.za"
+              placeholderTextColor={colour.textHint}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              style={{
+                ...typography.bodyM,
+                color: colour.text,
+                borderBottomWidth: 1.5,
+                borderBottomColor: errors.email ? colour.danger : colour.border,
+                paddingVertical: space.sm,
+                marginBottom: errors.email ? space.xs : space.lg,
+              }}
             />
-            {errors.email && <Text style={{ ...typography.bodyXS, color: colour.danger, marginBottom: space.md }}>{errors.email}</Text>}
+            {errors.email && (
+              <Text
+                style={{
+                  ...typography.bodyXS,
+                  color: colour.danger,
+                  marginBottom: space.md,
+                }}
+              >
+                {errors.email}
+              </Text>
+            )}
 
             {/* Password */}
-            <Text style={{ ...typography.labelM, color: colour.textSub, marginBottom: space.xs }}>PASSWORD</Text>
-            <View style={{ flexDirection: "row", alignItems: "center", borderBottomWidth: 1.5, borderBottomColor: errors.password ? colour.danger : colour.border, marginBottom: errors.password ? space.xs : space.xs }}>
+            <Text
+              style={{
+                ...typography.labelM,
+                color: colour.textSub,
+                marginBottom: space.xs,
+              }}
+            >
+              PASSWORD
+            </Text>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                borderBottomWidth: 1.5,
+                borderBottomColor: errors.password
+                  ? colour.danger
+                  : colour.border,
+                marginBottom: errors.password ? space.xs : space.xs,
+              }}
+            >
               <TextInput
-                value={password} onChangeText={setPassword}
-                placeholder="Your password" placeholderTextColor={colour.textHint}
+                value={password}
+                onChangeText={setPassword}
+                placeholder="Your password"
+                placeholderTextColor={colour.textHint}
                 secureTextEntry={!showPassword}
-                style={{ ...typography.bodyM, flex: 1, color: colour.text, paddingVertical: space.sm }}
+                style={{
+                  ...typography.bodyM,
+                  flex: 1,
+                  color: colour.text,
+                  paddingVertical: space.sm,
+                }}
               />
-              <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={{ padding: space.xs }}>
-                <Text style={{ ...typography.labelS, color: colour.primary }}>{showPassword ? "Hide" : "Show"}</Text>
+              <TouchableOpacity
+                onPress={() => setShowPassword(!showPassword)}
+                style={{ padding: space.xs }}
+              >
+                <Text style={{ ...typography.labelS, color: colour.primary }}>
+                  {showPassword ? "Hide" : "Show"}
+                </Text>
               </TouchableOpacity>
             </View>
-            {errors.password && <Text style={{ ...typography.bodyXS, color: colour.danger, marginBottom: space.sm }}>{errors.password}</Text>}
+            {errors.password && (
+              <Text
+                style={{
+                  ...typography.bodyXS,
+                  color: colour.danger,
+                  marginBottom: space.sm,
+                }}
+              >
+                {errors.password}
+              </Text>
+            )}
 
             {/* Forgot password */}
             <TouchableOpacity
               onPress={() => router.push("/forgot-password")}
-              style={{ alignSelf: "flex-start", marginBottom: space["2xl"], marginTop: space.sm }}
+              style={{
+                alignSelf: "flex-start",
+                marginBottom: space["2xl"],
+                marginTop: space.sm,
+              }}
             >
-              <Text style={{ ...typography.bodyS, color: colour.primary, fontWeight: "600" }}>Forgot your password?</Text>
+              <Text
+                style={{
+                  ...typography.bodyS,
+                  color: colour.primary,
+                  fontWeight: "600",
+                }}
+              >
+                Forgot your password?
+              </Text>
             </TouchableOpacity>
 
             {/* Sign in button */}
             <TouchableOpacity
               onPress={handleSubmit}
               disabled={loading || socialDisabled}
-              style={{ backgroundColor: (loading || socialDisabled) ? colour.border : colour.primary, borderRadius: radius.pill, height: 52, alignItems: "center", justifyContent: "center", marginBottom: space.xl }}
+              style={{
+                backgroundColor:
+                  loading || socialDisabled ? colour.border : colour.primary,
+                borderRadius: radius.pill,
+                height: 52,
+                alignItems: "center",
+                justifyContent: "center",
+                marginBottom: space.xl,
+              }}
             >
-              {loading
-                ? <ActivityIndicator color={colour.onPrimary} />
-                : <Text style={{ ...typography.btnL, color: colour.onPrimary }}>Sign In</Text>
-              }
+              {loading ? (
+                <ActivityIndicator color={colour.onPrimary} />
+              ) : (
+                <Text style={{ ...typography.btnL, color: colour.onPrimary }}>
+                  Sign In
+                </Text>
+              )}
             </TouchableOpacity>
 
             {/* Biometric button — fingerprint only, no Face ID button shown */}
-            {biometricAvailable && biometricEnabled && biometricLabel !== "Face ID" && (
-              <TouchableOpacity
-                onPress={handleBiometricLogin}
-                style={{ borderWidth: 1.5, borderColor: colour.primary, borderRadius: radius.pill, height: 52, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: space.sm, marginBottom: space.xl }}
-              >
-                <Text style={{ fontSize: 22 }}>👆</Text>
-                <Text style={{ ...typography.btnL, color: colour.primary }}>
-                  Sign in with {biometricLabel}
-                </Text>
-              </TouchableOpacity>
-            )}
+            {biometricAvailable &&
+              biometricEnabled &&
+              biometricLabel !== "Face ID" && (
+                <TouchableOpacity
+                  onPress={handleBiometricLogin}
+                  style={{
+                    borderWidth: 1.5,
+                    borderColor: colour.primary,
+                    borderRadius: radius.pill,
+                    height: 52,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexDirection: "row",
+                    gap: space.sm,
+                    marginBottom: space.xl,
+                  }}
+                >
+                  <Text style={{ fontSize: 22 }}>👆</Text>
+                  <Text style={{ ...typography.btnL, color: colour.primary }}>
+                    Sign in with {biometricLabel}
+                  </Text>
+                </TouchableOpacity>
+              )}
 
             {/* Social divider */}
             <View style={{ alignItems: "center", marginBottom: space.xl }}>
-              <View style={{ flexDirection: "row", alignItems: "center", marginBottom: space.lg, width: "100%" }}>
-                <View style={{ flex: 1, height: 1, backgroundColor: colour.border }} />
-                <Text style={{ ...typography.caption, color: colour.textSecondary, paddingHorizontal: space.md }}>or sign in with</Text>
-                <View style={{ flex: 1, height: 1, backgroundColor: colour.border }} />
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  marginBottom: space.lg,
+                  width: "100%",
+                }}
+              >
+                <View
+                  style={{ flex: 1, height: 1, backgroundColor: colour.border }}
+                />
+                <Text
+                  style={{
+                    ...typography.caption,
+                    color: colour.textSecondary,
+                    paddingHorizontal: space.md,
+                  }}
+                >
+                  or sign in with
+                </Text>
+                <View
+                  style={{ flex: 1, height: 1, backgroundColor: colour.border }}
+                />
               </View>
-              <View style={{ flexDirection: "row", gap: space.xl, justifyContent: "center" }}>
+              <View
+                style={{
+                  flexDirection: "row",
+                  gap: space.xl,
+                  justifyContent: "center",
+                }}
+              >
                 <SocialIconButton
                   label="Facebook"
                   icon={<FacebookLogo size={24} />}
@@ -357,12 +611,21 @@ export function SigninScreen() {
 
             {/* Create account */}
             <View style={{ flexDirection: "row", justifyContent: "center" }}>
-              <Text style={{ ...typography.bodyM, color: colour.textSub }}>Don't have an account? </Text>
+              <Text style={{ ...typography.bodyM, color: colour.textSub }}>
+                Don't have an account?{" "}
+              </Text>
               <TouchableOpacity onPress={() => router.replace("/sign-up")}>
-                <Text style={{ ...typography.bodyM, color: colour.primary, fontWeight: "700" }}>Create one</Text>
+                <Text
+                  style={{
+                    ...typography.bodyM,
+                    color: colour.primary,
+                    fontWeight: "700",
+                  }}
+                >
+                  Create one
+                </Text>
               </TouchableOpacity>
             </View>
-
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

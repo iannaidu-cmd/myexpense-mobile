@@ -203,7 +203,6 @@ export function TaxSummaryScreen({
       color: "rgba(255, 255, 255, 0.6)",
       marginBottom: 4,
       letterSpacing: 0.5,
-      textTransform: "uppercase",
     },
     heroAmount: {
       fontSize: 36,
@@ -224,7 +223,6 @@ export function TaxSummaryScreen({
       paddingHorizontal: 20,
       paddingVertical: 16,
       paddingTop: 20,
-      textTransform: "uppercase",
       letterSpacing: 0.5,
     },
     categoryCard: {

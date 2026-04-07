@@ -459,7 +459,6 @@ export default function RecentActivityFeedScreen({ navigation }: Props) {
                   fontSize: 11,
                   fontWeight: "700",
                   color: C.textSub,
-                  textTransform: "uppercase",
                   letterSpacing: 0.8,
                   paddingHorizontal: 16,
                   paddingTop: 14,

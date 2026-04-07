@@ -188,7 +188,7 @@ export default function QuickAddExpenseScreen({
         >
           <View style={{ flex: 1 }}>
             <Text style={{ fontSize: 17, fontWeight: "800", color: C.text }}>
-              Quick Add Expense
+              Quick add expense
             </Text>
             <Text style={{ fontSize: 12, color: C.textSub, marginTop: 2 }}>
               {today}
@@ -240,7 +240,7 @@ export default function QuickAddExpenseScreen({
                 <Text style={{ color: C.white, fontSize: 32 }}>✓</Text>
               </View>
               <Text style={{ fontSize: 18, fontWeight: "800", color: C.text }}>
-                Expense Saved!
+                Expense saved!
               </Text>
               <Text style={{ fontSize: 13, color: C.textSub, marginTop: 6 }}>
                 R {amount} · {category}
@@ -256,7 +256,6 @@ export default function QuickAddExpenseScreen({
                     fontWeight: "700",
                     color: C.textSub,
                     letterSpacing: 0.8,
-                    textTransform: "uppercase",
                     marginBottom: 10,
                   }}
                 >
@@ -300,7 +299,7 @@ export default function QuickAddExpenseScreen({
                   fontWeight: "700",
                   color: C.textSub,
                   letterSpacing: 0.8,
-                  textTransform: "uppercase",
+
                   marginBottom: 10,
                 }}
               >
@@ -365,11 +364,10 @@ export default function QuickAddExpenseScreen({
                   fontWeight: "700",
                   color: C.textSub,
                   letterSpacing: 0.8,
-                  textTransform: "uppercase",
                   marginBottom: 8,
                 }}
               >
-                Vendor / Supplier
+                Vendor / supplier
               </Text>
               <TextInput
                 value={vendor}
@@ -393,7 +391,6 @@ export default function QuickAddExpenseScreen({
                   fontWeight: "700",
                   color: C.textSub,
                   letterSpacing: 0.8,
-                  textTransform: "uppercase",
                   marginBottom: 8,
                 }}
               >

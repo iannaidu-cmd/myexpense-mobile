@@ -6,14 +6,14 @@ import { ACTIVE_TAX_YEAR } from "@/types/database";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  ScrollView,
-  StatusBar,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    ScrollView,
+    StatusBar,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -71,7 +71,7 @@ function FieldLabel({ label }: { label: string }) {
         marginBottom: space.xs,
       }}
     >
-      {label.toUpperCase()}
+      {label}
     </Text>
   );
 }
@@ -192,7 +192,10 @@ export default function AddExpenseTab() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colour.primary }}>
+    <SafeAreaView
+      edges={["top"]}
+      style={{ flex: 1, backgroundColor: colour.primary }}
+    >
       <StatusBar barStyle="light-content" backgroundColor={colour.primary} />
 
       {/* Header */}
@@ -204,7 +207,7 @@ export default function AddExpenseTab() {
         }}
       >
         <Text style={{ ...typography.h3, color: colour.onPrimary }}>
-          Add Expense
+          Add expense
         </Text>
         <Text
           style={{
@@ -253,7 +256,7 @@ export default function AddExpenseTab() {
           >
             <Text style={{ fontSize: 18 }}>📷</Text>
             <Text style={{ ...typography.actionS, color: colour.onPrimary }}>
-              Scan Receipt
+              Scan receipt
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -273,7 +276,7 @@ export default function AddExpenseTab() {
           >
             <Text style={{ fontSize: 18 }}>🖼️</Text>
             <Text style={{ ...typography.actionS, color: colour.text }}>
-              From Gallery
+              From gallery
             </Text>
           </TouchableOpacity>
         </View>
@@ -298,7 +301,7 @@ export default function AddExpenseTab() {
               marginBottom: space.lg,
             }}
           >
-            Expense Details
+            Expense details
           </Text>
 
           <FieldLabel label="Amount (ZAR)" />
@@ -309,7 +312,7 @@ export default function AddExpenseTab() {
             keyboardType="decimal-pad"
           />
 
-          <FieldLabel label="Vendor / Supplier" />
+          <FieldLabel label="Vendor / supplier" />
           <UnderlineInput
             value={vendor}
             onChangeText={setVendor}
@@ -324,7 +327,7 @@ export default function AddExpenseTab() {
           />
 
           {/* Category picker */}
-          <FieldLabel label="ITR12 Category" />
+          <FieldLabel label="ITR12 category" />
           <TouchableOpacity
             onPress={() => setShowCatPicker((v) => !v)}
             style={{
@@ -447,9 +450,9 @@ export default function AddExpenseTab() {
               marginBottom: space.lg,
             }}
           >
-            VAT Details (optional)
+            VAT details (optional)
           </Text>
-          <FieldLabel label="VAT Amount (R)" />
+          <FieldLabel label="VAT amount (R)" />
           <UnderlineInput
             value={vatAmount}
             onChangeText={setVatAmount}
@@ -512,7 +515,7 @@ export default function AddExpenseTab() {
                 color: canSave ? colour.onPrimary : colour.textSub,
               }}
             >
-              {canSave ? "Save Expense" : "Fill in required fields"}
+              {canSave ? "Save expense" : "Fill in required fields"}
             </Text>
           )}
         </TouchableOpacity>

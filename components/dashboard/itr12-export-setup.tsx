@@ -98,13 +98,13 @@ const EXPORT_CATEGORIES: ExportCategory[] = [
 const EXPORT_FORMATS: ExportFormat[] = [
   {
     id: "pdf",
-    label: "PDF Report",
+    label: "PDF report",
     icon: "📄",
     description: "Formatted for SARS submission",
   },
   {
     id: "csv",
-    label: "CSV Export",
+    label: "CSV export",
     icon: "📊",
     description: "Spreadsheet-compatible format",
   },
@@ -116,7 +116,10 @@ const EXPORT_FORMATS: ExportFormat[] = [
   },
 ];
 
-export function ITR12ExportSetupScreen({ onExport, onCancel }: ITR12ExportSetupProps) {
+export function ITR12ExportSetupScreen({
+  onExport,
+  onCancel,
+}: ITR12ExportSetupProps) {
   const [currentStep, setCurrentStep] = useState<ExportStep>("year");
   const [selectedYear, setSelectedYear] = useState(0);
   const [categories, setCategories] = useState(EXPORT_CATEGORIES);
@@ -174,7 +177,7 @@ export function ITR12ExportSetupScreen({ onExport, onCancel }: ITR12ExportSetupP
   };
 
   const steps: Array<{ id: ExportStep; label: string }> = [
-    { id: "year", label: "Tax Year" },
+    { id: "year", label: "Tax year" },
     { id: "categories", label: "Categories" },
     { id: "format", label: "Format" },
     { id: "options", label: "Options" },
@@ -270,7 +273,6 @@ export function ITR12ExportSetupScreen({ onExport, onCancel }: ITR12ExportSetupP
       fontWeight: "700",
       color: textColor,
       marginBottom: 16,
-      textTransform: "uppercase",
       letterSpacing: 0.5,
     },
     yearOption: {

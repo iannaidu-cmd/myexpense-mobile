@@ -159,7 +159,6 @@ export function EditExpenseScreen({
       fontWeight: "600",
       color: mutedColor,
       marginBottom: 10,
-      textTransform: "uppercase",
       letterSpacing: 0.5,
     },
     inputContainer: {

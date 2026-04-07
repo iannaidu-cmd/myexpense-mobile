@@ -377,10 +377,9 @@ export default function AboutScreen({ navigation }: { navigation?: any }) {
             letterSpacing: 0.8,
             paddingHorizontal: 16,
             paddingBottom: 8,
-            textTransform: "uppercase",
           }}
         >
-          App Information
+          App information
         </Text>
         <View
           style={{
@@ -391,7 +390,7 @@ export default function AboutScreen({ navigation }: { navigation?: any }) {
           }}
         >
           <AboutRow icon="🏷" label="Version" value="1.0.0" />
-          <AboutRow icon="🔨" label="Build Number" value="100" />
+          <AboutRow icon="🔨" label="Build number" value="100" />
           <AboutRow icon="📱" label="Platform" value="React Native (Expo)" />
           <AboutRow icon="🌍" label="Region" value="South Africa (ZA)" />
           <AboutRow
@@ -401,7 +400,7 @@ export default function AboutScreen({ navigation }: { navigation?: any }) {
           />
           <AboutRow
             icon="🗓"
-            label="Tax Framework"
+            label="Tax framework"
             value="SARS ITR12 / ITR13"
           />
           <AboutRow icon="⚖️" label="Compliance" value="POPIA Act 4 of 2013" />
@@ -417,7 +416,6 @@ export default function AboutScreen({ navigation }: { navigation?: any }) {
             paddingHorizontal: 16,
             paddingTop: 18,
             paddingBottom: 8,
-            textTransform: "uppercase",
           }}
         >
           Company
@@ -460,7 +458,6 @@ export default function AboutScreen({ navigation }: { navigation?: any }) {
             paddingHorizontal: 16,
             paddingTop: 18,
             paddingBottom: 8,
-            textTransform: "uppercase",
           }}
         >
           Legal
@@ -473,10 +470,10 @@ export default function AboutScreen({ navigation }: { navigation?: any }) {
             overflow: "hidden",
           }}
         >
-          <AboutRow icon="📄" label="Privacy Policy" onPress={() => {}} />
-          <AboutRow icon="📜" label="Terms of Service" onPress={() => {}} />
-          <AboutRow icon="⚖️" label="Open Source Licences" onPress={() => {}} />
-          <AboutRow icon="🍪" label="Cookie Policy" onPress={() => {}} />
+          <AboutRow icon="📄" label="Privacy policy" onPress={() => {}} />
+          <AboutRow icon="📜" label="Terms of service" onPress={() => {}} />
+          <AboutRow icon="⚖️" label="Open source licences" onPress={() => {}} />
+          <AboutRow icon="🍪" label="Cookie policy" onPress={() => {}} />
         </View>
 
         {/* Open Source Licences */}
@@ -489,10 +486,9 @@ export default function AboutScreen({ navigation }: { navigation?: any }) {
             paddingHorizontal: 16,
             paddingTop: 18,
             paddingBottom: 8,
-            textTransform: "uppercase",
           }}
         >
-          Open Source Libraries
+          Open source libraries
         </Text>
         <View
           style={{
@@ -530,10 +526,9 @@ export default function AboutScreen({ navigation }: { navigation?: any }) {
             letterSpacing: 0.8,
             paddingHorizontal: 16,
             paddingBottom: 8,
-            textTransform: "uppercase",
           }}
         >
-          What's New
+          What's new
         </Text>
         <View
           style={{

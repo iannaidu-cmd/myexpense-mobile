@@ -124,7 +124,7 @@ export default function CategoryBreakdownScreen() {
     >
       <StatusBar barStyle="light-content" backgroundColor={C.primary} />
       <MXHeader
-        title="Category Breakdown"
+        title="Category breakdown"
         subtitle={`SARS ITR12 · Tax Year ${activeTaxYear}`}
         showBack
         backLabel="Tax & ITR12"
@@ -169,7 +169,7 @@ export default function CategoryBreakdownScreen() {
                     color: "rgba(255,255,255,0.7)",
                   }}
                 >
-                  Total Spend
+                  Total spend
                 </Text>
                 <Text
                   style={{
@@ -283,14 +283,14 @@ export default function CategoryBreakdownScreen() {
                 </View>
                 <View style={{ flexDirection: "row", gap: space.lg }}>
                   {[
-                    { l: "Total Spend", v: fmt(selectedCat.amount) },
+                    { l: "Total spend", v: fmt(selectedCat.amount) },
                     {
                       l: "Status",
                       v: selectedCat.deductible
                         ? "Deductible"
                         : "Non-deductible",
                     },
-                    { l: "ITR12 Code", v: selectedCat.itr12Code },
+                    { l: "ITR12 code", v: selectedCat.itr12Code },
                   ].map((s, i) => (
                     <View key={i}>
                       <Text
@@ -465,7 +465,7 @@ export default function CategoryBreakdownScreen() {
               <Text
                 style={{ ...typography.labelM, color: C.textPrimary, flex: 1 }}
               >
-                View Deductibility Guide
+                View deductibility guide
               </Text>
               <Text style={{ color: C.textSecondary, fontSize: 16 }}>›</Text>
             </TouchableOpacity>

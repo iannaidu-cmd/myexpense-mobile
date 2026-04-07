@@ -115,7 +115,7 @@ export default function DeleteConfirmationScreen() {
             { color: colour.textPrimary, marginLeft: space.md },
           ]}
         >
-          Delete Expense
+          Delete expense
         </Text>
       </View>
 
@@ -284,7 +284,7 @@ export default function DeleteConfirmationScreen() {
               <ActivityIndicator color={colour.textOnPrimary} />
             ) : (
               <Text style={[typography.btnL, { color: colour.textOnPrimary }]}>
-                Yes, Delete Expense
+                Yes, delete expense
               </Text>
             )}
           </TouchableOpacity>

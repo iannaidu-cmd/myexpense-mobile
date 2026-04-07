@@ -36,7 +36,6 @@ function FieldLabel({ label }: { label: string }) {
         fontWeight: "700",
         color: colour.textSub,
         letterSpacing: 0.5,
-        textTransform: "uppercase",
         marginBottom: 8,
       }}
     >
@@ -137,7 +136,7 @@ export default function AddExpenseScreen() {
             letterSpacing: 1,
           }}
         >
-          EXPENSES
+          Expenses
         </Text>
         <Text
           style={{
@@ -147,7 +146,7 @@ export default function AddExpenseScreen() {
             marginTop: 4,
           }}
         >
-          Add Expense
+          Add expense
         </Text>
       </View>
 
@@ -191,7 +190,7 @@ export default function AddExpenseScreen() {
                 color: colour.onPrimary,
               }}
             >
-              Scan Receipt
+              Scan receipt
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -213,7 +212,7 @@ export default function AddExpenseScreen() {
             <Text
               style={{ fontSize: 13, fontWeight: "700", color: colour.text }}
             >
-              From Gallery
+              From gallery
             </Text>
           </TouchableOpacity>
         </View>
@@ -237,11 +236,11 @@ export default function AddExpenseScreen() {
               marginBottom: 18,
             }}
           >
-            Expense Details
+            Expense details
           </Text>
 
           {/* Business / Personal toggle */}
-          <FieldLabel label="Expense Type" />
+          <FieldLabel label="Expense type" />
           <View
             style={{
               flexDirection: "row",
@@ -287,7 +286,7 @@ export default function AddExpenseScreen() {
           />
 
           {/* Vendor */}
-          <FieldLabel label="Vendor / Supplier" />
+          <FieldLabel label="Vendor / supplier" />
           <UnderlineInput
             value={vendor}
             onChangeText={setVendor}
@@ -304,7 +303,7 @@ export default function AddExpenseScreen() {
           />
 
           {/* Category */}
-          <FieldLabel label="ITR12 Category" />
+          <FieldLabel label="ITR12 category" />
           <TouchableOpacity
             onPress={() => setShowCatPicker((v) => !v)}
             style={{
@@ -422,9 +421,9 @@ export default function AddExpenseScreen() {
               marginBottom: 18,
             }}
           >
-            VAT Details (optional)
+            VAT details (optional)
           </Text>
-          <FieldLabel label="Supplier VAT Number" />
+          <FieldLabel label="Supplier VAT number" />
           <UnderlineInput
             value={vatNumber}
             onChangeText={setVatNumber}
@@ -491,7 +490,7 @@ export default function AddExpenseScreen() {
               fontWeight: "700",
             }}
           >
-            {canSave ? "Save Expense" : "Fill in required fields"}
+            {canSave ? "Save expense" : "Fill in required fields"}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity

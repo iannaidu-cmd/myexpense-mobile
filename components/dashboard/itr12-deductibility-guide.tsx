@@ -73,7 +73,7 @@ const DEFAULT_SECTIONS: DeductibilitySection[] = [
     ],
   },
   {
-    title: "What you CANNOT deduct",
+    title: "What you cannot deduct",
     icon: "🚫",
     color: "#E05555",
     summary: "Private and domestic expenses are explicitly excluded.",

@@ -10,8 +10,8 @@ interface Action {
 }
 
 const ACTIONS: Action[] = [
-  { icon: "📸", label: "Scan Receipt", color: "#0288D1" },
-  { icon: "✏️", label: "Add Expense", color: "#1565C0" },
+  { icon: "📸", label: "Scan receipt", color: "#0288D1" },
+  { icon: "✏️", label: "Add expense", color: "#1565C0" },
   { icon: "📊", label: "ITR12 Export", color: "#0288D1" },
   { icon: "📋", label: "Reports", color: "#1565C0" },
 ];

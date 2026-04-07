@@ -113,8 +113,8 @@ function ReportNavCard({
 
 // ─── Main Screen ─────────────────────────────────────────────────────────────
 export function ReportHomeScreen({ navigation }: ReportHomeScreenProps) {
-  const [period, setPeriod] = useState("This Month");
-  const periods = ["This Month", "This Quarter", "This Year"];
+  const [period, setPeriod] = useState("This month");
+  const periods = ["This month", "This quarter", "This year"];
 
   const primaryColor = useThemeColor({}, "text");
   const bgColor = useThemeColor({}, "background");
@@ -131,32 +131,32 @@ export function ReportHomeScreen({ navigation }: ReportHomeScreenProps) {
   const reports: ReportItem[] = [
     {
       icon: "🏷",
-      title: "Spending by Category",
+      title: "Spending by category",
       description: "ITR12 category breakdown",
       screen: "SpendingByCategory",
     },
     {
       icon: "📈",
-      title: "Monthly Trend",
+      title: "Monthly trend",
       description: "Month-by-month spending patterns",
       screen: "MonthlyTrend",
     },
     {
       icon: "🎯",
-      title: "Budget vs Actual",
+      title: "Budget vs actual",
       description: "Track spend against your budget",
       badge: "2 over",
       screen: "BudgetVsActual",
     },
     {
       icon: "🏪",
-      title: "Top Vendors",
+      title: "Top vendors",
       description: "Your most frequent suppliers",
       screen: "TopVendors",
     },
     {
       icon: "🔮",
-      title: "Deduction Forecast",
+      title: "Deduction forecast",
       description: "Projected SARS ITR12 deductions",
       badge: "New",
       screen: "DeductionForecast",
@@ -220,13 +220,13 @@ export function ReportHomeScreen({ navigation }: ReportHomeScreenProps) {
           </ThemedText>
           <View style={styles.metricsRow}>
             <MetricCard
-              label="Total Expenses"
+              label="Total expenses"
               value={summary.totalExpenses}
               sub="All categories"
               color={headerBg}
             />
             <MetricCard
-              label="Tax Deductible"
+              label="Tax deductible"
               value={summary.taxDeductible}
               sub="ITR12 eligible"
               color="#27AE60"
@@ -234,13 +234,13 @@ export function ReportHomeScreen({ navigation }: ReportHomeScreenProps) {
           </View>
           <View style={styles.metricsRow}>
             <MetricCard
-              label="Deduction Rate"
+              label="Deduction rate"
               value={summary.deductionRate}
               sub="Of total spend"
               color={accentColor}
             />
             <MetricCard
-              label="Pending Receipts"
+              label="Pending receipts"
               value={summary.pendingReceipts}
               sub="Needs attention"
               color="#F39C12"

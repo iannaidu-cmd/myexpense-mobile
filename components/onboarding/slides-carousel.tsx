@@ -1,5 +1,11 @@
-import { Image, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import { ThemedText } from "@/components/themed-text";
+import {
+    Image,
+    ScrollView,
+    StyleSheet,
+    TouchableOpacity,
+    View,
+} from "react-native";
 import type { OnboardingSlide } from "./types";
 
 // ─── SlidesCarousel ───────────────────────────────────────────────────────────
@@ -33,7 +39,6 @@ export function SlidesCarousel({
 
   return (
     <View style={styles.container}>
-
       {/* Skip button */}
       <TouchableOpacity style={styles.skipButton} onPress={onSkip}>
         <ThemedText style={styles.skipText}>Skip</ThemedText>
@@ -119,10 +124,12 @@ export function SlidesCarousel({
           ]}
           onPress={onSlideNext}
           accessibilityRole="button"
-          accessibilityLabel={currentSlideIdx < 2 ? "Next slide" : "Get started"}
+          accessibilityLabel={
+            currentSlideIdx < 2 ? "Next slide" : "Get started"
+          }
         >
           <ThemedText style={styles.nextButtonText}>
-            {currentSlideIdx < 2 ? "Next →" : "Get Started →"}
+            {currentSlideIdx < 2 ? "Next →" : "Get started →"}
           </ThemedText>
         </TouchableOpacity>
       </View>

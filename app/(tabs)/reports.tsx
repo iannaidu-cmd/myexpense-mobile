@@ -137,7 +137,10 @@ export default function ReportsTabScreen() {
   );
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colour.primary }}>
+    <SafeAreaView
+      edges={["top"]}
+      style={{ flex: 1, backgroundColor: colour.primary }}
+    >
       <StatusBar barStyle="light-content" backgroundColor={colour.primary} />
 
       <MXHeader

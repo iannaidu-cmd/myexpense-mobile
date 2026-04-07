@@ -64,7 +64,6 @@ export function MXButton({
     ...typography.actionM,
     color: variant === "primary" ? "#FFFFFF" : colour.primary,
     fontWeight: "700",
-    textTransform: "uppercase",
     letterSpacing: 0.2,
   };
 

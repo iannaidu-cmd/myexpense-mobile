@@ -225,7 +225,7 @@ export default function TaxSummaryScreen() {
             </View>
           </View>
           <Text style={{ ...typography.h3, color: colour.textOnPrimary }}>
-            Tax Summary
+            Tax summary
           </Text>
           <Text
             style={{
@@ -315,7 +315,7 @@ export default function TaxSummaryScreen() {
                       color: colour.text,
                     }}
                   >
-                    Deduction Rate
+                    Deduction rate
                   </Text>
                   <Text
                     style={{
@@ -375,7 +375,7 @@ export default function TaxSummaryScreen() {
                       color: colour.text,
                     }}
                   >
-                    ITR12 Readiness
+                    ITR12 readiness
                   </Text>
                   <Text
                     style={{
@@ -426,7 +426,7 @@ export default function TaxSummaryScreen() {
                       fontWeight: "700",
                     }}
                   >
-                    Prepare ITR12 Export
+                    Prepare ITR12 export
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -526,7 +526,7 @@ export default function TaxSummaryScreen() {
                     marginBottom: 14,
                   }}
                 >
-                  Deductions by Category
+                  Deductions by category
                 </Text>
                 {categoryRows.length === 0 ? (
                   <Text
@@ -600,7 +600,6 @@ export default function TaxSummaryScreen() {
                   fontWeight: "700",
                   color: colour.textHint,
                   letterSpacing: 0.8,
-                  textTransform: "uppercase",
                   paddingHorizontal: space.md,
                   marginBottom: 8,
                 }}
@@ -617,25 +616,25 @@ export default function TaxSummaryScreen() {
               >
                 <NavRow
                   icon="📤"
-                  label="ITR12 Export Setup"
+                  label="ITR12 export setup"
                   sub="Configure and export your return"
                   onPress={() => router.push("/itr12-export-setup")}
                 />
                 <NavRow
                   icon="🏷"
-                  label="Category Breakdown"
+                  label="Category breakdown"
                   sub="Detailed ITR12 category analysis"
                   onPress={() => router.push("/category-breakdown")}
                 />
                 <NavRow
                   icon="📖"
-                  label="Deductibility Guide"
+                  label="Deductibility guide"
                   sub="Which expenses qualify under SARS"
                   onPress={() => router.push("/deductibility-guide")}
                 />
                 <NavRow
                   icon="📅"
-                  label="Tax Year Selector"
+                  label="Tax year selector"
                   sub="Switch between tax years"
                   onPress={() => router.push("/tax-year-selector")}
                 />

@@ -346,13 +346,13 @@ export default function DashboardHomeScreen() {
           >
             <QuickAction
               icon="➕"
-              label="Add Expense"
+              label="Add expense"
               onPress={() => router.push("/add-expense-manual" as any)}
               accent
             />
             <QuickAction
               icon="📷"
-              label="Scan Receipt"
+              label="Scan receipt"
               onPress={() => router.push("/(tabs)/scan" as any)}
             />
             <QuickAction

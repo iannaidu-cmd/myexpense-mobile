@@ -348,10 +348,9 @@ export default function NotificationPrefsScreen({
             paddingHorizontal: 16,
             paddingTop: 18,
             paddingBottom: 8,
-            textTransform: "uppercase",
           }}
         >
-          Expense Reminders
+          Expense reminders
         </Text>
         <View
           style={{
@@ -363,7 +362,7 @@ export default function NotificationPrefsScreen({
         >
           <ToggleRow
             icon="🧾"
-            label="Receipt Capture Reminder"
+            label="Receipt capture reminder"
             sublabel="Daily nudge if no expense logged"
             value={prefs.receiptReminder}
             onToggle={() => toggle("receiptReminder")}
@@ -380,10 +379,9 @@ export default function NotificationPrefsScreen({
             paddingHorizontal: 16,
             paddingTop: 18,
             paddingBottom: 8,
-            textTransform: "uppercase",
           }}
         >
-          Budget Alerts
+          Budget alerts
         </Text>
         <View
           style={{
@@ -395,7 +393,7 @@ export default function NotificationPrefsScreen({
         >
           <ToggleRow
             icon="🎯"
-            label="Budget Alerts"
+            label="Budget alerts"
             sublabel="When nearing or over budget"
             value={prefs.budgetAlerts}
             onToggle={() => toggle("budgetAlerts")}
@@ -426,7 +424,6 @@ export default function NotificationPrefsScreen({
             paddingHorizontal: 16,
             paddingTop: 18,
             paddingBottom: 8,
-            textTransform: "uppercase",
           }}
         >
           Tax & SARS
@@ -441,14 +438,14 @@ export default function NotificationPrefsScreen({
         >
           <ToggleRow
             icon="🗓"
-            label="Tax Deadlines"
+            label="Tax deadlines"
             sublabel="SARS filing and payment reminders"
             value={prefs.taxDeadlines}
             onToggle={() => toggle("taxDeadlines")}
           />
           <ToggleRow
             icon="📋"
-            label="ITR12 Preparation Reminder"
+            label="ITR12 preparation reminder"
             sublabel="60-day notice before filing period"
             value={prefs.itr12Reminder}
             onToggle={() => toggle("itr12Reminder")}
@@ -465,10 +462,9 @@ export default function NotificationPrefsScreen({
             paddingHorizontal: 16,
             paddingTop: 18,
             paddingBottom: 8,
-            textTransform: "uppercase",
           }}
         >
-          Reports & Digests
+          Reports & digests
         </Text>
         <View
           style={{
@@ -480,20 +476,20 @@ export default function NotificationPrefsScreen({
         >
           <ToggleRow
             icon="📊"
-            label="Spending Report"
+            label="Spending report"
             sublabel="Automated summary report"
             value={prefs.monthlyReport}
             onToggle={() => toggle("monthlyReport")}
           />
           <FrequencySelector
-            label="Report Frequency"
+            label="Report frequency"
             options={["Weekly", "Monthly", "Quarterly"]}
             value={reportFreq}
             onChange={setReportFreq}
           />
           <ToggleRow
             icon="📰"
-            label="Weekly Digest"
+            label="Weekly digest"
             sublabel="Summary of week's expenses every Sunday"
             value={prefs.weeklyDigest}
             onToggle={() => toggle("weeklyDigest")}
@@ -510,7 +506,6 @@ export default function NotificationPrefsScreen({
             paddingHorizontal: 16,
             paddingTop: 18,
             paddingBottom: 8,
-            textTransform: "uppercase",
           }}
         >
           Other
@@ -525,21 +520,21 @@ export default function NotificationPrefsScreen({
         >
           <ToggleRow
             icon="🔄"
-            label="App Updates"
+            label="App updates"
             sublabel="New features and release notes"
             value={prefs.appUpdates}
             onToggle={() => toggle("appUpdates")}
           />
           <ToggleRow
             icon="📧"
-            label="Marketing Emails"
+            label="Marketing emails"
             sublabel="Tips, offers, and product news"
             value={prefs.marketingEmails}
             onToggle={() => toggle("marketingEmails")}
           />
           <ToggleRow
             icon="💬"
-            label="SMS Alerts"
+            label="SMS alerts"
             sublabel="Critical SARS deadline SMS alerts"
             value={prefs.smsAlerts}
             onToggle={() => toggle("smsAlerts")}

@@ -70,14 +70,14 @@ export default function ITR12PDFReportScreen() {
   });
 
   const PDF_SECTIONS = [
-    { title: "Cover Page", pages: 1, done: true },
-    { title: "Taxpayer Information", pages: 1, done: true },
-    { title: "Income Statement", pages: 2, done: true },
-    { title: "Deduction Schedule", pages: 3, done: true },
-    { title: "Category Breakdown", pages: 4, done: !generating },
-    { title: "Receipt Register", pages: 12, done: !generating },
-    { title: "VAT Summary", pages: 2, done: false },
-    { title: "Supporting Documentation", pages: 8, done: false },
+    { title: "Cover page", pages: 1, done: true },
+    { title: "Taxpayer information", pages: 1, done: true },
+    { title: "Income statement", pages: 2, done: true },
+    { title: "Deduction schedule", pages: 3, done: true },
+    { title: "Category breakdown", pages: 4, done: !generating },
+    { title: "Receipt register", pages: 12, done: !generating },
+    { title: "VAT summary", pages: 2, done: false },
+    { title: "Supporting documentation", pages: 8, done: false },
   ];
 
   return (

@@ -30,7 +30,7 @@ export function TaxSavedHero({
         darkColor="rgba(100,100,100,0.6)"
         style={styles.label}
       >
-        TAX SAVED — {month.toUpperCase()}
+        Tax saved — {month}
       </ThemedText>
 
       <ThemedText style={styles.amount}>
@@ -66,7 +66,6 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 11,
     letterSpacing: 1,
-    textTransform: "uppercase",
     marginBottom: 6,
     fontWeight: "600",
   },

@@ -101,9 +101,9 @@ export default function VATSummaryScreen() {
   };
 
   const periods: { key: Period; label: string }[] = [
-    { key: "month", label: "This Month" },
-    { key: "quarter", label: "This Quarter" },
-    { key: "year", label: "Tax Year" },
+    { key: "month", label: "This month" },
+    { key: "quarter", label: "This quarter" },
+    { key: "year", label: "Tax year" },
   ];
 
   return (
@@ -195,7 +195,7 @@ export default function VATSummaryScreen() {
                 <Text
                   style={{ ...typography.caption, color: colour.textSecondary }}
                 >
-                  Total VAT Paid
+                  Total VAT paid
                 </Text>
                 <Text
                   style={{
@@ -220,7 +220,7 @@ export default function VATSummaryScreen() {
                 <Text
                   style={{ ...typography.caption, color: colour.textSecondary }}
                 >
-                  VAT Claimable
+                  VAT claimable
                 </Text>
                 <Text
                   style={{
@@ -293,7 +293,7 @@ export default function VATSummaryScreen() {
                 marginBottom: space.sm,
               }}
             >
-              VAT BREAKDOWN
+              VAT breakdown
             </Text>
 
             {filtered.length === 0 ? (
@@ -395,7 +395,7 @@ export default function VATSummaryScreen() {
               }}
             >
               <Text style={{ ...typography.btnL, color: colour.primary }}>
-                Export VAT Report
+                Export VAT report
               </Text>
             </TouchableOpacity>
           </>

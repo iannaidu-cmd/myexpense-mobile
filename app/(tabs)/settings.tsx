@@ -5,45 +5,45 @@ import { colour, radius, space, typography } from "@/tokens";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  Alert,
-  ScrollView,
-  StatusBar,
-  Text,
-  TouchableOpacity,
-  View,
+    Alert,
+    ScrollView,
+    StatusBar,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const SECTIONS = [
   {
-    title: "ACCOUNT",
+    title: "Account",
     items: [
       {
         icon: "👤",
-        label: "My Profile",
+        label: "My profile",
         sub: "Name, email, business details",
         route: "/settings-screens",
       },
       {
         icon: "💳",
         label: "Subscription",
-        sub: "Free Plan · Upgrade to Pro",
+        sub: "Free plan · Upgrade to Pro",
         route: "/paywall-upgrade",
       },
       {
         icon: "🏦",
-        label: "Bank Accounts",
+        label: "Bank accounts",
         sub: "Manage your banking details",
         route: "/bank-accounts",
       },
     ],
   },
   {
-    title: "PREFERENCES",
+    title: "Preferences",
     items: [
       {
         icon: "🔐",
-        label: "Biometric Sign-In",
+        label: "Biometric sign-in",
         sub: "Face ID / Fingerprint unlock",
         route: "/settings-screens",
       },
@@ -62,7 +62,7 @@ const SECTIONS = [
     ],
   },
   {
-    title: "SECURITY & PRIVACY",
+    title: "Security & privacy",
     items: [
       {
         icon: "🔒",
@@ -72,30 +72,30 @@ const SECTIONS = [
       },
       {
         icon: "🛡️",
-        label: "Data & Privacy",
+        label: "Data & privacy",
         sub: "POPIA · Data export & deletion",
         route: "/settings-screens",
       },
     ],
   },
   {
-    title: "SUPPORT",
+    title: "Support",
     items: [
       {
         icon: "❓",
-        label: "Help & Support",
+        label: "Help & support",
         sub: "FAQs & contact us",
         route: "/settings-screens",
       },
       {
         icon: "📄",
-        label: "Privacy Policy",
+        label: "Privacy policy",
         sub: "How we handle your data",
         route: null,
       },
       {
         icon: "📋",
-        label: "Terms of Service",
+        label: "Terms of service",
         sub: "App terms & conditions",
         route: null,
       },
@@ -132,16 +132,16 @@ export default function SettingsTabScreen() {
 
   const planLabel =
     subscription === "pro"
-      ? "Pro Plan"
+      ? "Pro plan"
       : subscription === "business"
-        ? "Business Plan"
-        : "Free Plan";
+        ? "Business plan"
+        : "Free plan";
 
   const handleSignOut = () => {
-    Alert.alert("Sign Out", "Are you sure you want to sign out?", [
+    Alert.alert("Sign out", "Are you sure you want to sign out?", [
       { text: "Cancel", style: "cancel" },
       {
-        text: "Sign Out",
+        text: "Sign out",
         style: "destructive",
         onPress: async () => {
           await signOut();
@@ -152,7 +152,10 @@ export default function SettingsTabScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colour.primary }}>
+    <SafeAreaView
+      edges={["top"]}
+      style={{ flex: 1, backgroundColor: colour.primary }}
+    >
       <StatusBar barStyle="light-content" backgroundColor={colour.primary} />
 
       {/* Header */}
@@ -394,7 +397,7 @@ export default function SettingsTabScreen() {
             }}
           >
             <Text style={{ ...typography.btnL, color: colour.danger }}>
-              Sign Out
+              Sign out
             </Text>
           </TouchableOpacity>
           <Text

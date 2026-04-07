@@ -109,7 +109,7 @@ export default function MileageHistoryScreen() {
 
   const handleDelete = (id: string) => {
     Alert.alert(
-      "Delete Trip",
+      "Delete trip",
       "Remove this trip from your logbook? This cannot be undone.",
       [
         { text: "Cancel", style: "cancel" },

@@ -4,14 +4,14 @@ import { colour, radius, space, typography } from "@/tokens";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  ScrollView,
-  StatusBar,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    ScrollView,
+    StatusBar,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -38,16 +38,19 @@ export default function ProfileScreen() {
   useEffect(() => {
     if (!user) return;
     setEmail(user.email ?? "");
-    profileService.getProfile(user.id).then((p) => {
-      if (p) {
-        setFullName(p.full_name ?? "");
-        setBusinessName(p.business_name ?? "");
-        setPhone(p.phone ?? "");
-        setTaxNumber(p.tax_number ?? "");
-        setSubscription(p.subscription ?? "free");
-      }
-      setLoading(false);
-    }).catch(() => setLoading(false));
+    profileService
+      .getProfile(user.id)
+      .then((p) => {
+        if (p) {
+          setFullName(p.full_name ?? "");
+          setBusinessName(p.business_name ?? "");
+          setPhone(p.phone ?? "");
+          setTaxNumber(p.tax_number ?? "");
+          setSubscription(p.subscription ?? "free");
+        }
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
   }, [user]);
 
   const handleSave = async () => {
@@ -68,17 +71,21 @@ export default function ProfileScreen() {
     }
   };
 
-  const initials = fullName
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2) || (email[0]?.toUpperCase() ?? "?");
+  const initials =
+    fullName
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2) ||
+    (email[0]?.toUpperCase() ?? "?");
 
   const planLabel =
-    subscription === "pro" ? "Pro Plan"
-    : subscription === "business" ? "Business Plan"
-    : "Free Plan";
+    subscription === "pro"
+      ? "Pro Plan"
+      : subscription === "business"
+        ? "Business Plan"
+        : "Free Plan";
 
   return (
     <SafeAreaView
@@ -102,10 +109,13 @@ export default function ProfileScreen() {
               paddingVertical: 6,
             }}
           >
-            {saving
-              ? <ActivityIndicator color={colour.white} size="small" />
-              : <Text style={{ ...typography.actionS, color: colour.white }}>Save</Text>
-            }
+            {saving ? (
+              <ActivityIndicator color={colour.white} size="small" />
+            ) : (
+              <Text style={{ ...typography.actionS, color: colour.white }}>
+                Save
+              </Text>
+            )}
           </TouchableOpacity>
         }
       />
@@ -121,7 +131,9 @@ export default function ProfileScreen() {
         }}
       >
         {loading ? (
-          <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+          <View
+            style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
+          >
             <ActivityIndicator color={colour.primary} />
           </View>
         ) : (
@@ -142,7 +154,9 @@ export default function ProfileScreen() {
                   marginBottom: space.sm,
                 }}
               >
-                <Text style={{ ...typography.h1, color: colour.white }}>{initials}</Text>
+                <Text style={{ ...typography.h1, color: colour.white }}>
+                  {initials}
+                </Text>
               </View>
               <View
                 style={{
@@ -152,7 +166,9 @@ export default function ProfileScreen() {
                   paddingVertical: 4,
                 }}
               >
-                <Text style={{ ...typography.captionM, color: colour.primary }}>{planLabel}</Text>
+                <Text style={{ ...typography.captionM, color: colour.primary }}>
+                  {planLabel}
+                </Text>
               </View>
             </View>
 
@@ -168,11 +184,41 @@ export default function ProfileScreen() {
               }}
             >
               {[
-                { label: "Full Name", value: fullName, setter: setFullName, placeholder: "e.g. Ian Naidu", editable: true },
-                { label: "Email Address", value: email, setter: setEmail, placeholder: "", editable: false },
-                { label: "Business / Trading Name", value: businessName, setter: setBusinessName, placeholder: "Optional", editable: true },
-                { label: "Phone Number", value: phone, setter: setPhone, placeholder: "e.g. 082 123 4567", editable: true },
-                { label: "SARS Tax Number", value: taxNumber, setter: setTaxNumber, placeholder: "e.g. 1234567890", editable: true },
+                {
+                  label: "Full Name",
+                  value: fullName,
+                  setter: setFullName,
+                  placeholder: "e.g. Ian Naidu",
+                  editable: true,
+                },
+                {
+                  label: "Email Address",
+                  value: email,
+                  setter: setEmail,
+                  placeholder: "",
+                  editable: false,
+                },
+                {
+                  label: "Business / Trading Name",
+                  value: businessName,
+                  setter: setBusinessName,
+                  placeholder: "Optional",
+                  editable: true,
+                },
+                {
+                  label: "Phone Number",
+                  value: phone,
+                  setter: setPhone,
+                  placeholder: "e.g. 082 123 4567",
+                  editable: true,
+                },
+                {
+                  label: "SARS Tax Number",
+                  value: taxNumber,
+                  setter: setTaxNumber,
+                  placeholder: "e.g. 1234567890",
+                  editable: true,
+                },
               ].map((field, idx, arr) => (
                 <View
                   key={field.label}
@@ -190,7 +236,7 @@ export default function ProfileScreen() {
                       marginBottom: 4,
                     }}
                   >
-                    {field.label.toUpperCase()}
+                    {field.label}
                   </Text>
                   <TextInput
                     value={field.value}
@@ -203,11 +249,15 @@ export default function ProfileScreen() {
                       color: field.editable ? colour.text : colour.textSub,
                       paddingVertical: 4,
                     }}
-                    autoCapitalize={field.label === "Email Address" ? "none" : "words"}
+                    autoCapitalize={
+                      field.label === "Email Address" ? "none" : "words"
+                    }
                     keyboardType={
-                      field.label === "Phone Number" ? "phone-pad"
-                      : field.label === "SARS Tax Number" ? "numeric"
-                      : "default"
+                      field.label === "Phone Number"
+                        ? "phone-pad"
+                        : field.label === "SARS Tax Number"
+                          ? "numeric"
+                          : "default"
                     }
                   />
                 </View>
@@ -222,7 +272,8 @@ export default function ProfileScreen() {
                 marginBottom: space.xxxl,
               }}
             >
-              Your data is protected under POPIA. We never share your personal information.
+              Your data is protected under POPIA. We never share your personal
+              information.
             </Text>
           </ScrollView>
         )}

@@ -226,9 +226,7 @@ export function ITR12CategoryBreakdownScreen({
       </View>
 
       {/* Expense list for selected category */}
-      <Text style={styles.expenseListLabel}>
-        TOP EXPENSES — {cat.name.toUpperCase()}
-      </Text>
+      <Text style={styles.expenseListLabel}>Top expenses — {cat.name}</Text>
       <View style={styles.expenseList}>
         {mockExpenses.map((exp, i) => (
           <Pressable key={i} style={styles.expenseItem}>

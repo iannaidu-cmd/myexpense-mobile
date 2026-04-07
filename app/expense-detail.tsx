@@ -6,16 +6,16 @@ import { ACTIVE_TAX_YEAR } from "@/types/database";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Dimensions,
-  Image,
-  Modal,
-  ScrollView,
-  StatusBar,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    Dimensions,
+    Image,
+    Modal,
+    ScrollView,
+    StatusBar,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -259,7 +259,7 @@ export default function ExpenseDetailScreen() {
 
   const handleDelete = () => {
     Alert.alert(
-      "Delete Expense",
+      "Delete expense",
       "Are you sure you want to delete this expense? This cannot be undone.",
       [
         { text: "Cancel", style: "cancel" },
@@ -515,10 +515,10 @@ export default function ExpenseDetailScreen() {
           <Row label="Category" value={expense.category ?? "—"} />
           <Row label="Vendor" value={expense.vendor ?? "—"} />
           <Row label="Date" value={formatDate(expense.expense_date)} />
-          <Row label="Tax Year" value={expense.tax_year ?? ACTIVE_TAX_YEAR} />
+          <Row label="Tax year" value={expense.tax_year ?? ACTIVE_TAX_YEAR} />
           <Row label="Currency" value={expense.currency ?? "ZAR"} />
           {expense.vat_amount ? (
-            <Row label="VAT Amount" value={fmt(expense.vat_amount)} />
+            <Row label="VAT amount" value={fmt(expense.vat_amount)} />
           ) : null}
           {expense.notes ? <Row label="Notes" value={expense.notes} /> : null}
           <Row
@@ -618,7 +618,7 @@ export default function ExpenseDetailScreen() {
           }}
         >
           <Text style={{ ...typography.btnL, color: colour.textOnPrimary }}>
-            Edit Expense
+            Edit expense
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -637,7 +637,7 @@ export default function ExpenseDetailScreen() {
             <ActivityIndicator color={colour.danger} />
           ) : (
             <Text style={{ ...typography.btnL, color: colour.danger }}>
-              Delete Expense
+              Delete expense
             </Text>
           )}
         </TouchableOpacity>
