@@ -11,12 +11,12 @@ import { colour, radius, space, typography } from "@/tokens";
 import { useRouter } from "expo-router";
 import React from "react";
 import {
-    Platform,
-    SafeAreaView,
-    StatusBar,
-    Text,
-    TouchableOpacity,
-    View,
+  Platform,
+  SafeAreaView,
+  StatusBar,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 // ─── Illustration ─────────────────────────────────────────────────────────────
@@ -268,7 +268,7 @@ export default function EmptyStateNoReportsScreen() {
           <QuickAction
             icon="✏️"
             label={"Add\nExpense"}
-            onPress={() => router.push("/add-expense")}
+            onPress={() => router.push("/(tabs)/add-expense")}
           />
           <QuickAction
             icon="📤"
@@ -280,7 +280,7 @@ export default function EmptyStateNoReportsScreen() {
         {/* Primary CTA */}
         <TouchableOpacity
           activeOpacity={0.88}
-          onPress={() => router.push("/add-expense")}
+          onPress={() => router.push("/(tabs)/add-expense")}
           style={{
             backgroundColor: colour.primary,
             borderRadius: radius.pill,

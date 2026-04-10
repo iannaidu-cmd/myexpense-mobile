@@ -1,3 +1,4 @@
+import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { incomeService } from "@/services/incomeService";
 import { useAuthStore } from "@/stores/authStore";
@@ -5,14 +6,15 @@ import { colour, radius, space, typography } from "@/tokens";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    FlatList,
-    StatusBar,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  RefreshControl,
+  StatusBar,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -54,6 +56,7 @@ export default function IncomeHistoryScreen() {
   const { user } = useAuthStore();
 
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [income, setIncome] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -68,6 +71,19 @@ export default function IncomeHistoryScreen() {
       console.error("IncomeHistory load error:", e);
     } finally {
       setLoading(false);
+    }
+  }, [user]);
+
+  const handleRefresh = useCallback(async () => {
+    if (!user) return;
+    setRefreshing(true);
+    try {
+      const data = await incomeService.getIncome(user.id);
+      setIncome(data);
+    } catch (e) {
+      console.error("IncomeHistory refresh error:", e);
+    } finally {
+      setRefreshing(false);
     }
   }, [user]);
 
@@ -141,37 +157,10 @@ export default function IncomeHistoryScreen() {
     >
       <StatusBar barStyle="light-content" backgroundColor={colour.success} />
 
-      {/* Header */}
-      <View
-        style={{
-          paddingHorizontal: space.lg,
-          paddingTop: 3,
-          paddingBottom: space["3xl"],
-        }}
-      >
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "space-between",
-            marginBottom: space.md,
-          }}
-        >
-          <TouchableOpacity
-            onPress={() => router.back()}
-            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-          >
-            <Text
-              style={{ color: colour.onPrimary, fontSize: 26, lineHeight: 30 }}
-            >
-              ‹
-            </Text>
-          </TouchableOpacity>
-          <Text
-            style={{ ...typography.labelM, color: "rgba(255,255,255,0.85)" }}
-          >
-            Income History
-          </Text>
+      <MXHeader
+        title="Income History"
+        showBack
+        right={
           <TouchableOpacity
             onPress={() => router.push("/add-income" as any)}
             style={{
@@ -185,10 +174,12 @@ export default function IncomeHistoryScreen() {
               + Add
             </Text>
           </TouchableOpacity>
-        </View>
-
-        {/* Summary */}
-        <View style={{ flexDirection: "row", gap: space.md }}>
+        }
+      >
+        {/* Summary row */}
+        <View
+          style={{ flexDirection: "row", gap: space.md, marginTop: space.md }}
+        >
           <View style={{ flex: 1 }}>
             <Text
               style={{ ...typography.caption, color: "rgba(255,255,255,0.7)" }}
@@ -210,7 +201,7 @@ export default function IncomeHistoryScreen() {
             </Text>
           </View>
         </View>
-      </View>
+      </MXHeader>
 
       {/* Card */}
       <View
@@ -263,6 +254,14 @@ export default function IncomeHistoryScreen() {
               paddingBottom: space["4xl"],
             }}
             showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={handleRefresh}
+                colors={[colour.success]}
+                tintColor={colour.success}
+              />
+            }
             ListEmptyComponent={
               <View style={{ alignItems: "center", paddingTop: space["4xl"] }}>
                 <Text style={{ fontSize: 40, marginBottom: space.md }}>💵</Text>

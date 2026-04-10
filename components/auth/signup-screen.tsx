@@ -477,13 +477,19 @@ export function SignupScreen() {
             </View>
 
             {/* Sign in link */}
-            <View style={{ flexDirection: "row", justifyContent: "center" }}>
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "center",
+                alignItems: "center",
+              }}
+            >
               <Text style={{ ...typography.bodyM, color: colour.textSub }}>
                 Already have an account?{" "}
               </Text>
               <TouchableOpacity
                 onPress={() => router.replace("/sign-in")}
-                style={{ minHeight: 44, justifyContent: "center" }}
+                activeOpacity={0.7}
               >
                 <Text
                   style={{

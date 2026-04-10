@@ -16,9 +16,12 @@ interface AuthState {
   isAuthenticated: boolean;
   isInitialised: boolean;
   hasCompletedOnboarding: boolean;
+  isDevUser: boolean;
+  isPremium: boolean;
 
   initialise: () => Promise<void>;
   completeOnboarding: () => void;
+  refreshPremiumStatus: () => Promise<void>;
   signUp: (email: string, password: string, fullName?: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -26,11 +29,29 @@ interface AuthState {
   updatePassword: (newPassword: string) => Promise<void>;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
+// ─── Helper: fetch premium status from profiles ───────────────────────────────
+async function fetchPremiumStatus(userId: string): Promise<{
+  isDevUser: boolean;
+  isPremium: boolean;
+}> {
+  const { data } = await supabase
+    .from("profiles")
+    .select("is_dev_user, subscription_status")
+    .eq("id", userId)
+    .single();
+
+  const isDevUser = data?.is_dev_user === true;
+  const isPremium = isDevUser || data?.subscription_status === "active";
+  return { isDevUser, isPremium };
+}
+
+export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   isAuthenticated: false,
   isInitialised: false,
   hasCompletedOnboarding: false,
+  isDevUser: false,
+  isPremium: false,
 
   // ── Initialise: restore session on app launch ─────────────────────────────
   initialise: async () => {
@@ -38,11 +59,17 @@ export const useAuthStore = create<AuthState>((set) => ({
       const {
         data: { session },
       } = await supabase.auth.getSession();
+
       if (session?.user) {
+        const { isDevUser, isPremium } = await fetchPremiumStatus(
+          session.user.id
+        );
         set({
           user: { id: session.user.id, email: session.user.email ?? "" },
           isAuthenticated: true,
           isInitialised: true,
+          isDevUser,
+          isPremium,
         });
       } else {
         set({ isInitialised: true });
@@ -50,14 +77,24 @@ export const useAuthStore = create<AuthState>((set) => ({
 
       const {
         data: { subscription },
-      } = supabase.auth.onAuthStateChange((_event, session) => {
+      } = supabase.auth.onAuthStateChange(async (_event, session) => {
         if (session?.user) {
+          const { isDevUser, isPremium } = await fetchPremiumStatus(
+            session.user.id
+          );
           set({
             user: { id: session.user.id, email: session.user.email ?? "" },
             isAuthenticated: true,
+            isDevUser,
+            isPremium,
           });
         } else {
-          set({ user: null, isAuthenticated: false });
+          set({
+            user: null,
+            isAuthenticated: false,
+            isDevUser: false,
+            isPremium: false,
+          });
         }
       });
       return () => subscription.unsubscribe();
@@ -67,6 +104,14 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   completeOnboarding: () => set({ hasCompletedOnboarding: true }),
+
+  // ── Refresh premium status (call after PayFast payment completes) ─────────
+  refreshPremiumStatus: async () => {
+    const { user } = get();
+    if (!user) return;
+    const { isDevUser, isPremium } = await fetchPremiumStatus(user.id);
+    set({ isDevUser, isPremium });
+  },
 
   // ── Sign Up ───────────────────────────────────────────────────────────────
   signUp: async (email, password, fullName) => {
@@ -85,9 +130,12 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
 
     if (data.user) {
+      const { isDevUser, isPremium } = await fetchPremiumStatus(data.user.id);
       set({
         user: { id: data.user.id, email: data.user.email ?? "" },
         isAuthenticated: true,
+        isDevUser,
+        isPremium,
       });
     }
   },
@@ -100,9 +148,12 @@ export const useAuthStore = create<AuthState>((set) => ({
     });
     if (error) throw new Error(error.message);
     if (data.user) {
+      const { isDevUser, isPremium } = await fetchPremiumStatus(data.user.id);
       set({
         user: { id: data.user.id, email: data.user.email ?? "" },
         isAuthenticated: true,
+        isDevUser,
+        isPremium,
       });
     }
   },
@@ -110,7 +161,12 @@ export const useAuthStore = create<AuthState>((set) => ({
   // ── Sign Out ──────────────────────────────────────────────────────────────
   signOut: async () => {
     await supabase.auth.signOut();
-    set({ user: null, isAuthenticated: false });
+    set({
+      user: null,
+      isAuthenticated: false,
+      isDevUser: false,
+      isPremium: false,
+    });
   },
 
   // ── Reset Password (sends email) ──────────────────────────────────────────

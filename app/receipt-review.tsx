@@ -1,3 +1,4 @@
+import { MXHeader } from "@/components/MXHeader";
 import { expenseService } from "@/services/expenseService";
 import { useAuthStore } from "@/stores/authStore";
 import { colour, radius, space, typography } from "@/tokens";
@@ -5,15 +6,15 @@ import { ACTIVE_TAX_YEAR } from "@/types/database";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Image,
-  ScrollView,
-  StatusBar,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    Image,
+    ScrollView,
+    StatusBar,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -230,58 +231,20 @@ export default function ReceiptReviewScreen() {
     >
       <StatusBar barStyle="light-content" backgroundColor={colour.primary} />
 
-      {/* Header */}
-      <View
-        style={{
-          paddingHorizontal: space.lg,
-          paddingTop: 3,
-          paddingBottom: space["3xl"],
-        }}
-      >
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "space-between",
-            marginBottom: space.md,
-          }}
-        >
-          <TouchableOpacity
-            onPress={() => router.back()}
-            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-          >
-            <Text
-              style={{ color: colour.onPrimary, fontSize: 26, lineHeight: 30 }}
-            >
-              ‹
-            </Text>
-          </TouchableOpacity>
-          <Text
-            style={{ ...typography.labelM, color: "rgba(255,255,255,0.85)" }}
-          >
-            Review receipt
-          </Text>
-          <View style={{ width: 40 }} />
-        </View>
-        <Text style={{ ...typography.h3, color: colour.onPrimary }}>
-          Confirm details
-        </Text>
-        <Text
-          style={{
-            ...typography.bodyS,
-            color: "rgba(255,255,255,0.7)",
-            marginTop: 2,
-          }}
-        >
-          {anyOcr
+      <MXHeader
+        title="Confirm details"
+        subtitle={
+          anyOcr
             ? anyLowConf
               ? "⚠️ Some fields need your attention — highlighted in amber"
               : "✨ AI extracted these details — please verify before saving"
             : hasReceipt
               ? "Receipt uploaded · Fill in the expense details"
-              : "No receipt · Enter details manually"}
-        </Text>
-      </View>
+              : "No receipt · Enter details manually"
+        }
+        showBack
+        backLabel="Review receipt"
+      />
 
       <ScrollView
         style={{

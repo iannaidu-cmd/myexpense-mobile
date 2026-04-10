@@ -1,5 +1,6 @@
 import { MXButton } from "@/components/MXButton";
 import { MXCard } from "@/components/MXCard";
+import { MXHeader } from "@/components/MXHeader";
 import MXLogo from "@/components/MXLogo";
 import { expenseService } from "@/services/expenseService";
 import { incomeService } from "@/services/incomeService";
@@ -210,33 +211,10 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </Modal>
 
-      {/* Blue header */}
-      <View
-        style={{
-          backgroundColor: colour.primary,
-          paddingHorizontal: space.lg,
-          paddingTop: 9,
-          paddingBottom: space.xl,
-        }}
-      >
-        <View
-          style={{ flexDirection: "row", alignItems: "center", gap: space.md }}
-        >
-          <View style={{ flex: 1 }}>
-            <Text style={{ ...typography.h3, color: colour.onPrimary }}>
-              {greeting}
-              {firstName ? `, ${firstName}` : ""}
-            </Text>
-            <Text
-              style={{
-                ...typography.bodyXS,
-                color: "rgba(255,255,255,0.7)",
-                marginTop: 2,
-              }}
-            >
-              Tax year {ACTIVE_TAX_YEAR}
-            </Text>
-          </View>
+      <MXHeader
+        title={`${greeting}${firstName ? `, ${firstName}` : ""}`}
+        subtitle={`Tax year ${ACTIVE_TAX_YEAR}`}
+        right={
           <TouchableOpacity
             onPress={() => setMenuOpen(true)}
             style={{
@@ -250,8 +228,8 @@ export default function HomeScreen() {
           >
             <MXLogo size={30} variant="light" />
           </TouchableOpacity>
-        </View>
-      </View>
+        }
+      />
 
       <ScrollView
         style={{

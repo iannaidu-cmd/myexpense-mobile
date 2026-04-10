@@ -1,3 +1,4 @@
+import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { useAuthStore } from "@/stores/authStore";
 import { colour, radius, space, typography } from "@/tokens";
@@ -145,32 +146,11 @@ export default function MileageHistoryScreen() {
     >
       <StatusBar barStyle="light-content" backgroundColor={colour.primary} />
 
-      {/* Header */}
-      <View
-        style={{
-          paddingHorizontal: space.lg,
-          paddingTop: space.lg,
-          paddingBottom: space["4xl"],
-        }}
-      >
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "space-between",
-            marginBottom: space.md,
-          }}
-        >
-          <TouchableOpacity
-            onPress={() => router.back()}
-            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-          >
-            <Text
-              style={{ color: colour.onPrimary, fontSize: 26, lineHeight: 30 }}
-            >
-              ‹
-            </Text>
-          </TouchableOpacity>
+      <MXHeader
+        title="Trip Logbook"
+        subtitle={`Tax Year ${ACTIVE_TAX_YEAR}`}
+        showBack
+        right={
           <TouchableOpacity
             onPress={() => router.push("/mileage-tracker")}
             style={{
@@ -184,23 +164,8 @@ export default function MileageHistoryScreen() {
               + New Trip
             </Text>
           </TouchableOpacity>
-        </View>
-        <Text style={{ ...typography.labelS, color: "rgba(255,255,255,0.75)" }}>
-          Mileage Tracker
-        </Text>
-        <Text style={{ ...typography.h3, color: colour.onPrimary }}>
-          Trip Logbook
-        </Text>
-        <Text
-          style={{
-            ...typography.bodyS,
-            color: "rgba(255,255,255,0.7)",
-            marginTop: 2,
-          }}
-        >
-          Tax Year {ACTIVE_TAX_YEAR}
-        </Text>
-      </View>
+        }
+      />
 
       <ScrollView
         style={{

@@ -1,10 +1,11 @@
+import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { expenseService } from "@/services/expenseService";
 import { incomeService } from "@/services/incomeService";
 import { taxService } from "@/services/taxService";
 import { useAuthStore } from "@/stores/authStore";
 import { useExpenseStore } from "@/stores/expenseStore";
-import { colour, radius, space, typography } from "@/tokens";
+import { colour, radius, space } from "@/tokens";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
 import {
@@ -168,76 +169,35 @@ export default function TaxSummaryScreen() {
       style={{ flex: 1, backgroundColor: colour.primary }}
     >
       <StatusBar barStyle="light-content" backgroundColor={colour.primary} />
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Header */}
-        <View
-          style={{
-            backgroundColor: colour.primary,
-            paddingHorizontal: space.lg,
-            paddingTop: 3,
-            paddingBottom: space["3xl"],
-          }}
-        >
+
+      <MXHeader
+        title="Tax summary"
+        subtitle="Your ITR12 deduction overview"
+        showBack
+        backLabel="Tax & ITR12"
+        right={
           <View
             style={{
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-              marginBottom: space.md,
+              backgroundColor: "rgba(255,255,255,0.15)",
+              borderRadius: 10,
+              paddingHorizontal: 12,
+              paddingVertical: 6,
             }}
           >
-            <TouchableOpacity
-              onPress={() => router.back()}
-              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-            >
-              <Text
-                style={{
-                  color: colour.textOnPrimary,
-                  fontSize: 26,
-                  lineHeight: 30,
-                }}
-              >
-                ‹
-              </Text>
-            </TouchableOpacity>
             <Text
-              style={{ ...typography.labelM, color: "rgba(255,255,255,0.85)" }}
-            >
-              Tax & ITR12
-            </Text>
-            <View
               style={{
-                backgroundColor: "rgba(255,255,255,0.15)",
-                borderRadius: 10,
-                paddingHorizontal: 12,
-                paddingVertical: 6,
+                color: colour.onPrimary,
+                fontSize: 12,
+                fontWeight: "600",
               }}
             >
-              <Text
-                style={{
-                  color: colour.onPrimary,
-                  fontSize: 12,
-                  fontWeight: "600",
-                }}
-              >
-                {activeTaxYear}
-              </Text>
-            </View>
+              {activeTaxYear}
+            </Text>
           </View>
-          <Text style={{ ...typography.h3, color: colour.textOnPrimary }}>
-            Tax summary
-          </Text>
-          <Text
-            style={{
-              ...typography.bodyM,
-              color: "rgba(255,255,255,0.75)",
-              marginTop: space.xs,
-            }}
-          >
-            Your ITR12 deduction overview
-          </Text>
-        </View>
+        }
+      />
 
+      <ScrollView showsVerticalScrollIndicator={false}>
         {/* Content */}
         <View
           style={{

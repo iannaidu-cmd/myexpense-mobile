@@ -1,3 +1,4 @@
+import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { colour, radius, space, typography } from "@/tokens";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -95,48 +96,14 @@ export default function MileageTripSummaryScreen() {
     <View style={{ flex: 1, backgroundColor: colour.background }}>
       <StatusBar barStyle="light-content" backgroundColor={colour.primary} />
 
-      {/* Header */}
+      {/* Primary-blue header area */}
       <SafeAreaView edges={["top"]} style={{ backgroundColor: colour.primary }}>
-        <View
-          style={{
-            paddingHorizontal: space.lg,
-            paddingTop: space.lg,
-            paddingBottom: space["4xl"],
-          }}
-        >
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-              marginBottom: space.md,
-            }}
-          >
-            <TouchableOpacity
-              onPress={() => router.replace("/mileage-history")}
-              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-            >
-              <Text
-                style={{
-                  color: colour.onPrimary,
-                  fontSize: 26,
-                  lineHeight: 30,
-                }}
-              >
-                ‹
-              </Text>
-            </TouchableOpacity>
-            <View style={{ width: 40 }} />
-          </View>
-          <Text
-            style={{ ...typography.labelS, color: "rgba(255,255,255,0.75)" }}
-          >
-            Trip complete
-          </Text>
-          <Text style={{ ...typography.h3, color: colour.onPrimary }}>
-            Trip summary
-          </Text>
-        </View>
+        <MXHeader
+          title="Trip summary"
+          subtitle="Trip complete"
+          showBack
+          onBack={() => router.replace("/mileage-history")}
+        />
       </SafeAreaView>
 
       <ScrollView

@@ -8,20 +8,20 @@ import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
 import {
     ActivityIndicator,
-    SafeAreaView,
     ScrollView,
     StatusBar,
     Text,
     TouchableOpacity,
     View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const REPORT_TILES = [
   {
     icon: "📊",
     title: "Income vs Expenses",
     sub: "Monthly comparison",
-    route: "/expense-history",
+    route: "/income-vs-expenses",
     accent: colour.primary,
   },
   {

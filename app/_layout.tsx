@@ -1,12 +1,15 @@
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { configurePurchases } from "@/lib/purchases";
 import {
     registerForPushNotifications,
     savePushToken,
+    scheduleMonthlyReportReminder,
     scheduleSARSDeadlineReminders,
     scheduleWeeklyExpenseReminder,
     setupNotificationResponseHandler,
 } from "@/services/notificationService";
 import { useAuthStore } from "@/stores/authStore";
+import { useSubscriptionStore } from "@/stores/subscriptionStore";
 import {
     Inter_400Regular,
     Inter_500Medium,
@@ -72,6 +75,20 @@ function AuthGate() {
   return null;
 }
 
+// ── RevenueCat setup ─────────────────────────────────────────────────────────
+function PurchasesSetup() {
+  const { user } = useAuthStore();
+  const { refresh } = useSubscriptionStore();
+
+  useEffect(() => {
+    configurePurchases(user?.id);
+    // Refresh subscription state whenever auth changes
+    refresh().catch(console.warn);
+  }, [user?.id]);
+
+  return null;
+}
+
 // ── Push notification setup ───────────────────────────────────────────────────
 function NotificationSetup() {
   const router = useRouter();
@@ -97,6 +114,7 @@ function NotificationSetup() {
 
       try {
         await scheduleWeeklyExpenseReminder();
+        await scheduleMonthlyReportReminder();
         await scheduleSARSDeadlineReminders();
       } catch (e) {
         console.warn("Local notification scheduling failed:", e);
@@ -158,6 +176,7 @@ export default function RootLayout() {
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
       <AuthGate />
+      <PurchasesSetup />
       <NotificationSetup />
       <Stack>
         {" "}
@@ -195,6 +214,10 @@ export default function RootLayout() {
         {/* ── Income ── */}
         <Stack.Screen name="add-income" options={{ headerShown: false }} />
         <Stack.Screen name="income-history" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="income-vs-expenses"
+          options={{ headerShown: false }}
+        />
         {/* ── Expense Management ── */}
         <Stack.Screen
           name="add-expense-manual"
@@ -276,12 +299,25 @@ export default function RootLayout() {
         />
         {/* ── Settings ── */}
         <Stack.Screen name="bank-accounts" options={{ headerShown: false }} />
+        <Stack.Screen name="profile" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="notifications-settings"
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="appearance-settings"
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="security-settings"
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen name="help-support" options={{ headerShown: false }} />
         {/* ── Paywall ── */}
         <Stack.Screen
           name="paywall-upgrade"
           options={{
-            title: "Upgrade",
-            headerBackTitle: "Back",
+            headerShown: false,
             presentation: "modal",
           }}
         />

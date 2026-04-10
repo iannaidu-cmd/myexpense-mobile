@@ -1,3 +1,4 @@
+import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { colour, radius, space, typography } from "@/tokens";
 import { useRouter } from "expo-router";
@@ -98,56 +99,12 @@ export default function ITR12EFilingGuideScreen() {
     >
       <StatusBar barStyle="light-content" backgroundColor={colour.primary} />
 
-      {/* Custom header with progress bar */}
-      <View
-        style={{
-          paddingHorizontal: space.lg,
-          paddingTop: space.lg,
-          paddingBottom: space["4xl"],
-        }}
+      <MXHeader
+        title="eFiling Guide"
+        subtitle="Step-by-step ITR12 submission · SARS 2024/25"
+        showBack
+        backLabel="Export Preview"
       >
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "space-between",
-            marginBottom: space.md,
-          }}
-        >
-          <TouchableOpacity
-            onPress={() => router.back()}
-            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-            style={{ flexDirection: "row", alignItems: "center" }}
-          >
-            <Text
-              style={{ color: colour.onPrimary, fontSize: 26, lineHeight: 30 }}
-            >
-              ‹
-            </Text>
-            <Text
-              style={{
-                ...typography.labelM,
-                color: "rgba(255,255,255,0.85)",
-                marginLeft: 4,
-              }}
-            >
-              Export Preview
-            </Text>
-          </TouchableOpacity>
-          <View style={{ width: 40 }} />
-        </View>
-        <Text style={{ ...typography.h3, color: colour.onPrimary }}>
-          eFiling Guide
-        </Text>
-        <Text
-          style={{
-            ...typography.bodyS,
-            color: "rgba(255,255,255,0.7)",
-            marginTop: 2,
-          }}
-        >
-          Step-by-step ITR12 submission · SARS 2024/25
-        </Text>
         <View style={{ marginTop: space.lg }}>
           <View
             style={{
@@ -180,7 +137,7 @@ export default function ITR12EFilingGuideScreen() {
             />
           </View>
         </View>
-      </View>
+      </MXHeader>
 
       <ScrollView
         showsVerticalScrollIndicator={false}

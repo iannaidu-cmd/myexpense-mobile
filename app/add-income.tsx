@@ -1,3 +1,4 @@
+import { MXHeader } from "@/components/MXHeader";
 import { incomeService } from "@/services/incomeService";
 import { useAuthStore } from "@/stores/authStore";
 import { colour, radius, space, typography } from "@/tokens";
@@ -6,7 +7,6 @@ import React, { useState } from "react";
 import {
     ActivityIndicator,
     Alert,
-    SafeAreaView,
     ScrollView,
     StatusBar,
     Text,
@@ -14,6 +14,7 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 // ─── Income Categories ────────────────────────────────────────────────────────
 const QUICK_PICKS = [
@@ -163,38 +164,17 @@ export default function AddIncomeScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colour.success }}>
+    <SafeAreaView
+      edges={["top"]}
+      style={{ flex: 1, backgroundColor: colour.success }}
+    >
       <StatusBar barStyle="light-content" backgroundColor={colour.success} />
 
-      {/* Header */}
-      <View
-        style={{
-          paddingHorizontal: space.lg,
-          paddingTop: space.lg,
-          paddingBottom: space["4xl"],
-        }}
-      >
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={{ marginBottom: space.sm }}
-        >
-          <Text style={{ ...typography.bodyS, color: "rgba(255,255,255,0.8)" }}>
-            ‹ Back
-          </Text>
-        </TouchableOpacity>
-        <Text style={{ ...typography.h3, color: colour.onPrimary }}>
-          Add income
-        </Text>
-        <Text
-          style={{
-            ...typography.bodyS,
-            color: "rgba(255,255,255,0.7)",
-            marginTop: 2,
-          }}
-        >
-          Track your earnings for ITR12
-        </Text>
-      </View>
+      <MXHeader
+        title="Add income"
+        subtitle="Track your earnings for ITR12"
+        showBack
+      />
 
       <ScrollView
         style={{

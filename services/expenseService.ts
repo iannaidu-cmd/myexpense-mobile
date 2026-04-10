@@ -26,6 +26,18 @@ export const expenseService = {
     return data ?? [];
   },
 
+  // ── Get ALL expenses for a user (no tax year filter) ─────────────────────
+  getAllExpenses: async (userId: string): Promise<Expense[]> => {
+    const { data, error } = await supabase
+      .from("expenses")
+      .select("*")
+      .eq("user_id", userId)
+      .order("expense_date", { ascending: false });
+
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  },
+
   // ── Get recent expenses (for Home screen) ─────────────────────────────────
   getRecentExpenses: async (userId: string, limit = 10): Promise<Expense[]> => {
     const { data, error } = await supabase

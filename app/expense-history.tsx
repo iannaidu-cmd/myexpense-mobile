@@ -1,3 +1,4 @@
+import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { expenseService } from "@/services/expenseService";
 import { useAuthStore } from "@/stores/authStore";
@@ -6,13 +7,14 @@ import { colour, radius, space, typography } from "@/tokens";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
 import {
-    ActivityIndicator,
-    FlatList,
-    StatusBar,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  FlatList,
+  RefreshControl,
+  StatusBar,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -45,6 +47,7 @@ export default function ExpenseHistoryScreen() {
   const { activeTaxYear } = useExpenseStore();
 
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [expenses, setExpenses] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState<Filter>("all");
@@ -59,6 +62,19 @@ export default function ExpenseHistoryScreen() {
       console.error("ExpenseHistory load error:", e);
     } finally {
       setLoading(false);
+    }
+  }, [user, activeTaxYear]);
+
+  const handleRefresh = useCallback(async () => {
+    if (!user) return;
+    setRefreshing(true);
+    try {
+      const data = await expenseService.getExpenses(user.id, activeTaxYear);
+      setExpenses(data);
+    } catch (e) {
+      console.error("ExpenseHistory refresh error:", e);
+    } finally {
+      setRefreshing(false);
     }
   }, [user, activeTaxYear]);
 
@@ -94,57 +110,26 @@ export default function ExpenseHistoryScreen() {
     >
       <StatusBar barStyle="light-content" backgroundColor={colour.primary} />
 
-      {/* Header */}
-      <View
-        style={{
-          paddingHorizontal: space.lg,
-          paddingTop: 3,
-          paddingBottom: space["3xl"],
-        }}
-      >
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "space-between",
-            marginBottom: space.md,
-          }}
-        >
-          <TouchableOpacity
-            onPress={() => router.back()}
-            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-          >
-            <Text
-              style={{
-                color: colour.textOnPrimary,
-                fontSize: 26,
-                lineHeight: 30,
-              }}
-            >
-              ‹
-            </Text>
-          </TouchableOpacity>
-          <Text
-            style={{ ...typography.labelM, color: "rgba(255,255,255,0.85)" }}
-          >
-            Expense History
-          </Text>
+      <MXHeader
+        title="Expense History"
+        showBack
+        right={
           <TouchableOpacity onPress={() => router.push("/filter-sort")}>
             <Text style={{ fontSize: 20 }}>⚙</Text>
           </TouchableOpacity>
-        </View>
-
+        }
+      >
         {/* Summary row */}
-        <View style={{ flexDirection: "row", gap: space.md }}>
+        <View
+          style={{ flexDirection: "row", gap: space.md, marginTop: space.md }}
+        >
           <View style={{ flex: 1 }}>
             <Text
               style={{ ...typography.caption, color: "rgba(255,255,255,0.7)" }}
             >
               Total Spent
             </Text>
-            <Text
-              style={{ ...typography.amountM, color: colour.textOnPrimary }}
-            >
+            <Text style={{ ...typography.amountM, color: colour.onPrimary }}>
               {fmt(total)}
             </Text>
           </View>
@@ -164,14 +149,12 @@ export default function ExpenseHistoryScreen() {
             >
               Expenses
             </Text>
-            <Text
-              style={{ ...typography.amountM, color: colour.textOnPrimary }}
-            >
+            <Text style={{ ...typography.amountM, color: colour.onPrimary }}>
               {filtered.length}
             </Text>
           </View>
         </View>
-      </View>
+      </MXHeader>
 
       {/* Card */}
       <View
@@ -263,6 +246,14 @@ export default function ExpenseHistoryScreen() {
               paddingBottom: space["4xl"],
             }}
             showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={handleRefresh}
+                colors={[colour.primary]}
+                tintColor={colour.primary}
+              />
+            }
             ListEmptyComponent={
               <View style={{ alignItems: "center", paddingTop: space["4xl"] }}>
                 <Text style={{ fontSize: 40, marginBottom: space.md }}>🔍</Text>

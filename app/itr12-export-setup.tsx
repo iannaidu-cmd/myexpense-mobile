@@ -3,19 +3,19 @@ import { MXTabBar } from "@/components/MXTabBar";
 import { expenseService } from "@/services/expenseService";
 import { useAuthStore } from "@/stores/authStore";
 import { useExpenseStore } from "@/stores/expenseStore";
+import { useSubscriptionStore } from "@/stores/subscriptionStore";
 import { colour, radius, space } from "@/tokens";
 import { useFocusEffect, useRouter } from "expo-router";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    ScrollView,
-    Share,
-    StatusBar,
-    Switch,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  ScrollView,
+  StatusBar,
+  Switch,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -75,7 +75,14 @@ export default function ITR12ExportSetupScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
   const { activeTaxYear } = useExpenseStore();
-  const [loading, setLoading] = useState(true);
+  const { isPro } = useSubscriptionStore();
+
+  // Gate: redirect to paywall if not Pro
+  useEffect(() => {
+    if (!isPro) {
+      router.replace("/paywall-upgrade" as any);
+    }
+  }, [isPro]);
   const [totalDeductions, setTotalDeductions] = useState(0);
   const [totalExpenses, setTotalExpenses] = useState(0);
   const [receiptCount, setReceiptCount] = useState(0);
@@ -88,6 +95,7 @@ export default function ITR12ExportSetupScreen() {
   const [summaryOnly, setSummaryOnly] = useState(false);
   const [format, setFormat] = useState<FormatKey>("pdf");
   const [exporting, setExporting] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const loadData = useCallback(async () => {
     if (!user) return;
@@ -119,41 +127,34 @@ export default function ITR12ExportSetupScreen() {
   );
 
   const handleExport = async () => {
+    if (!user) return;
     if (totalExpenses === 0) {
       Alert.alert("No expenses", "Add expenses before generating an export.");
       return;
     }
     setExporting(true);
     try {
-      const lines = [
-        "═══════════════════════════════════",
-        "        MyExpense ITR12 Export      ",
-        "═══════════════════════════════════",
-        `Tax Year:          ${taxYear}`,
-        `Generated:         ${new Date().toLocaleDateString("en-ZA")}`,
-        "",
-        "DEDUCTION SUMMARY",
-        "─────────────────",
-        `Total Expenses:    ${fmt(totalExpenses)}`,
-        `Total Deductions:  ${fmt(totalDeductions)}`,
-        `Est. Tax Saving:   ${fmt(Math.round(totalDeductions * 0.31))}`,
-        `Deductible Categories: ${categoryCount}`,
-        includeReceipts ? `Receipts Attached: ${receiptCount}` : "",
-        "",
-        "⚠️ This export is for reference only.",
-        "Have your ITR12 reviewed by a registered",
-        "tax professional before submission to SARS.",
-      ]
-        .filter(Boolean)
-        .join("\n");
-      await Share.share({
-        message: lines,
-        title: `MyExpense ITR12 Export ${taxYear}`,
-      });
-    } catch (e) {
+      if (format === "pdf" || format === "both") {
+        await generateITR12PDF({
+          userId: user.id,
+          taxYear,
+          includeReceipts,
+          includeVAT,
+          includePersonal,
+          summaryOnly,
+        });
+      }
+      if (format === "csv" || format === "both") {
+        await exportExpensesCSV({
+          userId: user.id,
+          taxYear,
+          includePersonal,
+        });
+      }
+    } catch (e: any) {
       Alert.alert(
         "Export failed",
-        "Could not generate export. Please try again.",
+        e?.message ?? "Could not generate export. Please try again.",
       );
     } finally {
       setExporting(false);
@@ -457,7 +458,11 @@ export default function ITR12ExportSetupScreen() {
                     fontWeight: "700",
                   }}
                 >
-                  Generate & share export
+                  {format === "pdf"
+                    ? "Generate PDF & Share"
+                    : format === "csv"
+                      ? "Generate CSV & Share"
+                      : "Generate PDF + CSV & Share"}
                 </Text>
               )}
             </TouchableOpacity>

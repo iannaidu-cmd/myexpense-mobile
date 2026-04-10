@@ -1,6 +1,7 @@
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { expenseService } from "@/services/expenseService";
+import { generateITR12PDF } from "@/services/pdfExportService";
 import { profileService } from "@/services/profileService";
 import { useAuthStore } from "@/stores/authStore";
 import { colour, radius, space } from "@/tokens";
@@ -8,14 +9,14 @@ import { ACTIVE_TAX_YEAR } from "@/types/database";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    ScrollView,
-    Share,
-    StatusBar,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  ScrollView,
+  Share,
+  StatusBar,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -48,6 +49,7 @@ export default function ITR12ExportPreviewScreen() {
   const [breakdown, setBreakdown] = useState<Record<string, number>>({});
   const [totalDeductions, setTotalDeductions] = useState(0);
   const [sharing, setSharing] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(false);
 
   const loadData = useCallback(async () => {
     if (!user) return;
@@ -543,21 +545,42 @@ export default function ITR12ExportPreviewScreen() {
         )}
 
         <TouchableOpacity
-          onPress={() => router.push("/itr12-pdf-report")}
+          disabled={pdfLoading}
+          onPress={async () => {
+            if (!user) return;
+            setPdfLoading(true);
+            try {
+              await generateITR12PDF({
+                userId: user.id,
+                taxYear: ACTIVE_TAX_YEAR,
+              });
+            } catch (e: any) {
+              Alert.alert(
+                "PDF failed",
+                e?.message ?? "Could not generate PDF.",
+              );
+            } finally {
+              setPdfLoading(false);
+            }
+          }}
           style={{
             marginHorizontal: space.md,
-            backgroundColor: colour.accent,
+            backgroundColor: pdfLoading ? colour.border : colour.accent,
             borderRadius: radius.md,
             padding: space.md,
             alignItems: "center",
             marginBottom: space.sm,
           }}
         >
-          <Text
-            style={{ color: colour.white, fontSize: 15, fontWeight: "700" }}
-          >
-            Generate PDF Report
-          </Text>
+          {pdfLoading ? (
+            <ActivityIndicator color={colour.white} />
+          ) : (
+            <Text
+              style={{ color: colour.white, fontSize: 15, fontWeight: "700" }}
+            >
+              Generate PDF Report
+            </Text>
+          )}
         </TouchableOpacity>
         <TouchableOpacity
           onPress={handleShare}

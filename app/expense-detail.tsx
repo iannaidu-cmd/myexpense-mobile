@@ -1,3 +1,4 @@
+import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { expenseService } from "@/services/expenseService";
 import { useAuthStore } from "@/stores/authStore";
@@ -344,52 +345,27 @@ export default function ExpenseDetailScreen() {
         onClose={() => setViewerVisible(false)}
       />
 
-      {/* Header */}
-      <View
-        style={{
-          paddingHorizontal: space.lg,
-          paddingTop: 3,
-          paddingBottom: space["3xl"],
-        }}
-      >
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "space-between",
-            marginBottom: space.md,
-          }}
-        >
-          <TouchableOpacity
-            onPress={() => router.back()}
-            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-          >
-            <Text
-              style={{
-                color: colour.textOnPrimary,
-                fontSize: 26,
-                lineHeight: 30,
-              }}
-            >
-              ‹
-            </Text>
-          </TouchableOpacity>
-          <Text
-            style={{ ...typography.labelM, color: "rgba(255,255,255,0.85)" }}
-          >
-            Expense Detail
-          </Text>
+      <MXHeader
+        title="Expense Detail"
+        showBack
+        right={
           <TouchableOpacity
             onPress={() => router.push(`/edit-expense?id=${expense.id}` as any)}
           >
-            <Text style={{ ...typography.labelM, color: colour.textOnPrimary }}>
+            <Text style={{ ...typography.labelM, color: colour.onPrimary }}>
               Edit
             </Text>
           </TouchableOpacity>
-        </View>
-
+        }
+      >
         {/* Amount hero */}
-        <Text style={{ ...typography.amountXL, color: colour.textOnPrimary }}>
+        <Text
+          style={{
+            ...typography.amountXL,
+            color: colour.onPrimary,
+            marginTop: space.md,
+          }}
+        >
           {fmt(expense.amount)}
         </Text>
         <Text
@@ -401,7 +377,6 @@ export default function ExpenseDetailScreen() {
         >
           {expense.vendor}
         </Text>
-
         {/* Badges */}
         <View
           style={{ flexDirection: "row", gap: space.sm, marginTop: space.md }}
@@ -415,9 +390,7 @@ export default function ExpenseDetailScreen() {
                 paddingHorizontal: space.sm,
               }}
             >
-              <Text
-                style={{ ...typography.labelS, color: colour.textOnPrimary }}
-              >
+              <Text style={{ ...typography.labelS, color: colour.onPrimary }}>
                 {itr12Code}
               </Text>
             </View>
@@ -432,12 +405,12 @@ export default function ExpenseDetailScreen() {
               paddingHorizontal: space.sm,
             }}
           >
-            <Text style={{ ...typography.labelS, color: colour.textOnPrimary }}>
+            <Text style={{ ...typography.labelS, color: colour.onPrimary }}>
               {expense.is_deductible ? "Deductible" : "Non-deductible"}
             </Text>
           </View>
         </View>
-      </View>
+      </MXHeader>
 
       {/* Content */}
       <ScrollView

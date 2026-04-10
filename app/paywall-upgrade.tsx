@@ -1,16 +1,24 @@
 import { MXButton } from "@/components/MXButton";
 import { MXCard } from "@/components/MXCard";
 import { MXTabBar } from "@/components/MXTabBar";
+import { useAuthStore } from "@/stores/authStore";
+import {
+  PRODUCT_ANNUAL,
+  PRODUCT_MONTHLY,
+  useSubscriptionStore,
+} from "@/stores/subscriptionStore";
 import { colour, radius, space, typography } from "@/tokens";
 import { useRouter } from "expo-router";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
-    Platform,
-    ScrollView,
-    Text,
-    TouchableOpacity,
-    View,
+  Alert,
+  Platform,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
+import { type PurchasesPackage } from "react-native-purchases";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const PREMIUM_FEATURES = [
@@ -99,11 +107,92 @@ function FeatureRow({
 
 export default function PaywallUpgradeScreen() {
   const router = useRouter();
+  const { isPremium } = useAuthStore();
+  const {
+    packages,
+    loading,
+    isPro,
+    purchasePackage,
+    restorePurchases,
+    refresh,
+  } = useSubscriptionStore();
 
-  // R99/month · annual = R99 × 12 × 0.8 = R950/yr (save 20%)
-  const MONTHLY_PRICE = 99;
-  const ANNUAL_PRICE = Math.round(MONTHLY_PRICE * 12 * 0.8);
+  const [selectedPlan, setSelectedPlan] = useState<"monthly" | "annual">(
+    "monthly"
+  );
+
+  useEffect(() => {
+    refresh().catch(console.warn);
+  }, []);
+
+  // ── Dev / premium bypass — skip paywall entirely ──────────────────────────
+  useEffect(() => {
+    if (isPremium) {
+      router.back();
+    }
+  }, [isPremium]);
+
+  // If already Pro via RevenueCat (e.g. restored), go back
+  useEffect(() => {
+    if (isPro) {
+      Alert.alert(
+        "You're on Pro!",
+        "Premium is already active on this account.",
+        [{ text: "OK", onPress: () => router.back() }]
+      );
+    }
+  }, [isPro]);
+
+  const monthlyPkg = packages.find(
+    (p) => p.product.identifier === PRODUCT_MONTHLY
+  );
+  const annualPkg = packages.find(
+    (p) => p.product.identifier === PRODUCT_ANNUAL
+  );
+  const selectedPkg: PurchasesPackage | undefined =
+    selectedPlan === "monthly" ? monthlyPkg : annualPkg;
+
+  // Fall back to hardcoded prices if RevenueCat packages aren't loaded yet
+  const MONTHLY_PRICE = monthlyPkg?.product.price ?? 99;
+  const ANNUAL_PRICE = annualPkg?.product.price ?? Math.round(99 * 12 * 0.8);
   const ANNUAL_SAVING = Math.round(MONTHLY_PRICE * 12 - ANNUAL_PRICE);
+
+  const handlePurchase = async () => {
+    if (!selectedPkg) {
+      Alert.alert(
+        "Not available",
+        "Products are still loading. Please try again in a moment."
+      );
+      return;
+    }
+    const success = await purchasePackage(selectedPkg);
+    if (success) {
+      Alert.alert(
+        "Welcome to Pro! ⚡",
+        "You now have unlimited access to all MyExpense features.",
+        [{ text: "Let's go", onPress: () => router.back() }]
+      );
+    }
+  };
+
+  const handleRestore = async () => {
+    const restored = await restorePurchases();
+    if (restored) {
+      Alert.alert(
+        "Purchases restored",
+        "Your Pro subscription has been restored.",
+        [{ text: "OK", onPress: () => router.back() }]
+      );
+    } else {
+      Alert.alert(
+        "Nothing to restore",
+        "No active Pro subscription was found on this account."
+      );
+    }
+  };
+
+  const displayMonthly = monthlyPkg?.product.priceString ?? `R${MONTHLY_PRICE}`;
+  const displayAnnual = annualPkg?.product.priceString ?? `R${ANNUAL_PRICE}`;
 
   return (
     <SafeAreaView
@@ -138,6 +227,8 @@ export default function PaywallUpgradeScreen() {
           Upgrade
         </Text>
         <TouchableOpacity
+          onPress={handleRestore}
+          disabled={loading}
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
         >
           <Text style={{ ...typography.actionS, color: colour.primary }}>
@@ -181,8 +272,70 @@ export default function PaywallUpgradeScreen() {
           </Text>
         </View>
 
-        {/* Price block */}
+        {/* Plan selector */}
         <MXCard noBorder padding={0}>
+          {/* Toggle row */}
+          <View
+            style={{
+              flexDirection: "row",
+              backgroundColor: colour.surface1,
+              borderRadius: radius.md,
+              padding: 4,
+              marginBottom: space.md,
+            }}
+          >
+            {(["monthly", "annual"] as const).map((plan) => (
+              <TouchableOpacity
+                key={plan}
+                onPress={() => setSelectedPlan(plan)}
+                style={{
+                  flex: 1,
+                  paddingVertical: space.sm,
+                  borderRadius: radius.sm,
+                  alignItems: "center",
+                  backgroundColor:
+                    selectedPlan === plan ? colour.white : "transparent",
+                  ...Platform.select({
+                    ios:
+                      selectedPlan === plan
+                        ? {
+                            shadowColor: "#000",
+                            shadowOpacity: 0.08,
+                            shadowRadius: 4,
+                            shadowOffset: { width: 0, height: 2 },
+                          }
+                        : {},
+                    android: selectedPlan === plan ? { elevation: 2 } : {},
+                    default: {},
+                  }),
+                }}
+              >
+                <Text
+                  style={{
+                    ...typography.labelM,
+                    color:
+                      selectedPlan === plan ? colour.primary : colour.textSub,
+                    fontWeight: selectedPlan === plan ? "700" : "500",
+                  }}
+                >
+                  {plan === "monthly" ? "Monthly" : "Annual"}
+                </Text>
+                {plan === "annual" && ANNUAL_SAVING > 0 && (
+                  <Text
+                    style={{
+                      ...typography.bodyXS,
+                      color: colour.success,
+                      fontWeight: "600",
+                    }}
+                  >
+                    Save R{ANNUAL_SAVING}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {/* Price display */}
           <View
             style={{
               backgroundColor: colour.primary50,
@@ -192,7 +345,6 @@ export default function PaywallUpgradeScreen() {
               gap: space.xs,
             }}
           >
-            {/* Most Popular pill */}
             <View
               style={{
                 backgroundColor: colour.primary,
@@ -210,71 +362,48 @@ export default function PaywallUpgradeScreen() {
                   letterSpacing: 0.6,
                 }}
               >
-                Most popular
+                {selectedPlan === "monthly" ? "Most popular" : "Best value"}
               </Text>
             </View>
 
-            {/* Price */}
-            <View
-              style={{ flexDirection: "row", alignItems: "flex-start", gap: 2 }}
-            >
-              <Text
-                style={{
-                  ...typography.bodyM,
-                  color: colour.primary,
-                  fontWeight: "700",
-                  marginTop: 8,
-                }}
-              >
-                R
-              </Text>
-              <Text
-                style={{
-                  ...typography.amountXL,
-                  color: colour.primary,
-                  fontWeight: "800",
-                  fontSize: 52,
-                  lineHeight: 60,
-                }}
-              >
-                {MONTHLY_PRICE}
-              </Text>
-              <Text
-                style={{
-                  ...typography.bodyS,
-                  color: colour.textSub,
-                  marginTop: 16,
-                }}
-              >
-                /month
-              </Text>
-            </View>
-
-            <Text style={{ ...typography.bodyS, color: colour.textSub }}>
-              Billed monthly · Cancel anytime
-            </Text>
-
-            {/* Annual nudge */}
-            <View
+            <Text
               style={{
-                backgroundColor: colour.successBg,
-                borderRadius: radius.sm,
-                paddingHorizontal: space.md,
-                paddingVertical: space.xxs,
-                marginTop: space.xs,
+                ...typography.amountXL,
+                color: colour.primary,
+                fontWeight: "800",
+                fontSize: 52,
+                lineHeight: 60,
               }}
             >
-              <Text
+              {selectedPlan === "monthly" ? displayMonthly : displayAnnual}
+            </Text>
+            <Text style={{ ...typography.bodyS, color: colour.textSub }}>
+              {selectedPlan === "monthly"
+                ? "Billed monthly · Cancel anytime"
+                : `Billed annually · ${displayMonthly}/mo equivalent`}
+            </Text>
+
+            {selectedPlan === "monthly" && ANNUAL_SAVING > 0 && (
+              <View
                 style={{
-                  ...typography.bodyXS,
-                  color: colour.success,
-                  fontWeight: "600",
+                  backgroundColor: colour.successBg,
+                  borderRadius: radius.sm,
+                  paddingHorizontal: space.md,
+                  paddingVertical: space.xxs,
+                  marginTop: space.xs,
                 }}
               >
-                💡 Save 20% with annual billing — R{ANNUAL_PRICE}/yr (save R
-                {ANNUAL_SAVING})
-              </Text>
-            </View>
+                <Text
+                  style={{
+                    ...typography.bodyXS,
+                    color: colour.success,
+                    fontWeight: "600",
+                  }}
+                >
+                  💡 Save 20% with annual — R{ANNUAL_SAVING}/yr savings
+                </Text>
+              </View>
+            )}
           </View>
         </MXCard>
 
@@ -360,7 +489,7 @@ export default function PaywallUpgradeScreen() {
                   {badge}
                 </Text>
               </View>
-            ),
+            )
           )}
         </View>
       </ScrollView>
@@ -386,12 +515,16 @@ export default function PaywallUpgradeScreen() {
         }}
       >
         <MXButton
-          label={`Upgrade to Premium — R${MONTHLY_PRICE}/month`}
+          label={
+            loading
+              ? "Loading..."
+              : selectedPlan === "monthly"
+                ? `Start Pro — ${displayMonthly}/month`
+                : `Start Pro — ${displayAnnual}/year`
+          }
           variant="primary"
           size="L"
-          onPress={() => {
-            // TODO: PayFast flow — activate when merchant account is ready
-          }}
+          onPress={handlePurchase}
           fullWidth
         />
         <Text
@@ -402,7 +535,8 @@ export default function PaywallUpgradeScreen() {
             marginTop: space.xs,
           }}
         >
-          Secure payment via PayFast · No hidden fees · Cancel anytime
+          Subscription managed by{" "}
+          {Platform.OS === "ios" ? "Apple" : "Google"} · Cancel anytime
         </Text>
       </View>
 

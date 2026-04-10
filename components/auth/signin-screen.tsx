@@ -1,14 +1,14 @@
 import { MXInput } from "@/components/MXInput";
 import { supabase } from "@/lib/supabase";
 import {
-    authenticateWithBiometrics,
-    clearBiometricSession,
-    getBiometricLabel,
-    getBiometricSession,
-    isBiometricAvailable,
-    isBiometricEnabled,
-    saveBiometricSession,
-    setBiometricEnabled,
+  authenticateWithBiometrics,
+  clearBiometricSession,
+  getBiometricLabel,
+  getBiometricSession,
+  isBiometricAvailable,
+  isBiometricEnabled,
+  saveBiometricSession,
+  setBiometricEnabled,
 } from "@/services/biometricService";
 import { signInWithGoogle } from "@/services/googleAuthService";
 import { useAuthStore } from "@/stores/authStore";
@@ -16,14 +16,14 @@ import { colour, radius, space, typography } from "@/tokens";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { ClipPath, Defs, G, Path, Rect } from "react-native-svg";
@@ -170,7 +170,14 @@ export function SigninScreen() {
 
     const stored = await getBiometricSession();
     if (!stored) {
-      Alert.alert("Session expired", "Please sign in with your password.");
+      // Clear stale flag so the biometric button disappears
+      await clearBiometricSession();
+      await setBiometricEnabled(false);
+      setBiometricEnabledState(false);
+      Alert.alert(
+        "Session expired",
+        "Please sign in with your password to re-enable biometric login.",
+      );
       return;
     }
 
@@ -450,9 +457,6 @@ export function SigninScreen() {
                   marginBottom: space.xl,
                 }}
               >
-                <Text style={{ fontSize: 22 }}>
-                  {biometricLabel === "Face ID" ? "🔐" : "👆"}
-                </Text>
                 <Text style={{ ...typography.btnL, color: colour.primary }}>
                   Sign in with {biometricLabel}
                 </Text>
@@ -510,13 +514,19 @@ export function SigninScreen() {
             </View>
 
             {/* Create account */}
-            <View style={{ flexDirection: "row", justifyContent: "center" }}>
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "center",
+                alignItems: "center",
+              }}
+            >
               <Text style={{ ...typography.bodyM, color: colour.textSub }}>
                 Don't have an account?{" "}
               </Text>
               <TouchableOpacity
                 onPress={() => router.replace("/sign-up")}
-                style={{ minHeight: 44, justifyContent: "center" }}
+                activeOpacity={0.7}
               >
                 <Text
                   style={{

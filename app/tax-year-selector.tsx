@@ -1,14 +1,16 @@
+import { MXHeader } from "@/components/MXHeader";
+import { useAuthStore } from "@/stores/authStore";
 import { colour, radius, space, typography } from "@/tokens";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-    SafeAreaView,
     ScrollView,
     StatusBar,
     Text,
     TouchableOpacity,
     View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 type TaxYear = {
   id: string;
@@ -122,58 +124,18 @@ export default function TaxYearSelectorScreen() {
   const fmt = (n: number) => `R ${n.toLocaleString("en-ZA")}`;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colour.primary }}>
+    <SafeAreaView
+      edges={["top"]}
+      style={{ flex: 1, backgroundColor: colour.primary }}
+    >
       <StatusBar barStyle="light-content" backgroundColor={colour.primary} />
 
-      {/* Header */}
-      <View
-        style={{
-          paddingHorizontal: space.lg,
-          paddingTop: space.sm,
-          paddingBottom: space["3xl"],
-        }}
-      >
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "space-between",
-            marginBottom: space.md,
-          }}
-        >
-          <TouchableOpacity
-            onPress={() => router.back()}
-            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-          >
-            <Text
-              style={{
-                color: colour.textOnPrimary,
-                fontSize: 26,
-                lineHeight: 30,
-              }}
-            >
-              ‹
-            </Text>
-          </TouchableOpacity>
-          <Text
-            style={[typography.labelM, { color: "rgba(255,255,255,0.85)" }]}
-          >
-            Tax & ITR12
-          </Text>
-          <View style={{ width: 40 }} />
-        </View>
-        <Text style={[typography.heading3, { color: colour.textOnPrimary }]}>
-          Select Tax Year
-        </Text>
-        <Text
-          style={[
-            typography.bodyS,
-            { color: "rgba(255,255,255,0.7)", marginTop: 2 },
-          ]}
-        >
-          SARS tax year runs 1 March – 28/29 February
-        </Text>
-      </View>
+      <MXHeader
+        title="Select Tax Year"
+        subtitle="SARS tax year runs 1 March – 28/29 February"
+        showBack
+        backLabel="Tax & ITR12"
+      />
 
       {/* Card */}
       <ScrollView

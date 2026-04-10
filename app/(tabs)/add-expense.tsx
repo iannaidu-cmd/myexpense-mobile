@@ -1,3 +1,4 @@
+import { MXHeader } from "@/components/MXHeader";
 import { expenseService } from "@/services/expenseService";
 import { scheduleReceiptReminder } from "@/services/notificationService";
 import { useAuthStore } from "@/stores/authStore";
@@ -198,27 +199,7 @@ export default function AddExpenseTab() {
     >
       <StatusBar barStyle="light-content" backgroundColor={colour.primary} />
 
-      {/* Header */}
-      <View
-        style={{
-          paddingHorizontal: space.lg,
-          paddingTop: space.lg,
-          paddingBottom: space["4xl"],
-        }}
-      >
-        <Text style={{ ...typography.h3, color: colour.onPrimary }}>
-          Add expense
-        </Text>
-        <Text
-          style={{
-            ...typography.bodyS,
-            color: "rgba(255,255,255,0.7)",
-            marginTop: 2,
-          }}
-        >
-          Track your tax deductions
-        </Text>
-      </View>
+      <MXHeader title="Add expense" subtitle="Track your tax deductions" />
 
       <ScrollView
         style={{

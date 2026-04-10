@@ -6,10 +6,13 @@
 export interface Profile {
   id: string;
   full_name: string | null;
+  business_name: string | null;
+  phone: string | null;
   tax_number: string | null;
   work_type: string | null;
   active_tax_year: string;
   subscription: "free" | "pro" | "business";
+  push_token: string | null;
   created_at: string;
   updated_at: string;
 }

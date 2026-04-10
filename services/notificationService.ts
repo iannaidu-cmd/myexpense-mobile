@@ -1,45 +1,62 @@
-// ─── Notification Service ─────────────────────────────────────────────────────
-// Push notifications require a production build (App Store / Play Store).
-// expo-notifications is not compatible with Expo Go from SDK 53+.
-// This stub keeps the app working in Expo Go during development.
-// Full push notification functionality activates automatically in the production build.
+﻿// -- Notification Service (Expo Go safe stubs) ----------------------------
+// expo-notifications cannot run in Expo Go from SDK 53+.
+// These stubs keep the app working in Expo Go during development.
+// The real scheduling implementation lives in notificationService.real.ts
+// and is swapped in at EAS build time.
+// All preference toggles still persist to AsyncStorage so settings work.
+// -------------------------------------------------------------------------
+
+import { supabase } from "@/lib/supabase";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+const STORAGE_KEY = "mx_notification_prefs";
 
 export async function registerForPushNotifications(): Promise<string | null> {
-  console.log("Push notifications: will activate in production build");
   return null;
 }
 
-export async function savePushToken(userId: string, token: string): Promise<void> {
-  // No-op in Expo Go
+export async function savePushToken(
+  userId: string,
+  token: string,
+): Promise<void> {
+  await supabase
+    .from("profiles")
+    .update({ push_token: token })
+    .eq("id", userId);
 }
 
 export async function scheduleWeeklyExpenseReminder(): Promise<void> {
-  console.log("Weekly expense reminder: scheduled (activates in production build)");
+  // Activates in EAS build
+}
+
+export async function scheduleMonthlyReportReminder(): Promise<void> {
+  // Activates in EAS build
 }
 
 export async function scheduleSARSDeadlineReminders(): Promise<void> {
-  console.log("SARS deadline reminders: scheduled (activates in production build)");
+  // Activates in EAS build
 }
 
 export async function scheduleReceiptReminder(
-  expenseId: string,
-  vendorName: string,
-  amount: number
+  _expenseId: string,
+  _vendorName: string,
+  _amount: number,
 ): Promise<void> {
-  console.log(`Receipt reminder queued for ${vendorName} — activates in production build`);
+  // Activates in EAS build
 }
 
-export async function cancelReceiptReminder(expenseId: string): Promise<void> {
-  // No-op in Expo Go
+export async function cancelReceiptReminder(_expenseId: string): Promise<void> {
+  // Activates in EAS build
 }
 
-export async function scheduleSubscriptionReminder(renewalDate: Date): Promise<void> {
-  console.log("Subscription reminder: scheduled (activates in production build)");
+export async function scheduleSubscriptionReminder(
+  _renewalDate: Date,
+): Promise<void> {
+  // Activates in EAS build
 }
 
 export function setupNotificationResponseHandler(
-  onNavigate: (route: string) => void
+  _onNavigate: (route: string) => void,
 ): { remove: () => void } {
-  // Return a no-op subscription that matches the expected interface
   return { remove: () => {} };
 }

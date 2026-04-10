@@ -1,3 +1,4 @@
+import { MXHeader } from "@/components/MXHeader";
 import { useAuthStore } from "@/stores/authStore";
 import { colour, radius, space, typography } from "@/tokens";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -68,27 +69,10 @@ export default function ScanTabScreen() {
     >
       <StatusBar barStyle="light-content" backgroundColor={colour.primary} />
 
-      {/* Header */}
-      <View
-        style={{
-          paddingHorizontal: space.lg,
-          paddingTop: space.lg,
-          paddingBottom: space["4xl"],
-        }}
-      >
-        <Text style={{ ...typography.h3, color: colour.onPrimary }}>
-          Scan and upload
-        </Text>
-        <Text
-          style={{
-            ...typography.bodyS,
-            color: "rgba(255,255,255,0.7)",
-            marginTop: 2,
-          }}
-        >
-          OCR-powered receipt capture
-        </Text>
-      </View>
+      <MXHeader
+        title="Scan and upload"
+        subtitle="OCR-powered receipt capture"
+      />
 
       <ScrollView
         style={{

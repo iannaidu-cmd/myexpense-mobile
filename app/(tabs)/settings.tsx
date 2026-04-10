@@ -1,4 +1,5 @@
 import { BiometricToggle } from "@/components/BiometricToggle";
+import { MXHeader } from "@/components/MXHeader";
 import { profileService } from "@/services/profileService";
 import { useAuthStore } from "@/stores/authStore";
 import { colour, radius, space, typography } from "@/tokens";
@@ -22,7 +23,7 @@ const SECTIONS = [
         icon: "👤",
         label: "My profile",
         sub: "Name, email, business details",
-        route: "/settings-screens",
+        route: "/profile",
       },
       {
         icon: "💳",
@@ -42,22 +43,16 @@ const SECTIONS = [
     title: "Preferences",
     items: [
       {
-        icon: "🔐",
-        label: "Biometric sign-in",
-        sub: "Face ID / Fingerprint unlock",
-        route: "/settings-screens",
-      },
-      {
         icon: "🔔",
         label: "Notifications",
         sub: "Push, email & filing reminders",
-        route: "/settings-screens",
+        route: "/notifications-settings",
       },
       {
         icon: "🎨",
         label: "Appearance",
         sub: "Theme & display settings",
-        route: "/settings-screens",
+        route: "/appearance-settings",
       },
     ],
   },
@@ -68,13 +63,13 @@ const SECTIONS = [
         icon: "🔒",
         label: "Security",
         sub: "Password, biometrics, sessions",
-        route: "/settings-screens",
+        route: "/security-settings",
       },
       {
         icon: "🛡️",
         label: "Data & privacy",
         sub: "POPIA · Data export & deletion",
-        route: "/settings-screens",
+        route: "/privacy",
       },
     ],
   },
@@ -85,19 +80,13 @@ const SECTIONS = [
         icon: "❓",
         label: "Help & support",
         sub: "FAQs & contact us",
-        route: "/settings-screens",
+        route: "/help-support",
       },
       {
-        icon: "📄",
-        label: "Privacy policy",
-        sub: "How we handle your data",
-        route: null,
-      },
-      {
-        icon: "📋",
+        icon: "",
         label: "Terms of service",
         sub: "App terms & conditions",
-        route: null,
+        route: "/terms",
       },
     ],
   },
@@ -158,18 +147,7 @@ export default function SettingsTabScreen() {
     >
       <StatusBar barStyle="light-content" backgroundColor={colour.primary} />
 
-      {/* Header */}
-      <View
-        style={{
-          paddingHorizontal: space.lg,
-          paddingTop: space.lg,
-          paddingBottom: space["4xl"],
-        }}
-      >
-        <Text style={{ ...typography.h3, color: colour.onPrimary }}>
-          Settings
-        </Text>
-      </View>
+      <MXHeader title="Settings" />
 
       <ScrollView
         style={{
@@ -328,9 +306,11 @@ export default function SettingsTabScreen() {
                       {item.sub}
                     </Text>
                   </View>
-                  <Text style={{ color: colour.textSecondary, fontSize: 18 }}>
-                    ›
-                  </Text>
+                  {item.route && (
+                    <Text style={{ color: colour.textSecondary, fontSize: 18 }}>
+                      ›
+                    </Text>
+                  )}
                 </TouchableOpacity>
               ))}
             </View>
