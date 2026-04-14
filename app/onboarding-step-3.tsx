@@ -5,6 +5,11 @@ import { Dimensions, Image, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path, Polyline, Rect } from "react-native-svg";
 
+// Illustration-specific hues used only in step-3 SVGs (no global token equivalent)
+const IL_ORANGE    = '#E07A3A';
+const IL_ORANGE_BG = '#FFE8D6';
+const IL_TEAL_MID  = '#00A884';
+
 const { width: SW } = Dimensions.get("window");
 const LOGO_W = SW * 0.58;
 const LOGO_H = 42;
@@ -19,9 +24,9 @@ function IconBuilding() {
         width="20"
         height="15"
         rx="2"
-        fill="#E07A3A"
+        fill={IL_ORANGE}
         opacity="0.15"
-        stroke="#E07A3A"
+        stroke={IL_ORANGE}
         strokeWidth="1.8"
       />
       <Rect
@@ -31,7 +36,7 @@ function IconBuilding() {
         height="6"
         rx="1.5"
         fill="none"
-        stroke="#E07A3A"
+        stroke={IL_ORANGE}
         strokeWidth="1.8"
       />
       <Rect
@@ -40,7 +45,7 @@ function IconBuilding() {
         width="4"
         height="4"
         rx="1"
-        fill="#E07A3A"
+        fill={IL_ORANGE}
         opacity="0.4"
       />
       <Rect
@@ -49,7 +54,7 @@ function IconBuilding() {
         width="4"
         height="4"
         rx="1"
-        fill="#E07A3A"
+        fill={IL_ORANGE}
         opacity="0.4"
       />
       <Rect
@@ -58,7 +63,7 @@ function IconBuilding() {
         width="6"
         height="5"
         rx="1"
-        fill="#E07A3A"
+        fill={IL_ORANGE}
         opacity="0.3"
       />
     </Svg>
@@ -74,9 +79,9 @@ function IconLaptop() {
         width="18"
         height="13"
         rx="2.5"
-        fill="#006FFD"
+        fill={colour.primary}
         opacity="0.15"
-        stroke="#006FFD"
+        stroke={colour.primary}
         strokeWidth="1.8"
       />
       <Rect
@@ -85,7 +90,7 @@ function IconLaptop() {
         width="12"
         height="7"
         rx="1"
-        fill="#006FFD"
+        fill={colour.primary}
         opacity="0.2"
       />
       <Rect
@@ -94,7 +99,7 @@ function IconLaptop() {
         width="7"
         height="1.5"
         rx=".75"
-        fill="#006FFD"
+        fill={colour.primary}
         opacity="0.5"
       />
       <Rect
@@ -103,14 +108,14 @@ function IconLaptop() {
         width="5"
         height="1.5"
         rx=".75"
-        fill="#006FFD"
+        fill={colour.primary}
         opacity="0.35"
       />
       <Path
         d="M2 19 Q2 18 4 18 L22 18 Q24 18 24 19 L24 20 Q24 21 22 21 L4 21 Q2 21 2 20 Z"
-        fill="#006FFD"
+        fill={colour.primary}
         opacity="0.15"
-        stroke="#006FFD"
+        stroke={colour.primary}
         strokeWidth="1.5"
       />
     </Svg>
@@ -126,9 +131,9 @@ function IconClipboard() {
         width="18"
         height="20"
         rx="2.5"
-        fill="#00A884"
+        fill={IL_TEAL_MID}
         opacity="0.12"
-        stroke="#00A884"
+        stroke={IL_TEAL_MID}
         strokeWidth="1.8"
       />
       <Rect
@@ -138,7 +143,7 @@ function IconClipboard() {
         height="5"
         rx="2"
         fill="none"
-        stroke="#00A884"
+        stroke={IL_TEAL_MID}
         strokeWidth="1.8"
       />
       <Rect
@@ -147,7 +152,7 @@ function IconClipboard() {
         width="12"
         height="1.8"
         rx=".9"
-        fill="#00A884"
+        fill={IL_TEAL_MID}
         opacity="0.45"
       />
       <Rect
@@ -156,7 +161,7 @@ function IconClipboard() {
         width="9"
         height="1.8"
         rx=".9"
-        fill="#00A884"
+        fill={IL_TEAL_MID}
         opacity="0.3"
       />
       <Rect
@@ -165,12 +170,12 @@ function IconClipboard() {
         width="10"
         height="1.8"
         rx=".9"
-        fill="#00A884"
+        fill={IL_TEAL_MID}
         opacity="0.3"
       />
       <Polyline
         points="14,20 16,22 20,17"
-        stroke="#00A884"
+        stroke={IL_TEAL_MID}
         strokeWidth="1.8"
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -205,7 +210,7 @@ function OptionCard({
         borderWidth: 1.5,
         borderColor: selected ? colour.primary : colour.borderLight,
         borderRadius: radius.lg,
-        backgroundColor: selected ? "#F0F6FF" : colour.white,
+        backgroundColor: selected ? colour.primary50 : colour.white,
         paddingVertical: space.lg,
         paddingHorizontal: space.md,
         marginBottom: space.md,
@@ -247,19 +252,19 @@ function OptionCard({
 const OPTIONS = [
   {
     id: "sole",
-    bgColor: "#FFF3E8",
+    bgColor: colour.warningBg,
     icon: <IconBuilding />,
     title: "Sole proprietor",
   },
   {
     id: "freelancer",
-    bgColor: "#EAF2FF",
+    bgColor: colour.primary50,
     icon: <IconLaptop />,
     title: "Freelancer",
   },
   {
     id: "contractor",
-    bgColor: "#F0FBF8",
+    bgColor: colour.tealLight,
     icon: <IconClipboard />,
     title: "Independent contractor",
   },

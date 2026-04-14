@@ -1,234 +1,184 @@
-import { ThemedText } from "@/components/themed-text";
-import { ThemedView } from "@/components/themed-view";
-import { useThemeColor } from "@/hooks/use-theme-color";
+import { colour, radius, space, typography } from "@/tokens";
 import { useState } from "react";
-import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Pressable, ScrollView, Text, View } from "react-native";
 
 interface FilterSortSheetProps {
   onApplyFilters?: (filters: { sortBy: string; filterBy: string }) => void;
   onCancel?: () => void;
 }
 
+const SORT_OPTIONS = [
+  { id: "date",   label: "📅 Date (Newest)" },
+  { id: "amount", label: "💵 Amount (Highest)" },
+  { id: "vendor", label: "🏢 Vendor (A-Z)" },
+];
+
+const FILTER_OPTIONS = [
+  { id: "all",          label: "All expenses"         },
+  { id: "deductible",   label: "✓ Deductible only"    },
+  { id: "non-deductible",label: "✗ Non-deductible"     },
+  { id: "month",        label: "📅 This month"        },
+];
+
 export function FilterSortSheet({
   onApplyFilters,
   onCancel,
 }: FilterSortSheetProps) {
-  const [sortBy, setSortBy] = useState("date");
+  const [sortBy,   setSortBy]   = useState("date");
   const [filterBy, setFilterBy] = useState("all");
 
-  const backgroundColor = useThemeColor(
-    { light: "#FFFFFF", dark: "#121212" },
-    "background",
+  const OptionList = ({
+    title,
+    options,
+    selected,
+    onSelect,
+  }: {
+    title: string;
+    options: { id: string; label: string }[];
+    selected: string;
+    onSelect: (id: string) => void;
+  }) => (
+    <View style={{ marginBottom: 28 }}>
+      <Text
+        style={{
+          ...typography.labelM,
+          color: colour.text,
+          marginBottom: space.md,
+        }}
+      >
+        {title}
+      </Text>
+      <View
+        style={{
+          backgroundColor: colour.surface1,
+          borderRadius: radius.md,
+          borderWidth: 1,
+          borderColor: colour.border,
+          overflow: "hidden",
+        }}
+      >
+        {options.map((option, index) => {
+          const isSelected = selected === option.id;
+          return (
+            <Pressable
+              key={option.id}
+              onPress={() => onSelect(option.id)}
+              style={{
+                paddingHorizontal: space.lg,
+                paddingVertical: 14,
+                borderBottomWidth: index === options.length - 1 ? 0 : 1,
+                borderBottomColor: colour.border,
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                backgroundColor: isSelected ? colour.primary50 : colour.white,
+              }}
+            >
+              <Text style={{ ...typography.bodyM, color: colour.text }}>
+                {option.label}
+              </Text>
+              {isSelected && (
+                <Text style={{ ...typography.bodyM, color: colour.primary }}>
+                  ✓
+                </Text>
+              )}
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
   );
-  const cardBackground = useThemeColor(
-    { light: "#F5F5F5", dark: "#1E1E1E" },
-    "background",
-  );
-  const textColor = useThemeColor({}, "text");
-  const mutedColor = useThemeColor(
-    { light: "#757575", dark: "#9E9E9E" },
-    "text",
-  );
-  const borderColor = useThemeColor(
-    { light: "#E0E0E0", dark: "#424242" },
-    "text",
-  );
-  const accentColor = "#0288D1";
-
-  const styles = StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor,
-    },
-    header: {
-      paddingHorizontal: 24,
-      paddingTop: 20,
-      paddingBottom: 24,
-      backgroundColor: "rgba(21, 101, 192, 0.95)",
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-    },
-    headerTitle: {
-      fontSize: 20,
-      fontWeight: "700",
-      color: "#fff",
-    },
-    closeButton: {
-      fontSize: 24,
-      color: "rgba(255,255,255,0.65)",
-    },
-    content: {
-      flex: 1,
-      padding: 20,
-    },
-    section: {
-      marginBottom: 28,
-    },
-    sectionTitle: {
-      fontSize: 14,
-      fontWeight: "700",
-      color: textColor,
-      marginBottom: 12,
-      letterSpacing: 0.5,
-    },
-    optionContainer: {
-      backgroundColor: cardBackground,
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: borderColor,
-      overflow: "hidden",
-    },
-    option: {
-      paddingHorizontal: 16,
-      paddingVertical: 14,
-      borderBottomWidth: 1,
-      borderBottomColor: borderColor,
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-    },
-    optionLast: {
-      borderBottomWidth: 0,
-    },
-    optionText: {
-      fontSize: 15,
-      fontWeight: "600",
-      color: textColor,
-    },
-    optionSelected: {
-      backgroundColor: "rgba(59, 191, 173, 0.08)",
-    },
-    checkmark: {
-      fontSize: 16,
-      color: accentColor,
-    },
-    buttonContainer: {
-      flexDirection: "row",
-      gap: 12,
-      paddingHorizontal: 20,
-      paddingVertical: 20,
-      borderTopWidth: 1,
-      borderTopColor: borderColor,
-    },
-    cancelButton: {
-      flex: 1,
-      paddingVertical: 12,
-      borderRadius: 12,
-      borderWidth: 1.5,
-      borderColor: borderColor,
-      alignItems: "center",
-    },
-    applyButton: {
-      flex: 1,
-      paddingVertical: 12,
-      borderRadius: 12,
-      backgroundColor: accentColor,
-      alignItems: "center",
-    },
-    buttonText: {
-      fontSize: 14,
-      fontWeight: "700",
-      color: textColor,
-    },
-    applyButtonText: {
-      color: "#0D47A1",
-    },
-  });
-
-  const sortOptions = [
-    { id: "date", label: "📅 Date (Newest)" },
-    { id: "amount", label: "💵 Amount (Highest)" },
-    { id: "vendor", label: "🏢 Vendor (A-Z)" },
-  ];
-
-  const filterOptions = [
-    { id: "all", label: "All expenses" },
-    { id: "deductible", label: "✓ Deductible only" },
-    { id: "non-deductible", label: "✗ Non-deductible" },
-    { id: "month", label: "📅 This month" },
-  ];
 
   return (
-    <ThemedView style={styles.container}>
-      <ThemedView style={styles.header}>
-        <ThemedText style={styles.headerTitle}>Filter & sort</ThemedText>
+    <View style={{ flex: 1, backgroundColor: colour.white }}>
+      {/* Header */}
+      <View
+        style={{
+          paddingHorizontal: space.xl,
+          paddingTop: space.xl,
+          paddingBottom: space.xl,
+          backgroundColor: colour.primary,
+          flexDirection: "row",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
+        <Text style={{ ...typography.h4, color: colour.white }}>
+          Filter & sort
+        </Text>
         <Pressable onPress={onCancel}>
-          <ThemedText style={styles.closeButton}>✕</ThemedText>
+          <Text
+            style={{ ...typography.h4, color: "rgba(255,255,255,0.65)" }}
+          >
+            ✕
+          </Text>
         </Pressable>
-      </ThemedView>
+      </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Sort Section */}
-        <View style={styles.section}>
-          <ThemedText style={styles.sectionTitle}>Sort by</ThemedText>
-          <View style={styles.optionContainer}>
-            {sortOptions.map((option, index) => (
-              <Pressable
-                key={option.id}
-                onPress={() => setSortBy(option.id)}
-                style={[
-                  styles.option,
-                  index === sortOptions.length - 1 && styles.optionLast,
-                  sortBy === option.id && styles.optionSelected,
-                ]}
-              >
-                <ThemedText style={styles.optionText}>
-                  {option.label}
-                </ThemedText>
-                {sortBy === option.id && (
-                  <ThemedText style={styles.checkmark}>✓</ThemedText>
-                )}
-              </Pressable>
-            ))}
-          </View>
-        </View>
-
-        {/* Filter Section */}
-        <View style={styles.section}>
-          <ThemedText style={styles.sectionTitle}>Filter by</ThemedText>
-          <View style={styles.optionContainer}>
-            {filterOptions.map((option, index) => (
-              <Pressable
-                key={option.id}
-                onPress={() => setFilterBy(option.id)}
-                style={[
-                  styles.option,
-                  index === filterOptions.length - 1 && styles.optionLast,
-                  filterBy === option.id && styles.optionSelected,
-                ]}
-              >
-                <ThemedText style={styles.optionText}>
-                  {option.label}
-                </ThemedText>
-                {filterBy === option.id && (
-                  <ThemedText style={styles.checkmark}>✓</ThemedText>
-                )}
-              </Pressable>
-            ))}
-          </View>
-        </View>
-
+      {/* Content */}
+      <ScrollView
+        style={{ flex: 1, padding: space.xl }}
+        showsVerticalScrollIndicator={false}
+      >
+        <OptionList
+          title="Sort by"
+          options={SORT_OPTIONS}
+          selected={sortBy}
+          onSelect={setSortBy}
+        />
+        <OptionList
+          title="Filter by"
+          options={FILTER_OPTIONS}
+          selected={filterBy}
+          onSelect={setFilterBy}
+        />
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      {/* Action Buttons */}
-      <View style={styles.buttonContainer}>
-        <Pressable style={styles.cancelButton} onPress={onCancel}>
-          <ThemedText style={styles.buttonText}>Cancel</ThemedText>
+      {/* Footer buttons */}
+      <View
+        style={{
+          flexDirection: "row",
+          gap: space.md,
+          paddingHorizontal: space.xl,
+          paddingVertical: space.xl,
+          borderTopWidth: 1,
+          borderTopColor: colour.border,
+        }}
+      >
+        <Pressable
+          style={{
+            flex: 1,
+            paddingVertical: 12,
+            borderRadius: radius.md,
+            borderWidth: 1.5,
+            borderColor: colour.border,
+            alignItems: "center",
+          }}
+          onPress={onCancel}
+        >
+          <Text style={{ ...typography.labelM, color: colour.text }}>
+            Cancel
+          </Text>
         </Pressable>
         <Pressable
-          style={styles.applyButton}
+          style={{
+            flex: 1,
+            paddingVertical: 12,
+            borderRadius: radius.md,
+            backgroundColor: colour.primary,
+            alignItems: "center",
+          }}
           onPress={() => {
             onApplyFilters?.({ sortBy, filterBy });
             onCancel?.();
           }}
         >
-          <ThemedText style={[styles.buttonText, styles.applyButtonText]}>
+          <Text style={{ ...typography.labelM, color: colour.onPrimary }}>
             Apply
-          </ThemedText>
+          </Text>
         </Pressable>
       </View>
-    </ThemedView>
+    </View>
   );
 }

@@ -1,8 +1,6 @@
-import { ThemedText } from "@/components/themed-text";
-import { ThemedView } from "@/components/themed-view";
-import { useThemeColor } from "@/hooks/use-theme-color";
+import { colour, radius, space, typography } from "@/tokens";
 import { useState } from "react";
-import { FlatList, Pressable, StyleSheet, View } from "react-native";
+import { FlatList, Pressable, Text, View } from "react-native";
 
 interface ExpenseItem {
   id: string;
@@ -77,6 +75,17 @@ const MOCK_EXPENSES: ExpenseItem[] = [
   },
 ];
 
+const FILTER_OPTIONS = [
+  { id: "all",            label: "All" },
+  { id: "deductible",     label: "✓ Deductible" },
+  { id: "non-deductible", label: "✗ Non-deductible" },
+] as const;
+
+const SORT_OPTIONS = [
+  { id: "date",   label: "📅 Date" },
+  { id: "amount", label: "💵 Amount" },
+] as const;
+
 export function ExpenseHistoryScreen({
   expenses = MOCK_EXPENSES,
   onSelectExpense,
@@ -87,27 +96,8 @@ export function ExpenseHistoryScreen({
     "all" | "deductible" | "non-deductible"
   >("all");
 
-  const backgroundColor = useThemeColor(
-    { light: "#FFFFFF", dark: "#121212" },
-    "background",
-  );
-  const cardBackground = useThemeColor(
-    { light: "#F5F5F5", dark: "#1E1E1E" },
-    "background",
-  );
-  const textColor = useThemeColor({}, "text");
-  const mutedColor = useThemeColor(
-    { light: "#757575", dark: "#9E9E9E" },
-    "text",
-  );
-  const borderColor = useThemeColor(
-    { light: "#E0E0E0", dark: "#424242" },
-    "text",
-  );
-  const accentColor = "#0288D1";
-
   const filteredExpenses = expenses.filter((e) => {
-    if (filterDeductible === "deductible") return e.deductible;
+    if (filterDeductible === "deductible")     return e.deductible;
     if (filterDeductible === "non-deductible") return !e.deductible;
     return true;
   });
@@ -122,188 +112,68 @@ export function ExpenseHistoryScreen({
     return 0;
   });
 
-  const styles = StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor,
-    },
-    header: {
-      paddingHorizontal: 24,
-      paddingTop: 20,
-      paddingBottom: 24,
-      backgroundColor: "rgba(21, 101, 192, 0.95)",
-    },
-    headerTitle: {
-      fontSize: 20,
-      fontWeight: "700",
-      color: "#fff",
-      marginBottom: 4,
-    },
-    headerSubtitle: {
-      fontSize: 13,
-      color: "rgba(255, 255, 255, 0.55)",
-    },
-    controls: {
-      paddingHorizontal: 20,
-      paddingVertical: 16,
-      borderBottomWidth: 1,
-      borderBottomColor: borderColor,
-    },
-    filterRow: {
-      flexDirection: "row",
-      gap: 8,
-      marginBottom: 12,
-    },
-    filterButton: {
-      paddingHorizontal: 12,
-      paddingVertical: 6,
-      borderRadius: 100,
-      borderWidth: 1,
-      borderColor: borderColor,
-      backgroundColor: "transparent",
-    },
-    filterButtonActive: {
-      backgroundColor: accentColor,
-      borderColor: accentColor,
-    },
-    filterButtonText: {
-      fontSize: 12,
-      fontWeight: "600",
-      color: mutedColor,
-    },
-    filterButtonTextActive: {
-      color: "#FFFFFF",
-    },
-    sortRow: {
-      flexDirection: "row",
-      gap: 8,
-    },
-    sortButton: {
-      flex: 1,
-      paddingHorizontal: 12,
-      paddingVertical: 6,
-      borderRadius: 100,
-      borderWidth: 1,
-      borderColor: borderColor,
-      backgroundColor: "transparent",
-      alignItems: "center",
-    },
-    sortButtonActive: {
-      backgroundColor: "#1565C0",
-      borderColor: "#1565C0",
-    },
-    sortButtonText: {
-      fontSize: 12,
-      fontWeight: "600",
-      color: mutedColor,
-    },
-    sortButtonTextActive: {
-      color: "#fff",
-    },
-    content: {
-      flex: 1,
-    },
-    expenseItem: {
-      backgroundColor: cardBackground,
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: borderColor,
-      paddingHorizontal: 16,
-      paddingVertical: 12,
-      marginHorizontal: 20,
-      marginVertical: 8,
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 12,
-    },
-    iconContainer: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      backgroundColor: "rgba(59, 191, 173, 0.1)",
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    icon: {
-      fontSize: 20,
-    },
-    expenseContent: {
-      flex: 1,
-    },
-    vendorName: {
-      fontSize: 14,
-      fontWeight: "600",
-      color: textColor,
-      marginBottom: 2,
-    },
-    categoryName: {
-      fontSize: 12,
-      color: mutedColor,
-    },
-    expenseAmount: {
-      fontSize: 14,
-      fontWeight: "700",
-      color: accentColor,
-      marginBottom: 4,
-    },
-    expenseDate: {
-      fontSize: 12,
-      color: mutedColor,
-    },
-    deductibleBadge: {
-      paddingHorizontal: 8,
-      paddingVertical: 4,
-      borderRadius: 6,
-      backgroundColor: "rgba(59, 191, 173, 0.15)",
-    },
-    deductibleBadgeText: {
-      fontSize: 10,
-      fontWeight: "700",
-      color: accentColor,
-    },
-    emptyContainer: {
-      flex: 1,
-      alignItems: "center",
-      justifyContent: "center",
-      paddingVertical: 40,
-    },
-    emptyIcon: {
-      fontSize: 52,
-      marginBottom: 16,
-    },
-    emptyTitle: {
-      fontSize: 16,
-      fontWeight: "700",
-      color: textColor,
-      marginBottom: 6,
-    },
-    emptySubtext: {
-      fontSize: 13,
-      color: mutedColor,
-      textAlign: "center",
-    },
-  });
-
   const renderExpenseItem = ({ item }: { item: ExpenseItem }) => (
     <Pressable
-      style={styles.expenseItem}
       onPress={() => onSelectExpense?.(item)}
+      style={{
+        backgroundColor: colour.white,
+        borderRadius: radius.md,
+        borderWidth: 1,
+        borderColor: colour.border,
+        paddingHorizontal: space.lg,
+        paddingVertical: space.md,
+        marginHorizontal: space.xl,
+        marginVertical: space.sm,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: space.md,
+      }}
     >
-      <View style={styles.iconContainer}>
-        <ThemedText style={styles.icon}>{item.categoryIcon}</ThemedText>
+      {/* Icon */}
+      <View
+        style={{
+          width: 40,
+          height: 40,
+          borderRadius: 20,
+          backgroundColor: colour.tealLight,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <Text style={{ fontSize: 20 }}>{item.categoryIcon}</Text>
       </View>
-      <View style={styles.expenseContent}>
-        <ThemedText style={styles.vendorName}>{item.vendor}</ThemedText>
-        <ThemedText style={styles.categoryName}>{item.category}</ThemedText>
+
+      {/* Content */}
+      <View style={{ flex: 1 }}>
+        <Text style={{ ...typography.labelM, color: colour.text, marginBottom: 2 }}>
+          {item.vendor}
+        </Text>
+        <Text style={{ ...typography.bodyXS, color: colour.textSub }}>
+          {item.category}
+        </Text>
       </View>
+
+      {/* Right side */}
       <View style={{ alignItems: "flex-end" }}>
-        <ThemedText style={styles.expenseAmount}>{item.amount}</ThemedText>
-        <ThemedText style={styles.expenseDate}>{item.date}</ThemedText>
+        <Text style={{ ...typography.amountS, color: colour.primary, marginBottom: space.xs }}>
+          {item.amount}
+        </Text>
+        <Text style={{ ...typography.bodyXS, color: colour.textSub }}>
+          {item.date}
+        </Text>
         {item.deductible && (
-          <View style={styles.deductibleBadge}>
-            <ThemedText style={styles.deductibleBadgeText}>
+          <View
+            style={{
+              paddingHorizontal: space.sm,
+              paddingVertical: 2,
+              borderRadius: radius.sm,
+              backgroundColor: colour.tealLight,
+              marginTop: 2,
+            }}
+          >
+            <Text style={{ ...typography.micro, color: colour.teal, fontWeight: "700" }}>
               ✓ Deductible
-            </ThemedText>
+            </Text>
           </View>
         )}
       </View>
@@ -311,109 +181,134 @@ export function ExpenseHistoryScreen({
   );
 
   return (
-    <ThemedView style={styles.container}>
-      <ThemedView style={styles.header}>
-        <ThemedText style={styles.headerTitle}>Expense History</ThemedText>
-        <ThemedText style={styles.headerSubtitle}>
+    <View style={{ flex: 1, backgroundColor: colour.white }}>
+      {/* Header */}
+      <View
+        style={{
+          paddingHorizontal: space.xl,
+          paddingTop: space.xl,
+          paddingBottom: space.xl,
+          backgroundColor: colour.primary,
+        }}
+      >
+        <Text style={{ ...typography.h3, color: colour.white, marginBottom: space.xs }}>
+          Expense History
+        </Text>
+        <Text style={{ ...typography.bodyS, color: colour.primary100 }}>
           View and manage your transactions
-        </ThemedText>
-      </ThemedView>
+        </Text>
+      </View>
 
-      <ThemedView style={styles.controls}>
-        <ThemedText
-          style={{
-            fontSize: 12,
-            fontWeight: "600",
-            color: mutedColor,
-            marginBottom: 8,
-          }}
-        >
+      {/* Controls */}
+      <View
+        style={{
+          paddingHorizontal: space.xl,
+          paddingVertical: space.lg,
+          borderBottomWidth: 1,
+          borderBottomColor: colour.border,
+          backgroundColor: colour.white,
+        }}
+      >
+        {/* Filter row */}
+        <Text style={{ ...typography.labelS, color: colour.textSub, marginBottom: space.sm }}>
           Filter
-        </ThemedText>
-        <View style={styles.filterRow}>
-          {[
-            { id: "all", label: "All" },
-            { id: "deductible", label: "✓ Deductible" },
-            { id: "non-deductible", label: "✗ Non-deductible" },
-          ].map((filter) => (
-            <Pressable
-              key={filter.id}
-              style={[
-                styles.filterButton,
-                filterDeductible === filter.id && styles.filterButtonActive,
-              ]}
-              onPress={() => {
-                setFilterDeductible(filter.id as any);
-                onFilterChange?.(filter.id);
-              }}
-            >
-              <ThemedText
-                style={[
-                  styles.filterButtonText,
-                  filterDeductible === filter.id &&
-                    styles.filterButtonTextActive,
-                ]}
+        </Text>
+        <View style={{ flexDirection: "row", gap: space.sm, marginBottom: space.md }}>
+          {FILTER_OPTIONS.map((filter) => {
+            const active = filterDeductible === filter.id;
+            return (
+              <Pressable
+                key={filter.id}
+                style={{
+                  paddingHorizontal: space.md,
+                  paddingVertical: space.xs,
+                  borderRadius: radius.pill,
+                  borderWidth: 1,
+                  borderColor: active ? colour.primary : colour.border,
+                  backgroundColor: active ? colour.primary : "transparent",
+                }}
+                onPress={() => {
+                  setFilterDeductible(filter.id as any);
+                  onFilterChange?.(filter.id);
+                }}
               >
-                {filter.label}
-              </ThemedText>
-            </Pressable>
-          ))}
+                <Text
+                  style={{
+                    ...typography.labelS,
+                    color: active ? colour.onPrimary : colour.textSub,
+                  }}
+                >
+                  {filter.label}
+                </Text>
+              </Pressable>
+            );
+          })}
         </View>
 
-        <ThemedText
-          style={{
-            fontSize: 12,
-            fontWeight: "600",
-            color: mutedColor,
-            marginBottom: 8,
-          }}
-        >
+        {/* Sort row */}
+        <Text style={{ ...typography.labelS, color: colour.textSub, marginBottom: space.sm }}>
           Sort by
-        </ThemedText>
-        <View style={styles.sortRow}>
-          {[
-            { id: "date", label: "📅 Date" },
-            { id: "amount", label: "💵 Amount" },
-          ].map((sort) => (
-            <Pressable
-              key={sort.id}
-              style={[
-                styles.sortButton,
-                sortBy === sort.id && styles.sortButtonActive,
-              ]}
-              onPress={() => setSortBy(sort.id as any)}
-            >
-              <ThemedText
-                style={[
-                  styles.sortButtonText,
-                  sortBy === sort.id && styles.sortButtonTextActive,
-                ]}
+        </Text>
+        <View style={{ flexDirection: "row", gap: space.sm }}>
+          {SORT_OPTIONS.map((sort) => {
+            const active = sortBy === sort.id;
+            return (
+              <Pressable
+                key={sort.id}
+                style={{
+                  flex: 1,
+                  paddingHorizontal: space.md,
+                  paddingVertical: space.xs,
+                  borderRadius: radius.pill,
+                  borderWidth: 1,
+                  borderColor: active ? colour.primary : colour.border,
+                  backgroundColor: active ? colour.primary : "transparent",
+                  alignItems: "center",
+                }}
+                onPress={() => setSortBy(sort.id as any)}
               >
-                {sort.label}
-              </ThemedText>
-            </Pressable>
-          ))}
+                <Text
+                  style={{
+                    ...typography.labelS,
+                    color: active ? colour.onPrimary : colour.textSub,
+                  }}
+                >
+                  {sort.label}
+                </Text>
+              </Pressable>
+            );
+          })}
         </View>
-      </ThemedView>
+      </View>
 
+      {/* List */}
       {sortedExpenses.length > 0 ? (
         <FlatList
           data={sortedExpenses}
           scrollEnabled={false}
           renderItem={renderExpenseItem}
           keyExtractor={(item) => item.id}
-          ListHeaderComponent={<View style={{ height: 8 }} />}
+          ListHeaderComponent={<View style={{ height: space.sm }} />}
           ListFooterComponent={<View style={{ height: 100 }} />}
         />
       ) : (
-        <View style={styles.emptyContainer}>
-          <ThemedText style={styles.emptyIcon}>📭</ThemedText>
-          <ThemedText style={styles.emptyTitle}>No expenses found</ThemedText>
-          <ThemedText style={styles.emptySubtext}>
+        <View
+          style={{
+            flex: 1,
+            alignItems: "center",
+            justifyContent: "center",
+            paddingVertical: 40,
+          }}
+        >
+          <Text style={{ fontSize: 52, marginBottom: space.lg }}>📭</Text>
+          <Text style={{ ...typography.h4, color: colour.text, marginBottom: space.sm }}>
+            No expenses found
+          </Text>
+          <Text style={{ ...typography.bodyM, color: colour.textSub }}>
             Try adjusting your filters
-          </ThemedText>
+          </Text>
         </View>
       )}
-    </ThemedView>
+    </View>
   );
 }

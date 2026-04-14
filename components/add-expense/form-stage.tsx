@@ -1,12 +1,11 @@
-import { ThemedText } from "@/components/themed-text";
-import { ThemedView } from "@/components/themed-view";
+import { colour, radius, space, typography } from "@/tokens";
 import {
-    ScrollView,
-    StyleSheet,
-    Switch,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ScrollView,
+  Switch,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { NumericKeypad } from "./numeric-keypad";
 import type { Category, ExpenseData, PaymentMethod } from "./types";
@@ -61,168 +60,301 @@ export function FormStage({
     data.categoryIdx !== null ? categories[data.categoryIdx] : null;
 
   return (
-    <ThemedView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View>
-          <ThemedText style={styles.amountLabel}>AMOUNT</ThemedText>
-          <ThemedText style={styles.amountValue}>{amountDisplay}</ThemedText>
-        </View>
+    <View style={{ flex: 1, backgroundColor: colour.white }}>
+      {/* ── Amount header ────────────────────────────────────────────────────── */}
+      <View
+        style={{
+          backgroundColor: colour.primary,
+          paddingVertical: space.xl,
+          paddingHorizontal: space.xl,
+        }}
+      >
+        <Text
+          style={{
+            ...typography.labelS,
+            color: colour.primary100,
+            marginBottom: space.sm,
+          }}
+        >
+          AMOUNT
+        </Text>
+        <Text style={{ ...typography.amountXL, color: colour.onPrimary }}>
+          {amountDisplay}
+        </Text>
       </View>
 
-      {/* Scrollable form */}
+      {/* ── Form body ────────────────────────────────────────────────────────── */}
       <ScrollView
-        style={styles.scrollContainer}
-        contentContainerStyle={styles.scrollContent}
+        style={{ flex: 1 }}
+        contentContainerStyle={{ padding: space.xl }}
       >
         {/* Numeric keypad */}
-        <View style={styles.keypadContainer}>
+        <View style={{ marginBottom: 18 }}>
           <NumericKeypad onKeyPress={handleKeyPress} />
         </View>
 
-        {/* Vendor field */}
-        <View style={styles.fieldGroup}>
-          <ThemedText style={styles.fieldLabel}>VENDOR / SUPPLIER</ThemedText>
-          <View
-            style={[
-              styles.inputContainer,
-              focusedField === "vendor" && styles.inputFocused,
-            ]}
+        {/* ── Vendor ─────────────────────────────────────────────────────────── */}
+        <View style={{ marginBottom: 14 }}>
+          <Text
+            style={{
+              ...typography.labelS,
+              color: colour.primary,
+              marginBottom: space.sm,
+            }}
           >
-            <ThemedText style={styles.fieldIcon}>🏪</ThemedText>
+            VENDOR / SUPPLIER
+          </Text>
+          <View
+            style={{
+              backgroundColor: colour.white,
+              borderRadius: radius.md,
+              borderWidth: 1.5,
+              borderColor:
+                focusedField === "vendor" ? colour.primary : colour.borderLight,
+              flexDirection: "row",
+              alignItems: "center",
+              paddingHorizontal: 14,
+              paddingVertical: 13,
+            }}
+          >
+            <Text style={{ fontSize: 18, marginRight: space.sm }}>🏪</Text>
             <TextInput
               value={data.vendor}
               onChangeText={(vendor) => onDataChange({ vendor })}
               onFocus={() => setFocusedField("vendor")}
               onBlur={() => setFocusedField(null)}
               placeholder="e.g. Incredible Connection"
-              placeholderTextColor="#AAAACC"
-              style={styles.textInput}
+              placeholderTextColor={colour.textHint}
+              style={{ ...typography.bodyM, flex: 1, color: colour.text }}
             />
-            {data.vendor && (
+            {data.vendor ? (
               <TouchableOpacity onPress={() => onDataChange({ vendor: "" })}>
-                <ThemedText style={styles.clearIcon}>×</ThemedText>
+                <Text style={{ fontSize: 18, color: colour.textSub }}>×</Text>
               </TouchableOpacity>
-            )}
+            ) : null}
           </View>
         </View>
 
-        {/* Date field */}
-        <View style={styles.fieldGroup}>
-          <ThemedText style={styles.fieldLabel}>DATE</ThemedText>
-          <View style={styles.inputContainer}>
-            <ThemedText style={styles.fieldIcon}>📅</ThemedText>
+        {/* ── Date ───────────────────────────────────────────────────────────── */}
+        <View style={{ marginBottom: 14 }}>
+          <Text
+            style={{
+              ...typography.labelS,
+              color: colour.primary,
+              marginBottom: space.sm,
+            }}
+          >
+            DATE
+          </Text>
+          <View
+            style={{
+              backgroundColor: colour.white,
+              borderRadius: radius.md,
+              borderWidth: 1.5,
+              borderColor: colour.borderLight,
+              flexDirection: "row",
+              alignItems: "center",
+              paddingHorizontal: 14,
+              paddingVertical: 13,
+            }}
+          >
+            <Text style={{ fontSize: 18, marginRight: space.sm }}>📅</Text>
             <TextInput
               value={data.dateStr}
               onChangeText={(dateStr) => onDataChange({ dateStr })}
               placeholder="DD MMM YYYY"
-              placeholderTextColor="#AAAACC"
-              style={styles.textInput}
+              placeholderTextColor={colour.textHint}
+              style={{ ...typography.bodyM, flex: 1, color: colour.text }}
             />
-            <ThemedText style={styles.todayBadge}>Today</ThemedText>
+            <Text style={{ ...typography.actionS, color: colour.primary }}>
+              Today
+            </Text>
           </View>
         </View>
 
-        {/* Category selector */}
-        <View style={styles.fieldGroup}>
-          <ThemedText style={styles.fieldLabel}>ITR12 CATEGORY</ThemedText>
+        {/* ── Category ───────────────────────────────────────────────────────── */}
+        <View style={{ marginBottom: 14 }}>
+          <Text
+            style={{
+              ...typography.labelS,
+              color: colour.primary,
+              marginBottom: space.sm,
+            }}
+          >
+            ITR12 CATEGORY
+          </Text>
           <TouchableOpacity
-            style={[
-              styles.inputContainer,
-              selectedCategory && { borderColor: selectedCategory.color },
-            ]}
+            style={{
+              backgroundColor: colour.white,
+              borderRadius: radius.md,
+              borderWidth: 1.5,
+              borderColor: selectedCategory
+                ? selectedCategory.color
+                : colour.borderLight,
+              flexDirection: "row",
+              alignItems: "center",
+              paddingHorizontal: 14,
+              paddingVertical: 13,
+            }}
             onPress={onCategorySelect}
           >
             {selectedCategory ? (
               <>
-                <ThemedText style={styles.fieldIcon}>
+                <Text style={{ fontSize: 18, marginRight: space.sm }}>
                   {selectedCategory.icon}
-                </ThemedText>
-                <ThemedText style={styles.categoryLabel}>
-                  {selectedCategory.label}
-                </ThemedText>
-                <View
-                  style={[
-                    styles.categoryBadge,
-                    { backgroundColor: selectedCategory.color + "20" },
-                  ]}
+                </Text>
+                <Text
+                  style={{
+                    ...typography.labelM,
+                    flex: 1,
+                    color: colour.text,
+                  }}
                 >
-                  <ThemedText
-                    style={[
-                      styles.categoryCode,
-                      { color: selectedCategory.color },
-                    ]}
+                  {selectedCategory.label}
+                </Text>
+                <View
+                  style={{
+                    backgroundColor: selectedCategory.color + "20",
+                    borderRadius: radius.pill,
+                    paddingHorizontal: space.sm,
+                    paddingVertical: 3,
+                  }}
+                >
+                  <Text
+                    style={{
+                      ...typography.micro,
+                      fontWeight: "700",
+                      color: selectedCategory.color,
+                    }}
                   >
                     {selectedCategory.code}
-                  </ThemedText>
+                  </Text>
                 </View>
               </>
             ) : (
               <>
-                <ThemedText style={styles.fieldIcon}>🏷️</ThemedText>
-                <ThemedText style={styles.placeholder}>
+                <Text style={{ fontSize: 18, marginRight: space.sm }}>🏷️</Text>
+                <Text
+                  style={{ ...typography.bodyM, flex: 1, color: colour.textHint }}
+                >
                   Select category…
-                </ThemedText>
-                <ThemedText style={styles.chevron}>›</ThemedText>
+                </Text>
+                <Text style={{ ...typography.bodyL, color: colour.primary }}>
+                  ›
+                </Text>
               </>
             )}
           </TouchableOpacity>
         </View>
 
-        {/* Payment method */}
-        <View style={styles.fieldGroup}>
-          <ThemedText style={styles.fieldLabel}>PAYMENT METHOD</ThemedText>
-          <View style={styles.paymentGrid}>
-            {paymentMethods.map((pm, i) => (
-              <TouchableOpacity
-                key={i}
-                style={[
-                  styles.paymentOption,
-                  data.paymentMethodIdx === i && styles.paymentSelected,
-                ]}
-                onPress={() => onDataChange({ paymentMethodIdx: i })}
-              >
-                <ThemedText style={styles.paymentIcon}>{pm.icon}</ThemedText>
-                <ThemedText style={styles.paymentLabel}>{pm.label}</ThemedText>
-              </TouchableOpacity>
-            ))}
+        {/* ── Payment method ─────────────────────────────────────────────────── */}
+        <View style={{ marginBottom: 14 }}>
+          <Text
+            style={{
+              ...typography.labelS,
+              color: colour.primary,
+              marginBottom: space.sm,
+            }}
+          >
+            PAYMENT METHOD
+          </Text>
+          <View style={{ flexDirection: "row", gap: space.sm }}>
+            {paymentMethods.map((pm, i) => {
+              const selected = data.paymentMethodIdx === i;
+              return (
+                <TouchableOpacity
+                  key={i}
+                  style={{
+                    flex: 1,
+                    alignItems: "center",
+                    paddingVertical: space.md,
+                    paddingHorizontal: space.sm,
+                    borderRadius: radius.md,
+                    backgroundColor: selected ? colour.primary50 : colour.white,
+                    borderWidth: 1.5,
+                    borderColor: selected ? colour.primary : colour.borderLight,
+                  }}
+                  onPress={() => onDataChange({ paymentMethodIdx: i })}
+                >
+                  <Text style={{ fontSize: 20, marginBottom: space.xs }}>
+                    {pm.icon}
+                  </Text>
+                  <Text
+                    style={{
+                      ...typography.micro,
+                      fontWeight: "600",
+                      textAlign: "center",
+                      color: selected ? colour.primary : colour.textSub,
+                    }}
+                  >
+                    {pm.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
         </View>
 
-        {/* Deductible toggle */}
-        <View style={styles.fieldGroup}>
-          <View style={styles.deductibleContainer}>
-            <View style={styles.deductibleLeft}>
-              <ThemedText style={styles.deductibleIcon}>💡</ThemedText>
+        {/* ── Deductible toggle ──────────────────────────────────────────────── */}
+        <View style={{ marginBottom: 14 }}>
+          <View
+            style={{
+              backgroundColor: colour.white,
+              borderRadius: radius.md,
+              borderWidth: 1.5,
+              borderColor: colour.borderLight,
+              paddingHorizontal: space.lg,
+              paddingVertical: 14,
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <View style={{ flexDirection: "row", alignItems: "center", gap: space.sm, flex: 1 }}>
+              <Text style={{ fontSize: 20 }}>💡</Text>
               <View>
-                <ThemedText style={styles.deductibleTitle}>
+                <Text style={{ ...typography.labelM, color: colour.text }}>
                   Tax Deductible
-                </ThemedText>
-                <ThemedText style={styles.deductibleSubtitle}>
+                </Text>
+                <Text style={{ ...typography.bodyXS, color: colour.textSub }}>
                   Mark for ITR12 deduction
-                </ThemedText>
+                </Text>
               </View>
             </View>
             <Switch
               value={data.isDeductible}
               onValueChange={(isDeductible) => onDataChange({ isDeductible })}
-              trackColor={{ false: "#E0E0E0", true: "#0288D1" }}
-              thumbColor="#fff"
+              trackColor={{ false: colour.border, true: colour.primary }}
+              thumbColor={colour.white}
             />
           </View>
         </View>
 
-        {/* Note field */}
-        <View style={styles.fieldGroup}>
-          <ThemedText style={styles.fieldLabel}>
-            NOTE <ThemedText style={styles.optional}>(optional)</ThemedText>
-          </ThemedText>
+        {/* ── Note ───────────────────────────────────────────────────────────── */}
+        <View style={{ marginBottom: 14 }}>
+          <Text
+            style={{
+              ...typography.labelS,
+              color: colour.primary,
+              marginBottom: space.sm,
+            }}
+          >
+            NOTE{" "}
+            <Text style={{ ...typography.bodyXS, color: colour.textHint }}>
+              (optional)
+            </Text>
+          </Text>
           <View
-            style={[
-              styles.inputContainer,
-              { minHeight: 80 },
-              focusedField === "note" && styles.inputFocused,
-            ]}
+            style={{
+              backgroundColor: colour.white,
+              borderRadius: radius.md,
+              borderWidth: 1.5,
+              minHeight: 80,
+              borderColor:
+                focusedField === "note" ? colour.primary : colour.borderLight,
+              paddingHorizontal: 14,
+              paddingVertical: 13,
+            }}
           >
             <TextInput
               value={data.note}
@@ -230,254 +362,76 @@ export function FormStage({
               onFocus={() => setFocusedField("note")}
               onBlur={() => setFocusedField(null)}
               placeholder="e.g. Client meeting at Vida e Caffè"
-              placeholderTextColor="#AAAACC"
+              placeholderTextColor={colour.textHint}
               multiline
-              style={styles.textArea}
+              style={{ ...typography.bodyM, flex: 1, color: colour.text }}
             />
           </View>
         </View>
 
-        {/* Attach receipt hint */}
-        <TouchableOpacity style={styles.attachReceipt}>
-          <ThemedText style={styles.attachIcon}>📸</ThemedText>
-          <View style={styles.attachText}>
-            <ThemedText style={styles.attachTitle}>Attach Receipt</ThemedText>
-            <ThemedText style={styles.attachSubtitle}>
-              Scan or upload for full ITR12 compliance
-            </ThemedText>
+        {/* ── Attach receipt hint ────────────────────────────────────────────── */}
+        <TouchableOpacity
+          style={{
+            backgroundColor: colour.primary50,
+            borderRadius: radius.md,
+            paddingVertical: 12,
+            paddingHorizontal: space.lg,
+            flexDirection: "row",
+            alignItems: "center",
+            marginBottom: 22,
+            borderWidth: 1.5,
+            borderStyle: "dashed",
+            borderColor: colour.primary100,
+          }}
+        >
+          <View
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: radius.sm,
+              backgroundColor: colour.primary100,
+              alignItems: "center",
+              justifyContent: "center",
+              marginRight: space.md,
+            }}
+          >
+            <Text style={{ fontSize: 18 }}>📸</Text>
           </View>
-          <ThemedText style={styles.attachPlus}>+</ThemedText>
+          <View style={{ flex: 1 }}>
+            <Text style={{ ...typography.labelM, color: colour.primary }}>
+              Attach Receipt
+            </Text>
+            <Text style={{ ...typography.bodyXS, color: colour.textSub }}>
+              Scan or upload for full ITR12 compliance
+            </Text>
+          </View>
+          <Text style={{ ...typography.h4, color: colour.primary }}>+</Text>
         </TouchableOpacity>
       </ScrollView>
 
-      {/* Submit button */}
-      <View style={styles.footer}>
+      {/* ── Submit button ─────────────────────────────────────────────────────── */}
+      <View style={{ padding: space.xl }}>
         <TouchableOpacity
-          style={[styles.submitButton, !isValid && styles.submitDisabled]}
+          style={{
+            backgroundColor: isValid ? colour.primary : colour.surface2,
+            borderRadius: radius.pill,
+            paddingVertical: 16,
+            alignItems: "center",
+            opacity: isValid ? 1 : 0.6,
+          }}
           onPress={onConfirm}
           disabled={!isValid}
         >
-          <ThemedText style={styles.submitText}>Review Expense →</ThemedText>
+          <Text
+            style={{
+              ...typography.btnL,
+              color: isValid ? colour.onPrimary : colour.textDisabled,
+            }}
+          >
+            Review Expense →
+          </Text>
         </TouchableOpacity>
       </View>
-    </ThemedView>
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  header: {
-    backgroundColor: "#1565C0",
-    paddingVertical: 20,
-    paddingHorizontal: 24,
-  },
-  amountLabel: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#757575",
-    marginBottom: 8,
-  },
-  amountValue: {
-    fontSize: 48,
-    fontWeight: "900",
-    color: "#0288D1",
-  },
-  scrollContainer: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingVertical: 20,
-    paddingHorizontal: 20,
-  },
-  keypadContainer: {
-    marginBottom: 18,
-  },
-  fieldGroup: {
-    marginBottom: 14,
-  },
-  fieldLabel: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#1565C0",
-    marginBottom: 8,
-  },
-  optional: {
-    color: "#757575",
-    fontWeight: "400",
-  },
-  inputContainer: {
-    backgroundColor: "#fff",
-    borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: "#F5F5F5",
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 14,
-    paddingVertical: 13,
-  },
-  inputFocused: {
-    borderColor: "#1565C0",
-  },
-  fieldIcon: {
-    fontSize: 18,
-    marginRight: 10,
-  },
-  textInput: {
-    flex: 1,
-    fontSize: 14,
-    color: "#0D47A1",
-    paddingVertical: 0,
-  },
-  textArea: {
-    flex: 1,
-    fontSize: 14,
-    color: "#0D47A1",
-    textAlignVertical: "top",
-  },
-  clearIcon: {
-    fontSize: 18,
-    color: "#757575",
-  },
-  todayBadge: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#0288D1",
-  },
-  categoryLabel: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#0D47A1",
-  },
-  categoryBadge: {
-    borderRadius: 20,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-  categoryCode: {
-    fontSize: 10,
-    fontWeight: "700",
-  },
-  placeholder: {
-    flex: 1,
-    fontSize: 14,
-    color: "#757575",
-  },
-  chevron: {
-    fontSize: 18,
-    color: "#0288D1",
-  },
-  paymentGrid: {
-    flexDirection: "row",
-    gap: 8,
-  },
-  paymentOption: {
-    flex: 1,
-    alignItems: "center",
-    paddingVertical: 10,
-    paddingHorizontal: 6,
-    borderRadius: 12,
-    backgroundColor: "#fff",
-    borderWidth: 1.5,
-    borderColor: "#F5F5F5",
-  },
-  paymentSelected: {
-    backgroundColor: "#F5F5F5",
-    borderColor: "#1565C0",
-  },
-  paymentIcon: {
-    fontSize: 20,
-    marginBottom: 4,
-  },
-  paymentLabel: {
-    fontSize: 9,
-    fontWeight: "600",
-    textAlign: "center",
-  },
-  deductibleContainer: {
-    backgroundColor: "#fff",
-    borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: "#F5F5F5",
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  deductibleLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    flex: 1,
-  },
-  deductibleIcon: {
-    fontSize: 20,
-  },
-  deductibleTitle: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#0D47A1",
-  },
-  deductibleSubtitle: {
-    fontSize: 11,
-    color: "#757575",
-  },
-  attachReceipt: {
-    backgroundColor: "rgba(21,101,192,0.05)",
-    borderRadius: 14,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 22,
-    borderWidth: 1.5,
-    borderStyle: "dashed",
-    borderColor: "#E0E0E0",
-  },
-  attachIcon: {
-    fontSize: 18,
-    width: 36,
-    height: 36,
-    backgroundColor: "rgba(2,136,209,0.15)",
-    textAlign: "center",
-    textAlignVertical: "center",
-    borderRadius: 10,
-    marginRight: 12,
-  },
-  attachText: {
-    flex: 1,
-  },
-  attachTitle: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#1565C0",
-  },
-  attachSubtitle: {
-    fontSize: 11,
-    color: "#757575",
-  },
-  attachPlus: {
-    color: "#0288D1",
-    fontSize: 18,
-  },
-  footer: {
-    padding: 20,
-  },
-  submitButton: {
-    backgroundColor: "#1565C0",
-    borderRadius: 18,
-    paddingVertical: 16,
-    alignItems: "center",
-  },
-  submitDisabled: {
-    opacity: 0.5,
-  },
-  submitText: {
-    fontWeight: "700",
-    fontSize: 15,
-    color: "#fff",
-  },
-});

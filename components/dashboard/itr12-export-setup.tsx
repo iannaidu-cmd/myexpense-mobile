@@ -1,38 +1,16 @@
-import { ThemedText } from "@/components/themed-text";
-import { ThemedView } from "@/components/themed-view";
-import { useThemeColor } from "@/hooks/use-theme-color";
+import { colour, radius, space, typography } from "@/tokens";
 import { useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Switch, View } from "react-native";
+import { Pressable, ScrollView, Switch, Text, View } from "react-native";
 
-interface TaxYear {
-  label: string;
-  range: string;
-  current: boolean;
-}
-
-interface ExportCategory {
-  name: string;
-  icon: string;
-  color: string;
-  amount: number;
-  included: boolean;
-  note?: string;
-}
-
-interface ExportFormat {
-  id: string;
-  label: string;
-  icon: string;
-  description: string;
-}
-
+interface TaxYear { label: string; range: string; current: boolean; }
+interface ExportCategory { name: string; icon: string; color: string; amount: number; included: boolean; note?: string; }
+interface ExportFormat    { id: string; label: string; icon: string; description: string; }
 type ExportStep = "year" | "categories" | "format" | "options";
 
 interface ITR12ExportSetupProps {
   onExport?: (config: ITR12ExportConfig) => void;
   onCancel?: () => void;
 }
-
 interface ITR12ExportConfig {
   taxYear: string;
   categories: ExportCategory[];
@@ -43,515 +21,163 @@ interface ITR12ExportConfig {
 }
 
 const TAX_YEARS: TaxYear[] = [
-  { label: "2026", range: "1 Mar 2025 – 28 Feb 2026", current: true },
+  { label: "2026", range: "1 Mar 2025 – 28 Feb 2026", current: true  },
   { label: "2025", range: "1 Mar 2024 – 28 Feb 2025", current: false },
   { label: "2024", range: "1 Mar 2023 – 28 Feb 2024", current: false },
 ];
 
 const EXPORT_CATEGORIES: ExportCategory[] = [
-  {
-    name: "Software & Tech",
-    icon: "💻",
-    color: "#1976D2",
-    amount: 12400,
-    included: true,
-  },
-  {
-    name: "Travel & Transport",
-    icon: "🚗",
-    color: "#0288D1",
-    amount: 9200,
-    included: true,
-  },
-  {
-    name: "Office & Stationery",
-    icon: "📁",
-    color: "#1565C0",
-    amount: 7800,
-    included: true,
-  },
-  {
-    name: "Professional Services",
-    icon: "📋",
-    color: "#48D1C0",
-    amount: 6100,
-    included: true,
-  },
-  {
-    name: "Meals & Entertainment",
-    icon: "🍽️",
-    color: "#E07060",
-    amount: 3400,
-    included: true,
-    note: "50% only",
-  },
-  {
-    name: "Home Office",
-    icon: "🏠",
-    color: "#0288D1",
-    amount: 4800,
-    included: true,
-    note: "Calculated %",
-  },
+  { name: "Software & Tech",       icon: "💻", color: colour.midNavy2, amount: 12400, included: true              },
+  { name: "Travel & Transport",    icon: "🚗", color: colour.info,     amount: 9200,  included: true              },
+  { name: "Office & Stationery",   icon: "📁", color: colour.primary,  amount: 7800,  included: true              },
+  { name: "Professional Services", icon: "📋", color: colour.teal,     amount: 6100,  included: true              },
+  { name: "Meals & Entertainment", icon: "🍽️", color: colour.danger,   amount: 3400,  included: true, note: "50% only"         },
+  { name: "Home Office",           icon: "🏠", color: colour.info,     amount: 4800,  included: true, note: "Calculated %"     },
 ];
 
 const EXPORT_FORMATS: ExportFormat[] = [
-  {
-    id: "pdf",
-    label: "PDF report",
-    icon: "📄",
-    description: "Formatted for SARS submission",
-  },
-  {
-    id: "csv",
-    label: "CSV export",
-    icon: "📊",
-    description: "Spreadsheet-compatible format",
-  },
-  {
-    id: "itr12",
-    label: "ITR12 Summary",
-    icon: "🏛️",
-    description: "SARS field-mapped breakdown",
-  },
+  { id: "pdf",   label: "PDF report",    icon: "📄", description: "Formatted for SARS submission"    },
+  { id: "csv",   label: "CSV export",    icon: "📊", description: "Spreadsheet-compatible format"    },
+  { id: "itr12", label: "ITR12 Summary", icon: "🏛️", description: "SARS field-mapped breakdown"     },
 ];
 
-export function ITR12ExportSetupScreen({
-  onExport,
-  onCancel,
-}: ITR12ExportSetupProps) {
-  const [currentStep, setCurrentStep] = useState<ExportStep>("year");
-  const [selectedYear, setSelectedYear] = useState(0);
-  const [categories, setCategories] = useState(EXPORT_CATEGORIES);
-  const [selectedFormat, setSelectedFormat] = useState("pdf");
-  const [includeVAT, setIncludeVAT] = useState(true);
-  const [includeReceipts, setIncludeReceipts] = useState(true);
+const STEPS: Array<{ id: ExportStep; label: string }> = [
+  { id: "year",       label: "Tax year"   },
+  { id: "categories", label: "Categories" },
+  { id: "format",     label: "Format"     },
+  { id: "options",    label: "Options"    },
+];
 
-  const backgroundColor = useThemeColor(
-    { light: "#F5F5F5", dark: "#0D47A1" },
-    "background",
-  );
-  const cardBackground = useThemeColor(
-    { light: "#F5F5F5", dark: "#1565C0" },
-    "background",
-  );
-  const textColor = useThemeColor({}, "text");
-  const mutedColor = useThemeColor(
-    { light: "#757575", dark: "#9E9E9E" },
-    "text",
-  );
-  const borderColor = useThemeColor(
-    { light: "#E0E0E0", dark: "#1976D2" },
-    "text",
-  );
-  const accentColor = "#0288D1";
+export function ITR12ExportSetupScreen({ onExport, onCancel }: ITR12ExportSetupProps) {
+  const [currentStep,     setCurrentStep]    = useState<ExportStep>("year");
+  const [selectedYear,    setSelectedYear]   = useState(0);
+  const [categories,      setCategories]     = useState(EXPORT_CATEGORIES);
+  const [selectedFormat,  setSelectedFormat] = useState("pdf");
+  const [includeVAT,      setIncludeVAT]     = useState(true);
+  const [includeReceipts, setIncludeReceipts]= useState(true);
 
-  const toggleCategory = (index: number) => {
+  const toggleCategory = (index: number) =>
     setCategories((prev) =>
-      prev.map((cat, i) =>
-        i === index ? { ...cat, included: !cat.included } : cat,
-      ),
+      prev.map((cat, i) => (i === index ? { ...cat, included: !cat.included } : cat)),
     );
-  };
 
-  const calculateTotal = () => {
-    return categories.reduce((sum, cat) => {
+  const calculateTotal = () =>
+    categories.reduce((sum, cat) => {
       if (!cat.included) return sum;
-      const amount = cat.note ? Math.round(cat.amount * 0.5) : cat.amount;
-      return sum + amount;
+      return sum + (cat.note ? Math.round(cat.amount * 0.5) : cat.amount);
     }, 0);
-  };
 
   const totalAmount = calculateTotal();
+  const stepIndex   = STEPS.findIndex((s) => s.id === currentStep);
+  const isLastStep  = stepIndex === STEPS.length - 1;
 
-  const handleExport = () => {
-    const config: ITR12ExportConfig = {
-      taxYear: TAX_YEARS[selectedYear].label,
-      categories,
-      format: selectedFormat,
-      includeVAT,
-      includeReceipts,
-      totalAmount,
-    };
-    onExport?.(config);
-  };
+  // ── Checkbox helper ─────────────────────────────────────────────────────────
+  const Checkbox = ({ checked }: { checked: boolean }) => (
+    <View
+      style={{
+        width: 22,
+        height: 22,
+        borderRadius: 6,
+        borderWidth: 2,
+        borderColor: checked ? colour.primary : colour.border,
+        backgroundColor: checked ? colour.primary : "transparent",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      {checked && <Text style={{ color: colour.white, fontSize: 14 }}>✓</Text>}
+    </View>
+  );
 
-  const steps: Array<{ id: ExportStep; label: string }> = [
-    { id: "year", label: "Tax year" },
-    { id: "categories", label: "Categories" },
-    { id: "format", label: "Format" },
-    { id: "options", label: "Options" },
-  ];
-
-  const styles = StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor,
-    },
-    header: {
-      paddingHorizontal: 24,
-      paddingTop: 20,
-      paddingBottom: 28,
-      backgroundColor: "rgba(21, 101, 192, 0.95)",
-      borderBottomWidth: 1,
-      borderBottomColor: "rgba(0, 0, 0, 0.1)",
-    },
-    headerTop: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 12,
-      marginBottom: 16,
-    },
-    backButton: {
-      fontSize: 22,
-      color: "rgba(255, 255, 255, 0.65)",
-    },
-    headerTitle: {
-      fontSize: 22,
-      fontWeight: "800",
-      color: "#fff",
-      marginBottom: 6,
-    },
-    headerSubtext: {
-      fontSize: 12,
-      color: "rgba(255, 255, 255, 0.5)",
-      marginBottom: 10,
-    },
-    totalBadge: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 6,
-      backgroundColor: "rgba(59, 191, 173, 0.18)",
-      borderRadius: 20,
-      paddingHorizontal: 14,
-      paddingVertical: 5,
-      borderWidth: 1,
-      borderColor: "rgba(59, 191, 173, 0.35)",
-      alignSelf: "flex-start",
-    },
-    totalBadgeText: {
-      color: accentColor,
-      fontSize: 11,
-      fontWeight: "700",
-    },
-    content: {
-      flex: 1,
-    },
-    stepsContainer: {
-      flexDirection: "row",
-      gap: 8,
-      paddingHorizontal: 20,
-      paddingVertical: 12,
-      borderBottomWidth: 1,
-      borderBottomColor: borderColor,
-    },
-    stepButton: {
-      paddingHorizontal: 12,
-      paddingVertical: 6,
-      borderRadius: 6,
-      backgroundColor: "transparent",
-      borderWidth: 1,
-      borderColor: borderColor,
-    },
-    stepButtonActive: {
-      backgroundColor: accentColor,
-      borderColor: accentColor,
-    },
-    stepButtonText: {
-      fontSize: 12,
-      fontWeight: "600",
-      color: mutedColor,
-    },
-    stepButtonTextActive: {
-      color: "#FFFFFF",
-    },
-    stepContent: {
-      padding: 20,
-    },
-    stepTitle: {
-      fontSize: 14,
-      fontWeight: "700",
-      color: textColor,
-      marginBottom: 16,
-      letterSpacing: 0.5,
-    },
-    yearOption: {
-      backgroundColor: cardBackground,
-      borderRadius: 12,
-      borderWidth: 2,
-      paddingHorizontal: 16,
-      paddingVertical: 14,
-      marginBottom: 10,
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 12,
-    },
-    yearOptionSelected: {
-      borderColor: accentColor,
-      backgroundColor: "rgba(59, 191, 173, 0.08)",
-    },
-    yearOptionUnselected: {
-      borderColor: borderColor,
-    },
-    yearLabel: {
-      fontSize: 16,
-      fontWeight: "700",
-      color: textColor,
-    },
-    yearBadge: {
-      backgroundColor: accentColor,
-      borderRadius: 4,
-      paddingHorizontal: 6,
-      paddingVertical: 2,
-      marginLeft: 8,
-    },
-    yearBadgeText: {
-      fontSize: 10,
-      fontWeight: "700",
-      color: "#FFFFFF",
-    },
-    yearRange: {
-      fontSize: 12,
-      color: mutedColor,
-      marginTop: 4,
-      flex: 1,
-    },
-    categoryItem: {
-      backgroundColor: cardBackground,
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: borderColor,
-      paddingHorizontal: 14,
-      paddingVertical: 12,
-      marginBottom: 10,
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 12,
-    },
-    categoryCheckbox: {
-      width: 24,
-      height: 24,
-      borderRadius: 6,
-      borderWidth: 2,
-      borderColor: borderColor,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    categoryCheckboxChecked: {
-      backgroundColor: accentColor,
-      borderColor: accentColor,
-    },
-    categoryIcon: {
-      fontSize: 18,
-    },
-    categoryInfo: {
-      flex: 1,
-    },
-    categoryName: {
-      fontSize: 13,
-      fontWeight: "600",
-      color: textColor,
-    },
-    categoryAmount: {
-      fontSize: 12,
-      color: mutedColor,
-      marginTop: 2,
-    },
-    categoryNote: {
-      fontSize: 10,
-      fontWeight: "600",
-      color: accentColor,
-      marginTop: 2,
-    },
-    formatOption: {
-      backgroundColor: cardBackground,
-      borderRadius: 12,
-      borderWidth: 2,
-      paddingHorizontal: 16,
-      paddingVertical: 14,
-      marginBottom: 10,
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 12,
-    },
-    formatOptionSelected: {
-      borderColor: accentColor,
-      backgroundColor: "rgba(59, 191, 173, 0.08)",
-    },
-    formatOptionUnselected: {
-      borderColor: borderColor,
-    },
-    formatIcon: {
-      fontSize: 24,
-    },
-    formatInfo: {
-      flex: 1,
-    },
-    formatLabel: {
-      fontSize: 14,
-      fontWeight: "700",
-      color: textColor,
-    },
-    formatDescription: {
-      fontSize: 12,
-      color: mutedColor,
-      marginTop: 2,
-    },
-    optionRow: {
-      backgroundColor: cardBackground,
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: borderColor,
-      paddingHorizontal: 16,
-      paddingVertical: 14,
-      marginBottom: 10,
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-    },
-    optionLabel: {
-      fontSize: 14,
-      fontWeight: "600",
-      color: textColor,
-    },
-    optionSubtext: {
-      fontSize: 12,
-      color: mutedColor,
-      marginTop: 2,
-    },
-    navigationContainer: {
-      flexDirection: "row",
-      gap: 12,
-      paddingHorizontal: 20,
-      paddingVertical: 16,
-      borderTopWidth: 1,
-      borderTopColor: borderColor,
-    },
-    cancelButton: {
-      flex: 1,
-      paddingVertical: 12,
-      borderRadius: 12,
-      borderWidth: 1.5,
-      borderColor: borderColor,
-      alignItems: "center",
-    },
-    cancelButtonText: {
-      fontSize: 14,
-      fontWeight: "700",
-      color: textColor,
-    },
-    nextButton: {
-      flex: 1,
-      paddingVertical: 12,
-      borderRadius: 12,
-      backgroundColor: accentColor,
-      alignItems: "center",
-    },
-    nextButtonText: {
-      fontSize: 14,
-      fontWeight: "700",
-      color: "#FFFFFF",
-    },
-    exportButton: {
-      flex: 1,
-      paddingVertical: 12,
-      borderRadius: 12,
-      backgroundColor: accentColor,
-      alignItems: "center",
-    },
-    exportButtonText: {
-      fontSize: 14,
-      fontWeight: "700",
-      color: "#FFFFFF",
-    },
-    bottomSpacing: {
-      height: 20,
-    },
-  });
-
+  // ── Step content ────────────────────────────────────────────────────────────
   const renderStepContent = () => {
     switch (currentStep) {
       case "year":
         return (
           <View>
-            <ThemedText style={styles.stepTitle}>Select Tax Year</ThemedText>
-            {TAX_YEARS.map((year, index) => (
-              <Pressable
-                key={year.label}
-                onPress={() => setSelectedYear(index)}
-                style={[
-                  styles.yearOption,
-                  selectedYear === index
-                    ? styles.yearOptionSelected
-                    : styles.yearOptionUnselected,
-                ]}
-              >
-                <View style={{ flex: 1 }}>
-                  <View style={{ flexDirection: "row", alignItems: "center" }}>
-                    <ThemedText style={styles.yearLabel}>
-                      {year.label}
-                    </ThemedText>
-                    {year.current && (
-                      <View style={styles.yearBadge}>
-                        <ThemedText style={styles.yearBadgeText}>
-                          Current
-                        </ThemedText>
-                      </View>
-                    )}
-                  </View>
-                  <ThemedText style={styles.yearRange}>{year.range}</ThemedText>
-                </View>
-                <View
-                  style={[
-                    styles.categoryCheckbox,
-                    selectedYear === index && styles.categoryCheckboxChecked,
-                  ]}
+            <Text style={{ ...typography.labelM, color: colour.text, marginBottom: 16 }}>
+              Select Tax Year
+            </Text>
+            {TAX_YEARS.map((year, index) => {
+              const sel = selectedYear === index;
+              return (
+                <Pressable
+                  key={year.label}
+                  onPress={() => setSelectedYear(index)}
+                  style={{
+                    backgroundColor: sel ? colour.primary50 : colour.surface1,
+                    borderRadius: radius.md,
+                    borderWidth: 2,
+                    borderColor: sel ? colour.primary : colour.border,
+                    paddingHorizontal: 16,
+                    paddingVertical: 14,
+                    marginBottom: 10,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 12,
+                  }}
                 >
-                  {selectedYear === index && (
-                    <ThemedText style={{ color: "#fff", fontSize: 14 }}>
-                      ✓
-                    </ThemedText>
-                  )}
-                </View>
-              </Pressable>
-            ))}
+                  <View style={{ flex: 1 }}>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: space.sm }}>
+                      <Text style={{ ...typography.labelM, color: colour.text }}>{year.label}</Text>
+                      {year.current && (
+                        <View
+                          style={{
+                            backgroundColor: colour.tealLight,
+                            borderRadius: radius.pill,
+                            paddingHorizontal: 8,
+                            paddingVertical: 2,
+                          }}
+                        >
+                          <Text style={{ ...typography.micro, color: colour.teal, fontWeight: "700" }}>
+                            Current
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                    <Text style={{ ...typography.bodyXS, color: colour.textSub, marginTop: 2 }}>
+                      {year.range}
+                    </Text>
+                  </View>
+                  <Checkbox checked={sel} />
+                </Pressable>
+              );
+            })}
           </View>
         );
 
       case "categories":
         return (
           <View>
-            <ThemedText style={styles.stepTitle}>Select Categories</ThemedText>
+            <Text style={{ ...typography.labelM, color: colour.text, marginBottom: 16 }}>
+              Select Categories
+            </Text>
             {categories.map((cat, index) => (
               <Pressable
                 key={cat.name}
                 onPress={() => toggleCategory(index)}
-                style={styles.categoryItem}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  paddingHorizontal: 16,
+                  paddingVertical: 13,
+                  borderBottomWidth: index < categories.length - 1 ? 1 : 0,
+                  borderBottomColor: colour.border,
+                  backgroundColor: cat.included ? colour.primary50 : colour.white,
+                  borderRadius: index === 0 ? radius.md : 0,
+                }}
               >
-                <View
-                  style={[
-                    styles.categoryCheckbox,
-                    cat.included && styles.categoryCheckboxChecked,
-                  ]}
-                >
-                  {cat.included && (
-                    <ThemedText style={{ color: "#fff", fontSize: 12 }}>
-                      ✓
-                    </ThemedText>
-                  )}
-                </View>
-                <ThemedText style={styles.categoryIcon}>{cat.icon}</ThemedText>
-                <View style={styles.categoryInfo}>
-                  <ThemedText style={styles.categoryName}>
-                    {cat.name}
-                  </ThemedText>
-                  <ThemedText style={styles.categoryAmount}>
+                <Checkbox checked={cat.included} />
+                <Text style={{ fontSize: 20, marginHorizontal: space.md }}>{cat.icon}</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ ...typography.labelM, color: colour.text }}>{cat.name}</Text>
+                  <Text style={{ ...typography.bodyXS, color: colour.textSub }}>
                     R {cat.amount.toLocaleString()}
-                  </ThemedText>
+                  </Text>
                   {cat.note && (
-                    <ThemedText style={styles.categoryNote}>
+                    <Text style={{ ...typography.micro, color: colour.warning, fontWeight: "600" }}>
                       {cat.note}
-                    </ThemedText>
+                    </Text>
                   )}
                 </View>
               </Pressable>
@@ -562,74 +188,90 @@ export function ITR12ExportSetupScreen({
       case "format":
         return (
           <View>
-            <ThemedText style={styles.stepTitle}>
+            <Text style={{ ...typography.labelM, color: colour.text, marginBottom: 16 }}>
               Choose Export Format
-            </ThemedText>
-            {EXPORT_FORMATS.map((format) => (
-              <Pressable
-                key={format.id}
-                onPress={() => setSelectedFormat(format.id)}
-                style={[
-                  styles.formatOption,
-                  selectedFormat === format.id
-                    ? styles.formatOptionSelected
-                    : styles.formatOptionUnselected,
-                ]}
-              >
-                <ThemedText style={styles.formatIcon}>{format.icon}</ThemedText>
-                <View style={styles.formatInfo}>
-                  <ThemedText style={styles.formatLabel}>
-                    {format.label}
-                  </ThemedText>
-                  <ThemedText style={styles.formatDescription}>
-                    {format.description}
-                  </ThemedText>
-                </View>
-                <View
-                  style={[
-                    styles.categoryCheckbox,
-                    selectedFormat === format.id &&
-                      styles.categoryCheckboxChecked,
-                  ]}
+            </Text>
+            {EXPORT_FORMATS.map((format) => {
+              const sel = selectedFormat === format.id;
+              return (
+                <Pressable
+                  key={format.id}
+                  onPress={() => setSelectedFormat(format.id)}
+                  style={{
+                    backgroundColor: sel ? colour.primary50 : colour.white,
+                    borderRadius: radius.md,
+                    borderWidth: 2,
+                    borderColor: sel ? colour.primary : colour.border,
+                    paddingHorizontal: 16,
+                    paddingVertical: 14,
+                    marginBottom: 10,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 12,
+                  }}
                 >
-                  {selectedFormat === format.id && (
-                    <ThemedText style={{ color: "#fff", fontSize: 14 }}>
-                      ✓
-                    </ThemedText>
-                  )}
-                </View>
-              </Pressable>
-            ))}
+                  <Text style={{ fontSize: 24 }}>{format.icon}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ ...typography.labelM, color: colour.text }}>{format.label}</Text>
+                    <Text style={{ ...typography.bodyXS, color: colour.textSub, marginTop: 2 }}>
+                      {format.description}
+                    </Text>
+                  </View>
+                  <Checkbox checked={sel} />
+                </Pressable>
+              );
+            })}
           </View>
         );
 
       case "options":
         return (
           <View>
-            <ThemedText style={styles.stepTitle}>Export Options</ThemedText>
-            <View style={styles.optionRow}>
-              <View>
-                <ThemedText style={styles.optionLabel}>Include VAT</ThemedText>
-                <ThemedText style={styles.optionSubtext}>
-                  Add VAT amounts to report
-                </ThemedText>
+            <Text style={{ ...typography.labelM, color: colour.text, marginBottom: 16 }}>
+              Export Options
+            </Text>
+            {[
+              {
+                label: "Include VAT",
+                sub: "Add VAT amounts to report",
+                value: includeVAT,
+                onChange: setIncludeVAT,
+              },
+              {
+                label: "Include Receipts",
+                sub: "Attach receipt files to export",
+                value: includeReceipts,
+                onChange: setIncludeReceipts,
+              },
+            ].map((opt, i) => (
+              <View
+                key={i}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  paddingHorizontal: 16,
+                  paddingVertical: space.md,
+                  borderBottomWidth: i === 0 ? 1 : 0,
+                  borderBottomColor: colour.border,
+                  backgroundColor: colour.white,
+                  borderRadius: i === 0 ? 0 : radius.md,
+                }}
+              >
+                <View>
+                  <Text style={{ ...typography.labelM, color: colour.text }}>{opt.label}</Text>
+                  <Text style={{ ...typography.bodyXS, color: colour.textSub, marginTop: 2 }}>
+                    {opt.sub}
+                  </Text>
+                </View>
+                <Switch
+                  value={opt.value}
+                  onValueChange={opt.onChange}
+                  trackColor={{ false: colour.border, true: colour.primary }}
+                  thumbColor={colour.white}
+                />
               </View>
-              <Switch value={includeVAT} onValueChange={setIncludeVAT} />
-            </View>
-            <View style={styles.optionRow}>
-              <View>
-                <ThemedText style={styles.optionLabel}>
-                  Include Receipts
-                </ThemedText>
-                <ThemedText style={styles.optionSubtext}>
-                  Attach receipt files to export
-                </ThemedText>
-              </View>
-              <Switch
-                value={includeReceipts}
-                onValueChange={setIncludeReceipts}
-              />
-            </View>
+            ))}
           </View>
         );
 
@@ -638,81 +280,155 @@ export function ITR12ExportSetupScreen({
     }
   };
 
-  const stepIndex = steps.findIndex((s) => s.id === currentStep);
-  const isLastStep = stepIndex === steps.length - 1;
-
   return (
-    <ThemedView style={styles.container}>
+    <View style={{ flex: 1, backgroundColor: colour.white }}>
       {/* Header */}
-      <ThemedView style={styles.header}>
-        <View style={styles.headerTop}>
-          <Pressable onPress={onCancel}>
-            <ThemedText style={styles.backButton}>←</ThemedText>
-          </Pressable>
-        </View>
-        <ThemedText style={styles.headerTitle}>ITR12 Export Setup</ThemedText>
-        <ThemedText style={styles.headerSubtext}>
+      <View
+        style={{
+          paddingHorizontal: 24,
+          paddingTop: 20,
+          paddingBottom: 28,
+          backgroundColor: colour.primary,
+        }}
+      >
+        <Pressable onPress={onCancel} style={{ marginBottom: 16 }}>
+          <Text style={{ fontSize: 22, color: "rgba(255,255,255,0.65)" }}>←</Text>
+        </Pressable>
+        <Text style={{ ...typography.h3, color: colour.white, marginBottom: 6 }}>
+          ITR12 Export Setup
+        </Text>
+        <Text style={{ ...typography.bodyS, color: "rgba(255,255,255,0.5)", marginBottom: 10 }}>
           Configure your SARS expense report
-        </ThemedText>
-        <View style={styles.totalBadge}>
-          <ThemedText style={styles.totalBadgeText}>
+        </Text>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: space.sm,
+            backgroundColor: colour.tealLight,
+            borderRadius: radius.pill,
+            paddingHorizontal: 14,
+            paddingVertical: 5,
+            alignSelf: "flex-start",
+          }}
+        >
+          <Text style={{ ...typography.labelS, color: colour.teal }}>
             Total to export: R {totalAmount.toLocaleString()}
-          </ThemedText>
+          </Text>
         </View>
-      </ThemedView>
-
-      {/* Step Buttons */}
-      <View style={styles.stepsContainer}>
-        {steps.map((step) => (
-          <Pressable
-            key={step.id}
-            onPress={() => setCurrentStep(step.id)}
-            style={[
-              styles.stepButton,
-              currentStep === step.id && styles.stepButtonActive,
-            ]}
-          >
-            <ThemedText
-              style={[
-                styles.stepButtonText,
-                currentStep === step.id && styles.stepButtonTextActive,
-              ]}
-            >
-              {step.label}
-            </ThemedText>
-          </Pressable>
-        ))}
       </View>
 
-      {/* Step Content */}
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.stepContent}>{renderStepContent()}</View>
-        <View style={styles.bottomSpacing} />
+      {/* Step tabs */}
+      <View
+        style={{
+          flexDirection: "row",
+          gap: space.sm,
+          paddingHorizontal: 20,
+          paddingVertical: 12,
+          borderBottomWidth: 1,
+          borderBottomColor: colour.border,
+        }}
+      >
+        {STEPS.map((step) => {
+          const active = currentStep === step.id;
+          return (
+            <Pressable
+              key={step.id}
+              onPress={() => setCurrentStep(step.id)}
+              style={{
+                paddingHorizontal: 12,
+                paddingVertical: 6,
+                borderRadius: radius.sm,
+                borderWidth: 1,
+                borderColor: active ? colour.primary : colour.border,
+                backgroundColor: active ? colour.primary : "transparent",
+              }}
+            >
+              <Text
+                style={{
+                  ...typography.labelS,
+                  color: active ? colour.onPrimary : colour.textSub,
+                }}
+              >
+                {step.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      {/* Step content */}
+      <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
+        <View style={{ padding: 20 }}>{renderStepContent()}</View>
+        <View style={{ height: 20 }} />
       </ScrollView>
 
-      {/* Navigation Buttons */}
-      <View style={styles.navigationContainer}>
-        <Pressable style={styles.cancelButton} onPress={onCancel}>
-          <ThemedText style={styles.cancelButtonText}>Cancel</ThemedText>
+      {/* Nav buttons */}
+      <View
+        style={{
+          flexDirection: "row",
+          gap: space.md,
+          paddingHorizontal: 20,
+          paddingVertical: space.lg,
+          borderTopWidth: 1,
+          borderTopColor: colour.border,
+        }}
+      >
+        <Pressable
+          style={{
+            flex: 1,
+            paddingVertical: 12,
+            borderRadius: radius.md,
+            borderWidth: 1.5,
+            borderColor: colour.border,
+            alignItems: "center",
+          }}
+          onPress={onCancel}
+        >
+          <Text style={{ ...typography.labelM, color: colour.text }}>Cancel</Text>
         </Pressable>
+
         {isLastStep ? (
-          <Pressable style={styles.exportButton} onPress={handleExport}>
-            <ThemedText style={styles.exportButtonText}>📤 Export</ThemedText>
+          <Pressable
+            style={{
+              flex: 1,
+              paddingVertical: 12,
+              borderRadius: radius.md,
+              backgroundColor: colour.primary,
+              alignItems: "center",
+            }}
+            onPress={() => {
+              const config: ITR12ExportConfig = {
+                taxYear: TAX_YEARS[selectedYear].label,
+                categories,
+                format: selectedFormat,
+                includeVAT,
+                includeReceipts,
+                totalAmount,
+              };
+              onExport?.(config);
+            }}
+          >
+            <Text style={{ ...typography.labelM, color: colour.onPrimary }}>📤 Export</Text>
           </Pressable>
         ) : (
           <Pressable
-            style={styles.nextButton}
+            style={{
+              flex: 1,
+              paddingVertical: 12,
+              borderRadius: radius.md,
+              backgroundColor: colour.primary,
+              alignItems: "center",
+            }}
             onPress={() => {
               const nextIndex = stepIndex + 1;
-              if (nextIndex < steps.length) {
-                setCurrentStep(steps[nextIndex].id);
-              }
+              if (nextIndex < STEPS.length) setCurrentStep(STEPS[nextIndex].id);
             }}
           >
-            <ThemedText style={styles.nextButtonText}>Next →</ThemedText>
+            <Text style={{ ...typography.labelM, color: colour.onPrimary }}>Next →</Text>
           </Pressable>
         )}
       </View>
-    </ThemedView>
+    </View>
   );
 }

@@ -39,7 +39,7 @@ export function MXShell({ tabs, initialTab }: MXShellProps) {
       {/* Status bar spacer on Android */}
       {Platform.OS === "android" && (
         <View
-          style={{ height: STATUS_BAR_HEIGHT, backgroundColor: "#FFFFFF" }}
+          style={{ height: STATUS_BAR_HEIGHT, backgroundColor: colour.white }}
         />
       )}
 
@@ -47,11 +47,11 @@ export function MXShell({ tabs, initialTab }: MXShellProps) {
       <View style={{ flex: 1 }}>{activeTab?.screen}</View>
 
       {/* Bottom tab bar */}
-      <SafeAreaView style={{ backgroundColor: "#FFFFFF" }}>
+      <SafeAreaView style={{ backgroundColor: colour.white }}>
         <View
           style={{
             flexDirection: "row",
-            backgroundColor: "#FFFFFF",
+            backgroundColor: colour.white,
             borderTopWidth: 1,
             borderTopColor: colour.surface2,
             paddingTop: space.sm,

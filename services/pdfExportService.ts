@@ -6,10 +6,36 @@
 import { expenseService } from "@/services/expenseService";
 import { incomeService } from "@/services/incomeService";
 import { profileService } from "@/services/profileService";
+import { colour } from "@/tokens";
 import type { Expense } from "@/types/database";
 import { ITR12_CATEGORIES } from "@/types/database";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
+
+// ─── PDF CSS palette ──────────────────────────────────────────────────────────
+// Token-mapped colors use colour.* directly; PDF-specific shades are named here.
+const CSS = {
+  primary:          colour.primary,       // #006FFD
+  white:            colour.white,         // #FFFFFF
+  gold:             colour.gold,          // #F59E0B
+  bodyText:         '#1a1a2e',
+  accentBlue:       '#7DD3FC',
+  bgLight:          '#F0F7FF',
+  borderBlue:       '#E0ECFF',
+  labelGray:        '#666',
+  cardBg:           '#FAFCFF',
+  mutedGray:        '#888',
+  lightGray:        '#aaa',
+  darkBlue:         '#0052CC',
+  tableHeadText:    '#555',
+  rowBorder:        '#F0F4FF',
+  disclaimerBg:     '#FFF8E7',
+  disclaimerBorder: '#FFD700',
+  disclaimerText:   '#7a6000',
+  vatBlue:          '#0066cc',
+  deductionGreen:   '#16a34a',
+  personalGray:     '#999',
+};
 
 // ─── Formatting helpers ───────────────────────────────────────────────────────
 
@@ -153,7 +179,7 @@ function buildHTML(opts: {
       ? personalRows
           .map(
             ([cat, { amount, count }]) => `
-          <tr style="color:#999">
+          <tr style="color:${CSS.personalGray}">
             <td>${cat}</td>
             <td style="text-align:center">—</td>
             <td style="text-align:center">${count}</td>
@@ -167,7 +193,7 @@ function buildHTML(opts: {
     ? `<div class="kpi-row">
         <div class="kpi-card">
           <div class="kpi-label">Total VAT (Input Tax)</div>
-          <div class="kpi-value" style="color:#0066cc">${fmtZAR(totalVAT)}</div>
+          <div class="kpi-value" style="color:${CSS.vatBlue}">${fmtZAR(totalVAT)}</div>
           <div class="kpi-sub">Potential VAT refund where registered</div>
         </div>
       </div>`
@@ -184,12 +210,12 @@ function buildHTML(opts: {
     body {
       font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif;
       font-size: 10pt;
-      color: #1a1a2e;
-      background: #fff;
+      color: ${CSS.bodyText};
+      background: ${CSS.white};
     }
     .header {
-      background: #006FFD;
-      color: #fff;
+      background: ${CSS.primary};
+      color: ${CSS.white};
       padding: 28px 32px 22px;
       display: flex;
       justify-content: space-between;
@@ -200,20 +226,20 @@ function buildHTML(opts: {
       font-weight: 900;
       letter-spacing: -0.5px;
     }
-    .header-logo span { color: #7DD3FC; }
+    .header-logo span { color: ${CSS.accentBlue}; }
     .header-meta { text-align: right; font-size: 9pt; line-height: 1.6; opacity: 0.9; }
     .header-meta strong { font-size: 11pt; display: block; }
     .taxpayer-bar {
-      background: #F0F7FF;
-      border-bottom: 2px solid #E0ECFF;
+      background: ${CSS.bgLight};
+      border-bottom: 2px solid ${CSS.borderBlue};
       padding: 14px 32px;
       display: flex;
       gap: 40px;
       align-items: center;
     }
     .taxpayer-field { }
-    .taxpayer-label { font-size: 8pt; color: #666; text-transform: uppercase; letter-spacing: 0.5px; }
-    .taxpayer-value { font-size: 11pt; font-weight: 700; color: #1a1a2e; }
+    .taxpayer-label { font-size: 8pt; color: ${CSS.labelGray}; text-transform: uppercase; letter-spacing: 0.5px; }
+    .taxpayer-value { font-size: 11pt; font-weight: 700; color: ${CSS.bodyText}; }
     .content { padding: 24px 32px; }
     .kpi-row {
       display: flex;
@@ -222,14 +248,14 @@ function buildHTML(opts: {
     }
     .kpi-card {
       flex: 1;
-      border: 1.5px solid #E0ECFF;
+      border: 1.5px solid ${CSS.borderBlue};
       border-radius: 10px;
       padding: 14px 16px;
-      background: #FAFCFF;
+      background: ${CSS.cardBg};
     }
     .kpi-label {
       font-size: 8pt;
-      color: #888;
+      color: ${CSS.mutedGray};
       text-transform: uppercase;
       letter-spacing: 0.5px;
       margin-bottom: 4px;
@@ -237,13 +263,13 @@ function buildHTML(opts: {
     .kpi-value {
       font-size: 15pt;
       font-weight: 800;
-      color: #006FFD;
+      color: ${CSS.primary};
       margin-bottom: 2px;
     }
-    .kpi-sub { font-size: 8pt; color: #aaa; }
+    .kpi-sub { font-size: 8pt; color: ${CSS.lightGray}; }
     .saving-box {
-      background: linear-gradient(135deg, #006FFD 0%, #0052CC 100%);
-      color: #fff;
+      background: linear-gradient(135deg, ${CSS.primary} 0%, ${CSS.darkBlue} 100%);
+      color: ${CSS.white};
       border-radius: 10px;
       padding: 18px 22px;
       display: flex;
@@ -253,14 +279,14 @@ function buildHTML(opts: {
     }
     .saving-box-label { font-size: 10pt; opacity: 0.85; margin-bottom: 2px; }
     .saving-box-sub { font-size: 8pt; opacity: 0.65; }
-    .saving-box-amount { font-size: 20pt; font-weight: 900; color: #7DD3FC; }
+    .saving-box-amount { font-size: 20pt; font-weight: 900; color: ${CSS.accentBlue}; }
     .section-title {
       font-size: 8pt;
       font-weight: 700;
-      color: #006FFD;
+      color: ${CSS.primary};
       letter-spacing: 1.2px;
       text-transform: uppercase;
-      border-bottom: 2px solid #E0ECFF;
+      border-bottom: 2px solid ${CSS.borderBlue};
       padding-bottom: 6px;
       margin-bottom: 12px;
       margin-top: 22px;
@@ -271,42 +297,42 @@ function buildHTML(opts: {
       font-size: 9pt;
       margin-bottom: 16px;
     }
-    thead tr { background: #F0F7FF; }
+    thead tr { background: ${CSS.bgLight}; }
     th {
       padding: 8px 10px;
       font-size: 8pt;
       font-weight: 700;
-      color: #555;
+      color: ${CSS.tableHeadText};
       text-transform: uppercase;
       letter-spacing: 0.4px;
-      border-bottom: 2px solid #E0ECFF;
+      border-bottom: 2px solid ${CSS.borderBlue};
       text-align: left;
     }
-    td { padding: 8px 10px; border-bottom: 1px solid #F0F4FF; vertical-align: top; }
+    td { padding: 8px 10px; border-bottom: 1px solid ${CSS.rowBorder}; vertical-align: top; }
     tbody tr:last-child td { border-bottom: none; }
     .total-row td {
       font-weight: 800;
-      background: #F0F7FF;
-      border-top: 2px solid #006FFD;
-      color: #006FFD;
+      background: ${CSS.bgLight};
+      border-top: 2px solid ${CSS.primary};
+      color: ${CSS.primary};
     }
     .disclaimer {
-      background: #FFF8E7;
-      border: 1.5px solid #FFD700;
+      background: ${CSS.disclaimerBg};
+      border: 1.5px solid ${CSS.disclaimerBorder};
       border-radius: 8px;
       padding: 12px 16px;
       font-size: 8.5pt;
-      color: #7a6000;
+      color: ${CSS.disclaimerText};
       margin-top: 24px;
       line-height: 1.5;
     }
     .footer {
       margin-top: 28px;
-      border-top: 1px solid #E0ECFF;
+      border-top: 1px solid ${CSS.borderBlue};
       padding-top: 14px;
       text-align: center;
       font-size: 8pt;
-      color: #aaa;
+      color: ${CSS.lightGray};
     }
     @media print {
       body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
@@ -355,17 +381,17 @@ function buildHTML(opts: {
     <div class="kpi-row">
       <div class="kpi-card">
         <div class="kpi-label">Total Income</div>
-        <div class="kpi-value" style="color:#0052CC">${fmtZAR(totalIncome)}</div>
+        <div class="kpi-value" style="color:${CSS.darkBlue}">${fmtZAR(totalIncome)}</div>
         <div class="kpi-sub">All income sources, ${taxYear}</div>
       </div>
       <div class="kpi-card">
         <div class="kpi-label">Total Expenses</div>
-        <div class="kpi-value" style="color:#1a1a2e">${fmtZAR(totalExpenses)}</div>
+        <div class="kpi-value" style="color:${CSS.bodyText}">${fmtZAR(totalExpenses)}</div>
         <div class="kpi-sub">All categories combined</div>
       </div>
       <div class="kpi-card">
         <div class="kpi-label">Total Deductions (S11)</div>
-        <div class="kpi-value" style="color:#16a34a">${fmtZAR(totalDeductions)}</div>
+        <div class="kpi-value" style="color:${CSS.deductionGreen}">${fmtZAR(totalDeductions)}</div>
         <div class="kpi-sub">Claimable under Section 11</div>
       </div>
     </div>

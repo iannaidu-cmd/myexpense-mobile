@@ -28,17 +28,17 @@ const BADGE_STYLES: Record<
     dot: colour.primary,
   },
   success: {
-    bg: "#E8F5F1",
+    bg: colour.successBg,
     text: colour.success,
     dot: colour.successMid,
   },
   warning: {
-    bg: "#FEF3ED",
+    bg: colour.warningBg,
     text: colour.warning,
     dot: colour.warning,
   },
   danger: {
-    bg: "#FDEDEF",
+    bg: colour.dangerBg,
     text: colour.danger,
     dot: colour.danger,
   },

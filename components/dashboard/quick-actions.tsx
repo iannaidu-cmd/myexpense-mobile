@@ -1,81 +1,58 @@
-import { ThemedText } from "@/components/themed-text";
-import { ThemedView } from "@/components/themed-view";
-import { useThemeColor } from "@/hooks/use-theme-color";
-import { StyleSheet, TouchableOpacity, View } from "react-native";
+import { colour, radius, typography } from "@/tokens";
+import { Text, TouchableOpacity, View } from "react-native";
 
-interface Action {
-  icon: string;
-  label: string;
-  color: string;
-}
+interface Action { icon: string; label: string; color: string; }
 
 const ACTIONS: Action[] = [
-  { icon: "📸", label: "Scan receipt", color: "#0288D1" },
-  { icon: "✏️", label: "Add expense", color: "#1565C0" },
-  { icon: "📊", label: "ITR12 Export", color: "#0288D1" },
-  { icon: "📋", label: "Reports", color: "#1565C0" },
+  { icon: "📸", label: "Scan receipt", color: colour.info    },
+  { icon: "✏️", label: "Add expense",  color: colour.primary },
+  { icon: "📊", label: "ITR12 Export", color: colour.info    },
+  { icon: "📋", label: "Reports",      color: colour.primary },
 ];
 
 export function QuickActions() {
-  const backgroundColor = useThemeColor({}, "background");
-
   return (
-    <ThemedView style={[styles.container, { backgroundColor }]}>
+    <View
+      style={{
+        flexDirection: "row",
+        justifyContent: "space-around",
+        paddingVertical: 16,
+        borderRadius: radius.lg,
+      }}
+    >
       {ACTIONS.map((action) => (
         <TouchableOpacity
           key={action.label}
-          style={styles.action}
+          style={{ alignItems: "center", gap: 8 }}
           accessibilityRole="button"
         >
           <View
-            style={[
-              styles.iconBox,
-              {
-                backgroundColor: action.color + "18",
-                borderColor: action.color + "33",
-              },
-            ]}
+            style={{
+              width: 50,
+              height: 50,
+              borderRadius: 16,
+              backgroundColor: action.color + "18",
+              borderWidth: 2,
+              borderColor: action.color + "33",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
           >
-            <ThemedText style={styles.icon}>{action.icon}</ThemedText>
+            <Text style={{ fontSize: 22 }}>{action.icon}</Text>
           </View>
-          <ThemedText style={styles.label}>{action.label}</ThemedText>
+          <Text
+            style={{
+              ...typography.micro,
+              fontWeight: "600",
+              color: colour.primary,
+              textAlign: "center",
+              maxWidth: 60,
+            }}
+          >
+            {action.label}
+          </Text>
         </TouchableOpacity>
       ))}
-    </ThemedView>
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    paddingHorizontal: 0,
-    paddingVertical: 16,
-    borderRadius: 20,
-    marginHorizontal: -20,
-  },
-  action: {
-    alignItems: "center",
-    gap: 8,
-  },
-  iconBox: {
-    width: 50,
-    height: 50,
-    borderRadius: 16,
-    borderWidth: 2,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  icon: {
-    fontSize: 22,
-  },
-  label: {
-    fontSize: 10,
-    fontWeight: "600",
-    color: "#1565C0",
-    textAlign: "center",
-    lineHeight: 1.2,
-    maxWidth: 60,
-  },
-});

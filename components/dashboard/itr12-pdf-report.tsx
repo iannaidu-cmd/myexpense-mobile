@@ -1,6 +1,7 @@
 import { ThemedText } from "@/components/themed-text";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { colour } from "@/tokens";
 
 interface DeductionCategory {
   icon: string;
@@ -208,7 +209,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 20,
     paddingBottom: 24,
-    backgroundColor: "#1565C0",
+    backgroundColor: colour.navyDark,
   },
   headerTop: {
     flexDirection: "row",
@@ -226,13 +227,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     marginLeft: 8,
-    color: "#fff",
+    color: colour.white,
   },
   headerMain: {
     fontSize: 22,
     fontWeight: "800",
     marginBottom: 6,
-    color: "#fff",
+    color: colour.white,
   },
   headerSub: {
     fontSize: 12,
@@ -242,12 +243,12 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginTop: 16,
     marginBottom: 16,
-    backgroundColor: "#fff",
+    backgroundColor: colour.white,
     borderRadius: 20,
     overflow: "hidden",
   },
   pdfHeader: {
-    backgroundColor: "#0D47A1",
+    backgroundColor: colour.navyDark,
     paddingHorizontal: 18,
     paddingVertical: 16,
   },
@@ -257,13 +258,13 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   pdfTitle: {
-    color: "#fff",
+    color: colour.white,
     fontSize: 16,
     fontWeight: "800",
     marginTop: 4,
   },
   pdfTaxYear: {
-    color: "#0288D1",
+    color: colour.info,
     fontSize: 11,
     marginTop: 2,
   },
@@ -271,12 +272,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: "#E0E0E0",
+    borderBottomColor: colour.border,
   },
   pdfSectionLabel: {
     fontSize: 10,
     fontWeight: "700",
-    color: "#757575",
+    color: colour.textHint,
     marginBottom: 8,
     letterSpacing: 0.5,
   },
@@ -287,16 +288,16 @@ const styles = StyleSheet.create({
   },
   pdfRowBorder: {
     borderBottomWidth: 1,
-    borderBottomColor: "#E0E0E0",
+    borderBottomColor: colour.border,
   },
   pdfRowLabel: {
     fontSize: 11,
-    color: "#757575",
+    color: colour.textHint,
   },
   pdfRowValue: {
     fontSize: 11,
     fontWeight: "700",
-    color: "#0D47A1",
+    color: colour.navyDark,
   },
   pdfRowCat: {
     flexDirection: "row",
@@ -308,36 +309,36 @@ const styles = StyleSheet.create({
   },
   pdfRowCatName: {
     fontSize: 11,
-    color: "#0D47A1",
+    color: colour.navyDark,
     fontWeight: "500",
   },
   pdfRowAmount: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#1565C0",
+    color: colour.primary,
   },
   pdfRowTotal: {
     flexDirection: "row",
     justifyContent: "space-between",
     paddingTop: 10,
     borderTopWidth: 1.5,
-    borderTopColor: "#E0E0E0",
+    borderTopColor: colour.border,
     marginTop: 4,
   },
   pdfRowTotalLabel: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#0D47A1",
+    color: colour.navyDark,
   },
   pdfRowTotalValue: {
     fontSize: 14,
     fontWeight: "900",
-    color: "#0288D1",
+    color: colour.info,
   },
   pdfTaxImpact: {
     paddingHorizontal: 18,
     paddingVertical: 14,
-    backgroundColor: "rgba(59,191,173,0.06)",
+    backgroundColor: colour.tealLight,
   },
   pdfTaxRow: {
     flexDirection: "row",
@@ -346,15 +347,15 @@ const styles = StyleSheet.create({
   },
   pdfTaxLabel: {
     fontSize: 11,
-    color: "#757575",
+    color: colour.textHint,
   },
   pdfTaxValue: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#1565C0",
+    color: colour.primary,
   },
   pdfTaxValueHighlight: {
-    color: "#0288D1",
+    color: colour.info,
     fontWeight: "900",
   },
   pageInfo: {
@@ -363,7 +364,7 @@ const styles = StyleSheet.create({
   },
   pageInfoText: {
     fontSize: 11,
-    color: "#757575",
+    color: colour.textHint,
   },
   actions: {
     flexDirection: "row",
@@ -377,35 +378,35 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   actionButtonPrimary: {
-    backgroundColor: "#1565C0",
+    backgroundColor: colour.primary,
   },
   actionButtonSecondary: {
-    backgroundColor: "#fff",
+    backgroundColor: colour.white,
     borderWidth: 2,
-    borderColor: "#1565C0",
+    borderColor: colour.primary,
   },
   actionButtonText: {
     fontWeight: "700",
     fontSize: 14,
-    color: "#FFFFFF",
+    color: colour.white,
   },
   emailOption: {
     marginHorizontal: 20,
     marginTop: 12,
-    backgroundColor: "#fff",
+    backgroundColor: colour.white,
     borderRadius: 16,
     paddingVertical: 14,
     paddingHorizontal: 16,
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1.5,
-    borderColor: "#E0E0E0",
+    borderColor: colour.border,
   },
   emailIcon: {
     width: 38,
     height: 38,
     borderRadius: 10,
-    backgroundColor: "rgba(21,101,192,0.06)",
+    backgroundColor: colour.primary50,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -419,22 +420,22 @@ const styles = StyleSheet.create({
   emailLabel: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#FFFFFF",
+    color: colour.text,
   },
   emailSub: {
     fontSize: 11,
-    color: "#757575",
+    color: colour.textHint,
   },
   emailArrow: {
-    color: "#0288D1",
+    color: colour.info,
     fontSize: 18,
   },
   sarsNote: {
     marginHorizontal: 20,
     marginTop: 12,
-    backgroundColor: "rgba(46,46,122,0.04)",
+    backgroundColor: colour.primary50,
     borderWidth: 1.5,
-    borderColor: "#E0E0E0",
+    borderColor: colour.borderLight,
     borderStyle: "dashed",
     borderRadius: 14,
     paddingVertical: 12,
@@ -442,7 +443,7 @@ const styles = StyleSheet.create({
   },
   sarsNoteText: {
     fontSize: 11,
-    color: "#757575",
+    color: colour.textHint,
     lineHeight: 1.5,
   },
 });

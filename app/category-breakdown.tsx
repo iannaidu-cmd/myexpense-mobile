@@ -7,60 +7,51 @@ import { colour, radius, space, typography } from "@/tokens";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
 import {
-    ActivityIndicator,
-    ScrollView,
-    StatusBar,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  ScrollView,
+  StatusBar,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const C = colour;
 
+// ─── Category meta ────────────────────────────────────────────────────────────
+// All colours now reference token values. Where no exact token exists for a
+// unique categorical hue (e.g. purple for Education, orange for Marketing),
+// we use the closest semantic token so the palette remains consistent and
+// updatable from one place.
 const CATEGORY_META: Record<
   string,
   { icon: string; color: string; itr12Code: string }
 > = {
-  "Travel & Transport": { icon: "🚗", color: C.primary, itr12Code: "S11(a)" },
-  "Home Office": { icon: "🏠", color: C.teal, itr12Code: "S11(a)" },
-  "Equipment & Tools": { icon: "🔧", color: "#5B5BB8", itr12Code: "S11(e)" },
-  "Software & Subscriptions": {
-    icon: "💻",
-    color: C.success,
-    itr12Code: "S11(a)",
-  },
-  "Meals & Entertainment": {
-    icon: "🍽",
-    color: C.warning,
-    itr12Code: "S11(a)",
-  },
-  "Professional Fees": { icon: "📋", color: "#E74C3C", itr12Code: "S11(a)" },
-  "Telephone & Cell": { icon: "📱", color: "#8E44AD", itr12Code: "S11(a)" },
-  "Marketing & Advertising": {
-    icon: "📣",
-    color: "#E67E22",
-    itr12Code: "S11(a)",
-  },
-  "Bank Charges": { icon: "🏦", color: "#2C3E50", itr12Code: "S11(a)" },
-  Insurance: { icon: "🛡️", color: "#16A085", itr12Code: "S11(a)" },
-  Rent: { icon: "🏢", color: "#2980B9", itr12Code: "S11(a)" },
-  "Repairs & Maintenance": {
-    icon: "🔨",
-    color: "#D35400",
-    itr12Code: "S11(a)",
-  },
-  Education: { icon: "📚", color: "#8E44AD", itr12Code: "S11(a)" },
-  "Vehicle Expenses": { icon: "🚙", color: "#2C3E50", itr12Code: "Page 24" },
-  "Personal / Non-deductible": {
-    icon: "👤",
-    color: "#BDC3C7",
-    itr12Code: "N/A",
-  },
+  "Travel & Transport":         { icon: "🚗", color: C.primary,    itr12Code: "S11(a)" },
+  "Home Office":                { icon: "🏠", color: C.teal,       itr12Code: "S11(a)" },
+  "Equipment & Tools":          { icon: "🔧", color: C.midNavy2,   itr12Code: "S11(e)" },
+  "Software & Subscriptions":   { icon: "💻", color: C.success,    itr12Code: "S11(a)" },
+  "Meals & Entertainment":      { icon: "🍽",  color: C.warning,    itr12Code: "S11(a)" },
+  "Professional Fees":          { icon: "📋", color: C.danger,     itr12Code: "S11(a)" },
+  "Telephone & Cell":           { icon: "📱", color: C.accent,     itr12Code: "S11(a)" },
+  "Marketing & Advertising":    { icon: "📣", color: C.warningMid, itr12Code: "S11(a)" },
+  "Bank Charges":               { icon: "🏦", color: C.navyDark,   itr12Code: "S11(a)" },
+  Insurance:                    { icon: "🛡️", color: C.successMid, itr12Code: "S11(a)" },
+  Rent:                         { icon: "🏢", color: C.info,       itr12Code: "S11(a)" },
+  "Repairs & Maintenance":      { icon: "🔨", color: C.warning,    itr12Code: "S11(a)" },
+  Education:                    { icon: "📚", color: C.accent,     itr12Code: "S11(a)" },
+  "Vehicle Expenses":           { icon: "🚙", color: C.navyDark,   itr12Code: "Page 24" },
+  "Personal / Non-deductible":  { icon: "👤", color: C.textDisabled, itr12Code: "N/A" },
 };
+
 const DEFAULT_META = { icon: "💼", color: C.primary, itr12Code: "S11(a)" };
+
 const fmt = (n: number) =>
-  `R ${Number(n).toLocaleString("en-ZA", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+  `R ${Number(n).toLocaleString("en-ZA", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  })}`;
+
 type Filter = "All" | "Deductible" | "Personal";
 
 export default function CategoryBreakdownScreen() {
@@ -146,6 +137,7 @@ export default function CategoryBreakdownScreen() {
           </View>
         ) : (
           <>
+            {/* ── Summary row ──────────────────────────────────────────────── */}
             <View
               style={{
                 flexDirection: "row",
@@ -191,7 +183,9 @@ export default function CategoryBreakdownScreen() {
                   borderColor: C.border,
                 }}
               >
-                <Text style={{ ...typography.caption, color: C.textSecondary }}>
+                <Text
+                  style={{ ...typography.caption, color: C.textSecondary }}
+                >
                   Deductible
                 </Text>
                 <Text
@@ -206,6 +200,7 @@ export default function CategoryBreakdownScreen() {
               </View>
             </View>
 
+            {/* ── Filter tabs ───────────────────────────────────────────────── */}
             <View
               style={{ paddingHorizontal: space.md, marginBottom: space.md }}
             >
@@ -227,7 +222,8 @@ export default function CategoryBreakdownScreen() {
                       flex: 1,
                       paddingVertical: 7,
                       borderRadius: radius.sm,
-                      backgroundColor: filter === f ? C.primary : "transparent",
+                      backgroundColor:
+                        filter === f ? C.primary : "transparent",
                       alignItems: "center",
                     }}
                   >
@@ -244,6 +240,7 @@ export default function CategoryBreakdownScreen() {
               </View>
             </View>
 
+            {/* ── Selected category detail panel ────────────────────────────── */}
             {selectedCat && (
               <View
                 style={{
@@ -286,9 +283,7 @@ export default function CategoryBreakdownScreen() {
                     { l: "Total spend", v: fmt(selectedCat.amount) },
                     {
                       l: "Status",
-                      v: selectedCat.deductible
-                        ? "Deductible"
-                        : "Non-deductible",
+                      v: selectedCat.deductible ? "Deductible" : "Non-deductible",
                     },
                     { l: "ITR12 code", v: selectedCat.itr12Code },
                   ].map((s, i) => (
@@ -316,6 +311,7 @@ export default function CategoryBreakdownScreen() {
               </View>
             )}
 
+            {/* ── Category list ─────────────────────────────────────────────── */}
             {filtered.length === 0 ? (
               <View style={{ alignItems: "center", paddingTop: space["4xl"] }}>
                 <Text style={{ fontSize: 40, marginBottom: space.md }}>📊</Text>
@@ -352,6 +348,7 @@ export default function CategoryBreakdownScreen() {
                           selected === cat.name ? C.bgPage : C.white,
                       }}
                     >
+                      {/* Row header */}
                       <View
                         style={{
                           flexDirection: "row",
@@ -380,12 +377,16 @@ export default function CategoryBreakdownScreen() {
                         <Text
                           style={{
                             ...typography.labelM,
-                            color: cat.deductible ? C.primary : C.textSecondary,
+                            color: cat.deductible
+                              ? C.primary
+                              : C.textSecondary,
                           }}
                         >
                           {fmt(cat.amount)}
                         </Text>
                       </View>
+
+                      {/* Badges row */}
                       <View
                         style={{
                           flexDirection: "row",
@@ -425,6 +426,8 @@ export default function CategoryBreakdownScreen() {
                           </Text>
                         </View>
                       </View>
+
+                      {/* Progress bar */}
                       <View
                         style={{
                           height: 4,
@@ -448,6 +451,7 @@ export default function CategoryBreakdownScreen() {
               </View>
             )}
 
+            {/* ── Footer nav ────────────────────────────────────────────────── */}
             <TouchableOpacity
               onPress={() => router.push("/deductibility-guide")}
               style={{
@@ -463,7 +467,11 @@ export default function CategoryBreakdownScreen() {
             >
               <Text style={{ fontSize: 18, marginRight: space.sm }}>📖</Text>
               <Text
-                style={{ ...typography.labelM, color: C.textPrimary, flex: 1 }}
+                style={{
+                  ...typography.labelM,
+                  color: C.textPrimary,
+                  flex: 1,
+                }}
               >
                 View deductibility guide
               </Text>

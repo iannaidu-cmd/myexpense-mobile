@@ -1,6 +1,5 @@
-import { ThemedText } from "@/components/themed-text";
-import { ThemedView } from "@/components/themed-view";
-import { StyleSheet, TouchableOpacity, View } from "react-native";
+import { colour, radius, space, typography } from "@/tokens";
+import { Text, TouchableOpacity, View } from "react-native";
 import type { Category, ExpenseData, PaymentMethod } from "./types";
 
 interface SuccessStageProps {
@@ -23,7 +22,8 @@ export function SuccessStage({
   const selectedCategory =
     data.categoryIdx !== null ? categories[data.categoryIdx] : null;
   const selectedPayment = paymentMethods[data.paymentMethodIdx];
-  const amountNum = parseInt(data.amountRaw.replace(/[^0-9]/g, "")) / 100;
+  const amountNum =
+    parseInt(data.amountRaw.replace(/[^0-9]/g, "")) / 100;
 
   const summaryRows = [
     {
@@ -49,141 +49,117 @@ export function SuccessStage({
   ];
 
   return (
-    <ThemedView style={styles.container}>
+    <View
+      style={{
+        flex: 1,
+        alignItems: "center",
+        justifyContent: "center",
+        paddingVertical: 40,
+        paddingHorizontal: 28,
+        backgroundColor: colour.white,
+      }}
+    >
       {/* Success icon */}
-      <View style={styles.successCircle}>
-        <ThemedText style={styles.checkmark}>✓</ThemedText>
+      <View
+        style={{
+          width: 96,
+          height: 96,
+          borderRadius: 48,
+          backgroundColor: colour.primary,
+          alignItems: "center",
+          justifyContent: "center",
+          marginBottom: 28,
+        }}
+      >
+        <Text style={{ fontSize: 46, color: colour.white, fontWeight: "900" }}>
+          ✓
+        </Text>
       </View>
 
       {/* Message */}
-      <ThemedText style={styles.heading}>Expense Added!</ThemedText>
-      <ThemedText style={styles.subtitle}>
-        {data.vendor} — {amountDisplay} has been logged and mapped to your ITR12
-        records.
-      </ThemedText>
+      <Text
+        style={{
+          ...typography.h2,
+          color: colour.text,
+          marginBottom: space.sm,
+          textAlign: "center",
+        }}
+      >
+        Expense Added!
+      </Text>
+      <Text
+        style={{
+          ...typography.bodyS,
+          color: colour.textSub,
+          marginBottom: 36,
+          textAlign: "center",
+        }}
+      >
+        {data.vendor} — {amountDisplay} has been logged and mapped to your
+        ITR12 records.
+      </Text>
 
       {/* Summary card */}
-      <View style={styles.summaryCard}>
+      <View
+        style={{
+          width: "100%",
+          backgroundColor: colour.surface1,
+          borderRadius: radius.lg,
+          paddingVertical: space.xl,
+          paddingHorizontal: space.xl,
+          marginBottom: 32,
+          borderWidth: 1,
+          borderColor: colour.borderLight,
+        }}
+      >
         {summaryRows.map((row, i) => (
           <View
             key={i}
-            style={[
-              styles.summaryRow,
-              i < summaryRows.length - 1 && styles.summaryRowBorder,
-            ]}
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+              paddingVertical: 9,
+              ...(i < summaryRows.length - 1
+                ? { borderBottomWidth: 1, borderBottomColor: colour.border }
+                : {}),
+            }}
           >
-            <ThemedText style={styles.summaryLabel}>{row.label}</ThemedText>
-            <ThemedText style={styles.summaryValue}>{row.value}</ThemedText>
+            <Text style={{ ...typography.bodyS, color: colour.textSub }}>
+              {row.label}
+            </Text>
+            <Text style={{ ...typography.labelM, color: colour.text }}>
+              {row.value}
+            </Text>
           </View>
         ))}
       </View>
 
       {/* Action buttons */}
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity style={styles.primaryButton} onPress={onAddAnother}>
-          <ThemedText style={styles.primaryButtonText}>
+      <View style={{ width: "100%", gap: space.md }}>
+        <TouchableOpacity
+          style={{
+            backgroundColor: colour.primary,
+            borderRadius: radius.pill,
+            paddingVertical: 16,
+            paddingHorizontal: space.lg,
+            alignItems: "center",
+          }}
+          onPress={onAddAnother}
+        >
+          <Text style={{ ...typography.btnL, color: colour.onPrimary }}>
             + Add Another Expense
-          </ThemedText>
+          </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={styles.secondaryButton}
+          style={{ alignItems: "center", paddingVertical: space.sm }}
           onPress={onViewDashboard}
         >
-          <ThemedText style={styles.secondaryButtonText}>
+          <Text style={{ ...typography.actionM, color: colour.primary }}>
             View Dashboard →
-          </ThemedText>
+          </Text>
         </TouchableOpacity>
       </View>
-    </ThemedView>
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 40,
-    paddingHorizontal: 28,
-  },
-  successCircle: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    backgroundColor: "#0288D1",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 28,
-  },
-  checkmark: {
-    fontSize: 46,
-    color: "#fff",
-    fontWeight: "900",
-  },
-  heading: {
-    fontSize: 24,
-    fontWeight: "800",
-    marginBottom: 8,
-    textAlign: "center",
-  },
-  subtitle: {
-    fontSize: 13,
-    color: "#757575",
-    marginBottom: 36,
-    textAlign: "center",
-  },
-  summaryCard: {
-    width: "100%",
-    backgroundColor: "rgba(255,255,255,0.05)",
-    borderRadius: 20,
-    paddingVertical: 20,
-    paddingHorizontal: 24,
-    marginBottom: 32,
-    borderWidth: 1,
-    borderColor: "#1976D2",
-  },
-  summaryRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 9,
-  },
-  summaryRowBorder: {
-    borderBottomWidth: 1,
-    borderBottomColor: "#1976D2",
-  },
-  summaryLabel: {
-    fontSize: 12,
-    color: "#757575",
-  },
-  summaryValue: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#fff",
-  },
-  buttonContainer: {
-    width: "100%",
-    gap: 12,
-  },
-  primaryButton: {
-    backgroundColor: "#0288D1",
-    borderRadius: 18,
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  primaryButtonText: {
-    fontWeight: "800",
-    fontSize: 15,
-    color: "#0D47A1",
-  },
-  secondaryButton: {
-    alignItems: "center",
-  },
-  secondaryButtonText: {
-    fontWeight: "600",
-    fontSize: 13,
-    color: "#0288D1",
-  },
-});

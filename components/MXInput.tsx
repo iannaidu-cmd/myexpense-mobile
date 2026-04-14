@@ -63,7 +63,7 @@ export function MXInput({
           borderWidth,
           borderColor,
           borderRadius: radius.md,
-          backgroundColor: "#FFF",
+          backgroundColor: colour.white,
           paddingHorizontal: space.md,
           paddingVertical: 8,
           gap: 8,

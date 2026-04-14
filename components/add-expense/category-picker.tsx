@@ -1,11 +1,5 @@
-import { ThemedText } from "@/components/themed-text";
-import {
-    Modal,
-    ScrollView,
-    StyleSheet,
-    TouchableOpacity,
-    View,
-} from "react-native";
+import { colour, radius, space, typography } from "@/tokens";
+import { Modal, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import type { Category } from "./types";
 
 interface CategoryPickerProps {
@@ -30,47 +24,99 @@ export function CategoryPicker({
       animationType="slide"
       onRequestClose={onClose}
     >
-      <View style={styles.overlay}>
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: "rgba(31,32,36,0.55)",
+          justifyContent: "flex-end",
+        }}
+      >
+        {/* Backdrop tap to close */}
         <TouchableOpacity
-          style={styles.backdrop}
+          style={{ flex: 1 }}
           activeOpacity={1}
           onPress={onClose}
         />
-        <View style={styles.sheet}>
-          <View style={styles.handle} />
 
-          <ThemedText style={styles.title}>ITR12 Category</ThemedText>
+        {/* Sheet */}
+        <View
+          style={{
+            backgroundColor: colour.surface1,
+            borderTopLeftRadius: radius.xl,
+            borderTopRightRadius: radius.xl,
+            paddingHorizontal: space.xl,
+            paddingBottom: 40,
+            maxHeight: "80%",
+          }}
+        >
+          {/* Handle */}
+          <View
+            style={{
+              width: 40,
+              height: 4,
+              borderRadius: radius.pill,
+              backgroundColor: colour.border,
+              alignSelf: "center",
+              marginVertical: space.xl,
+            }}
+          />
 
-          <ScrollView style={styles.scrollContainer}>
-            <View style={styles.grid}>
-              {categories.map((cat, i) => (
-                <TouchableOpacity
-                  key={i}
-                  style={[
-                    styles.categoryOption,
-                    selectedIdx === i && {
-                      backgroundColor: cat.color + "18",
-                      borderColor: cat.color,
-                    },
-                  ]}
-                  onPress={() => {
-                    onSelect(i);
-                    onClose();
-                  }}
-                >
-                  <ThemedText style={styles.categoryIcon}>
-                    {cat.icon}
-                  </ThemedText>
-                  <ThemedText
-                    style={[
-                      styles.categoryLabel,
-                      selectedIdx === i && { color: cat.color },
-                    ]}
+          <Text
+            style={{
+              ...typography.h4,
+              color: colour.text,
+              marginBottom: space.lg,
+            }}
+          >
+            ITR12 Category
+          </Text>
+
+          <ScrollView style={{ maxHeight: "100%" }}>
+            <View
+              style={{
+                flexDirection: "row",
+                flexWrap: "wrap",
+                gap: space.sm,
+                justifyContent: "space-between",
+              }}
+            >
+              {categories.map((cat, i) => {
+                const isSelected = selectedIdx === i;
+                return (
+                  <TouchableOpacity
+                    key={i}
+                    style={{
+                      width: "48%",
+                      alignItems: "center",
+                      paddingVertical: space.md,
+                      paddingHorizontal: 14,
+                      borderRadius: radius.md,
+                      backgroundColor: isSelected
+                        ? cat.color + "18"
+                        : colour.white,
+                      borderWidth: 1.5,
+                      borderColor: isSelected ? cat.color : colour.borderLight,
+                    }}
+                    onPress={() => {
+                      onSelect(i);
+                      onClose();
+                    }}
                   >
-                    {cat.label}
-                  </ThemedText>
-                </TouchableOpacity>
-              ))}
+                    <Text style={{ fontSize: 20, marginBottom: space.xs }}>
+                      {cat.icon}
+                    </Text>
+                    <Text
+                      style={{
+                        ...typography.labelS,
+                        color: isSelected ? cat.color : colour.textSub,
+                        textAlign: "center",
+                      }}
+                    >
+                      {cat.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
           </ScrollView>
         </View>
@@ -78,65 +124,3 @@ export function CategoryPicker({
     </Modal>
   );
 }
-
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: "rgba(26,26,92,0.55)",
-    justifyContent: "flex-end",
-  },
-  backdrop: {
-    flex: 1,
-  },
-  sheet: {
-    backgroundColor: "#F5F5F5",
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingHorizontal: 20,
-    paddingBottom: 40,
-    maxHeight: "80%",
-  },
-  handle: {
-    width: 40,
-    height: 4,
-    borderRadius: 100,
-    backgroundColor: "#E0E0E0",
-    alignSelf: "center",
-    marginVertical: 20,
-  },
-  title: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#0D47A1",
-    marginBottom: 16,
-  },
-  scrollContainer: {
-    maxHeight: "100%",
-  },
-  grid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 10,
-    justifyContent: "space-between",
-  },
-  categoryOption: {
-    width: "48%",
-    alignItems: "center",
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    borderRadius: 14,
-    backgroundColor: "#fff",
-    borderWidth: 1.5,
-    borderColor: "#F5F5F5",
-  },
-  categoryIcon: {
-    fontSize: 20,
-    marginBottom: 4,
-  },
-  categoryLabel: {
-    fontSize: 11,
-    fontWeight: "600",
-    color: "#757575",
-    textAlign: "center",
-  },
-});

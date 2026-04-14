@@ -38,7 +38,7 @@ export function MXCard({
   noBorder = false,
 }: MXCardProps) {
   const cardStyle: ViewStyle = {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colour.white,
     borderRadius: radius.lg,   // 16
     padding,
     borderWidth: noBorder ? 0 : 1,

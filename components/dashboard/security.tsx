@@ -1,22 +1,23 @@
 import React, { useState } from "react";
 import { ScrollView, Switch, Text, TouchableOpacity, View } from "react-native";
+import { colour } from "@/tokens";
 
-// ─── Brand Colours ────────────────────────────────────────────────────────────
+// ─── Colour aliases mapped to design tokens ───────────────────────────────────
 const C = {
-  navy: "#2E2E7A",
-  navyDark: "#1A1A5C",
-  teal: "#3BBFAD",
-  midNavy: "#3D3D9E",
-  midNavy2: "#5B5BB8",
-  bgLight: "#E8EAF6",
-  bgLighter: "#F5F6FF",
-  white: "#FFFFFF",
-  text: "#1A1A2E",
-  textSub: "#6B6B9E",
-  border: "#D0D3F0",
-  success: "#27AE60",
-  warning: "#F39C12",
-  danger: "#E74C3C",
+  navy: colour.primary,
+  navyDark: colour.navyDark,
+  teal: colour.teal,
+  midNavy: colour.midNavy2,
+  midNavy2: colour.midNavy2,
+  bgLight: colour.surface2,
+  bgLighter: colour.background,
+  white: colour.white,
+  text: colour.text,
+  textSub: colour.textSub,
+  border: colour.borderLight,
+  success: colour.success,
+  warning: colour.warning,
+  danger: colour.danger,
 };
 
 const NAV = { Home: "⊞", Scan: "⊡", Reports: "◈", Settings: "⚙" };
@@ -123,7 +124,7 @@ function SecurityRow({
           width: 38,
           height: 38,
           borderRadius: 10,
-          backgroundColor: danger ? "#FEF0EF" : C.bgLight,
+          backgroundColor: danger ? colour.dangerBg : C.bgLight,
           alignItems: "center",
           justifyContent: "center",
           marginRight: 14,
@@ -215,7 +216,7 @@ function SessionRow({
             <View
               style={{
                 marginLeft: 8,
-                backgroundColor: "#E8F8F3",
+                backgroundColor: colour.successBg,
                 borderRadius: 6,
                 paddingHorizontal: 6,
                 paddingVertical: 2,

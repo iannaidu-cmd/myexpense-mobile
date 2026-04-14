@@ -1,5 +1,5 @@
-import { ThemedText } from "@/components/themed-text";
-import { StyleSheet, View } from "react-native";
+import { colour, typography } from "@/tokens";
+import { Text, View } from "react-native";
 
 interface AuthHeaderProps {
   title: string;
@@ -8,31 +8,36 @@ interface AuthHeaderProps {
 
 export function AuthHeader({ title, subtitle }: AuthHeaderProps) {
   return (
-    <View style={styles.container}>
-      <ThemedText style={styles.title}>{title}</ThemedText>
-      {subtitle && <ThemedText style={styles.subtitle}>{subtitle}</ThemedText>}
+    <View
+      style={{
+        backgroundColor: colour.navyDark,
+        paddingTop: 56,
+        paddingBottom: 28,
+        paddingHorizontal: 22,
+        justifyContent: "flex-end",
+      }}
+    >
+      <Text
+        style={{
+          ...typography.h3,
+          color: colour.white,
+          marginBottom: 8,
+          letterSpacing: -0.3,
+        }}
+      >
+        {title}
+      </Text>
+      {subtitle && (
+        <Text
+          style={{
+            fontSize: 13,
+            color: "rgba(255,255,255,0.55)",
+            lineHeight: 21,
+          }}
+        >
+          {subtitle}
+        </Text>
+      )}
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    backgroundColor: "#0D47A1",
-    paddingTop: 56,
-    paddingBottom: 28,
-    paddingHorizontal: 22,
-    justifyContent: "flex-end",
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: "#fff",
-    marginBottom: 8,
-    letterSpacing: -0.3,
-  },
-  subtitle: {
-    fontSize: 13,
-    color: "rgba(255,255,255,0.55)",
-    lineHeight: 21,
-  },
-});

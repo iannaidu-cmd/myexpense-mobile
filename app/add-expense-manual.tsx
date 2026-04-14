@@ -1,7 +1,13 @@
 import { MXTabBar } from "@/components/MXTabBar";
+import { expenseService } from "@/services/expenseService";
+import { useAuthStore } from "@/stores/authStore";
 import { colour } from "@/tokens";
+import { ACTIVE_TAX_YEAR } from "@/types/database";
+import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
+    ActivityIndicator,
+    Alert,
     ScrollView,
     Text,
     TextInput,
@@ -95,6 +101,7 @@ const ITR12_CATEGORIES = [
 
 export default function AddExpenseScreen() {
   const router = useRouter();
+  const { user } = useAuthStore();
   const [amount, setAmount] = useState("");
   const [vendor, setVendor] = useState("");
   const [date, setDate] = useState(
@@ -110,9 +117,57 @@ export default function AddExpenseScreen() {
   const [vatAmount, setVatAmount] = useState("");
   const [note, setNote] = useState("");
   const [showCatPicker, setShowCatPicker] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const selectedCat = ITR12_CATEGORIES.find((c) => c.label === category);
-  const canSave = !!amount && !!vendor && !!category;
+  const canSave = !!amount && parseFloat(amount) > 0 && !!vendor && !!category;
+
+  const handleSave = async () => {
+    if (!canSave || !user) return;
+
+    // Parse DD/MM/YYYY → YYYY-MM-DD
+    let expenseDate = date;
+    if (date.includes("/")) {
+      const parts = date.split("/");
+      if (parts.length === 3) {
+        expenseDate = `${parts[2]}-${parts[1].padStart(2, "0")}-${parts[0].padStart(2, "0")}`;
+      }
+    }
+
+    setSaving(true);
+    try {
+      await expenseService.addExpense(user.id, {
+        vendor: vendor.trim(),
+        amount: parseFloat(amount),
+        category,
+        itr12_code: selectedCat?.code ?? null,
+        tax_year: ACTIVE_TAX_YEAR,
+        expense_date: expenseDate,
+        is_deductible: expType === "business",
+        vat_amount: vatAmount ? parseFloat(vatAmount) : undefined,
+        notes: note.trim() || undefined,
+      });
+
+      setAmount("");
+      setVendor("");
+      setCategory("");
+      setVatAmount("");
+      setNote("");
+
+      Alert.alert(
+        "Expense Saved ✓",
+        `R ${parseFloat(amount).toLocaleString("en-ZA", { minimumFractionDigits: 2 })} at ${vendor.trim()} has been saved.`,
+        [
+          { text: "Add another", style: "cancel" },
+          { text: "Go home", onPress: () => router.replace("/(tabs)" as any) },
+        ],
+      );
+    } catch (e: any) {
+      Alert.alert("Error saving expense", e.message);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <PhoneShell>
@@ -472,26 +527,31 @@ export default function AddExpenseScreen() {
 
         {/* Save */}
         <TouchableOpacity
-          onPress={() => canSave && router.replace("/(tabs)" as any)}
-          disabled={!canSave}
+          onPress={handleSave}
+          disabled={!canSave || saving}
           style={{
             marginHorizontal: 16,
-            backgroundColor: canSave ? colour.accent : colour.surface2,
+            backgroundColor:
+              canSave && !saving ? colour.accent : colour.surface2,
             borderRadius: 14,
             padding: 16,
             alignItems: "center",
             marginBottom: 10,
           }}
         >
-          <Text
-            style={{
-              color: canSave ? colour.onPrimary : colour.textSub,
-              fontSize: 15,
-              fontWeight: "700",
-            }}
-          >
-            {canSave ? "Save expense" : "Fill in required fields"}
-          </Text>
+          {saving ? (
+            <ActivityIndicator color={colour.onPrimary} />
+          ) : (
+            <Text
+              style={{
+                color: canSave ? colour.onPrimary : colour.textSub,
+                fontSize: 15,
+                fontWeight: "700",
+              }}
+            >
+              {canSave ? "Save expense" : "Fill in required fields"}
+            </Text>
+          )}
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() => router.back()}

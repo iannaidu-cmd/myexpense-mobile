@@ -1,6 +1,7 @@
 import React from 'react';
 import Svg, { Path, Rect, Circle } from 'react-native-svg';
 import { ViewStyle, View } from 'react-native';
+import { colour } from '@/tokens';
 
 // ─── MXWordmark ───────────────────────────────────────────────────────────────
 // Full "MyExpense" wordmark as SVG — transparent background, scales to any size.
@@ -18,7 +19,7 @@ import { ViewStyle, View } from 'react-native';
 //   Teal:  #3AC0A0   colour.accent  (always teal — visible on both backgrounds)
 // ─────────────────────────────────────────────────────────────────────────────
 
-const TEAL = '#3AC0A0';
+const TEAL = colour.accent;
 
 // Artwork viewBox: 1140 × 290 (~4:1)
 const VB_W = 1140;
@@ -38,7 +39,7 @@ export default function MXWordmark({
   style,
 }: MXWordmarkProps) {
   const height = Math.round((width / VB_W) * VB_H);
-  const INK = variant === 'light' ? '#FFFFFF' : '#2D2E7A';
+  const INK = variant === 'light' ? colour.white : '#2D2E7A';
   const SW = 36; // stroke width
   const LC = 'round' as const;
 

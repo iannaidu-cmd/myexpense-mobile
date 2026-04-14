@@ -1,4 +1,5 @@
 import { MXTabBar } from "@/components/MXTabBar";
+import { colour } from "@/tokens";
 import { NavigationProp } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
@@ -8,34 +9,17 @@ interface Props {
   navigation?: NavigationProp<any>;
 }
 
-const C = {
-  navy: "#2E2E7A",
-  navyDark: "#1A1A5C",
-  teal: "#3BBFAD",
-  midNavy: "#3D3D9E",
-  midNavy2: "#5B5BB8",
-  bgLight: "#E8EAF6",
-  bgLighter: "#F5F6FF",
-  white: "#FFFFFF",
-  text: "#1A1A2E",
-  textSub: "#6B6B9E",
-  border: "#D0D3F0",
-  success: "#27AE60",
-  warning: "#F39C12",
-  danger: "#E74C3C",
-};
-
-const NAV = { Home: "⊞", Scan: "⊡", Reports: "◈", Settings: "⚙" };
+// ─── Single alias so existing references compile unchanged ────────────────────
+const C = colour;
 
 function PhoneShell({
   children,
-  navigation,
 }: {
   children: React.ReactNode;
   navigation?: NavigationProp<any>;
 }) {
   return (
-    <View style={{ flex: 1, backgroundColor: C.bgLighter }}>
+    <View style={{ flex: 1, backgroundColor: C.background }}>
       <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
         {children}
       </ScrollView>
@@ -186,13 +170,13 @@ const TYPE_META: Record<
   ActivityType,
   { icon: string; color: string; bg: string }
 > = {
-  expense_added: { icon: "🧾", color: C.navy, bg: C.bgLight },
-  receipt_scanned: { icon: "📷", color: C.teal, bg: "#E0F9F6" },
-  report_generated: { icon: "📊", color: C.midNavy2, bg: C.bgLight },
-  deadline: { icon: "🗓", color: C.warning, bg: "#FFF8E1" },
-  budget_alert: { icon: "⚠️", color: C.danger, bg: "#FEF0EF" },
-  export: { icon: "📤", color: C.success, bg: "#E8F8F3" },
-  login: { icon: "🔐", color: C.textSub, bg: C.bgLight },
+  expense_added:    { icon: "🧾", color: C.primary,    bg: C.primary50    },
+  receipt_scanned:  { icon: "📷", color: C.teal,       bg: C.tealLight    },
+  report_generated: { icon: "📊", color: C.midNavy2,   bg: C.surface2     },
+  deadline:         { icon: "🗓",  color: C.warning,    bg: C.warningBg    },
+  budget_alert:     { icon: "⚠️", color: C.danger,     bg: C.dangerBg     },
+  export:           { icon: "📤", color: C.success,    bg: C.successBg    },
+  login:            { icon: "🔐", color: C.textSub,    bg: C.surface2     },
 };
 
 function ActivityRow({
@@ -213,7 +197,7 @@ function ActivityRow({
         paddingVertical: 13,
         borderBottomWidth: 1,
         borderBottomColor: C.border,
-        backgroundColor: item.read ? C.white : `${C.bgLight}88`,
+        backgroundColor: item.read ? C.white : C.primary50,
       }}
     >
       <View style={{ position: "relative", marginRight: 14 }}>
@@ -245,6 +229,7 @@ function ActivityRow({
           />
         )}
       </View>
+
       <View style={{ flex: 1 }}>
         <View
           style={{
@@ -281,13 +266,13 @@ function ActivityRow({
             style={{
               marginTop: 6,
               alignSelf: "flex-start",
-              backgroundColor: C.bgLight,
+              backgroundColor: C.primary50,
               borderRadius: 8,
               paddingHorizontal: 8,
               paddingVertical: 3,
             }}
           >
-            <Text style={{ fontSize: 11, fontWeight: "700", color: C.navy }}>
+            <Text style={{ fontSize: 11, fontWeight: "700", color: C.primary }}>
               {item.amount}
             </Text>
           </View>
@@ -325,10 +310,10 @@ export default function RecentActivityFeedScreen({ navigation }: Props) {
 
   return (
     <PhoneShell navigation={navigation}>
-      {/* Header */}
+      {/* ── Header ─────────────────────────────────────────────────────────── */}
       <View
         style={{
-          backgroundColor: C.navy,
+          backgroundColor: C.primary,
           paddingTop: 47,
           paddingBottom: 28,
           paddingHorizontal: 20,
@@ -336,7 +321,7 @@ export default function RecentActivityFeedScreen({ navigation }: Props) {
       >
         <TouchableOpacity
           onPress={() => router.back()}
-          style={{ marginBottom: 10 }}>
+          style={{ marginBottom: 10 }}
         >
           <Text style={{ color: C.teal, fontSize: 13 }}>‹ Home</Text>
         </TouchableOpacity>
@@ -372,7 +357,9 @@ export default function RecentActivityFeedScreen({ navigation }: Props) {
                 paddingVertical: 4,
               }}
             >
-              <Text style={{ color: C.white, fontSize: 12, fontWeight: "700" }}>
+              <Text
+                style={{ color: C.white, fontSize: 12, fontWeight: "700" }}
+              >
                 {unreadCount} new
               </Text>
             </View>
@@ -380,9 +367,10 @@ export default function RecentActivityFeedScreen({ navigation }: Props) {
         </View>
       </View>
 
+      {/* ── Body ───────────────────────────────────────────────────────────── */}
       <View
         style={{
-          backgroundColor: C.bgLighter,
+          backgroundColor: C.background,
           borderTopLeftRadius: 24,
           borderTopRightRadius: 24,
           marginTop: -16,
@@ -403,7 +391,7 @@ export default function RecentActivityFeedScreen({ navigation }: Props) {
                     paddingHorizontal: 14,
                     paddingVertical: 7,
                     borderRadius: 20,
-                    backgroundColor: filter === f ? C.navy : C.bgLight,
+                    backgroundColor: filter === f ? C.primary : C.surface2,
                   }}
                 >
                   <Text

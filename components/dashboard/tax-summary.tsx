@@ -10,6 +10,7 @@ interface TaxCategory {
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { useThemeColor } from "@/hooks/use-theme-color";
+import { colour } from "@/tokens";
 import {
     FlatList,
     Pressable,
@@ -46,7 +47,7 @@ const DEFAULT_DATA: TaxSummaryData = {
     {
       name: "Software & Tech",
       icon: "💻",
-      color: "#1976D2",
+      color: colour.midNavy2,
       amount: 12400,
       percentage: 81,
       itemCount: 28,
@@ -55,7 +56,7 @@ const DEFAULT_DATA: TaxSummaryData = {
     {
       name: "Travel & Transport",
       icon: "🚗",
-      color: "#0288D1",
+      color: colour.info,
       amount: 9200,
       percentage: 65,
       itemCount: 34,
@@ -64,7 +65,7 @@ const DEFAULT_DATA: TaxSummaryData = {
     {
       name: "Office & Stationery",
       icon: "📁",
-      color: "#1565C0",
+      color: colour.navyDark,
       amount: 7800,
       percentage: 54,
       itemCount: 19,
@@ -73,7 +74,7 @@ const DEFAULT_DATA: TaxSummaryData = {
     {
       name: "Professional Services",
       icon: "📋",
-      color: "#1976D2",
+      color: colour.midNavy2,
       amount: 6100,
       percentage: 44,
       itemCount: 8,
@@ -82,7 +83,7 @@ const DEFAULT_DATA: TaxSummaryData = {
     {
       name: "Meals & Entertainment",
       icon: "🍽️",
-      color: "#E07060",
+      color: colour.warning,
       amount: 3400,
       percentage: 24,
       itemCount: 22,
@@ -91,7 +92,7 @@ const DEFAULT_DATA: TaxSummaryData = {
     {
       name: "Home Office",
       icon: "🏠",
-      color: "#0288D1",
+      color: colour.info,
       amount: 2100,
       percentage: 15,
       itemCount: 12,
@@ -109,23 +110,23 @@ export function TaxSummaryScreen({
   onBack,
 }: TaxSummaryScreenProps) {
   const backgroundColor = useThemeColor(
-    { light: "#FFFFFF", dark: "#121212" },
+    { light: colour.white, dark: "#121212" },
     "background",
   );
   const cardBackground = useThemeColor(
-    { light: "#F5F5F5", dark: "#1E1E1E" },
+    { light: colour.surface1, dark: "#1E1E1E" },
     "background",
   );
   const textColor = useThemeColor({}, "text");
   const mutedColor = useThemeColor(
-    { light: "#757575", dark: "#9E9E9E" },
+    { light: colour.textHint, dark: "#9E9E9E" },
     "text",
   );
   const borderColor = useThemeColor(
-    { light: "#E0E0E0", dark: "#424242" },
+    { light: colour.border, dark: "#424242" },
     "text",
   );
-  const accentColor = "#0288D1";
+  const accentColor = colour.info;
 
   const styles = StyleSheet.create({
     container: {
@@ -153,7 +154,7 @@ export function TaxSummaryScreen({
     headerTitle: {
       fontSize: 22,
       fontWeight: "800",
-      color: "#fff",
+      color: colour.white,
       marginBottom: 6,
       lineHeight: 1.2,
     },
@@ -195,7 +196,7 @@ export function TaxSummaryScreen({
       borderRadius: 20,
       paddingHorizontal: 20,
       paddingVertical: 20,
-      backgroundColor: "#1565C0",
+      backgroundColor: colour.navyDark,
     },
     heroLabel: {
       fontSize: 11,
@@ -207,7 +208,7 @@ export function TaxSummaryScreen({
     heroAmount: {
       fontSize: 36,
       fontWeight: "900",
-      color: "#fff",
+      color: colour.white,
       marginBottom: 4,
       lineHeight: 1,
     },
@@ -267,7 +268,7 @@ export function TaxSummaryScreen({
     categoryValue: {
       fontSize: 14,
       fontWeight: "800",
-      color: "#1565C0",
+      color: colour.navyDark,
       marginBottom: 2,
     },
     categoryPercentage: {
@@ -305,7 +306,7 @@ export function TaxSummaryScreen({
     forecastLabel: {
       fontSize: 12,
       fontWeight: "600",
-      color: "#0288D1",
+      color: colour.info,
       marginBottom: 2,
     },
     forecastAmount: {
@@ -323,13 +324,13 @@ export function TaxSummaryScreen({
       marginVertical: 16,
       borderRadius: 18,
       paddingVertical: 16,
-      backgroundColor: "#1565C0",
+      backgroundColor: colour.navyDark,
       alignItems: "center",
     },
     exportButtonText: {
       fontWeight: "700",
       fontSize: 15,
-      color: "#fff",
+      color: colour.white,
     },
     bottomSpacing: {
       height: 40,

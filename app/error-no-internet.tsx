@@ -7,10 +7,12 @@
  */
 
 import { colour, radius, space, typography } from "@/tokens";
+import NetInfo from "@react-native-community/netinfo";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
     ActivityIndicator,
+    Alert,
     Platform,
     SafeAreaView,
     StatusBar,
@@ -144,10 +146,16 @@ export default function ErrorNoInternetScreen() {
 
   const handleRetry = async () => {
     setRetrying(true);
-    // Simulate a connectivity check (replace with real NetInfo check)
-    await new Promise((resolve) => setTimeout(resolve, 1800));
+    const state = await NetInfo.fetch();
     setRetrying(false);
-    // TODO: if connected, navigate back or pop to previous screen
+    if (state.isConnected && state.isInternetReachable !== false) {
+      router.back();
+    } else {
+      Alert.alert(
+        "Still offline",
+        "Please check your internet connection and try again.",
+      );
+    }
   };
 
   return (

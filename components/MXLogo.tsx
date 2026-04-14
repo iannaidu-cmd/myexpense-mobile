@@ -1,5 +1,6 @@
 import React from 'react';
 import { Platform, TouchableOpacity, View, ViewStyle } from 'react-native';
+import { colour } from '@/tokens';
 
 // ─── MXLogo ──────────────────────────────────────────────────────────────────
 // Platform-aware logo component:
@@ -27,7 +28,7 @@ function MXLogoNative({ size, barColour, onPress, style }: {
 }) {
   // Lazy import so web bundler never tries to resolve react-native-svg
   const { default: Svg, Rect, Path } = require('react-native-svg');
-  const TEAL = '#3AC0A0';
+  const TEAL = colour.accent;
 
   const logo = (
     <Svg width={size} height={size} viewBox="0 0 40 40">
@@ -61,7 +62,7 @@ function MXLogoWeb({ size, barColour, onPress, style }: {
   onPress?: () => void;
   style?: ViewStyle;
 }) {
-  const TEAL = '#3AC0A0';
+  const TEAL = colour.accent;
 
   // Use dangerouslySetInnerHTML to render a proper inline SVG on web
   // This is transparent and works on any background colour
@@ -94,7 +95,7 @@ export default function MXLogo({
   onPress,
   style,
 }: MXLogoProps) {
-  const barColour = variant === 'light' ? '#FFFFFF' : '#2D2E7A';
+  const barColour = variant === 'light' ? colour.white : '#2D2E7A';
 
   if (Platform.OS === 'web') {
     return (

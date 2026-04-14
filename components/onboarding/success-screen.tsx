@@ -1,5 +1,5 @@
-import { ThemedText } from "@/components/themed-text";
-import { StyleSheet, TouchableOpacity, View } from "react-native";
+import { colour, radius, space, typography } from "@/tokens";
+import { Text, TouchableOpacity, View } from "react-native";
 import type { OnboardingData, WorkType } from "./types";
 
 interface SuccessScreenProps {
@@ -18,139 +18,126 @@ export function SuccessScreen({
   const taxYear = "2026 (1 Mar – 28 Feb)";
 
   const summaryRows = [
-    { label: "Work type", value: selectedWorkType },
-    { label: "Tax number", value: data.taxNumber || "Not added yet" },
-    { label: "Tax year", value: taxYear },
+    { label: "Work type",   value: selectedWorkType          },
+    { label: "Tax number",  value: data.taxNumber || "Not added yet" },
+    { label: "Tax year",    value: taxYear                   },
   ];
 
   return (
-    <View style={styles.container}>
+    <View
+      style={{
+        flex: 1,
+        backgroundColor: colour.white,
+        alignItems: "center",
+        justifyContent: "center",
+        paddingVertical: 40,
+        paddingHorizontal: 28,
+      }}
+    >
       {/* Success circle */}
-      <View style={styles.successCircle}>
-        <ThemedText style={styles.checkmark}>✓</ThemedText>
+      <View
+        style={{
+          width: 100,
+          height: 100,
+          borderRadius: 50,
+          backgroundColor: colour.primary,
+          alignItems: "center",
+          justifyContent: "center",
+          marginBottom: 28,
+        }}
+      >
+        <Text style={{ fontSize: 48, color: colour.white, fontWeight: "900" }}>
+          ✓
+        </Text>
       </View>
 
-      <ThemedText style={styles.heading}>
+      <Text
+        style={{
+          ...typography.h2,
+          color: colour.text,
+          marginBottom: 10,
+          textAlign: "center",
+        }}
+      >
         Welcome to MyExpense{data.name ? `, ${data.name}` : ""}!
-      </ThemedText>
+      </Text>
 
-      <ThemedText style={styles.subtitle}>
+      <Text
+        style={{
+          ...typography.bodyM,
+          color: colour.textSub,
+          lineHeight: 22,
+          marginBottom: 36,
+          textAlign: "center",
+        }}
+      >
         Your account is ready. Start scanning receipts and we'll handle the tax
         categorisation.
-      </ThemedText>
+      </Text>
 
       {/* Summary card */}
-      <View style={styles.summaryCard}>
+      <View
+        style={{
+          backgroundColor: colour.surface1,
+          borderRadius: radius.lg,
+          paddingVertical: 20,
+          paddingHorizontal: 24,
+          width: "100%",
+          marginBottom: 32,
+          borderWidth: 1,
+          borderColor: colour.surface2,
+        }}
+      >
         {summaryRows.map((row, i) => (
           <View
             key={i}
-            style={[
-              styles.summaryRow,
-              i < summaryRows.length - 1 && styles.summaryRowBorder,
-            ]}
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+              paddingVertical: 9,
+              ...(i < summaryRows.length - 1
+                ? { borderBottomWidth: 1, borderBottomColor: colour.surface2 }
+                : {}),
+            }}
           >
-            <ThemedText style={styles.summaryLabel}>{row.label}</ThemedText>
-            <ThemedText style={styles.summaryValue}>{row.value}</ThemedText>
+            <Text style={{ ...typography.bodyS, color: colour.textHint }}>
+              {row.label}
+            </Text>
+            <Text
+              style={{
+                ...typography.bodyM,
+                color: colour.text,
+                fontWeight: "600",
+              }}
+            >
+              {row.value}
+            </Text>
           </View>
         ))}
       </View>
 
-      {/* Go to dashboard button */}
+      {/* Go to dashboard */}
       <TouchableOpacity
-        style={styles.dashboardButton}
+        style={{
+          backgroundColor: colour.primary,
+          borderRadius: radius.pill,
+          paddingVertical: 16,
+          paddingHorizontal: 16,
+          width: "100%",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
         onPress={onComplete}
         accessibilityRole="button"
         accessibilityLabel="Go to dashboard"
       >
-        <ThemedText style={styles.dashboardButtonText}>
+        <Text
+          style={{ ...typography.btnL, color: colour.white, fontWeight: "800" }}
+        >
           Go to Dashboard →
-        </ThemedText>
+        </Text>
       </TouchableOpacity>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#FFFFFF",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 40,
-    paddingHorizontal: 28,
-  },
-  successCircle: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: "#006FFD",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 28,
-  },
-  // Checkmark stays white — it's on the blue circle
-  checkmark: {
-    fontSize: 48,
-    color: "#FFFFFF",
-    fontWeight: "900",
-  },
-  heading: {
-    color: "#1F2024",
-    fontSize: 26,
-    fontWeight: "800",
-    marginBottom: 10,
-    textAlign: "center",
-  },
-  subtitle: {
-    color: "#494A50",
-    fontSize: 14,
-    lineHeight: 22,
-    marginBottom: 36,
-    textAlign: "center",
-  },
-  // FIX: was rgba(255,255,255,0.05) near-invisible on dark — now clean card on white
-  summaryCard: {
-    backgroundColor: "#F8F9FE",
-    borderRadius: 20,
-    paddingVertical: 20,
-    paddingHorizontal: 24,
-    width: "100%",
-    marginBottom: 32,
-    borderWidth: 1,
-    borderColor: "#E8E9F1",
-  },
-  summaryRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 9,
-  },
-  summaryRowBorder: {
-    borderBottomWidth: 1,
-    borderBottomColor: "#E8E9F1",
-  },
-  summaryLabel: {
-    color: "#71727A",
-    fontSize: 12,
-  },
-  summaryValue: {
-    color: "#1F2024",
-    fontSize: 13,
-    fontWeight: "600",
-  },
-  dashboardButton: {
-    backgroundColor: "#006FFD",
-    borderRadius: 18,
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    width: "100%",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  dashboardButtonText: {
-    color: "#FFFFFF",
-    fontWeight: "800",
-    fontSize: 15,
-  },
-});

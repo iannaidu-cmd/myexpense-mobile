@@ -1,8 +1,6 @@
-import { ThemedText } from "@/components/themed-text";
-import { ThemedView } from "@/components/themed-view";
-import { useThemeColor } from "@/hooks/use-theme-color";
+import { colour, radius, space, typography } from "@/tokens";
 import { useState } from "react";
-import { Pressable, StyleSheet, TextInput, View } from "react-native";
+import { Pressable, Text, TextInput, View } from "react-native";
 
 interface DeleteConfirmationProps {
   vendorName?: string;
@@ -22,25 +20,6 @@ export function DeleteConfirmationScreen({
   );
   const [typed, setTyped] = useState("");
 
-  const backgroundColor = useThemeColor(
-    { light: "#FFFFFF", dark: "#121212" },
-    "background",
-  );
-  const cardBackground = useThemeColor(
-    { light: "#F5F5F5", dark: "#1E1E1E" },
-    "background",
-  );
-  const textColor = useThemeColor({}, "text");
-  const mutedColor = useThemeColor(
-    { light: "#757575", dark: "#9E9E9E" },
-    "text",
-  );
-  const borderColor = useThemeColor(
-    { light: "#E0E0E0", dark: "#424242" },
-    "text",
-  );
-  const errorColor = "#E53935";
-
   const confirmText = `DELETE ${vendorName.toUpperCase()}`;
   const isConfirmed = typed === confirmText;
 
@@ -54,265 +33,247 @@ export function DeleteConfirmationScreen({
     }, 600);
   };
 
-  const styles = StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor,
-    },
-    header: {
-      paddingHorizontal: 24,
-      paddingTop: 20,
-      paddingBottom: 24,
-      backgroundColor: "rgba(21, 101, 192, 0.95)",
-    },
-    headerTitle: {
-      fontSize: 20,
-      fontWeight: "700",
-      color: "#fff",
-      marginBottom: 4,
-    },
-    headerSubtitle: {
-      fontSize: 13,
-      color: "rgba(255, 255, 255, 0.55)",
-    },
-    content: {
-      flex: 1,
-      alignItems: "center",
-      justifyContent: "center",
-      padding: 28,
-    },
-    warningIcon: {
-      fontSize: 60,
-      marginBottom: 20,
-    },
-    title: {
-      fontSize: 22,
-      fontWeight: "800",
-      color: textColor,
-      marginBottom: 8,
-      textAlign: "center",
-    },
-    message: {
-      fontSize: 14,
-      color: mutedColor,
-      marginBottom: 24,
-      textAlign: "center",
-      lineHeight: 1.6,
-    },
-    expenseBox: {
-      backgroundColor: cardBackground,
-      borderRadius: 12,
-      borderWidth: 1.5,
-      borderColor: borderColor,
-      paddingHorizontal: 16,
-      paddingVertical: 12,
-      width: "100%",
-      marginBottom: 28,
-    },
-    expenseLabel: {
-      fontSize: 12,
-      color: mutedColor,
-      marginBottom: 4,
-      fontWeight: "600",
-    },
-    expenseValue: {
-      fontSize: 16,
-      fontWeight: "700",
-      color: errorColor,
-    },
-    inputContainer: {
-      backgroundColor: cardBackground,
-      borderRadius: 12,
-      borderWidth: 1.5,
-      borderColor: borderColor,
-      paddingHorizontal: 16,
-      paddingVertical: 12,
-      width: "100%",
-      marginBottom: 12,
-    },
-    inputLabel: {
-      fontSize: 12,
-      color: mutedColor,
-      marginBottom: 6,
-      fontWeight: "600",
-    },
-    input: {
-      fontSize: 15,
-      fontWeight: "600",
-      color: isConfirmed ? "#2E9E8F" : textColor,
-      fontFamily: "monospace",
-    },
-    inputPlaceholder: {
-      fontSize: 12,
-      color: mutedColor,
-      fontWeight: "600",
-    },
-    buttonContainer: {
-      flexDirection: "row",
-      gap: 12,
-      width: "100%",
-      marginTop: 20,
-    },
-    cancelButton: {
-      flex: 1,
-      paddingVertical: 12,
-      borderRadius: 12,
-      borderWidth: 1.5,
-      borderColor: borderColor,
-      alignItems: "center",
-    },
-    deleteButton: {
-      flex: 1,
-      paddingVertical: 12,
-      borderRadius: 12,
-      backgroundColor: isConfirmed ? errorColor : "rgba(229, 57, 53, 0.3)",
-      alignItems: "center",
-    },
-    cancelButtonText: {
-      fontSize: 14,
-      fontWeight: "700",
-      color: textColor,
-    },
-    deleteButtonText: {
-      fontSize: 14,
-      fontWeight: "700",
-      color: "#fff",
-    },
-    deletingContainer: {
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    deletingText: {
-      fontSize: 18,
-      fontWeight: "700",
-      color: textColor,
-      marginBottom: 24,
-    },
-    spinner: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      borderWidth: 3,
-      borderColor: borderColor,
-      borderTopColor: errorColor,
-    },
-    deletedContainer: {
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    deletedIcon: {
-      fontSize: 60,
-      marginBottom: 20,
-    },
-    deletedTitle: {
-      fontSize: 22,
-      fontWeight: "800",
-      color: textColor,
-      marginBottom: 8,
-      textAlign: "center",
-    },
-    deletedMessage: {
-      fontSize: 14,
-      color: mutedColor,
-      textAlign: "center",
-    },
-  });
-
+  // ── Deleting state ──────────────────────────────────────────────────────────
   if (step === "deleting") {
     return (
-      <ThemedView style={styles.container}>
-        <ThemedView style={styles.header}>
-          <ThemedText style={styles.headerTitle}>Deleting...</ThemedText>
-        </ThemedView>
-        <View style={[styles.content, styles.deletingContainer]}>
-          <ThemedText style={styles.deletingText}>Removing expense</ThemedText>
-          <View style={styles.spinner} />
+      <View style={{ flex: 1, backgroundColor: colour.white }}>
+        <View
+          style={{
+            paddingHorizontal: space.xl,
+            paddingTop: space.xl,
+            paddingBottom: space.xl,
+            backgroundColor: colour.dangerBg,
+          }}
+        >
+          <Text style={{ ...typography.h3, color: colour.danger }}>
+            Deleting...
+          </Text>
         </View>
-      </ThemedView>
+        <View
+          style={{
+            flex: 1,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Text style={{ ...typography.h4, color: colour.text, marginBottom: space.xl }}>
+            Removing expense
+          </Text>
+          {/* Spinner ring */}
+          <View
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              borderWidth: 3,
+              borderColor: colour.borderLight,
+              borderTopColor: colour.danger,
+            }}
+          />
+        </View>
+      </View>
     );
   }
 
+  // ── Deleted state ───────────────────────────────────────────────────────────
   if (step === "deleted") {
     return (
-      <ThemedView style={styles.container}>
-        <ThemedView style={styles.header}>
-          <ThemedText style={styles.headerTitle}>Deleted</ThemedText>
-        </ThemedView>
-        <View style={[styles.content, styles.deletedContainer]}>
-          <ThemedText style={styles.deletedIcon}>✓</ThemedText>
-          <ThemedText style={styles.deletedTitle}>Expense Removed</ThemedText>
-          <ThemedText style={styles.deletedMessage}>
-            The expense has been permanently deleted from your records.
-          </ThemedText>
+      <View style={{ flex: 1, backgroundColor: colour.white }}>
+        <View
+          style={{
+            paddingHorizontal: space.xl,
+            paddingTop: space.xl,
+            paddingBottom: space.xl,
+            backgroundColor: colour.successBg,
+          }}
+        >
+          <Text style={{ ...typography.h3, color: colour.success }}>
+            Deleted
+          </Text>
         </View>
-      </ThemedView>
+        <View
+          style={{
+            flex: 1,
+            alignItems: "center",
+            justifyContent: "center",
+            paddingHorizontal: space.xl,
+          }}
+        >
+          <Text style={{ fontSize: 60, marginBottom: space.xl }}>✓</Text>
+          <Text style={{ ...typography.h3, color: colour.text, marginBottom: space.sm, textAlign: "center" }}>
+            Expense Removed
+          </Text>
+          <Text style={{ ...typography.bodyM, color: colour.textSub, textAlign: "center" }}>
+            The expense has been permanently deleted from your records.
+          </Text>
+        </View>
+      </View>
     );
   }
 
+  // ── Confirm state ───────────────────────────────────────────────────────────
   return (
-    <ThemedView style={styles.container}>
-      <ThemedView style={styles.header}>
-        <ThemedText style={styles.headerTitle}>Delete Expense?</ThemedText>
-        <ThemedText style={styles.headerSubtitle}>
+    <View style={{ flex: 1, backgroundColor: colour.white }}>
+      {/* Header */}
+      <View
+        style={{
+          paddingHorizontal: space.xl,
+          paddingTop: space.xl,
+          paddingBottom: space.xl,
+          backgroundColor: colour.dangerBg,
+          borderBottomWidth: 1,
+          borderBottomColor: colour.dangerMid,
+        }}
+      >
+        <Text style={{ ...typography.h3, color: colour.danger, marginBottom: space.xs }}>
+          Delete Expense?
+        </Text>
+        <Text style={{ ...typography.bodyS, color: colour.danger }}>
           This action cannot be undone
-        </ThemedText>
-      </ThemedView>
+        </Text>
+      </View>
 
-      <View style={styles.content}>
-        <ThemedText style={styles.warningIcon}>⚠️</ThemedText>
-        <ThemedText style={styles.title}>
+      <View
+        style={{
+          flex: 1,
+          alignItems: "center",
+          justifyContent: "center",
+          padding: 28,
+        }}
+      >
+        <Text style={{ fontSize: 60, marginBottom: space.xl }}>⚠️</Text>
+        <Text
+          style={{
+            ...typography.h4,
+            color: colour.text,
+            marginBottom: space.sm,
+            textAlign: "center",
+          }}
+        >
           Permanently delete this expense?
-        </ThemedText>
-        <ThemedText style={styles.message}>
+        </Text>
+        <Text
+          style={{
+            ...typography.bodyM,
+            color: colour.textSub,
+            marginBottom: space.xl,
+            textAlign: "center",
+            lineHeight: 22,
+          }}
+        >
           You are about to remove this transaction from your expense records.
           This action cannot be reversed.
-        </ThemedText>
+        </Text>
 
-        <View style={styles.expenseBox}>
-          <ThemedText style={styles.expenseLabel}>Expense details</ThemedText>
-          <ThemedText style={styles.expenseValue}>
+        {/* Expense summary box */}
+        <View
+          style={{
+            backgroundColor: colour.surface1,
+            borderRadius: radius.md,
+            borderWidth: 1.5,
+            borderColor: colour.border,
+            paddingHorizontal: space.lg,
+            paddingVertical: space.md,
+            width: "100%",
+            marginBottom: space.xl,
+          }}
+        >
+          <Text style={{ ...typography.labelS, color: colour.textSub, marginBottom: space.xs }}>
+            Expense details
+          </Text>
+          <Text style={{ ...typography.labelM, color: colour.danger }}>
             {vendorName} • {amount}
-          </ThemedText>
+          </Text>
         </View>
 
-        <View style={styles.inputContainer}>
-          <ThemedText style={styles.inputLabel}>
+        {/* Confirmation input */}
+        <View
+          style={{
+            backgroundColor: colour.surface1,
+            borderRadius: radius.md,
+            borderWidth: 1.5,
+            borderColor: isConfirmed ? colour.danger : colour.border,
+            paddingHorizontal: space.lg,
+            paddingVertical: space.md,
+            width: "100%",
+            marginBottom: space.sm,
+          }}
+        >
+          <Text style={{ ...typography.labelS, color: colour.textSub, marginBottom: space.sm }}>
             Type "{confirmText}" to confirm deletion
-          </ThemedText>
+          </Text>
           <TextInput
-            style={styles.input}
+            style={{
+              ...typography.bodyM,
+              color: isConfirmed ? colour.danger : colour.text,
+              fontFamily: "monospace",
+            }}
             value={typed}
             onChangeText={setTyped}
             placeholder={confirmText}
-            placeholderTextColor={mutedColor}
+            placeholderTextColor={colour.textHint}
             autoCapitalize="characters"
           />
         </View>
 
-        <ThemedText
-          style={[
-            styles.inputLabel,
-            { marginBottom: 24, opacity: isConfirmed ? 1 : 0.5 },
-          ]}
+        <Text
+          style={{
+            ...typography.labelS,
+            color: isConfirmed ? colour.danger : colour.textHint,
+            marginBottom: space.xl,
+            opacity: isConfirmed ? 1 : 0.5,
+          }}
         >
           {isConfirmed ? "✓ Confirmed" : "Awaiting confirmation..."}
-        </ThemedText>
+        </Text>
 
-        <View style={styles.buttonContainer}>
-          <Pressable style={styles.cancelButton} onPress={onCancel}>
-            <ThemedText style={styles.cancelButtonText}>Cancel</ThemedText>
+        {/* Buttons */}
+        <View
+          style={{
+            flexDirection: "row",
+            gap: space.md,
+            width: "100%",
+          }}
+        >
+          <Pressable
+            style={{
+              flex: 1,
+              paddingVertical: 12,
+              borderRadius: radius.md,
+              borderWidth: 1.5,
+              borderColor: colour.border,
+              alignItems: "center",
+            }}
+            onPress={onCancel}
+          >
+            <Text style={{ ...typography.labelM, color: colour.text }}>
+              Cancel
+            </Text>
           </Pressable>
           <Pressable
-            style={styles.deleteButton}
+            style={{
+              flex: 1,
+              paddingVertical: 12,
+              borderRadius: radius.md,
+              backgroundColor: isConfirmed
+                ? colour.danger
+                : colour.dangerBg,
+              alignItems: "center",
+            }}
             onPress={handleDelete}
             disabled={!isConfirmed}
           >
-            <ThemedText style={styles.deleteButtonText}>
+            <Text
+              style={{
+                ...typography.labelM,
+                color: isConfirmed ? colour.white : colour.dangerMid,
+              }}
+            >
               {isConfirmed ? "🗑️ Delete" : "Delete"}
-            </ThemedText>
+            </Text>
           </Pressable>
         </View>
       </View>
-    </ThemedView>
+    </View>
   );
 }

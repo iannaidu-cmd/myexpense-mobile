@@ -39,7 +39,7 @@ export function MXNavRow({
         paddingVertical: space.md,
         paddingHorizontal: space.lg,
         gap: space.md,
-        backgroundColor: "#FFFFFF",
+        backgroundColor: colour.white,
       }}
     >
       {/* Icon box */}

@@ -32,7 +32,7 @@ export function MXScreenHeader({
   rightAction,
   subtitle,
 }: MXScreenHeaderProps) {
-  const bg = variant === "tinted" ? colour.primary50 : "#FFFFFF";
+  const bg = variant === "tinted" ? colour.primary50 : colour.white;
 
   return (
     <View

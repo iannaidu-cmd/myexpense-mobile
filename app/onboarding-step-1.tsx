@@ -21,45 +21,50 @@ const LOGO_W = SW * 0.58;
 const LOGO_H = 42;
 
 function HeroIllustration() {
+  const P = colour.primary;
+  const P50 = colour.primary50;
+  const P100 = colour.primary100;
+  const W = colour.white;
+
   return (
     <Svg width={HERO_W} height={HERO_H} viewBox="0 0 340 220" preserveAspectRatio="xMidYMid meet">
-      <Rect x="108" y="14" width="130" height="158" rx="8" fill="white" stroke="#B8D4F8" strokeWidth="2" />
+      <Rect x="108" y="14" width="130" height="158" rx="8" fill={W} stroke={P100} strokeWidth="2" />
       <Path
         d="M108 158 Q115 150 122 158 Q129 166 136 158 Q143 150 150 158 Q157 166 164 158 Q171 150 178 158 Q185 166 192 158 Q199 150 206 158 Q213 166 220 158 Q227 150 238 158 L238 172 L108 172 Z"
-        fill="white" stroke="#B8D4F8" strokeWidth="1.5"
+        fill={W} stroke={P100} strokeWidth="1.5"
       />
-      <Rect x="126" y="30" width="56" height="7" rx="3.5" fill="#006FFD" opacity="0.35" />
-      <Rect x="126" y="48" width="76" height="5" rx="2.5" fill="#D6E8FF" />
-      <Rect x="126" y="58" width="60" height="5" rx="2.5" fill="#D6E8FF" />
-      <Rect x="126" y="68" width="68" height="5" rx="2.5" fill="#D6E8FF" />
-      <Rect x="126" y="78" width="50" height="5" rx="2.5" fill="#D6E8FF" />
-      <Line x1="126" y1="92" x2="222" y2="92" stroke="#B8D4F8" strokeWidth="1.5" strokeDasharray="5 3" />
-      <Rect x="126" y="100" width="36" height="5" rx="2.5" fill="#D6E8FF" />
-      <Rect x="178" y="97" width="44" height="11" rx="4" fill="#006FFD" opacity="0.8" />
-      <Rect x="126" y="118" width="4" height="20" rx="2" fill="#B8D4F8" />
-      <Rect x="133" y="118" width="3" height="20" rx="1.5" fill="#B8D4F8" />
-      <Rect x="139" y="118" width="5" height="20" rx="2.5" fill="#B8D4F8" />
-      <Rect x="147" y="118" width="3" height="20" rx="1.5" fill="#B8D4F8" />
-      <Rect x="153" y="118" width="4" height="20" rx="2" fill="#B8D4F8" />
-      <Rect x="160" y="118" width="6" height="20" rx="3" fill="#B8D4F8" />
-      <Rect x="169" y="118" width="3" height="20" rx="1.5" fill="#B8D4F8" />
-      <Rect x="175" y="118" width="5" height="20" rx="2.5" fill="#B8D4F8" />
-      <Rect x="183" y="118" width="3" height="20" rx="1.5" fill="#B8D4F8" />
-      <Rect x="189" y="118" width="7" height="20" rx="3.5" fill="#B8D4F8" />
-      <Rect x="199" y="118" width="4" height="20" rx="2" fill="#B8D4F8" />
-      <Rect x="206" y="118" width="5" height="20" rx="2.5" fill="#B8D4F8" />
-      <Rect x="34" y="130" width="70" height="70" rx="16" fill="white" stroke="#B8D4F8" strokeWidth="2" />
-      <Rect x="44" y="146" width="50" height="36" rx="7" fill="#D6E8FF" />
-      <Rect x="44" y="146" width="50" height="36" rx="7" stroke="#006FFD" strokeWidth="2" fill="none" />
-      <Circle cx="69" cy="164" r="11" fill="white" stroke="#006FFD" strokeWidth="2" />
-      <Circle cx="69" cy="164" r="5" fill="#006FFD" opacity="0.5" />
-      <Circle cx="69" cy="164" r="2" fill="#006FFD" />
-      <Rect x="79" y="148" width="10" height="6" rx="3" fill="#006FFD" opacity="0.4" />
-      <Line x1="104" y1="164" x2="238" y2="164" stroke="#006FFD" strokeWidth="2" strokeDasharray="6 3" opacity="0.55" />
-      <Circle cx="104" cy="164" r="4" fill="#006FFD" opacity="0.8" />
-      <Circle cx="238" cy="164" r="4" fill="#006FFD" opacity="0.8" />
-      <Circle cx="270" cy="48" r="22" fill="#006FFD" />
-      <Polyline points="259,48 267,57 282,36" stroke="white" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      <Rect x="126" y="30" width="56" height="7" rx="3.5" fill={P} opacity="0.35" />
+      <Rect x="126" y="48" width="76" height="5" rx="2.5" fill={P50} />
+      <Rect x="126" y="58" width="60" height="5" rx="2.5" fill={P50} />
+      <Rect x="126" y="68" width="68" height="5" rx="2.5" fill={P50} />
+      <Rect x="126" y="78" width="50" height="5" rx="2.5" fill={P50} />
+      <Line x1="126" y1="92" x2="222" y2="92" stroke={P100} strokeWidth="1.5" strokeDasharray="5 3" />
+      <Rect x="126" y="100" width="36" height="5" rx="2.5" fill={P50} />
+      <Rect x="178" y="97" width="44" height="11" rx="4" fill={P} opacity="0.8" />
+      <Rect x="126" y="118" width="4" height="20" rx="2" fill={P100} />
+      <Rect x="133" y="118" width="3" height="20" rx="1.5" fill={P100} />
+      <Rect x="139" y="118" width="5" height="20" rx="2.5" fill={P100} />
+      <Rect x="147" y="118" width="3" height="20" rx="1.5" fill={P100} />
+      <Rect x="153" y="118" width="4" height="20" rx="2" fill={P100} />
+      <Rect x="160" y="118" width="6" height="20" rx="3" fill={P100} />
+      <Rect x="169" y="118" width="3" height="20" rx="1.5" fill={P100} />
+      <Rect x="175" y="118" width="5" height="20" rx="2.5" fill={P100} />
+      <Rect x="183" y="118" width="3" height="20" rx="1.5" fill={P100} />
+      <Rect x="189" y="118" width="7" height="20" rx="3.5" fill={P100} />
+      <Rect x="199" y="118" width="4" height="20" rx="2" fill={P100} />
+      <Rect x="206" y="118" width="5" height="20" rx="2.5" fill={P100} />
+      <Rect x="34" y="130" width="70" height="70" rx="16" fill={W} stroke={P100} strokeWidth="2" />
+      <Rect x="44" y="146" width="50" height="36" rx="7" fill={P50} />
+      <Rect x="44" y="146" width="50" height="36" rx="7" stroke={P} strokeWidth="2" fill="none" />
+      <Circle cx="69" cy="164" r="11" fill={W} stroke={P} strokeWidth="2" />
+      <Circle cx="69" cy="164" r="5" fill={P} opacity="0.5" />
+      <Circle cx="69" cy="164" r="2" fill={P} />
+      <Rect x="79" y="148" width="10" height="6" rx="3" fill={P} opacity="0.4" />
+      <Line x1="104" y1="164" x2="238" y2="164" stroke={P} strokeWidth="2" strokeDasharray="6 3" opacity="0.55" />
+      <Circle cx="104" cy="164" r="4" fill={P} opacity="0.8" />
+      <Circle cx="238" cy="164" r="4" fill={P} opacity="0.8" />
+      <Circle cx="270" cy="48" r="22" fill={P} />
+      <Polyline points="259,48 267,57 282,36" stroke={W} strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
     </Svg>
   );
 }
@@ -96,7 +101,7 @@ export default function OnboardingStep1Screen() {
         {/* Hero card */}
         <View style={{
           borderRadius: radius.xl,
-          backgroundColor: '#D6E8FF',
+          backgroundColor: colour.primary50,
           alignItems: 'center',
           justifyContent: 'center',
           height: HERO_H,

@@ -1,17 +1,18 @@
 import { MXTabBar } from "@/components/MXTabBar";
-import { colour as C } from "@/tokens";
+import { colour } from "@/tokens";
 import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
-    Animated,
-    Easing,
-    ScrollView,
-    Text,
-    TouchableOpacity,
-    View,
+  Animated,
+  Easing,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
-const NAV = { Home: "⊞", Scan: "⊡", Reports: "◈", Settings: "⚙" };
+// Alias for brevity — every value is now a live token from @/tokens/colours.ts
+const C = colour;
 
 function PhoneShell({ children }: { children: React.ReactNode }) {
   return (
@@ -40,12 +41,14 @@ export default function ITR12PDFReportScreen() {
         useNativeDriver: true,
       }),
     ).start();
+
     Animated.timing(progressAnim, {
       toValue: 1,
       duration: 2400,
       easing: Easing.out(Easing.cubic),
       useNativeDriver: false,
     }).start(() => setGenerating(false));
+
     const iv = setInterval(
       () =>
         setProgress((p) => {
@@ -70,21 +73,22 @@ export default function ITR12PDFReportScreen() {
   });
 
   const PDF_SECTIONS = [
-    { title: "Cover page", pages: 1, done: true },
-    { title: "Taxpayer information", pages: 1, done: true },
-    { title: "Income statement", pages: 2, done: true },
-    { title: "Deduction schedule", pages: 3, done: true },
-    { title: "Category breakdown", pages: 4, done: !generating },
-    { title: "Receipt register", pages: 12, done: !generating },
-    { title: "VAT summary", pages: 2, done: false },
-    { title: "Supporting documentation", pages: 8, done: false },
+    { title: "Cover page",               pages: 1,  done: true         },
+    { title: "Taxpayer information",      pages: 1,  done: true         },
+    { title: "Income statement",          pages: 2,  done: true         },
+    { title: "Deduction schedule",        pages: 3,  done: true         },
+    { title: "Category breakdown",        pages: 4,  done: !generating  },
+    { title: "Receipt register",          pages: 12, done: !generating  },
+    { title: "VAT summary",              pages: 2,  done: false        },
+    { title: "Supporting documentation", pages: 8,  done: false        },
   ];
 
   return (
     <PhoneShell>
+      {/* ── Header ──────────────────────────────────────────────────────────── */}
       <View
         style={{
-          backgroundColor: C.navy,
+          backgroundColor: C.primary,
           paddingTop: 52,
           paddingBottom: 28,
           paddingHorizontal: 20,
@@ -121,9 +125,10 @@ export default function ITR12PDFReportScreen() {
         </Text>
       </View>
 
+      {/* ── Body ────────────────────────────────────────────────────────────── */}
       <View
         style={{
-          backgroundColor: C.bgLighter,
+          backgroundColor: C.background,
           borderTopLeftRadius: 24,
           borderTopRightRadius: 24,
           marginTop: -16,
@@ -143,7 +148,7 @@ export default function ITR12PDFReportScreen() {
             borderColor: C.border,
           }}
         >
-          {/* PDF header */}
+          {/* PDF header strip */}
           <View
             style={{
               backgroundColor: C.danger,
@@ -154,7 +159,9 @@ export default function ITR12PDFReportScreen() {
           >
             <Text style={{ fontSize: 24, marginRight: 10 }}>📄</Text>
             <View style={{ flex: 1 }}>
-              <Text style={{ color: C.white, fontSize: 14, fontWeight: "700" }}>
+              <Text
+                style={{ color: C.white, fontSize: 14, fontWeight: "700" }}
+              >
                 MyExpense_ITR12_2024-25.pdf
               </Text>
               <Text
@@ -171,18 +178,17 @@ export default function ITR12PDFReportScreen() {
             </View>
           </View>
 
-          {/* PDF page mock */}
+          {/* Mock page preview */}
           <View style={{ padding: 16 }}>
             <View
               style={{
-                backgroundColor: C.bgLighter,
+                backgroundColor: C.surface1,
                 borderRadius: 8,
                 padding: 16,
                 borderWidth: 1,
                 borderColor: C.border,
               }}
             >
-              {/* Mock page content */}
               <View
                 style={{
                   flexDirection: "row",
@@ -192,7 +198,11 @@ export default function ITR12PDFReportScreen() {
               >
                 <View>
                   <Text
-                    style={{ fontSize: 16, fontWeight: "900", color: C.navy }}
+                    style={{
+                      fontSize: 16,
+                      fontWeight: "900",
+                      color: C.primary,
+                    }}
                   >
                     MyExpense
                   </Text>
@@ -202,6 +212,7 @@ export default function ITR12PDFReportScreen() {
                 </View>
                 <Text style={{ fontSize: 22 }}>🇿🇦</Text>
               </View>
+
               <View
                 style={{
                   height: 1,
@@ -209,10 +220,11 @@ export default function ITR12PDFReportScreen() {
                   marginBottom: 10,
                 }}
               />
+
               {[
-                { label: "Taxpayer", value: "Ian Naidu" },
-                { label: "Tax Number", value: "1234567890" },
-                { label: "Period", value: "2024/25" },
+                { label: "Taxpayer",    value: "Ian Naidu"   },
+                { label: "Tax Number",  value: "1234567890" },
+                { label: "Period",      value: "2024/25"    },
                 { label: "Total Deduct.", value: "R 95,680" },
               ].map((r, i) => (
                 <View
@@ -227,12 +239,17 @@ export default function ITR12PDFReportScreen() {
                     {r.label}
                   </Text>
                   <Text
-                    style={{ fontSize: 11, fontWeight: "700", color: C.text }}
+                    style={{
+                      fontSize: 11,
+                      fontWeight: "700",
+                      color: C.text,
+                    }}
                   >
                     {r.value}
                   </Text>
                 </View>
               ))}
+
               <View
                 style={{
                   height: 1,
@@ -241,7 +258,11 @@ export default function ITR12PDFReportScreen() {
                 }}
               />
               <Text
-                style={{ fontSize: 10, color: C.textSub, textAlign: "center" }}
+                style={{
+                  fontSize: 10,
+                  color: C.textSub,
+                  textAlign: "center",
+                }}
               >
                 Page 1 of 33
               </Text>
@@ -278,7 +299,9 @@ export default function ITR12PDFReportScreen() {
               >
                 ⚙
               </Animated.Text>
-              <Text style={{ fontSize: 13, fontWeight: "700", color: C.text }}>
+              <Text
+                style={{ fontSize: 13, fontWeight: "700", color: C.text }}
+              >
                 Generating PDF…
               </Text>
               <Text
@@ -292,10 +315,12 @@ export default function ITR12PDFReportScreen() {
                 {progress}%
               </Text>
             </View>
+
+            {/* Progress track */}
             <View
               style={{
                 height: 6,
-                backgroundColor: C.bgLight,
+                backgroundColor: C.surface2,
                 borderRadius: 3,
                 overflow: "hidden",
               }}
@@ -335,6 +360,7 @@ export default function ITR12PDFReportScreen() {
               Report Sections
             </Text>
           </View>
+
           {PDF_SECTIONS.map((s, i) => (
             <View
               key={i}
@@ -352,7 +378,7 @@ export default function ITR12PDFReportScreen() {
                   width: 22,
                   height: 22,
                   borderRadius: 11,
-                  backgroundColor: s.done ? C.success : C.bgLight,
+                  backgroundColor: s.done ? C.success : C.surface2,
                   alignItems: "center",
                   justifyContent: "center",
                   marginRight: 12,
@@ -360,7 +386,11 @@ export default function ITR12PDFReportScreen() {
               >
                 {s.done ? (
                   <Text
-                    style={{ color: C.white, fontSize: 11, fontWeight: "800" }}
+                    style={{
+                      color: C.white,
+                      fontSize: 11,
+                      fontWeight: "800",
+                    }}
                   >
                     ✓
                   </Text>
@@ -377,7 +407,9 @@ export default function ITR12PDFReportScreen() {
               >
                 {s.title}
               </Text>
-              <Text style={{ fontSize: 11, color: C.textSub }}>{s.pages}p</Text>
+              <Text style={{ fontSize: 11, color: C.textSub }}>
+                {s.pages}p
+              </Text>
             </View>
           ))}
         </View>
@@ -395,25 +427,31 @@ export default function ITR12PDFReportScreen() {
                 marginBottom: 10,
               }}
             >
-              <Text style={{ color: C.white, fontSize: 15, fontWeight: "700" }}>
+              <Text
+                style={{ color: C.white, fontSize: 15, fontWeight: "700" }}
+              >
                 Share PDF
               </Text>
             </TouchableOpacity>
+
             <TouchableOpacity
               style={{
                 marginHorizontal: 16,
                 borderWidth: 2,
-                borderColor: C.navy,
+                borderColor: C.primary,
                 borderRadius: 14,
                 padding: 14,
                 alignItems: "center",
                 marginBottom: 10,
               }}
             >
-              <Text style={{ color: C.navy, fontSize: 15, fontWeight: "700" }}>
+              <Text
+                style={{ color: C.primary, fontSize: 15, fontWeight: "700" }}
+              >
                 Save to Files
               </Text>
             </TouchableOpacity>
+
             <TouchableOpacity
               style={{
                 marginHorizontal: 16,
@@ -434,6 +472,7 @@ export default function ITR12PDFReportScreen() {
           </>
         )}
 
+        {/* Disclaimer */}
         <View style={{ marginHorizontal: 16 }}>
           <Text
             style={{

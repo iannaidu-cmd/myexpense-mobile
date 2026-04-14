@@ -62,7 +62,7 @@ export function MXButton({
   // ── Label style ───────────────────────────────────────────────────────────
   const labelStyle: object = {
     ...typography.actionM,
-    color: variant === "primary" ? "#FFFFFF" : colour.primary,
+    color: variant === "primary" ? colour.onPrimary : colour.primary,
     fontWeight: "700",
     letterSpacing: 0.2,
   };
@@ -77,7 +77,7 @@ export function MXButton({
       {icon && <View style={{ marginRight: 8 }}>{icon}</View>}
       {loading ? (
         <ActivityIndicator
-          color={variant === "primary" ? "#FFF" : colour.primary}
+          color={variant === "primary" ? colour.onPrimary : colour.primary}
         />
       ) : (
         <Text style={labelStyle}>{label}</Text>

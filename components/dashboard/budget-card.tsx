@@ -1,7 +1,5 @@
-import { ThemedText } from "@/components/themed-text";
-import { ThemedView } from "@/components/themed-view";
-import { useThemeColor } from "@/hooks/use-theme-color";
-import { StyleSheet, View } from "react-native";
+import { colour, radius, typography } from "@/tokens";
+import { Text, View } from "react-native";
 
 interface BudgetCardProps {
   spent: number;
@@ -10,87 +8,59 @@ interface BudgetCardProps {
 }
 
 export function BudgetCard({ spent, budget, percentage }: BudgetCardProps) {
-  const textColor = useThemeColor({}, "text");
-  const remaining = budget - spent;
+  const remaining  = budget - spent;
+  const barColor   = percentage > 100 ? colour.danger : colour.primary;
+  const remColor   = remaining > 0     ? colour.primary : colour.danger;
 
   return (
-    <ThemedView style={styles.card}>
-      <View style={styles.header}>
-        <ThemedText type="defaultSemiBold">Monthly Budget</ThemedText>
-        <ThemedText style={styles.amount}>
+    <View
+      style={{
+        backgroundColor: "rgba(255,255,255,0.10)",
+        borderRadius: radius.lg,
+        paddingVertical: 18,
+        paddingHorizontal: 22,
+        borderWidth: 1,
+        borderColor: "rgba(255,255,255,0.15)",
+      }}
+    >
+      {/* Header */}
+      <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 12 }}>
+        <Text style={{ ...typography.labelM, color: colour.white }}>Monthly Budget</Text>
+        <Text style={{ ...typography.bodyS, color: colour.primary200 }}>
           R{spent.toLocaleString()} / R{budget.toLocaleString()}
-        </ThemedText>
+        </Text>
       </View>
 
-      <View style={styles.progressContainer}>
-        <View style={styles.progressBar}>
-          <View
-            style={[
-              styles.progressFill,
-              {
-                width: `${Math.min(percentage, 100)}%` as any,
-                backgroundColor: percentage > 100 ? "#FF6B6B" : "#0288D1",
-              },
-            ]}
-          />
-        </View>
+      {/* Progress bar */}
+      <View
+        style={{
+          height: 10,
+          borderRadius: radius.pill,
+          backgroundColor: colour.surface2,
+          overflow: "hidden",
+          marginBottom: 12,
+        }}
+      >
+        <View
+          style={{
+            width: `${Math.min(percentage, 100)}%` as any,
+            height: "100%",
+            borderRadius: radius.pill,
+            backgroundColor: barColor,
+          }}
+        />
       </View>
 
-      <View style={styles.footer}>
-        <ThemedText style={styles.percentageText}>
+      {/* Footer */}
+      <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+        <Text style={{ ...typography.bodyXS, color: colour.textDisabled }}>
           {percentage}% used
-        </ThemedText>
-        <ThemedText
-          style={[
-            styles.remainingText,
-            { color: remaining > 0 ? "#0288D1" : "#FF6B6B" },
-          ]}
-        >
+        </Text>
+        <Text style={{ ...typography.bodyXS, fontWeight: "700", color: remColor }}>
           R{remaining.toLocaleString()}{" "}
           {remaining > 0 ? "remaining" : "over budget"}
-        </ThemedText>
+        </Text>
       </View>
-    </ThemedView>
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  card: {
-    borderRadius: 16,
-    padding: 16,
-  },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 12,
-  },
-  amount: {
-    fontSize: 13,
-    color: "#1976D2",
-  },
-  progressContainer: {
-    marginBottom: 12,
-  },
-  progressBar: {
-    height: 10,
-    borderRadius: 100,
-    backgroundColor: "#F5F5F5",
-    overflow: "hidden",
-  },
-  progressFill: {
-    height: "100%",
-    borderRadius: 100,
-  },
-  footer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  percentageText: {
-    fontSize: 11,
-    color: "#757575",
-  },
-  remainingText: {
-    fontSize: 11,
-    fontWeight: "700",
-  },
-});

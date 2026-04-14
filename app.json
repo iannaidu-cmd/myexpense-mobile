@@ -12,8 +12,14 @@
       "supportsTablet": true,
       "bundleIdentifier": "co.za.myexpense",
       "infoPlist": {
-        "UIBackgroundModes": ["remote-notification"],
-        "LSApplicationQueriesSchemes": ["myexpense"]
+        "UIBackgroundModes": [
+          "remote-notification",
+          "remote-notification"
+        ],
+        "LSApplicationQueriesSchemes": [
+          "myexpense",
+          "myexpense"
+        ]
       }
     },
     "android": {
@@ -35,8 +41,15 @@
               "scheme": "myexpense"
             }
           ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
+      ],
+      "permissions": [
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
       ]
     },
     "web": {
@@ -66,6 +79,18 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "3cc2675f-d248-4f36-ba9b-401f7d55d8be"
+      }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/3cc2675f-d248-4f36-ba9b-401f7d55d8be"
     }
   }
 }
