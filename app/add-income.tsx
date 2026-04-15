@@ -1,4 +1,10 @@
 import { MXHeader } from "@/components/MXHeader";
+import {
+  validateAmount,
+  validateDate,
+  validateIncomeSource,
+  validateNote,
+} from "@/lib/validation";
 import { incomeService } from "@/services/incomeService";
 import { useAuthStore } from "@/stores/authStore";
 import { colour, radius, space, typography } from "@/tokens";
@@ -124,7 +130,7 @@ export default function AddIncomeScreen() {
   };
 
   const handleSave = async () => {
-    if (!canSave || !user) return;
+    if (!user) return;
 
     let incomeDate = date;
     if (date.includes("/")) {
@@ -132,6 +138,16 @@ export default function AddIncomeScreen() {
       if (parts.length === 3) {
         incomeDate = `${parts[2]}-${parts[1].padStart(2, "0")}-${parts[0].padStart(2, "0")}`;
       }
+    }
+
+    const amountErr = validateAmount(amount);
+    const sourceErr = validateIncomeSource(source);
+    const dateErr = validateDate(incomeDate, { fieldName: "Income date", allowFuture: false });
+    const noteErr = validateNote(description);
+    const firstErr = amountErr ?? sourceErr ?? dateErr ?? noteErr;
+    if (firstErr) {
+      Alert.alert("Invalid input", firstErr);
+      return;
     }
 
     setSaving(true);

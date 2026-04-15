@@ -1,3 +1,4 @@
+import { MAX_AMOUNT_CENTS } from "@/lib/validation";
 import { colour, radius, space, typography } from "@/tokens";
 import {
   ScrollView,
@@ -52,7 +53,10 @@ export function FormStage({
     } else if (key === "." && data.amountRaw.includes(".")) {
       return;
     } else {
-      onDataChange({ amountRaw: data.amountRaw + key });
+      const next = data.amountRaw + key;
+      const cents = parseInt(next.replace(/[^0-9]/g, ""), 10);
+      if (!isNaN(cents) && cents > MAX_AMOUNT_CENTS) return;
+      onDataChange({ amountRaw: next });
     }
   };
 

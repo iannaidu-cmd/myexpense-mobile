@@ -1,4 +1,11 @@
 import { MXHeader } from "@/components/MXHeader";
+import {
+  validateAmount,
+  validateCategory,
+  validateDate,
+  validateNote,
+  validateVendor,
+} from "@/lib/validation";
 import { expenseService } from "@/services/expenseService";
 import { scheduleReceiptReminder } from "@/services/notificationService";
 import { useAuthStore } from "@/stores/authStore";
@@ -130,7 +137,7 @@ export default function AddExpenseTab() {
   const canSave = !!amount && !!vendor && !!category && parseFloat(amount) > 0;
 
   const handleSave = async () => {
-    if (!canSave || !user) return;
+    if (!user) return;
 
     // Parse date from DD/MM/YYYY or YYYY-MM-DD
     let expenseDate = date;
@@ -139,6 +146,17 @@ export default function AddExpenseTab() {
       if (parts.length === 3) {
         expenseDate = `${parts[2]}-${parts[1].padStart(2, "0")}-${parts[0].padStart(2, "0")}`;
       }
+    }
+
+    const amountErr = validateAmount(amount);
+    const vendorErr = validateVendor(vendor);
+    const dateErr = validateDate(expenseDate, { fieldName: "Expense date" });
+    const catErr = validateCategory(category);
+    const noteErr = validateNote(note);
+    const firstErr = amountErr ?? vendorErr ?? dateErr ?? catErr ?? noteErr;
+    if (firstErr) {
+      Alert.alert("Invalid input", firstErr);
+      return;
     }
 
     setSaving(true);

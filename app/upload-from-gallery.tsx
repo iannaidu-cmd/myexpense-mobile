@@ -79,10 +79,6 @@ export default function UploadFromGalleryScreen() {
         });
       if (uploadError) throw new Error(uploadError.message);
 
-      const { data: urlData } = supabase.storage
-        .from("receipts")
-        .getPublicUrl(storagePath);
-
       await supabase.from("receipts").insert({
         user_id: user.id,
         storage_path: storagePath,
@@ -103,7 +99,8 @@ export default function UploadFromGalleryScreen() {
         reader.readAsDataURL(b64Blob);
       });
 
-      receiptState.set(base64, urlData.publicUrl, storagePath);
+      // Pass local URI for preview — bucket is private so no public URL is generated
+      receiptState.set(base64, manipulated.uri, storagePath);
       router.push("/scan-receipt-processing" as any);
     } catch (e: any) {
       Alert.alert("Upload Failed", e.message ?? "Could not upload receipt.");

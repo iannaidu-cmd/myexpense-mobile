@@ -1,5 +1,11 @@
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
+import {
+  validateAmount,
+  validateDate,
+  validateNote,
+  validateVendor,
+} from "@/lib/validation";
 import { expenseService } from "@/services/expenseService";
 import { colour, radius, space, typography } from "@/tokens";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -95,14 +101,20 @@ export default function EditExpenseScreen() {
     expenseType === "business" ? (selectedCat?.deductible ?? false) : false;
 
   const handleSave = async () => {
-    if (!amount || !category) {
-      setError("Amount and category are required.");
-      return;
-    }
-    if (isNaN(Number(amount)) || Number(amount) <= 0) {
-      setError("Please enter a valid amount.");
-      return;
-    }
+    const amountErr = validateAmount(amount);
+    if (amountErr) { setError(amountErr); return; }
+
+    if (!category) { setError("Category is required."); return; }
+
+    const vendorErr = validateVendor(vendor);
+    if (vendorErr) { setError(vendorErr); return; }
+
+    const dateErr = validateDate(date, { fieldName: "Expense date" });
+    if (dateErr) { setError(dateErr); return; }
+
+    const noteErr = validateNote(notes);
+    if (noteErr) { setError(noteErr); return; }
+
     setError("");
     setSaving(true);
     try {

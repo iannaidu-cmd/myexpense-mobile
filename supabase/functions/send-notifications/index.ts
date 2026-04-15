@@ -2,6 +2,21 @@
 // Sends push notifications via Expo Push API
 // Called by pg_cron daily and can be triggered manually
 
+if (req.method === "OPTIONS") {
+  return new Response("ok", { headers: corsHeaders });
+}
+
+const secret = req.headers.get("x-internal-secret");
+if (secret !== Deno.env.get("INTERNAL_NOTIFICATION_SECRET")) {
+  return new Response("Unauthorized", { status: 401 });
+}
+
+// Guard: reject calls that don't carry the internal secret
+const secret = req.headers.get("x-internal-secret");
+if (secret !== Deno.env.get("INTERNAL_NOTIFICATION_SECRET")) {
+  return new Response("Unauthorized", { status: 401 });
+}
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -41,6 +56,13 @@ Deno.serve(
   async (req) => {
     if (req.method === "OPTIONS") {
       return new Response("ok", { headers: corsHeaders });
+    }
+
+    // Reject calls that don't carry the internal secret — prevents
+    // unauthorized triggering of mass push notifications.
+    const secret = req.headers.get("x-internal-secret");
+    if (secret !== Deno.env.get("INTERNAL_NOTIFICATION_SECRET")) {
+      return new Response("Unauthorized", { status: 401 });
     }
 
     try {

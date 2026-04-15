@@ -42,9 +42,14 @@ app-example
 /ios
 /android
 
-# Environment variables
+# Environment variables — never commit any .env file
 .env
 .env.local
+.env.development
+.env.production
+.env.staging
+.env.test
+**/.env
 
 startup.log
 supabase/.temp/

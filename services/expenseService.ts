@@ -171,14 +171,19 @@ export const expenseService = {
 
     if (uploadError) throw new Error(uploadError.message);
 
-    const { data: urlData } = supabase.storage
+    // Generate a short-lived signed URL for the caller to use for preview.
+    // We never store public URLs — the bucket is private and access is always
+    // via createSignedUrl using storage_path.
+    const { data: signedData } = await supabase.storage
       .from("receipts")
-      .getPublicUrl(storagePath);
+      .createSignedUrl(storagePath, 60 * 60); // 1-hour preview TTL
 
-    // Update expense with receipt_url
+    const signedUrl = signedData?.signedUrl ?? null;
+
+    // Link the receipt to the expense (storage_path is the durable reference)
     await supabase
       .from("expenses")
-      .update({ receipt_url: urlData.publicUrl })
+      .update({ storage_path: storagePath, receipt_url: signedUrl })
       .eq("id", expenseId);
 
     // Insert receipt record
@@ -190,6 +195,6 @@ export const expenseService = {
       ocr_status: "pending",
     });
 
-    return urlData.publicUrl;
+    return storagePath;
   },
 };

@@ -146,7 +146,7 @@ export default function ReceiptReviewScreen() {
     expenseType === "business" ? (selectedCat?.deductible ?? false) : false;
 
   const canSave = !!amount && parseFloat(amount) > 0 && !!vendor && !!category;
-  const hasReceipt = !!params.receiptUrl && params.receiptUrl !== "";
+  const hasReceipt = !!params.storagePath && params.storagePath !== "";
 
   const ocrFields = {
     vendor: !!params.vendor,
@@ -183,9 +183,10 @@ export default function ReceiptReviewScreen() {
       let receiptUrl: string | undefined;
       if (params.storagePath) {
         const { supabase } = await import("@/lib/supabase");
+        // 7-day TTL — long enough to survive offline review, short enough to limit exposure
         const { data: signedData } = await supabase.storage
           .from("receipts")
-          .createSignedUrl(params.storagePath, 60 * 60 * 24 * 365);
+          .createSignedUrl(params.storagePath, 60 * 60 * 24 * 7);
         receiptUrl = signedData?.signedUrl ?? undefined;
       }
 
