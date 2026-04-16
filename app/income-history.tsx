@@ -4,7 +4,7 @@ import { incomeService } from "@/services/incomeService";
 import { useAuthStore } from "@/stores/authStore";
 import { colour, radius, space, typography } from "@/tokens";
 import { useFocusEffect, useRouter } from "expo-router";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -140,15 +140,19 @@ export default function IncomeHistoryScreen() {
     );
   };
 
-  const filtered = income.filter((e) => {
+  const filtered = useMemo(() => {
     const q = search.toLowerCase();
-    return (
-      (e.source ?? "").toLowerCase().includes(q) ||
-      (e.description ?? "").toLowerCase().includes(q)
+    return income.filter(
+      (e) =>
+        (e.source ?? "").toLowerCase().includes(q) ||
+        (e.description ?? "").toLowerCase().includes(q),
     );
-  });
+  }, [income, search]);
 
-  const totalIncome = filtered.reduce((s, e) => s + Number(e.amount), 0);
+  const totalIncome = useMemo(
+    () => filtered.reduce((s, e) => s + Number(e.amount), 0),
+    [filtered],
+  );
 
   return (
     <SafeAreaView
@@ -249,6 +253,14 @@ export default function IncomeHistoryScreen() {
           <FlatList
             data={filtered}
             keyExtractor={(item) => item.id}
+            getItemLayout={(_data, index) => ({
+              length: 69,
+              offset: 69 * index,
+              index,
+            })}
+            windowSize={10}
+            maxToRenderPerBatch={10}
+            initialNumToRender={15}
             contentContainerStyle={{
               paddingHorizontal: space.lg,
               paddingBottom: space["4xl"],

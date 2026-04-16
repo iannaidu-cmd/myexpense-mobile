@@ -1,5 +1,6 @@
 import { MXTabBar } from "@/components/MXTabBar";
 import { colour, radius, space, typography } from "@/tokens";
+import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
@@ -23,6 +24,7 @@ export default function DeleteConfirmationScreen() {
   const [deleted, setDeleted] = useState(false);
 
   const handleDelete = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     setLoading(true);
     await new Promise((r) => setTimeout(r, 800));
     setLoading(false);

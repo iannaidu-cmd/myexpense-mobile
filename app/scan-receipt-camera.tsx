@@ -2,6 +2,7 @@ import { receiptState } from "@/lib/receiptState";
 import { useAuthStore } from "@/stores/authStore";
 import { colour } from "@/tokens";
 import { CameraType, CameraView, useCameraPermissions } from "expo-camera";
+import * as Haptics from "expo-haptics";
 import * as ImageManipulator from "expo-image-manipulator";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
@@ -60,7 +61,7 @@ const toBase64 = async (uri: string): Promise<string> => {
   const manipulated = await ImageManipulator.manipulateAsync(
     uri,
     [{ resize: { width: 800 } }],
-    { compress: 0.6, format: ImageManipulator.SaveFormat.JPEG },
+    { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG },
   );
   const response = await fetch(manipulated.uri);
   const blob = await response.blob();
@@ -132,7 +133,6 @@ export default function ScanReceiptCameraScreen() {
 
       // Resize image and convert to base64 for OCR
       const base64 = await toBase64(uri);
-      console.log("Base64 length after resize:", base64?.length ?? 0);
       // Pass local URI for preview — bucket is private so no public URL is generated
       receiptState.set(base64, uri, storagePath);
 
@@ -157,6 +157,7 @@ export default function ScanReceiptCameraScreen() {
 
   const handleCapture = async () => {
     if (!cameraRef.current || uploading) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     animateCapture();
     try {
       const photo = await cameraRef.current.takePictureAsync({ quality: 0.8 });

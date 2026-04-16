@@ -128,7 +128,7 @@ export function GlobalSearch({ onClose }: GlobalSearchProps) {
                   padding: 12,
                   marginBottom: 8,
                 }}
-                onPress={() => console.log("Selected:", result)}
+                onPress={() => {}}
               >
                 <View
                   style={{

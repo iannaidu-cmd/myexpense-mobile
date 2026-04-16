@@ -5,7 +5,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { useExpenseStore } from "@/stores/expenseStore";
 import { colour, radius, space, typography } from "@/tokens";
 import { useFocusEffect, useRouter } from "expo-router";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -84,24 +84,35 @@ export default function ExpenseHistoryScreen() {
     }, [loadData]),
   );
 
-  const filtered = expenses.filter((e) => {
-    const matchSearch =
-      (e.vendor ?? "").toLowerCase().includes(search.toLowerCase()) ||
-      (e.category ?? "").toLowerCase().includes(search.toLowerCase()) ||
-      (e.description ?? "").toLowerCase().includes(search.toLowerCase());
-    const matchFilter =
-      activeFilter === "all"
-        ? true
-        : activeFilter === "deductible"
-          ? e.is_deductible
-          : !e.is_deductible;
-    return matchSearch && matchFilter;
-  });
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase();
+    return expenses.filter((e) => {
+      const matchSearch =
+        (e.vendor ?? "").toLowerCase().includes(q) ||
+        (e.category ?? "").toLowerCase().includes(q) ||
+        (e.description ?? "").toLowerCase().includes(q);
+      const matchFilter =
+        activeFilter === "all"
+          ? true
+          : activeFilter === "deductible"
+            ? e.is_deductible
+            : !e.is_deductible;
+      return matchSearch && matchFilter;
+    });
+  }, [expenses, search, activeFilter]);
 
-  const total = filtered.reduce((s, e) => s + Number(e.amount), 0);
-  const claimable = filtered
-    .filter((e) => e.is_deductible)
-    .reduce((s, e) => s + Number(e.amount), 0);
+  const total = useMemo(
+    () => filtered.reduce((s, e) => s + Number(e.amount), 0),
+    [filtered],
+  );
+
+  const claimable = useMemo(
+    () =>
+      filtered
+        .filter((e) => e.is_deductible)
+        .reduce((s, e) => s + Number(e.amount), 0),
+    [filtered],
+  );
 
   return (
     <SafeAreaView
@@ -241,6 +252,14 @@ export default function ExpenseHistoryScreen() {
           <FlatList
             data={filtered}
             keyExtractor={(item) => item.id}
+            getItemLayout={(_data, index) => ({
+              length: 65,
+              offset: 65 * index,
+              index,
+            })}
+            windowSize={10}
+            maxToRenderPerBatch={10}
+            initialNumToRender={15}
             contentContainerStyle={{
               paddingHorizontal: space.lg,
               paddingBottom: space["4xl"],

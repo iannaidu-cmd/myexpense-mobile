@@ -51,14 +51,11 @@ interface ExtractedData {
 async function extractReceiptData(base64: string): Promise<ExtractedData> {
   try {
     if (!base64 || base64.length < 100) {
-      console.warn("OCR: base64 too short or empty, skipping");
       return {};
     }
-    console.log("OCR: sending image, base64 length:", base64.length);
 
-    const SUPABASE_URL = "https://hhfbbbxgmovfpaziebsw.supabase.co";
-    const ANON_KEY =
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhoZmJiYnhnbW92ZnBhemllYnN3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1ODA2NTAsImV4cCI6MjA4NzE1NjY1MH0.Z2frUvYeIl7aJGsn4LG5Pm1UocBIKnx7ld80uiEGzRc";
+    const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL!;
+    const ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
 
     const response = await fetch(`${SUPABASE_URL}/functions/v1/ocr-receipt`, {
       method: "POST",
@@ -71,7 +68,6 @@ async function extractReceiptData(base64: string): Promise<ExtractedData> {
     });
 
     const data = await response.json();
-    console.log("OCR result:", JSON.stringify(data).slice(0, 300));
     if (data.error) {
       console.error("OCR error from function:", data.error);
       return {};

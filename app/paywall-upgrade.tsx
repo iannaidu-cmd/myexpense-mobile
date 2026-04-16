@@ -8,6 +8,7 @@ import {
   useSubscriptionStore,
 } from "@/stores/subscriptionStore";
 import { colour, radius, space, typography } from "@/tokens";
+import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
@@ -167,6 +168,7 @@ export default function PaywallUpgradeScreen() {
     }
     const success = await purchasePackage(selectedPkg);
     if (success) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       Alert.alert(
         "Welcome to Pro! ⚡",
         "You now have unlimited access to all MyExpense features.",

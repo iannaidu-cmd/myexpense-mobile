@@ -53,3 +53,5 @@ app-example
 
 startup.log
 supabase/.temp/
+
+.env.local

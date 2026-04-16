@@ -11,6 +11,7 @@ import { scheduleReceiptReminder } from "@/services/notificationService";
 import { useAuthStore } from "@/stores/authStore";
 import { colour, radius, space, typography } from "@/tokens";
 import { ACTIVE_TAX_YEAR } from "@/types/database";
+import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
@@ -161,6 +162,7 @@ export default function AddExpenseTab() {
 
     setSaving(true);
     try {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       const savedExpense = await expenseService.addExpense(user.id, {
         vendor: vendor.trim(),
         amount: parseFloat(amount),

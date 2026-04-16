@@ -1,5 +1,6 @@
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { configurePurchases } from "@/lib/purchases";
+import * as Sentry from "@sentry/react-native";
 import {
     registerForPushNotifications,
     savePushToken,
@@ -30,6 +31,13 @@ import { useEffect, useRef, useState } from "react";
 import { Animated, Image } from "react-native";
 import "react-native-reanimated";
 import "react-native-url-polyfill/auto";
+
+Sentry.init({
+  dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
+  // JS errors captured in Expo Go; native crashes captured in dev/prod builds
+  enabled: !!process.env.EXPO_PUBLIC_SENTRY_DSN,
+  tracesSampleRate: 0.2,
+});
 
 SplashScreen.preventAutoHideAsync();
 
@@ -138,7 +146,7 @@ function NotificationSetup() {
   return null;
 }
 
-export default function RootLayout() {
+function RootLayout() {
   const colorScheme = useColorScheme();
   const { initialise } = useAuthStore();
   const [splashDone, setSplashDone] = useState(false);
@@ -380,3 +388,5 @@ export default function RootLayout() {
     </ThemeProvider>
   );
 }
+
+export default Sentry.wrap(RootLayout);
