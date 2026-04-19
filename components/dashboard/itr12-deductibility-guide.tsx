@@ -18,38 +18,102 @@ interface ITR12DeductibilityGuideProps {
 const DEFAULT_SECTIONS: DeductibilitySection[] = [
   {
     title: "Section 11(a) — General deductions",
-    icon: "📘", color: colour.primary,
+    icon: "📘",
+    color: colour.primary,
     summary: "The main deduction rule for sole proprietors and freelancers.",
-    content: "Section 11(a) of the Income Tax Act allows you to deduct expenditure and losses actually incurred in the production of income, provided they are not of a capital nature. This covers most day-to-day business expenses including software, professional services, office supplies, and travel directly related to earning income.",
-    examples: ["Software subscriptions", "Professional services", "Office stationery", "Business phone & internet"],
+    content:
+      "Section 11(a) of the Income Tax Act allows you to deduct expenditure and losses actually incurred in the production of income, provided they are not of a capital nature. This covers most day-to-day business expenses including software, professional services, office supplies, and travel directly related to earning income.",
+    examples: [
+      "Software subscriptions",
+      "Professional services",
+      "Office stationery",
+      "Business phone & internet",
+    ],
   },
   {
     title: "Travel & transport deductions",
-    icon: "🚗", color: colour.info,
+    icon: "🚗",
+    color: colour.info,
     summary: "Business travel is deductible. Personal travel is not.",
-    content: "You may deduct travel expenses incurred in the course of your trade. Keep a logbook recording the date, destination, purpose and distance of each business trip. SARS requires a logbook for all travel deduction claims. The fixed-cost table rate or actual-cost method may be used.",
-    examples: ["Client visits", "Business errands", "Uber/Bolt for work trips", "Parking at client sites"],
+    content:
+      "You may deduct travel expenses incurred in the course of your trade. Keep a logbook recording the date, destination, purpose and distance of each business trip. SARS requires a logbook for all travel deduction claims. The fixed-cost table rate or actual-cost method may be used.",
+    examples: [
+      "Client visits",
+      "Business errands",
+      "Uber/Bolt for work trips",
+      "Parking at client sites",
+    ],
   },
   {
     title: "Meals & entertainment (50% rule)",
-    icon: "🍽️", color: colour.danger,
+    icon: "🍽️",
+    color: colour.danger,
     summary: "Only 50% of qualifying meals may be deducted.",
-    content: "Entertainment expenses, including business meals, are only 50% deductible under Section 11(a) read with Section 23(b). The meal must have a clear business purpose and a business associate must be present.",
-    examples: ["Client lunch/dinner — 50% only", "Team meals with business purpose", "Conference catering"],
+    content:
+      "Entertainment expenses, including business meals, are only 50% deductible under Section 11(a) read with Section 23(b). The meal must have a clear business purpose and a business associate must be present.",
+    examples: [
+      "Client lunch/dinner — 50% only",
+      "Team meals with business purpose",
+      "Conference catering",
+    ],
   },
   {
     title: "Home office deduction",
-    icon: "🏠", color: colour.teal,
+    icon: "🏠",
+    color: colour.teal,
     summary: "Claim a proportional share of home costs if you work from home.",
-    content: "If you use part of your home exclusively and regularly for your trade, you may deduct a proportion of home expenses based on the floor area used. The home office must be specifically fitted out for business.",
-    examples: ["Proportional rent / bond interest", "Pro-rata electricity", "Pro-rata rates & levies", "Dedicated internet line"],
+    content:
+      "If you use part of your home exclusively and regularly for your trade, you may deduct a proportion of home expenses based on the floor area used. The home office must be specifically fitted out for business.",
+    examples: [
+      "Proportional rent / bond interest",
+      "Pro-rata electricity",
+      "Pro-rata rates & levies",
+      "Dedicated internet line",
+    ],
+  },
+  {
+    title: "Home office — Bond interest",
+    icon: "🏦",
+    color: colour.teal,
+    summary:
+      "Claim the interest portion of your bond, proportional to office floor area.",
+    content:
+      "Sole proprietors and freelancers may deduct the proportional interest portion of their home bond — not the capital repayment. The calculation is: (Office m² ÷ Total floor m²) × Annual bond interest paid. The workspace must be dedicated exclusively and regularly to your trade. Your bank will provide a statement showing the interest vs capital split for the year.",
+    examples: [
+      "Bond interest × (office m² ÷ total m²)",
+      "Not the capital repayment portion",
+      "Workspace must be exclusive to business",
+      "Floor plan needed to substantiate ratio",
+    ],
+  },
+  {
+    title: "Home office — Rent",
+    icon: "🔑",
+    color: colour.teal,
+    summary:
+      "Renters can claim a proportional share of annual rent for a dedicated workspace.",
+    content:
+      "If you rent your home and use part of it exclusively and regularly for trade, you may deduct a proportional portion of your annual rent. The calculation is: (Office m² ÷ Total floor m²) × Annual rent paid. The space must be used exclusively for business — not a dual-purpose room.",
+    examples: [
+      "Annual rent × (office m² ÷ total m²)",
+      "Lease agreement required",
+      "Workspace must be exclusive to business",
+      "Monthly bank statements as supporting proof",
+    ],
   },
   {
     title: "What you cannot deduct",
-    icon: "🚫", color: colour.warning,
+    icon: "🚫",
+    color: colour.warning,
     summary: "Private and domestic expenses are explicitly excluded.",
-    content: "Section 23(a) prohibits the deduction of private or domestic expenditure. This includes groceries, clothing (unless protective), personal insurance, gym membership, home improvements not related to the business.",
-    examples: ["Groceries & personal food", "Personal clothing", "Gym or lifestyle costs", "School fees or childcare"],
+    content:
+      "Section 23(a) prohibits the deduction of private or domestic expenditure. This includes groceries, clothing (unless protective), personal insurance, gym membership, home improvements not related to the business.",
+    examples: [
+      "Groceries & personal food",
+      "Personal clothing",
+      "Gym or lifestyle costs",
+      "School fees or childcare",
+    ],
   },
 ];
 
@@ -70,13 +134,27 @@ export function ITR12DeductibilityGuideScreen({
           backgroundColor: colour.primary,
         }}
       >
-        <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 16 }}>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            marginBottom: 16,
+          }}
+        >
           <Pressable style={{ padding: 4 }}>
-            <Text style={{ color: "rgba(255,255,255,0.65)", fontSize: 22 }}>←</Text>
+            <Text style={{ color: "rgba(255,255,255,0.65)", fontSize: 22 }}>
+              ←
+            </Text>
           </Pressable>
-          <Text style={{ ...typography.labelM, color: colour.white, marginLeft: 8 }}>MyExpense</Text>
+          <Text
+            style={{ ...typography.labelM, color: colour.white, marginLeft: 8 }}
+          >
+            MyExpense
+          </Text>
         </View>
-        <Text style={{ ...typography.h3, color: colour.white, marginBottom: 6 }}>
+        <Text
+          style={{ ...typography.h3, color: colour.white, marginBottom: 6 }}
+        >
           Deductibility Guide
         </Text>
         <Text style={{ ...typography.bodyS, color: "rgba(255,255,255,0.5)" }}>
@@ -98,7 +176,13 @@ export function ITR12DeductibilityGuideScreen({
           marginBottom: 16,
         }}
       >
-        <Text style={{ ...typography.bodyXS, color: colour.textSub, lineHeight: 18 }}>
+        <Text
+          style={{
+            ...typography.bodyXS,
+            color: colour.textSub,
+            lineHeight: 18,
+          }}
+        >
           📋 <Text style={{ fontWeight: "700" }}>Note:</Text> This guide is for
           educational purposes only. Always consult a registered SARS tax
           practitioner for personalised advice.
@@ -117,7 +201,13 @@ export function ITR12DeductibilityGuideScreen({
           borderColor: colour.border,
         }}
       >
-        <View style={{ backgroundColor: colour.primary, paddingVertical: 12, paddingHorizontal: 18 }}>
+        <View
+          style={{
+            backgroundColor: colour.primary,
+            paddingVertical: 12,
+            paddingHorizontal: 18,
+          }}
+        >
           <Text style={{ ...typography.labelM, color: colour.white }}>
             Quick Deductibility Check
           </Text>
@@ -152,11 +242,26 @@ export function ITR12DeductibilityGuideScreen({
                 }}
               >
                 <View
-                  style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: colour.info }}
+                  style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: 3,
+                    backgroundColor: colour.info,
+                  }}
                 />
               </View>
-              <Text style={{ ...typography.bodyS, color: colour.text, flex: 1 }}>{q}</Text>
-              <Text style={{ ...typography.micro, fontWeight: "700", color: colour.info }}>
+              <Text
+                style={{ ...typography.bodyS, color: colour.text, flex: 1 }}
+              >
+                {q}
+              </Text>
+              <Text
+                style={{
+                  ...typography.micro,
+                  fontWeight: "700",
+                  color: colour.info,
+                }}
+              >
                 REQUIRED
               </Text>
             </View>
@@ -202,8 +307,16 @@ export function ITR12DeductibilityGuideScreen({
               <Text style={{ fontSize: 18 }}>{sec.icon}</Text>
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={{ ...typography.labelM, color: colour.primary }}>{sec.title}</Text>
-              <Text style={{ ...typography.bodyXS, color: colour.textSub, marginTop: 2 }}>
+              <Text style={{ ...typography.labelM, color: colour.primary }}>
+                {sec.title}
+              </Text>
+              <Text
+                style={{
+                  ...typography.bodyXS,
+                  color: colour.textSub,
+                  marginTop: 2,
+                }}
+              >
                 {sec.summary}
               </Text>
             </View>
@@ -244,7 +357,12 @@ export function ITR12DeductibilityGuideScreen({
               {sec.examples.map((ex, j) => (
                 <View
                   key={j}
-                  style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 6 }}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 8,
+                    marginBottom: 6,
+                  }}
                 >
                   <View
                     style={{
@@ -255,7 +373,9 @@ export function ITR12DeductibilityGuideScreen({
                       flexShrink: 0,
                     }}
                   />
-                  <Text style={{ ...typography.bodyS, color: colour.primary }}>{ex}</Text>
+                  <Text style={{ ...typography.bodyS, color: colour.primary }}>
+                    {ex}
+                  </Text>
                 </View>
               ))}
             </View>

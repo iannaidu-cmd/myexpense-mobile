@@ -1,3 +1,4 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from "@/components/maps";
@@ -81,6 +82,8 @@ const platformShadow =
     default: { boxShadow: "0 2px 8px rgba(0,0,0,0.10)" },
   }) ?? {};
 
+const TRIP_STORAGE_KEY = "mx_trip_in_progress";
+
 type TripStatus = "idle" | "running" | "paused";
 interface Coord {
   latitude: number;
@@ -109,6 +112,51 @@ export default function MileageTrackerScreen() {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastCoordRef = useRef<Coord | null>(null);
   const pausedKmRef = useRef(0);
+
+  // ── Persist trip state so a restart/crash doesn't lose the drive ──────────
+  useEffect(() => {
+    if (status === "idle") return;
+    AsyncStorage.setItem(TRIP_STORAGE_KEY, JSON.stringify({
+      status,
+      distanceKm,
+      elapsed,
+      startTime: startTime?.toISOString() ?? null,
+      startPos,
+      coords,
+      selectedPurpose,
+      tripNote,
+    }));
+  }, [status, distanceKm, elapsed, startTime, startPos, coords, selectedPurpose, tripNote]);
+
+  // ── Restore in-progress trip on mount ────────────────────────────────────
+  useEffect(() => {
+    AsyncStorage.getItem(TRIP_STORAGE_KEY).then((raw) => {
+      if (!raw) return;
+      try {
+        const saved = JSON.parse(raw);
+        if (saved.status === "idle") return;
+        setStatus("paused"); // always restore as paused — GPS sub was lost
+        setDistanceKm(saved.distanceKm ?? 0);
+        setElapsed(saved.elapsed ?? 0);
+        setStartTime(saved.startTime ? new Date(saved.startTime) : null);
+        setStartPos(saved.startPos ?? null);
+        setCoords(saved.coords ?? []);
+        if (saved.selectedPurpose) setSelectedPurpose(saved.selectedPurpose);
+        setTripNote(saved.tripNote ?? "");
+        pausedKmRef.current = saved.distanceKm ?? 0;
+        Alert.alert(
+          "Trip restored",
+          "Your previous trip was recovered. Tap Resume to continue tracking.",
+        );
+      } catch {
+        AsyncStorage.removeItem(TRIP_STORAGE_KEY);
+      }
+    });
+  }, []);
+
+  const clearSavedTrip = useCallback(() => {
+    AsyncStorage.removeItem(TRIP_STORAGE_KEY);
+  }, []);
 
   // ── Request location permission on mount ─────────────────────────────────
   useEffect(() => {
@@ -263,6 +311,8 @@ export default function MileageTrackerScreen() {
         .single();
 
       if (error) throw error;
+
+      clearSavedTrip();
 
       // Navigate to summary with saved trip ID
       router.push({

@@ -6,8 +6,6 @@ import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import { ScrollView, TextInput, TouchableOpacity, View } from "react-native";
 
-const NAV = { Home: "⊞", Scan: "⊡", Reports: "◈", Settings: "⚙" };
-
 function PhoneShell({ children }: { children: React.ReactNode }) {
   return (
     <ThemedView style={{ flex: 1, backgroundColor: colour.surface1 }}>
@@ -45,8 +43,29 @@ const GUIDE: GuideEntry[] = [
     section: "S11(a)",
     itr12Line: "4018",
     deductPct: "Floor ratio",
-    condition: "Dedicated workspace used regularly for business.",
-    docs: "Floor plan, utility bills, lease agreement",
+    condition:
+      "Dedicated workspace used regularly and exclusively for business. General costs (utilities, levies, rates) are claimed proportionally: office m² ÷ total floor m².",
+    docs: "Floor plan or measurements, utility bills, lease or title deed",
+  },
+  {
+    icon: "🏦",
+    category: "Home Office — Bond Interest",
+    section: "S11(a)",
+    itr12Line: "4018",
+    deductPct: "Floor ratio",
+    condition:
+      "Sole proprietors and freelancers may deduct the proportional interest portion of their home bond — not the capital repayment. Formula: (Office m² ÷ Total floor m²) × Annual bond interest paid. The workspace must be used exclusively and regularly for trade.",
+    docs: "Annual bond statement (interest vs capital split), floor plan or room measurements, proof of exclusive business use",
+  },
+  {
+    icon: "🔑",
+    category: "Home Office — Rent",
+    section: "S11(a)",
+    itr12Line: "4018",
+    deductPct: "Floor ratio",
+    condition:
+      "Renters may deduct the proportional rental cost attributable to the home office. Formula: (Office m² ÷ Total floor m²) × Annual rent paid. The workspace must be used exclusively and regularly for trade.",
+    docs: "Lease agreement, monthly rental invoices or bank statements, floor plan or room measurements",
   },
   {
     icon: "🔧",
@@ -383,7 +402,7 @@ export default function DeductibilityGuideScreen() {
           </ThemedText>
         </View>
 
-        {/* Filter */}
+        {/* Filter pills */}
         <ThemedView
           style={{ paddingHorizontal: space.md, marginBottom: space.md }}
         >

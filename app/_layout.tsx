@@ -27,8 +27,7 @@ import {
 import { Stack, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
-import { useEffect, useRef, useState } from "react";
-import { Animated, Image } from "react-native";
+import { useEffect } from "react";
 import "react-native-reanimated";
 import "react-native-url-polyfill/auto";
 
@@ -149,11 +148,7 @@ function NotificationSetup() {
 function RootLayout() {
   const colorScheme = useColorScheme();
   const { initialise } = useAuthStore();
-  const [splashDone, setSplashDone] = useState(false);
-  const fadeAnim = useRef(new Animated.Value(1)).current;
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const [fontsLoaded, fontError] = useFonts({
+  useFonts({
     Inter_400Regular,
     Inter_500Medium,
     Inter_600SemiBold,
@@ -162,24 +157,9 @@ function RootLayout() {
   });
 
   useEffect(() => {
-    if (fontsLoaded || fontError) {
-      SplashScreen.hideAsync();
-      initialise();
-      // Show in-app logo splash for 3 seconds then fade out
-      timerRef.current = setTimeout(() => {
-        Animated.timing(fadeAnim, {
-          toValue: 0,
-          duration: 400,
-          useNativeDriver: true,
-        }).start(() => setSplashDone(true));
-      }, 3000);
-    }
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
-  }, [fontsLoaded, fontError]);
-
-  if (!fontsLoaded && !fontError) return null;
+    SplashScreen.hideAsync();
+    initialise();
+  }, []);
 
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
@@ -362,29 +342,7 @@ function RootLayout() {
       </Stack>
       <StatusBar style="auto" />
 
-      {/* ── In-app logo splash overlay — visible for 3 s then fades out ── */}
-      {!splashDone && (
-        <Animated.View
-          pointerEvents="none"
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: "#FFFFFF",
-            alignItems: "center",
-            justifyContent: "center",
-            opacity: fadeAnim,
-          }}
-        >
-          <Image
-            source={require("../assets/images/sm_logo.gif")}
-            style={{ width: 120, height: 120 }}
-            resizeMode="contain"
-          />
-        </Animated.View>
-      )}
+
     </ThemeProvider>
   );
 }
