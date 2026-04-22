@@ -1,3 +1,4 @@
+import { useAuthStore } from "@/stores/authStore";
 import { colour, radius, space, typography } from "@/tokens";
 import { useRouter } from "expo-router";
 import { useState } from "react";
@@ -15,6 +16,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 export function ForgotPasswordScreen() {
   const router = useRouter();
+  const { resetPassword } = useAuthStore();
 
   const [email, setEmail]     = useState("");
   const [loading, setLoading] = useState(false);
@@ -29,9 +31,10 @@ export function ForgotPasswordScreen() {
     setEmailError("");
     setLoading(true);
     try {
-      // TODO: wire to Supabase password reset
-      await new Promise(r => setTimeout(r, 1400));
+      await resetPassword(email);
       setSent(true);
+    } catch (e: any) {
+      setEmailError(e.message ?? "Failed to send reset email. Please try again.");
     } finally {
       setLoading(false);
     }

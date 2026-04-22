@@ -56,9 +56,11 @@ function AuthGate() {
       segments[0] === "sign-in" ||
       segments[0] === "sign-up" ||
       segments[0] === "forgot-password" ||
-      segments[0] === "reset-password" ||
       segments[0] === "email-verification" ||
       segments[0] === "auth/callback";
+    // reset-password is intentionally excluded: the Supabase recovery code
+    // creates a temporary session, and we must not redirect the user away
+    // from the form while they still need to submit their new password.
 
     // profile-setup is NOT in inAuthGroup so authenticated users can access it
     const inProfileSetup = segments[0] === "profile-setup";

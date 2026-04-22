@@ -1,7 +1,9 @@
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { supabase } from "@/lib/supabase";
+import { useAuthStore } from "@/stores/authStore";
 import { colour, radius, space, typography } from "@/tokens";
-import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import React, { useEffect, useState } from "react";
 import {
     ActivityIndicator,
     KeyboardAvoidingView,
@@ -17,12 +19,25 @@ import {
 
 export default function ResetPasswordScreen() {
   const router = useRouter();
+  const { updatePassword } = useAuthStore();
+  const { code } = useLocalSearchParams<{ code?: string }>();
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState("");
+
+  // Exchange the PKCE recovery code from the deep-link for a Supabase session.
+  // Without this the updateUser call below has no auth context.
+  useEffect(() => {
+    if (!code) return;
+    supabase.auth
+      .exchangeCodeForSession(`myexpense://reset-password?code=${code}`)
+      .catch(() => {
+        setError("Reset link is invalid or has expired. Please request a new one.");
+      });
+  }, [code]);
 
   const rules = [
     { label: "At least 8 characters", pass: password.length >= 8 },
@@ -46,10 +61,10 @@ export default function ResetPasswordScreen() {
     setError("");
     setLoading(true);
     try {
-      await new Promise((r) => setTimeout(r, 1000));
+      await updatePassword(password);
       setDone(true);
-    } catch {
-      setError("Reset link may have expired. Please request a new one.");
+    } catch (e: any) {
+      setError(e.message ?? "Reset link may have expired. Please request a new one.");
     } finally {
       setLoading(false);
     }
