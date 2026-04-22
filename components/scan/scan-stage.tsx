@@ -140,7 +140,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   viewfinder: {
-    backgroundColor: "#0D0D2B",
+    backgroundColor: colour.noir,
     borderRadius: 24,
     height: 300,
     position: "relative",
@@ -163,7 +163,7 @@ const styles = StyleSheet.create({
     bottom: 40,
     borderWidth: 1,
     borderStyle: "dashed",
-    borderColor: "rgba(0,111,253,0.25)",
+    borderColor: `${colour.primary}40`,
     borderRadius: 8,
   },
   pulseContainer: {
@@ -176,21 +176,21 @@ const styles = StyleSheet.create({
     position: "absolute",
     borderRadius: 999,
     borderWidth: 2,
-    borderColor: "rgba(0,111,253,0.3)",
+    borderColor: `${colour.primary}4D`,
   },
   pulseRing2: {
     position: "absolute",
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: "rgba(0,111,253,0.15)",
+    borderColor: `${colour.primary}26`,
   },
   shutterCircle: {
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: "rgba(0,111,253,0.15)",
+    backgroundColor: `${colour.primary}26`,
     borderWidth: 2,
-    borderColor: "rgba(0,111,253,0.5)",
+    borderColor: `${colour.primary}80`,
     alignItems: "center",
     justifyContent: "center",
     zIndex: 3,
@@ -201,7 +201,7 @@ const styles = StyleSheet.create({
   alignHint: {
     position: "absolute",
     bottom: 16,
-    color: "rgba(0,111,253,0.7)",
+    color: `${colour.primary}B3`,
     fontSize: 12,
   },
   buttonContainer: {

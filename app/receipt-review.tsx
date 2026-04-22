@@ -1,4 +1,5 @@
 import { MXHeader } from "@/components/MXHeader";
+import { IconSymbol } from "@/components/ui/icon-symbol";
 import { expenseService } from "@/services/expenseService";
 import { useAuthStore } from "@/stores/authStore";
 import { colour, radius, space, typography } from "@/tokens";
@@ -228,17 +229,17 @@ export default function ReceiptReviewScreen() {
   return (
     <SafeAreaView
       edges={["top"]}
-      style={{ flex: 1, backgroundColor: colour.primary }}
+      style={{ flex: 1, backgroundColor: colour.background }}
     >
-      <StatusBar barStyle="light-content" backgroundColor={colour.primary} />
+      <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
 
       <MXHeader
         title="Confirm details"
         subtitle={
           anyOcr
             ? anyLowConf
-              ? "⚠️ Some fields need your attention — highlighted in amber"
-              : "✨ AI extracted these details — please verify before saving"
+              ? "Some fields need your attention — highlighted in amber"
+              : "AI extracted these details — please verify before saving"
             : hasReceipt
               ? "Receipt uploaded · Fill in the expense details"
               : "No receipt · Enter details manually"
@@ -283,7 +284,7 @@ export default function ReceiptReviewScreen() {
                 gap: space.xs,
               }}
             >
-              <Text style={{ fontSize: 14 }}>🧾</Text>
+              <IconSymbol name="doc.text.fill" size={14} color={colour.success} />
               <Text
                 style={{
                   ...typography.bodyXS,
@@ -312,7 +313,7 @@ export default function ReceiptReviewScreen() {
               gap: space.sm,
             }}
           >
-            <Text style={{ fontSize: 16 }}>⚠️</Text>
+            <IconSymbol name="exclamationmark.triangle.fill" size={16} color={colour.warning} />
             <Text
               style={{
                 ...typography.bodyXS,
@@ -389,7 +390,7 @@ export default function ReceiptReviewScreen() {
                       expenseType === t ? colour.onPrimary : colour.textSub,
                   }}
                 >
-                  {t === "business" ? "💼 Business" : "👤 Personal"}
+                  {t === "business" ? "Business" : "Personal"}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -669,7 +670,7 @@ export default function ReceiptReviewScreen() {
               gap: space.sm,
             }}
           >
-            <Text style={{ fontSize: 16 }}>✨</Text>
+            <IconSymbol name="star.fill" size={16} color={colour.teal} />
             <Text
               style={{
                 ...typography.bodyXS,

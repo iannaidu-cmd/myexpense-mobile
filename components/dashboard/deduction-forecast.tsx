@@ -141,11 +141,11 @@ export function DeductionForecastScreen({ navigation }: DeductionForecastScreenP
           }}
         >
           <TouchableOpacity onPress={() => navigation?.goBack()}>
-            <Text style={{ color: colour.teal, fontSize: 13, marginBottom: 10 }}>
+            <Text style={{ color: colour.accent2, fontSize: 13, marginBottom: 10 }}>
               ‹ Reports
             </Text>
           </TouchableOpacity>
-          <Text style={{ color: colour.teal, fontSize: 12, fontWeight: "600", letterSpacing: 1 }}>
+          <Text style={{ color: colour.accent2, fontSize: 12, fontWeight: "600", letterSpacing: 1 }}>
             DEDUCTION FORECAST
           </Text>
           <Text style={{ color: colour.white, fontSize: 22, fontWeight: "800", marginTop: 4 }}>
@@ -373,7 +373,7 @@ export function DeductionForecastScreen({ navigation }: DeductionForecastScreenP
               "File before 31 Oct 2025 to avoid penalties.",
             ].map((tip, i) => (
               <View key={i} style={{ flexDirection: "row", marginBottom: 10 }}>
-                <Text style={{ ...typography.bodyS, color: colour.teal, marginRight: 8 }}>•</Text>
+                <Text style={{ ...typography.bodyS, color: colour.primary, marginRight: 8 }}>•</Text>
                 <Text style={{ ...typography.bodyS, color: colour.white, flex: 1, lineHeight: 18 }}>
                   {tip}
                 </Text>

@@ -52,11 +52,11 @@ export function UploadGalleryScreen() {
   const [progress, setProgress] = useState(0);
 
   const backgroundColor = useThemeColor(
-    { light: "#FFFFFF", dark: "#121212" },
+    { light: colour.background, dark: colour.noir },
     "background",
   );
   const cardBackground = useThemeColor(
-    { light: colour.surface1, dark: "#1E1E1E" },
+    { light: colour.surface1, dark: colour.noir2 },
     "background",
   );
   const textColor = useThemeColor({}, "text");
@@ -180,7 +180,7 @@ export function UploadGalleryScreen() {
     },
     photoImageContainer: {
       height: 90,
-      backgroundColor: "#E0E2F8",
+      backgroundColor: colour.accentSoft,
       alignItems: "center",
       justifyContent: "center",
     },
@@ -509,7 +509,7 @@ export function UploadGalleryScreen() {
               style={{
                 width: "100%",
                 height: 200,
-                backgroundColor: "#E0E2F8",
+                backgroundColor: colour.accentSoft,
                 borderRadius: 14,
                 alignItems: "center",
                 justifyContent: "center",

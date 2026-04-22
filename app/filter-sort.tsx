@@ -1,3 +1,4 @@
+import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { colour, radius, space, typography } from "@/tokens";
 import { useRouter } from "expo-router";
@@ -159,59 +160,15 @@ export default function FilterSortScreen() {
     >
       <StatusBar barStyle="dark-content" backgroundColor={colour.bgPage} />
 
-      {/* Header */}
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: space.lg,
-          borderBottomWidth: 1,
-          borderBottomColor: colour.border,
-        }}
-      >
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text
-            style={{
-              fontSize: 26,
-              color: colour.textSecondary,
-              lineHeight: 30,
-            }}
-          >
-            ‹
-          </Text>
-        </TouchableOpacity>
-        <View style={{ alignItems: "center" }}>
-          <Text style={[typography.heading4, { color: colour.textPrimary }]}>
-            Filter & Sort
-          </Text>
-          {activeFilterCount > 0 && (
-            <View
-              style={{
-                backgroundColor: colour.primary,
-                borderRadius: radius.full,
-                paddingHorizontal: space.sm,
-                paddingVertical: 1,
-                marginTop: 2,
-              }}
-            >
-              <Text
-                style={[
-                  typography.micro,
-                  { color: colour.textOnPrimary, fontWeight: "600" },
-                ]}
-              >
-                {activeFilterCount} active
-              </Text>
-            </View>
-          )}
-        </View>
-        <TouchableOpacity onPress={handleReset}>
-          <Text style={[typography.labelM, { color: colour.danger }]}>
-            Reset
-          </Text>
-        </TouchableOpacity>
-      </View>
+      <MXHeader
+        title="Filter & Sort"
+        showBack
+        right={
+          <TouchableOpacity onPress={handleReset} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <Text style={[typography.labelM, { color: colour.danger }]}>Reset</Text>
+          </TouchableOpacity>
+        }
+      />
 
       <ScrollView
         contentContainerStyle={{ padding: space.lg, paddingBottom: 100 }}

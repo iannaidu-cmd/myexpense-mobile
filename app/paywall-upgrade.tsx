@@ -1,5 +1,7 @@
 import { MXButton } from "@/components/MXButton";
 import { MXCard } from "@/components/MXCard";
+import { MXHeader } from "@/components/MXHeader";
+import { IconSymbol } from "@/components/ui/icon-symbol";
 import { MXTabBar } from "@/components/MXTabBar";
 import { useAuthStore } from "@/stores/authStore";
 import {
@@ -201,43 +203,21 @@ export default function PaywallUpgradeScreen() {
       edges={["top"]}
       style={{ flex: 1, backgroundColor: colour.white }}
     >
-      {/* Header */}
-      <View
-        style={{
-          backgroundColor: colour.white,
-          paddingHorizontal: space.xl,
-          paddingTop: space.md,
-          paddingBottom: space.md,
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "space-between",
-          borderBottomWidth: 1,
-          borderBottomColor: colour.borderLight,
-        }}
-      >
-        <TouchableOpacity
-          onPress={() => router.back()}
-          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-        >
-          <Text style={{ ...typography.actionM, color: colour.textSub }}>
-            ← Back
-          </Text>
-        </TouchableOpacity>
-        <Text
-          style={{ ...typography.h4, color: colour.text, fontWeight: "700" }}
-        >
-          Upgrade
-        </Text>
-        <TouchableOpacity
-          onPress={handleRestore}
-          disabled={loading}
-          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-        >
-          <Text style={{ ...typography.actionS, color: colour.primary }}>
-            Restore
-          </Text>
-        </TouchableOpacity>
-      </View>
+      <MXHeader
+        title="Upgrade"
+        showBack
+        right={
+          <TouchableOpacity
+            onPress={handleRestore}
+            disabled={loading}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Text style={{ ...typography.actionS, color: colour.primary }}>
+              Restore
+            </Text>
+          </TouchableOpacity>
+        }
+      />
 
       <ScrollView
         contentContainerStyle={{
@@ -250,7 +230,7 @@ export default function PaywallUpgradeScreen() {
       >
         {/* Hero */}
         <View style={{ alignItems: "center", gap: space.xs }}>
-          <Text style={{ fontSize: 36, lineHeight: 42 }}>⚡</Text>
+          <IconSymbol name="bolt.fill" size={36} color={colour.primary} />
           <Text
             style={{
               ...typography.h2,
@@ -441,7 +421,7 @@ export default function PaywallUpgradeScreen() {
             gap: space.md,
           }}
         >
-          <Text style={{ fontSize: 28 }}>🧾</Text>
+          <IconSymbol name="doc.text.fill" size={28} color={colour.primary} />
           <View style={{ flex: 1 }}>
             <Text style={{ ...typography.labelM, color: colour.primary }}>
               Less than one accountant visit

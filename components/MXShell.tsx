@@ -1,6 +1,5 @@
 // ─── MXShell ──────────────────────────────────────────────────────────────────
-// Replaces PhoneShell — #EEEFF2 background, white bottom tab bar,
-// #006FFD active indicator
+// App shell — cream background, white bottom tab bar, periwinkle active indicator
 
 import { colour, space } from "@/tokens";
 import React, { useState } from "react";

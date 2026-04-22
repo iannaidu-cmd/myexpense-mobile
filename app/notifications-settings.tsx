@@ -1,9 +1,15 @@
 import { MXBackHeader } from "@/components/MXBackHeader";
+import { IconSymbol } from "@/components/ui/icon-symbol";
 import { colour, radius, space, typography } from "@/tokens";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { useEffect, useState } from "react";
 import { ScrollView, StatusBar, Switch, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  scheduleMonthlyReportReminder,
+  scheduleSARSDeadlineReminders,
+  scheduleWeeklyExpenseReminder,
+} from "@/services/notificationService";
 
 const STORAGE_KEY = "mx_notification_prefs";
 
@@ -46,6 +52,7 @@ function PreferenceRow({
         paddingVertical: space.md,
         borderBottomWidth: 1,
         borderBottomColor: colour.border,
+        backgroundColor: colour.bgCard,
       }}
     >
       <View
@@ -59,7 +66,7 @@ function PreferenceRow({
           marginRight: space.md,
         }}
       >
-        <Text style={{ fontSize: 20 }}>{icon}</Text>
+        <IconSymbol name={icon as any} size={20} color={colour.primary} />
       </View>
       <View style={{ flex: 1, marginRight: space.sm }}>
         <Text style={{ ...typography.labelM, color: colour.text }}>
@@ -118,8 +125,6 @@ export default function NotificationsSettingsScreen() {
     setPrefs(next);
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next));
 
-    // Re-run the affected scheduler so it reads the updated prefs and
-    // either cancels the notification (pref=false) or reschedules it (pref=true)
     try {
       if (key === "weeklyReminder") await scheduleWeeklyExpenseReminder();
       if (key === "monthlyReport") await scheduleMonthlyReportReminder();
@@ -132,18 +137,13 @@ export default function NotificationsSettingsScreen() {
   return (
     <SafeAreaView
       edges={["top"]}
-      style={{ flex: 1, backgroundColor: colour.primary }}
+      style={{ flex: 1, backgroundColor: colour.background }}
     >
-      <StatusBar barStyle="light-content" backgroundColor={colour.primary} />
+      <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
       <MXBackHeader title="Notifications" />
 
       <ScrollView
-        style={{
-          flex: 1,
-          backgroundColor: colour.background,
-          borderTopLeftRadius: radius.xl,
-          borderTopRightRadius: radius.xl,
-        }}
+        style={{ flex: 1, backgroundColor: colour.background }}
         contentContainerStyle={{ paddingBottom: space["5xl"] }}
         showsVerticalScrollIndicator={false}
       >
@@ -158,7 +158,7 @@ export default function NotificationsSettingsScreen() {
             gap: space.sm,
           }}
         >
-          <Text style={{ fontSize: 16 }}>ℹ️</Text>
+          <IconSymbol name="info.circle" size={16} color={colour.info} />
           <Text style={{ ...typography.bodyS, color: colour.info, flex: 1 }}>
             Push notifications activate in the production build. Your
             preferences are saved and will apply automatically.
@@ -169,28 +169,27 @@ export default function NotificationsSettingsScreen() {
         <SectionHeader title="Reminders" />
         <View
           style={{
-            backgroundColor: colour.bgCard,
             borderTopWidth: 1,
             borderBottomWidth: 1,
             borderColor: colour.border,
           }}
         >
           <PreferenceRow
-            icon="📊"
+            icon="chart.bar.fill"
             label="Weekly expense summary"
             sub="Reminder to log and review expenses each week"
             value={prefs.weeklyReminder}
             onToggle={update("weeklyReminder")}
           />
           <PreferenceRow
-            icon="📅"
+            icon="calendar"
             label="Monthly report ready"
             sub="Notification when your monthly report is available"
             value={prefs.monthlyReport}
             onToggle={update("monthlyReport")}
           />
           <PreferenceRow
-            icon="🧾"
+            icon="doc.text.fill"
             label="Receipt reminders"
             sub="Nudge to attach a receipt to unverified expenses"
             value={prefs.receiptReminders}
@@ -202,14 +201,13 @@ export default function NotificationsSettingsScreen() {
         <SectionHeader title="Tax & Filing" />
         <View
           style={{
-            backgroundColor: colour.bgCard,
             borderTopWidth: 1,
             borderBottomWidth: 1,
             borderColor: colour.border,
           }}
         >
           <PreferenceRow
-            icon="🇿🇦"
+            icon="flag.fill"
             label="SARS filing deadlines"
             sub="Alerts before the ITR12 submission window closes"
             value={prefs.sarsDeadlines}
@@ -221,14 +219,13 @@ export default function NotificationsSettingsScreen() {
         <SectionHeader title="App Updates" />
         <View
           style={{
-            backgroundColor: colour.bgCard,
             borderTopWidth: 1,
             borderBottomWidth: 1,
             borderColor: colour.border,
           }}
         >
           <PreferenceRow
-            icon="🎉"
+            icon="bell.fill"
             label="Tips & new features"
             sub="Occasional updates about new MyExpense features"
             value={prefs.promoUpdates}

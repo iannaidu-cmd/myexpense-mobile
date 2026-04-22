@@ -15,26 +15,26 @@ import * as Sharing from "expo-sharing";
 // ─── PDF CSS palette ──────────────────────────────────────────────────────────
 // Token-mapped colors use colour.* directly; PDF-specific shades are named here.
 const CSS = {
-  primary:          colour.primary,       // #006FFD
-  white:            colour.white,         // #FFFFFF
-  gold:             colour.gold,          // #F59E0B
-  bodyText:         '#1a1a2e',
-  accentBlue:       '#7DD3FC',
-  bgLight:          '#F0F7FF',
-  borderBlue:       '#E0ECFF',
-  labelGray:        '#666',
-  cardBg:           '#FAFCFF',
-  mutedGray:        '#888',
-  lightGray:        '#aaa',
-  darkBlue:         '#0052CC',
-  tableHeadText:    '#555',
-  rowBorder:        '#F0F4FF',
-  disclaimerBg:     '#FFF8E7',
-  disclaimerBorder: '#FFD700',
-  disclaimerText:   '#7a6000',
-  vatBlue:          '#0066cc',
-  deductionGreen:   '#16a34a',
-  personalGray:     '#999',
+  primary:          colour.primary,       // periwinkle #6B6AD8
+  white:            colour.white,
+  gold:             colour.gold,
+  bodyText:         colour.text,
+  accentBlue:       colour.accent2,       // lighter periwinkle
+  bgLight:          colour.accentSoft2,   // ultra-soft periwinkle tint
+  borderBlue:       colour.accentSoft,    // soft periwinkle border
+  labelGray:        colour.textSub,
+  cardBg:           colour.surface1,
+  mutedGray:        colour.navInactive,
+  lightGray:        colour.textDisabled,
+  darkBlue:         colour.accentDeep,    // deep periwinkle
+  tableHeadText:    colour.textSub,
+  rowBorder:        colour.surface2,
+  disclaimerBg:     colour.warningBg,
+  disclaimerBorder: colour.warning,
+  disclaimerText:   colour.textMid,
+  vatBlue:          colour.primary,
+  deductionGreen:   colour.success,
+  personalGray:     colour.navInactive,
 };
 
 // ─── Formatting helpers ───────────────────────────────────────────────────────

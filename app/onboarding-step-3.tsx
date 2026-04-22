@@ -1,201 +1,45 @@
-import { colour, radius, space } from "@/tokens";
-import { useRouter } from "expo-router";
-import React, { useState } from "react";
-import { Dimensions, Image, Text, TouchableOpacity, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import Svg, { Path, Polyline, Rect } from "react-native-svg";
+import { IconSymbol } from '@/components/ui/icon-symbol';
+import { colour, radius, space } from '@/tokens';
+import { useRouter } from 'expo-router';
+import React, { useState } from 'react';
+import { Dimensions, Image, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-// Illustration-specific hues used only in step-3 SVGs (no global token equivalent)
-const IL_ORANGE    = '#E07A3A';
-const IL_ORANGE_BG = '#FFE8D6';
-const IL_TEAL_MID  = '#00A884';
-
-const { width: SW } = Dimensions.get("window");
+const { width: SW } = Dimensions.get('window');
 const LOGO_W = SW * 0.58;
 const LOGO_H = 42;
 
-// ── Flat SVG Icons ─────────────────────────────────────────────────────────────
-function IconBuilding() {
-  return (
-    <Svg width={26} height={26} viewBox="0 0 26 26">
-      <Rect
-        x="3"
-        y="8"
-        width="20"
-        height="15"
-        rx="2"
-        fill={IL_ORANGE}
-        opacity="0.15"
-        stroke={IL_ORANGE}
-        strokeWidth="1.8"
-      />
-      <Rect
-        x="8"
-        y="3"
-        width="10"
-        height="6"
-        rx="1.5"
-        fill="none"
-        stroke={IL_ORANGE}
-        strokeWidth="1.8"
-      />
-      <Rect
-        x="7"
-        y="13"
-        width="4"
-        height="4"
-        rx="1"
-        fill={IL_ORANGE}
-        opacity="0.4"
-      />
-      <Rect
-        x="15"
-        y="13"
-        width="4"
-        height="4"
-        rx="1"
-        fill={IL_ORANGE}
-        opacity="0.4"
-      />
-      <Rect
-        x="10"
-        y="18"
-        width="6"
-        height="5"
-        rx="1"
-        fill={IL_ORANGE}
-        opacity="0.3"
-      />
-    </Svg>
-  );
-}
+const OPTIONS = [
+  {
+    id: 'sole',
+    icon: 'building.2.fill' as const,
+    label: 'Sole proprietor',
+    bg: colour.warningBg,
+  },
+  {
+    id: 'freelancer',
+    icon: 'briefcase.fill' as const,
+    label: 'Freelancer',
+    bg: colour.primary50,
+  },
+  {
+    id: 'contractor',
+    icon: 'doc.text.fill' as const,
+    label: 'Independent contractor',
+    bg: colour.tealLight,
+  },
+];
 
-function IconLaptop() {
-  return (
-    <Svg width={26} height={26} viewBox="0 0 26 26">
-      <Rect
-        x="4"
-        y="5"
-        width="18"
-        height="13"
-        rx="2.5"
-        fill={colour.primary}
-        opacity="0.15"
-        stroke={colour.primary}
-        strokeWidth="1.8"
-      />
-      <Rect
-        x="7"
-        y="8"
-        width="12"
-        height="7"
-        rx="1"
-        fill={colour.primary}
-        opacity="0.2"
-      />
-      <Rect
-        x="8"
-        y="9.5"
-        width="7"
-        height="1.5"
-        rx=".75"
-        fill={colour.primary}
-        opacity="0.5"
-      />
-      <Rect
-        x="8"
-        y="12"
-        width="5"
-        height="1.5"
-        rx=".75"
-        fill={colour.primary}
-        opacity="0.35"
-      />
-      <Path
-        d="M2 19 Q2 18 4 18 L22 18 Q24 18 24 19 L24 20 Q24 21 22 21 L4 21 Q2 21 2 20 Z"
-        fill={colour.primary}
-        opacity="0.15"
-        stroke={colour.primary}
-        strokeWidth="1.5"
-      />
-    </Svg>
-  );
-}
-
-function IconClipboard() {
-  return (
-    <Svg width={26} height={26} viewBox="0 0 26 26">
-      <Rect
-        x="4"
-        y="5"
-        width="18"
-        height="20"
-        rx="2.5"
-        fill={IL_TEAL_MID}
-        opacity="0.12"
-        stroke={IL_TEAL_MID}
-        strokeWidth="1.8"
-      />
-      <Rect
-        x="9"
-        y="2"
-        width="8"
-        height="5"
-        rx="2"
-        fill="none"
-        stroke={IL_TEAL_MID}
-        strokeWidth="1.8"
-      />
-      <Rect
-        x="7"
-        y="11"
-        width="12"
-        height="1.8"
-        rx=".9"
-        fill={IL_TEAL_MID}
-        opacity="0.45"
-      />
-      <Rect
-        x="7"
-        y="14.5"
-        width="9"
-        height="1.8"
-        rx=".9"
-        fill={IL_TEAL_MID}
-        opacity="0.3"
-      />
-      <Rect
-        x="7"
-        y="18"
-        width="10"
-        height="1.8"
-        rx=".9"
-        fill={IL_TEAL_MID}
-        opacity="0.3"
-      />
-      <Polyline
-        points="14,20 16,22 20,17"
-        stroke={IL_TEAL_MID}
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        fill="none"
-      />
-    </Svg>
-  );
-}
-
-// ── Option Card ────────────────────────────────────────────────────────────────
 function OptionCard({
-  bgColor,
   icon,
-  title,
+  label,
+  bg,
   selected,
   onPress,
 }: {
-  bgColor: string;
-  icon: React.ReactNode;
-  title: string;
+  icon: 'building.2.fill' | 'briefcase.fill' | 'doc.text.fill';
+  label: string;
+  bg: string;
   selected: boolean;
   onPress: () => void;
 }) {
@@ -204,8 +48,8 @@ function OptionCard({
       onPress={onPress}
       activeOpacity={0.8}
       style={{
-        flexDirection: "row",
-        alignItems: "center",
+        flexDirection: 'row',
+        alignItems: 'center',
         gap: space.md,
         borderWidth: 1.5,
         borderColor: selected ? colour.primary : colour.borderLight,
@@ -221,18 +65,20 @@ function OptionCard({
           width: 48,
           height: 48,
           borderRadius: radius.md,
-          backgroundColor: bgColor,
-          alignItems: "center",
-          justifyContent: "center",
+          backgroundColor: bg,
+          alignItems: 'center',
+          justifyContent: 'center',
           flexShrink: 0,
         }}
       >
-        {icon}
+        <IconSymbol
+          name={icon}
+          size={22}
+          color={selected ? colour.primary : colour.textSub}
+        />
       </View>
-      <Text
-        style={{ flex: 1, fontSize: 16, fontWeight: "700", color: colour.text }}
-      >
-        {title}
+      <Text style={{ flex: 1, fontSize: 16, fontWeight: '700', color: colour.text }}>
+        {label}
       </Text>
       <View
         style={{
@@ -241,7 +87,7 @@ function OptionCard({
           borderRadius: radius.pill,
           borderWidth: 2,
           borderColor: selected ? colour.primary : colour.border,
-          backgroundColor: selected ? colour.primary : "transparent",
+          backgroundColor: selected ? colour.primary : 'transparent',
           flexShrink: 0,
         }}
       />
@@ -249,54 +95,52 @@ function OptionCard({
   );
 }
 
-const OPTIONS = [
-  {
-    id: "sole",
-    bgColor: colour.warningBg,
-    icon: <IconBuilding />,
-    title: "Sole proprietor",
-  },
-  {
-    id: "freelancer",
-    bgColor: colour.primary50,
-    icon: <IconLaptop />,
-    title: "Freelancer",
-  },
-  {
-    id: "contractor",
-    bgColor: colour.tealLight,
-    icon: <IconClipboard />,
-    title: "Independent contractor",
-  },
-];
-
 export default function OnboardingStep3Screen() {
   const router = useRouter();
   const [selected, setSelected] = useState<string | null>(null);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colour.white }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colour.background }}>
       <View style={{ flex: 1, paddingHorizontal: space.lg }}>
-        {/* Logo left */}
-        <View style={{ paddingTop: space.md, paddingBottom: space.xl }}>
+
+        {/* Top bar: logo + step counter */}
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            paddingTop: space.md,
+            paddingBottom: space.xl,
+          }}
+        >
           <Image
-            source={require("@/assets/images/Full-logo.gif")}
+            source={require('@/assets/images/Full-logo.gif')}
             style={{ width: LOGO_W, height: LOGO_H }}
             resizeMode="contain"
           />
+          <Text
+            style={{
+              fontSize: 11,
+              color: colour.textSub,
+              fontWeight: '600',
+              letterSpacing: 0.5,
+            }}
+          >
+            03 / 03
+          </Text>
         </View>
 
-        {/* Headline — large, no image above it */}
+        {/* Heading */}
         <Text
           style={{
-            fontSize: 34,
-            fontWeight: "800",
+            fontSize: 30,
+            fontWeight: '800',
             color: colour.text,
-            lineHeight: 40,
+            lineHeight: 36,
             marginBottom: space.sm,
           }}
         >
-          Tell us about{"\n"}
+          Tell us about{'\n'}
           <Text style={{ color: colour.primary }}>yourself.</Text>
         </Text>
 
@@ -312,13 +156,12 @@ export default function OnboardingStep3Screen() {
           categories for your situation.
         </Text>
 
-        {/* Option cards — taller with more padding, breathes well now */}
         {OPTIONS.map((opt) => (
           <OptionCard
             key={opt.id}
-            bgColor={opt.bgColor}
             icon={opt.icon}
-            title={opt.title}
+            label={opt.label}
+            bg={opt.bg}
             selected={selected === opt.id}
             onPress={() => setSelected(opt.id)}
           />
@@ -326,12 +169,12 @@ export default function OnboardingStep3Screen() {
 
         <View style={{ flex: 1 }} />
 
-        {/* Dots */}
+        {/* Progress dots */}
         <View
           style={{
-            flexDirection: "row",
-            justifyContent: "center",
-            alignItems: "center",
+            flexDirection: 'row',
+            justifyContent: 'center',
+            alignItems: 'center',
             gap: 6,
             marginBottom: space.md,
           }}
@@ -363,13 +206,7 @@ export default function OnboardingStep3Screen() {
         </View>
 
         {/* Back + Get Started */}
-        <View
-          style={{
-            flexDirection: "row",
-            gap: space.md,
-            marginBottom: space.md,
-          }}
-        >
+        <View style={{ flexDirection: 'row', gap: space.md, marginBottom: space.md }}>
           <TouchableOpacity
             onPress={() => router.back()}
             style={{
@@ -377,39 +214,34 @@ export default function OnboardingStep3Screen() {
               borderRadius: radius.pill,
               height: 56,
               paddingHorizontal: space.xl,
-              alignItems: "center",
-              justifyContent: "center",
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
           >
-            <Text
-              style={{ fontSize: 16, fontWeight: "700", color: colour.textSub }}
-            >
+            <Text style={{ fontSize: 16, fontWeight: '700', color: colour.textSub }}>
               ← Back
             </Text>
           </TouchableOpacity>
-
           <TouchableOpacity
-            onPress={() => {
-              if (selected) router.replace("/sign-up");
-            }}
+            onPress={() => { if (selected) router.replace('/sign-up'); }}
             activeOpacity={selected ? 0.85 : 0.5}
             style={{
               flex: 1,
-              backgroundColor: selected ? colour.primary : colour.border,
+              backgroundColor: selected ? colour.noir : colour.border,
               borderRadius: radius.pill,
               height: 56,
-              alignItems: "center",
-              justifyContent: "center",
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
           >
             <Text
               style={{
                 fontSize: 17,
-                fontWeight: "700",
-                color: selected ? colour.white : colour.textSub,
+                fontWeight: '700',
+                color: selected ? colour.onNoir : colour.textSub,
               }}
             >
-              {selected ? "Get started →" : "Select one above"}
+              {selected ? 'Get started →' : 'Select one above'}
             </Text>
           </TouchableOpacity>
         </View>
@@ -417,22 +249,21 @@ export default function OnboardingStep3Screen() {
         {/* Sign in */}
         <View
           style={{
-            flexDirection: "row",
-            justifyContent: "center",
+            flexDirection: 'row',
+            justifyContent: 'center',
             marginBottom: space.lg,
           }}
         >
           <Text style={{ fontSize: 14, color: colour.textSub }}>
-            Already have an account?{" "}
+            Already have an account?{' '}
           </Text>
-          <TouchableOpacity onPress={() => router.replace("/sign-in")}>
-            <Text
-              style={{ fontSize: 14, fontWeight: "700", color: colour.primary }}
-            >
+          <TouchableOpacity onPress={() => router.replace('/sign-in')}>
+            <Text style={{ fontSize: 14, fontWeight: '700', color: colour.primary }}>
               Sign in
             </Text>
           </TouchableOpacity>
         </View>
+
       </View>
     </SafeAreaView>
   );

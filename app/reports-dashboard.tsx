@@ -1,4 +1,5 @@
 import { MXHeader } from "@/components/MXHeader";
+import { IconSymbol } from "@/components/ui/icon-symbol";
 import { expenseService } from "@/services/expenseService";
 import { incomeService } from "@/services/incomeService";
 import { useAuthStore } from "@/stores/authStore";
@@ -20,11 +21,11 @@ import Svg, { G, Path, Rect, Text as SvgText } from "react-native-svg";
 // ─── SVG fill strings derived from tokens ────────────────────────────────────
 // SVG fill / stroke props require plain hex strings — they cannot accept JS
 // object references. We pull the values once here so they remain token-driven.
-const SVG_INCOME   = colour.primary;          // #006FFD — income bars
-const SVG_EXPENSE  = colour.danger;           // #ED3241 — expense bars
-const SVG_AXIS     = colour.textDisabled;     // #9095A0 — axis labels
-const SVG_LABEL    = colour.text;             // #1F2024 — donut centre label
-const SVG_LEGEND   = colour.textSub;          // #494A50 — donut legend text
+const SVG_INCOME   = colour.primary;          // periwinkle — income bars
+const SVG_EXPENSE  = colour.danger;           // red — expense bars
+const SVG_AXIS     = colour.textDisabled;     // muted — axis labels
+const SVG_LABEL    = colour.text;             // warm near-black — donut centre label
+const SVG_LEGEND   = colour.textSub;          // subdued — donut legend text
 
 // ─── SVG Bar Chart ────────────────────────────────────────────────────────────
 const CHART_W   = 320;
@@ -228,35 +229,35 @@ const CATEGORY_COLOURS = [
 const QUICK_REPORTS = [
   {
     id: "1",
-    icon: "📊",
+    icon: "chart.bar.fill",
     title: "Income vs expenses",
     sub: "Monthly comparison",
     route: "/expense-history",
   },
   {
     id: "2",
-    icon: "💰",
+    icon: "dollarsign.circle.fill",
     title: "Tax savings report",
     sub: "ITR12 deduction summary",
     route: "/tax-summary",
   },
   {
     id: "3",
-    icon: "🗂️",
+    icon: "folder.fill",
     title: "Category breakdown",
     sub: "Expenses by SARS category",
     route: "/category-breakdown",
   },
   {
     id: "4",
-    icon: "📤",
+    icon: "tray.and.arrow.up.fill",
     title: "Export centre",
     sub: "PDF · CSV · ITR12",
     route: "/itr12-export-setup",
   },
   {
     id: "5",
-    icon: "🧾",
+    icon: "doc.text.fill",
     title: "VAT summary",
     sub: "Input tax claimable",
     route: "/vat-summary",
@@ -296,7 +297,7 @@ export default function ReportsDashboardScreen() {
           incomeService.getTotals(user.id),
           expenseService.getTotals(user.id, activeTaxYear),
           expenseService.getExpenses(user.id, activeTaxYear),
-          incomeService.getAll(user.id),
+          incomeService.getIncome(user.id),
           expenseService.getByCategory(user.id, activeTaxYear),
         ]);
 
@@ -362,9 +363,9 @@ export default function ReportsDashboardScreen() {
   return (
     <SafeAreaView
       edges={["top"]}
-      style={{ flex: 1, backgroundColor: colour.primary }}
+      style={{ flex: 1, backgroundColor: colour.background }}
     >
-      <StatusBar barStyle="light-content" backgroundColor={colour.primary} />
+      <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
 
       <MXHeader
         title="Reports"
@@ -373,7 +374,7 @@ export default function ReportsDashboardScreen() {
           <TouchableOpacity
             onPress={() => router.push("/tax-year-selector" as any)}
           >
-            <Text style={{ ...typography.labelS, color: colour.onPrimary }}>
+            <Text style={{ ...typography.labelS, color: colour.accentDeep }}>
               FY {activeTaxYear} ›
             </Text>
           </TouchableOpacity>
@@ -558,7 +559,7 @@ export default function ReportsDashboardScreen() {
                     marginRight: space.md,
                   }}
                 >
-                  <Text style={{ fontSize: 22 }}>{r.icon}</Text>
+                  <IconSymbol name={r.icon as any} size={22} color={colour.primary} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={[typography.labelM, { color: colour.textPrimary }]}>

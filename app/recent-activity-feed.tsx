@@ -1,4 +1,5 @@
 import { MXTabBar } from "@/components/MXTabBar";
+import { IconSymbol } from "@/components/ui/icon-symbol";
 import { colour } from "@/tokens";
 import { NavigationProp } from "@react-navigation/native";
 import { useRouter } from "expo-router";
@@ -424,7 +425,7 @@ export default function RecentActivityFeedScreen({ navigation }: Props) {
         {/* Activity groups */}
         {groups.length === 0 ? (
           <View style={{ alignItems: "center", paddingVertical: 40 }}>
-            <Text style={{ fontSize: 36 }}>📭</Text>
+            <IconSymbol name="tray.fill" size={36} color={C.textHint} style={{ marginBottom: 12 } as any} />
             <Text
               style={{
                 fontSize: 15,

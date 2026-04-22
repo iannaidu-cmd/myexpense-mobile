@@ -160,7 +160,7 @@ export function ITR12ExportPreviewScreen({
               borderRadius: radius.md,
               paddingVertical: 14,
               alignItems: "center",
-              backgroundColor: colour.teal,
+              backgroundColor: colour.primary,
             }}
             onPress={onDownload}
           >
@@ -210,7 +210,7 @@ export function ITR12ExportPreviewScreen({
           </Pressable>
           <Text style={{ ...typography.labelM, color: colour.white }}>MyExpense</Text>
           <Pressable onPress={onEditSetup}>
-            <Text style={{ ...typography.labelM, color: colour.teal }}>Edit Setup</Text>
+            <Text style={{ ...typography.labelM, color: colour.accent2 }}>Edit Setup</Text>
           </Pressable>
         </View>
         <Text style={{ ...typography.h3, color: colour.white, marginBottom: 6 }}>

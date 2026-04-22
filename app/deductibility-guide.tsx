@@ -1,5 +1,6 @@
 import { MXTabBar } from "@/components/MXTabBar";
 import { ThemedText } from "@/components/themed-text";
+import { IconSymbol } from "@/components/ui/icon-symbol";
 import { ThemedView } from "@/components/themed-view";
 import { colour, space } from "@/tokens";
 import { useRouter } from "expo-router";
@@ -464,7 +465,7 @@ export default function DeductibilityGuideScreen() {
                 backgroundColor: colour.background,
               }}
             >
-              <ThemedText style={{ fontSize: 32 }}>🔍</ThemedText>
+              <IconSymbol name="magnifyingglass" size={32} color={colour.textSub} />
               <ThemedText
                 style={{
                   fontSize: 13,

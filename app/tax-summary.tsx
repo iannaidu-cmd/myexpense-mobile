@@ -166,9 +166,9 @@ export default function TaxSummaryScreen() {
   return (
     <SafeAreaView
       edges={["top"]}
-      style={{ flex: 1, backgroundColor: colour.primary }}
+      style={{ flex: 1, backgroundColor: colour.background }}
     >
-      <StatusBar barStyle="light-content" backgroundColor={colour.primary} />
+      <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
 
       <MXHeader
         title="Tax summary"

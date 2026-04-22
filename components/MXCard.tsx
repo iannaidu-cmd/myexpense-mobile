@@ -1,5 +1,5 @@
 // ─── MXCard ───────────────────────────────────────────────────────────────────
-// White card, borderRadius 16, 1px #E8E9F1 border, elevation 1
+// White card, borderRadius lg, 1px surface2 border, elevation 1
 // Shadow handled per-platform to avoid deprecation warnings on web
 
 import React from 'react';

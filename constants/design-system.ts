@@ -1,59 +1,60 @@
 /**
- * MyExpense Design System Color Palette
- * Updated to match screenshot design language
+ * MyExpense Design System — warm cream + periwinkle palette.
+ * Delegates to /tokens/colours.ts as single source of truth.
  */
 
+import { colour, radius } from '@/tokens';
+
 export const COLORS = {
-  // Primary blue palette (updated from navy)
-  primary: "#1565C0", // Main brand color
-  dark: "#0D47A1", // Dark blue for headers
-  mid: "#1976D2", // Mid blue
-  light: "#42A5F5", // Light blue
+  // Primary periwinkle
+  primary:       colour.primary,       // #6B6AD8
+  dark:          colour.accentDeep,    // #4E4DB8
+  mid:           colour.accent2,       // #8A89E8
+  light:         colour.primary200,    // #A8A7F0
 
   // Backgrounds
-  background: "#FFFFFF", // White background (was #E8EAF6)
-  surface: "#F5F5F5", // Surface/card background
+  background:    colour.background,    // #F2EDE3 cream canvas
+  surface:       colour.surface1,      // #F7F3E9
 
-  // Text colors
-  text: "#0D47A1", // Dark text (was #1A1A5C)
-  textSecondary: "#757575", // Muted text (was #8888BB)
-  textLight: "rgba(255,255,255,0.65)",
+  // Text
+  text:          colour.text,          // #0F0F1E
+  textSecondary: colour.textSub,       // #6B6880
+  textLight:     'rgba(255,255,255,0.65)',
 
   // Accents & States
-  accent: "#0288D1", // Accent color (light blue)
-  success: "#4CAF50",
-  error: "#F44336",
-  warning: "#FF9800",
+  accent:        colour.accent,        // #6B6AD8
+  success:       colour.success,       // #4CAF7A
+  error:         colour.danger,        // #ED3241
+  warning:       colour.warning,       // #E8B16A
 
   // Borders & Dividers
-  border: "#E0E0E0", // Border color (was #D0D3F0)
-  divider: "#E0E0E0",
+  border:        colour.border,        // #D6CFBC
+  divider:       colour.borderLight,   // #E3DDCD
 
-  // Semantic greys
-  grey50: "#FAFAFA",
-  grey100: "#F5F5F5",
-  grey200: "#EEEEEE",
-  grey300: "#E0E0E0",
-  grey400: "#BDBDBD",
-  grey500: "#9E9E9E",
-  grey600: "#757575",
-  grey700: "#616161",
-  grey800: "#424242",
-  grey900: "#212121",
+  // Semantic greys → mapped to warm palette
+  grey50:        colour.background,    // #F2EDE3
+  grey100:       colour.surface1,      // #F7F3E9
+  grey200:       colour.surface2,      // #F7F3E9
+  grey300:       colour.borderLight,   // #E3DDCD
+  grey400:       colour.border,        // #D6CFBC
+  grey500:       colour.navInactive,   // #9A97B0
+  grey600:       colour.textSub,       // #6B6880
+  grey700:       colour.textMid,       // #2A2840
+  grey800:       colour.text,          // #0F0F1E
+  grey900:       colour.text,          // #0F0F1E
 
   // Interactive elements
-  buttonBase: "#1565C0",
-  buttonHover: "#1976D2",
-  buttonActive: "#0D47A1",
-  buttonDisabled: "#BDBDBD",
+  buttonBase:     colour.primary,
+  buttonHover:    colour.accent2,
+  buttonActive:   colour.accentDeep,
+  buttonDisabled: colour.navInactive,
 
   // Overlay transparency
-  overlayLight: "rgba(21,101,192,0.06)",
-  overlayDark: "rgba(13,71,161,0.12)",
+  overlayLight: 'rgba(107,106,216,0.06)',
+  overlayDark:  'rgba(107,106,216,0.12)',
 };
 
 export const STYLES = {
-  // Header styling
   headerGradient: {
     backgroundColor: COLORS.primary,
     paddingHorizontal: 24,
@@ -61,29 +62,26 @@ export const STYLES = {
     paddingBottom: 24,
   },
 
-  // Button styling - filled (pill-shaped)
   buttonFilled: {
-    borderRadius: 28,
+    borderRadius: radius.pill,
     paddingVertical: 12,
     paddingHorizontal: 24,
     backgroundColor: COLORS.primary,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
   },
 
-  // Button styling - outline (pill-shaped)
   buttonOutline: {
-    borderRadius: 28,
+    borderRadius: radius.pill,
     paddingVertical: 12,
     paddingHorizontal: 24,
-    backgroundColor: "transparent",
+    backgroundColor: 'transparent',
     borderWidth: 2,
     borderColor: COLORS.primary,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
   },
 
-  // Input styling - underline only
   inputUnderline: {
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
@@ -92,15 +90,14 @@ export const STYLES = {
     color: COLORS.text,
   },
 
-  // Radio button
   radioOuter: {
     width: 20,
     height: 20,
     borderRadius: 10,
     borderWidth: 2,
     borderColor: COLORS.primary,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
   },
 
   radioInner: {
@@ -110,7 +107,6 @@ export const STYLES = {
     backgroundColor: COLORS.primary,
   },
 
-  // Toggle pill
   togglePill: {
     paddingVertical: 8,
     paddingHorizontal: 16,

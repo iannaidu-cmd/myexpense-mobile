@@ -159,9 +159,9 @@ export default function AppearanceSettingsScreen() {
   return (
     <SafeAreaView
       edges={["top"]}
-      style={{ flex: 1, backgroundColor: colour.primary }}
+      style={{ flex: 1, backgroundColor: colour.background }}
     >
-      <StatusBar barStyle="light-content" backgroundColor={colour.primary} />
+      <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
       <MXBackHeader title="Appearance" />
 
       <ScrollView

@@ -1,20 +1,4 @@
-// ─── MXHeader ────────────────────────────────────────────────────────────────
-// Single source of truth for ALL screen headers in the app.
-//
-// Standard layout (do not override per-screen):
-//   paddingTop:        space.lg   (16)
-//   paddingBottom:     space["4xl"] (40)
-//   paddingHorizontal: space.lg   (16)
-//
-// Props:
-//   title        — primary heading (h3, white)
-//   subtitle     — secondary line below title (bodyS, 70% white)
-//   showBack     — renders a ‹ back chevron above the title row
-//   backLabel    — optional label next to the back chevron (e.g. "Reports")
-//   right        — element placed inline on the right of the title (e.g. FY selector, save button)
-//   children     — optional content injected below the subtitle (e.g. progress bars, kpi rows)
-// ─────────────────────────────────────────────────────────────────────────────
-
+import { IconSymbol } from "@/components/ui/icon-symbol";
 import { colour, space, typography } from "@/tokens";
 import { useRouter } from "expo-router";
 import React from "react";
@@ -24,6 +8,7 @@ interface MXHeaderProps {
   title: string;
   subtitle?: string;
   showBack?: boolean;
+  /** @deprecated no longer displayed — kept for call-site compatibility */
   backLabel?: string;
   onBack?: () => void;
   right?: React.ReactNode;
@@ -34,7 +19,6 @@ export function MXHeader({
   title,
   subtitle,
   showBack = false,
-  backLabel,
   onBack,
   right,
   children,
@@ -43,48 +27,48 @@ export function MXHeader({
   const handleBack = onBack ?? (() => router.back());
 
   return (
-    <View
-      style={{
-        paddingHorizontal: space.lg,
-        paddingTop: space.lg,
-        paddingBottom: space["4xl"],
-      }}
-    >
-      {/* Back button row — shown above title when navigating into a sub-screen */}
-      {showBack && (
-        <TouchableOpacity
-          onPress={handleBack}
-          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            marginBottom: space.sm,
-          }}
-        >
-          <Text
-            style={{ color: colour.onPrimary, fontSize: 26, lineHeight: 30 }}
+    <View style={{ paddingHorizontal: space.lg, paddingVertical: 6, marginBottom: 4 }}>
+      {/* Three-column header row */}
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          minHeight: 44,
+        }}
+      >
+        {/* Left: circle back button or spacer */}
+        {showBack ? (
+          <TouchableOpacity
+            onPress={handleBack}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            style={{
+              width: 38,
+              height: 38,
+              borderRadius: 19,
+              backgroundColor: colour.white,
+              borderWidth: 1,
+              borderColor: colour.border,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
           >
-            ‹
-          </Text>
-          {backLabel ? (
-            <Text
-              style={{
-                ...typography.labelM,
-                color: "rgba(255,255,255,0.85)",
-                marginLeft: 4,
-              }}
-            >
-              {backLabel}
-            </Text>
-          ) : null}
-        </TouchableOpacity>
-      )}
+            <IconSymbol name="chevron.left" size={18} color={colour.text} />
+          </TouchableOpacity>
+        ) : (
+          <View style={{ width: 38 }} />
+        )}
 
-      {/* Title + subtitle block, with right element vertically centred against both */}
-      <View style={{ flexDirection: "row", alignItems: "center" }}>
-        <View style={{ flex: 1 }}>
+        {/* Center: title */}
+        <View style={{ flex: 1, alignItems: "center", paddingHorizontal: space.sm }}>
           <Text
-            style={{ ...typography.h3, color: colour.onPrimary }}
+            style={{
+              fontSize: 14,
+              fontWeight: "600",
+              color: colour.text,
+              textAlign: "center",
+              letterSpacing: -0.1,
+            }}
             numberOfLines={1}
           >
             {title}
@@ -92,19 +76,22 @@ export function MXHeader({
           {subtitle ? (
             <Text
               style={{
-                ...typography.bodyS,
-                color: "rgba(255,255,255,0.7)",
-                marginTop: 2,
+                ...typography.bodyXS,
+                color: colour.textSub,
+                textAlign: "center",
+                marginTop: 1,
               }}
             >
               {subtitle}
             </Text>
           ) : null}
         </View>
-        {right ?? null}
+
+        {/* Right: optional action or spacer */}
+        {right != null ? right : <View style={{ width: 38 }} />}
       </View>
 
-      {/* Extra content (progress bars, KPI rows, etc.) */}
+      {/* Optional extra content below header row */}
       {children ?? null}
     </View>
   );

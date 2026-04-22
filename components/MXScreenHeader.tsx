@@ -1,5 +1,5 @@
 // ─── MXScreenHeader ───────────────────────────────────────────────────────────
-// white (default) or tinted (primary50 #EAF2FF) variant, back button
+// white (default) or tinted (colour.primary50) variant, back button
 
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { colour, space } from "@/tokens";

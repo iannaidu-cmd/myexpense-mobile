@@ -1,3 +1,4 @@
+import { IconSymbol } from "@/components/ui/icon-symbol";
 import { receiptState } from "@/lib/receiptState";
 import { useAuthStore } from "@/stores/authStore";
 import { colour } from "@/tokens";
@@ -259,9 +260,17 @@ export default function ScanReceiptCameraScreen() {
         >
           <TouchableOpacity
             onPress={() => router.back()}
-            style={{ marginRight: 16 }}
+            style={{
+              marginRight: 16,
+              width: 38,
+              height: 38,
+              borderRadius: 19,
+              backgroundColor: "rgba(255,255,255,0.15)",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
           >
-            <Text style={{ color: "#fff", fontSize: 20 }}>✕</Text>
+            <IconSymbol name="xmark" size={18} color="#fff" />
           </TouchableOpacity>
           <Text
             style={{ flex: 1, color: "#fff", fontSize: 17, fontWeight: "700" }}
@@ -280,7 +289,7 @@ export default function ScanReceiptCameraScreen() {
               marginRight: 10,
             }}
           >
-            <Text style={{ fontSize: 18 }}>🔦</Text>
+            <IconSymbol name="flashlight.on.fill" size={18} color="#fff" />
           </TouchableOpacity>
           <TouchableOpacity
             onPress={handleGallery}
@@ -293,7 +302,7 @@ export default function ScanReceiptCameraScreen() {
               justifyContent: "center",
             }}
           >
-            <Text style={{ fontSize: 18 }}>🖼️</Text>
+            <IconSymbol name="photo.fill" size={18} color="#fff" />
           </TouchableOpacity>
         </View>
 
@@ -401,7 +410,7 @@ export default function ScanReceiptCameraScreen() {
                   marginBottom: 4,
                 }}
               >
-                <Text style={{ fontSize: 20 }}>✏️</Text>
+                <IconSymbol name="pencil" size={20} color="#fff" />
               </View>
               <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 10 }}>
                 Manual
@@ -455,7 +464,7 @@ export default function ScanReceiptCameraScreen() {
                   marginBottom: 4,
                 }}
               >
-                <Text style={{ fontSize: 20 }}>🖼️</Text>
+                <IconSymbol name="photo.fill" size={20} color="#fff" />
               </View>
               <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 10 }}>
                 Gallery
@@ -470,7 +479,7 @@ export default function ScanReceiptCameraScreen() {
               textAlign: "center",
             }}
           >
-            🔒 Receipt stored securely in your private Supabase vault
+            Receipt stored securely in your private Supabase vault
           </Text>
         </View>
       </CameraView>

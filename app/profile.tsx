@@ -91,9 +91,9 @@ export default function ProfileScreen() {
   return (
     <SafeAreaView
       edges={["top"]}
-      style={{ flex: 1, backgroundColor: colour.primary }}
+      style={{ flex: 1, backgroundColor: colour.background }}
     >
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle="dark-content" />
 
       <MXHeader
         title="My profile"
@@ -108,7 +108,7 @@ export default function ProfileScreen() {
             onPress={handleSave}
             disabled={saving}
             style={{
-              backgroundColor: "rgba(255,255,255,0.2)",
+              backgroundColor: colour.primary50,
               borderRadius: radius.pill,
               paddingHorizontal: space.md,
               paddingVertical: space.xs,
@@ -117,7 +117,7 @@ export default function ProfileScreen() {
             {saving ? (
               <ActivityIndicator color={colour.white} size="small" />
             ) : (
-              <Text style={{ ...typography.labelS, color: colour.onPrimary }}>
+              <Text style={{ ...typography.labelS, color: colour.accentDeep }}>
                 Save
               </Text>
             )}
@@ -133,7 +133,7 @@ export default function ProfileScreen() {
         <View
           style={{
             flex: 1,
-            backgroundColor: colour.background ?? "#F5F7FA",
+            backgroundColor: colour.background,
             borderTopLeftRadius: 24,
             borderTopRightRadius: 24,
             overflow: "hidden",

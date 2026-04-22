@@ -339,7 +339,7 @@ export function ExpenseDetailScreen({
           <Pressable
             style={{
               flex: 1,
-              backgroundColor: colour.teal,
+              backgroundColor: colour.primary,
               borderRadius: radius.md,
               paddingVertical: 12,
               alignItems: "center",

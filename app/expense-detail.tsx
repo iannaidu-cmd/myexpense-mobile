@@ -1,5 +1,6 @@
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
+import { IconSymbol } from "@/components/ui/icon-symbol";
 import { expenseService } from "@/services/expenseService";
 import { useAuthStore } from "@/stores/authStore";
 import { colour, radius, space, typography } from "@/tokens";
@@ -147,7 +148,7 @@ function ReceiptViewer({
             justifyContent: "center",
           }}
         >
-          <Text style={{ color: "#fff", fontSize: 18, lineHeight: 20 }}>✕</Text>
+          <IconSymbol name="xmark" size={18} color="#fff" />
         </TouchableOpacity>
 
         {/* Label */}
@@ -180,7 +181,7 @@ function ReceiptViewer({
 
         {error && !loading && (
           <View style={{ alignItems: "center", paddingHorizontal: space.xl }}>
-            <Text style={{ fontSize: 40, marginBottom: space.md }}>📎</Text>
+            <IconSymbol name="exclamationmark.circle" size={40} color="#fff" style={{ marginBottom: space.md } as any} />
             <Text
               style={{
                 ...typography.bodyM,
@@ -291,12 +292,12 @@ export default function ExpenseDetailScreen() {
     return (
       <SafeAreaView
         edges={["top"]}
-        style={{ flex: 1, backgroundColor: colour.primary }}
+        style={{ flex: 1, backgroundColor: colour.background }}
       >
         <View
           style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
         >
-          <ActivityIndicator color={colour.onPrimary} size="large" />
+          <ActivityIndicator color={colour.primary} size="large" />
         </View>
       </SafeAreaView>
     );
@@ -334,9 +335,9 @@ export default function ExpenseDetailScreen() {
   return (
     <SafeAreaView
       edges={["top"]}
-      style={{ flex: 1, backgroundColor: colour.primary }}
+      style={{ flex: 1, backgroundColor: colour.background }}
     >
-      <StatusBar barStyle="light-content" backgroundColor={colour.primary} />
+      <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
 
       {/* Receipt viewer modal */}
       <ReceiptViewer
@@ -351,61 +352,34 @@ export default function ExpenseDetailScreen() {
         right={
           <TouchableOpacity
             onPress={() => router.push(`/edit-expense?id=${expense.id}` as any)}
+            style={{ backgroundColor: colour.primary50, borderRadius: radius.pill, paddingHorizontal: space.md, paddingVertical: space.xs }}
           >
-            <Text style={{ ...typography.labelM, color: colour.onPrimary }}>
-              Edit
-            </Text>
+            <Text style={{ ...typography.labelS, color: colour.accentDeep }}>Edit</Text>
           </TouchableOpacity>
         }
       >
         {/* Amount hero */}
-        <Text
-          style={{
-            ...typography.amountXL,
-            color: colour.onPrimary,
-            marginTop: space.md,
-          }}
-        >
+        <Text style={{ ...typography.amountXL, color: colour.text, marginTop: space.md }}>
           {fmt(expense.amount)}
         </Text>
-        <Text
-          style={{
-            ...typography.bodyM,
-            color: "rgba(255,255,255,0.75)",
-            marginTop: space.xs,
-          }}
-        >
+        <Text style={{ ...typography.bodyM, color: colour.textSub, marginTop: space.xs }}>
           {expense.vendor}
         </Text>
         {/* Badges */}
-        <View
-          style={{ flexDirection: "row", gap: space.sm, marginTop: space.md }}
-        >
+        <View style={{ flexDirection: "row", gap: space.sm, marginTop: space.md }}>
           {itr12Code ? (
-            <View
-              style={{
-                backgroundColor: "rgba(255,255,255,0.2)",
-                borderRadius: radius.full,
-                paddingVertical: 4,
-                paddingHorizontal: space.sm,
-              }}
-            >
-              <Text style={{ ...typography.labelS, color: colour.onPrimary }}>
-                {itr12Code}
-              </Text>
+            <View style={{
+              backgroundColor: colour.primary50, borderRadius: radius.full,
+              paddingVertical: 4, paddingHorizontal: space.sm,
+            }}>
+              <Text style={{ ...typography.labelS, color: colour.accentDeep }}>{itr12Code}</Text>
             </View>
           ) : null}
-          <View
-            style={{
-              backgroundColor: expense.is_deductible
-                ? "rgba(255,255,255,0.2)"
-                : "rgba(231,76,60,0.4)",
-              borderRadius: radius.full,
-              paddingVertical: 4,
-              paddingHorizontal: space.sm,
-            }}
-          >
-            <Text style={{ ...typography.labelS, color: colour.onPrimary }}>
+          <View style={{
+            backgroundColor: expense.is_deductible ? colour.successBg : colour.dangerBg,
+            borderRadius: radius.full, paddingVertical: 4, paddingHorizontal: space.sm,
+          }}>
+            <Text style={{ ...typography.labelS, color: expense.is_deductible ? colour.success : colour.danger }}>
               {expense.is_deductible ? "Deductible" : "Non-deductible"}
             </Text>
           </View>

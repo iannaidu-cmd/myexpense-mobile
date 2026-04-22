@@ -1,3 +1,4 @@
+import { IconSymbol } from "@/components/ui/icon-symbol";
 import { colour, radius, space, typography } from "@/tokens";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
@@ -55,8 +56,8 @@ export default function ResetPasswordScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colour.primary }}>
-      <StatusBar barStyle="light-content" backgroundColor={colour.primary} />
+    <SafeAreaView style={{ flex: 1, backgroundColor: colour.background }}>
+      <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -130,7 +131,7 @@ export default function ResetPasswordScreen() {
                     marginBottom: space.xl,
                   }}
                 >
-                  <Text style={{ fontSize: 32 }}>🔒</Text>
+                  <IconSymbol name="lock.fill" size={32} color={colour.success} />
                 </View>
                 <Text
                   style={[

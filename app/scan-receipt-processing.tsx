@@ -1,3 +1,4 @@
+import { IconSymbol } from "@/components/ui/icon-symbol";
 import { receiptState } from "@/lib/receiptState";
 import { colour } from "@/tokens";
 import { useRouter } from "expo-router";
@@ -242,7 +243,7 @@ export default function ScanReceiptProcessingScreen() {
                 marginBottom: 24,
               }}
             >
-              <Text style={{ fontSize: 48, color: "#fff" }}>✓</Text>
+              <IconSymbol name="checkmark" size={48} color="#fff" />
             </View>
             <Text
               style={{

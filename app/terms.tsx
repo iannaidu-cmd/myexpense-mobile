@@ -1,3 +1,4 @@
+import { MXHeader } from "@/components/MXHeader";
 import { colour, radius, space } from "@/tokens";
 import { useRouter } from "expo-router";
 import { ScrollView, Text, TouchableOpacity, View } from "react-native";
@@ -58,35 +59,7 @@ export default function TermsScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colour.white }}>
-      {/* Header */}
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          paddingHorizontal: space.lg,
-          paddingVertical: space.md,
-          borderBottomWidth: 1,
-          borderBottomColor: colour.borderLight,
-        }}
-      >
-        <TouchableOpacity
-          onPress={() => router.back()}
-          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-          style={{ marginRight: space.md }}
-        >
-          <Text style={{ fontSize: 24, color: colour.primary }}>‹</Text>
-        </TouchableOpacity>
-        <Text
-          style={{
-            fontSize: 18,
-            fontWeight: "700",
-            color: colour.text,
-            flex: 1,
-          }}
-        >
-          Terms of Service
-        </Text>
-      </View>
+      <MXHeader title="Terms of Service" showBack />
 
       <ScrollView
         contentContainerStyle={{

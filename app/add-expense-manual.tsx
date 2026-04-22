@@ -1,4 +1,6 @@
+import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
+import { IconSymbol } from "@/components/ui/icon-symbol";
 import { expenseService } from "@/services/expenseService";
 import { useAuthStore } from "@/stores/authStore";
 import { colour } from "@/tokens";
@@ -9,11 +11,13 @@ import {
     ActivityIndicator,
     Alert,
     ScrollView,
+    StatusBar,
     Text,
     TextInput,
     TouchableOpacity,
     View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 interface Props {}
 
@@ -87,16 +91,16 @@ function UnderlineInput({
 }
 
 const ITR12_CATEGORIES = [
-  { label: "Travel & Transport", icon: "🚗", code: "S11(a)" },
-  { label: "Home Office", icon: "🏠", code: "S11(a)" },
-  { label: "Equipment & Tools", icon: "🔧", code: "S11(e)" },
-  { label: "Software & Subscr.", icon: "💻", code: "S11(a)" },
-  { label: "Meals & Entertain.", icon: "🍽", code: "S11(a)" },
-  { label: "Professional Fees", icon: "📋", code: "S11(a)" },
-  { label: "Utilities", icon: "⚡", code: "S11(a)" },
-  { label: "Marketing & Adverts", icon: "📣", code: "S11(a)" },
-  { label: "Bank Charges", icon: "🏦", code: "S11(a)" },
-  { label: "Personal / Other", icon: "👤", code: "N/A" },
+  { label: "Travel & Transport", icon: "car.fill",             code: "S11(a)" },
+  { label: "Home Office",        icon: "house.fill",           code: "S11(a)" },
+  { label: "Equipment & Tools",  icon: "wrench.fill",          code: "S11(e)" },
+  { label: "Software & Subscr.", icon: "gearshape.fill",       code: "S11(a)" },
+  { label: "Meals & Entertain.", icon: "fork.knife",           code: "S11(a)" },
+  { label: "Professional Fees",  icon: "doc.text.fill",        code: "S11(a)" },
+  { label: "Utilities",          icon: "bolt.fill",            code: "S11(a)" },
+  { label: "Marketing & Adverts",icon: "megaphone.fill",       code: "S11(a)" },
+  { label: "Bank Charges",       icon: "building.columns.fill",code: "S11(a)" },
+  { label: "Personal / Other",   icon: "person.fill",          code: "N/A"    },
 ];
 
 export default function AddExpenseScreen() {
@@ -170,40 +174,10 @@ export default function AddExpenseScreen() {
   };
 
   return (
-    <PhoneShell>
-      {/* Header */}
-      <View
-        style={{
-          backgroundColor: colour.primary,
-          paddingTop: 52,
-          paddingBottom: 28,
-          paddingHorizontal: 20,
-        }}
-      >
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={{ color: colour.accent, fontSize: 13 }}>‹ Home</Text>
-        </TouchableOpacity>
-        <Text
-          style={{
-            color: colour.accent,
-            fontSize: 12,
-            fontWeight: "600",
-            letterSpacing: 1,
-          }}
-        >
-          Expenses
-        </Text>
-        <Text
-          style={{
-            color: colour.onPrimary,
-            fontSize: 22,
-            fontWeight: "800",
-            marginTop: 4,
-          }}
-        >
-          Add expense
-        </Text>
-      </View>
+    <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colour.surface1 }}>
+      <StatusBar barStyle="dark-content" backgroundColor={colour.surface1} />
+      <MXHeader title="Add expense" showBack />
+      <PhoneShell>
 
       <View
         style={{
@@ -237,7 +211,7 @@ export default function AddExpenseScreen() {
               gap: 8,
             }}
           >
-            <Text style={{ fontSize: 18 }}>📷</Text>
+            <IconSymbol name="camera.fill" size={18} color={colour.onPrimary} />
             <Text
               style={{
                 fontSize: 13,
@@ -263,7 +237,7 @@ export default function AddExpenseScreen() {
               borderColor: colour.border,
             }}
           >
-            <Text style={{ fontSize: 18 }}>🖼</Text>
+            <IconSymbol name="photo.fill" size={18} color={colour.text} />
             <Text
               style={{ fontSize: 13, fontWeight: "700", color: colour.text }}
             >
@@ -325,7 +299,7 @@ export default function AddExpenseScreen() {
                     color: expType === t ? colour.onPrimary : colour.textSub,
                   }}
                 >
-                  {t === "business" ? "💼 Business" : "👤 Personal"}
+                  {t === "business" ? "Business" : "Personal"}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -377,9 +351,7 @@ export default function AddExpenseScreen() {
                 color: category ? colour.text : colour.textSub,
               }}
             >
-              {selectedCat
-                ? `${selectedCat.icon}  ${selectedCat.label}`
-                : "Select a category…"}
+              {selectedCat ? selectedCat.label : "Select a category…"}
             </Text>
             <Text style={{ color: colour.primary, fontSize: 16 }}>
               {showCatPicker ? "∨" : "›"}
@@ -424,9 +396,7 @@ export default function AddExpenseScreen() {
                     borderBottomColor: colour.border,
                   }}
                 >
-                  <Text style={{ fontSize: 18, marginRight: 12 }}>
-                    {cat.icon}
-                  </Text>
+                  <IconSymbol name={cat.icon as any} size={18} color={colour.primary} style={{ marginRight: 12 } as any} />
                   <Text style={{ flex: 1, fontSize: 14, color: colour.text }}>
                     {cat.label}
                   </Text>
@@ -561,5 +531,6 @@ export default function AddExpenseScreen() {
         </TouchableOpacity>
       </View>
     </PhoneShell>
+    </SafeAreaView>
   );
 }

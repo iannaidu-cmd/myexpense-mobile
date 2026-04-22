@@ -1,5 +1,6 @@
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
+import { IconSymbol } from "@/components/ui/icon-symbol";
 import { expenseService } from "@/services/expenseService";
 import { useAuthStore } from "@/stores/authStore";
 import { useExpenseStore } from "@/stores/expenseStore";
@@ -62,9 +63,9 @@ function ToggleRow({
 
 const YEARS = ["2025/26", "2024/25", "2023/24", "2022/23"];
 const FORMATS = [
-  { key: "pdf", label: "PDF report", icon: "📄" },
-  { key: "csv", label: "CSV spreadsheet", icon: "📊" },
-  { key: "both", label: "Both", icon: "📦" },
+  { key: "pdf",  label: "PDF report",      icon: "doc.text.fill"        },
+  { key: "csv",  label: "CSV spreadsheet", icon: "chart.bar.fill"       },
+  { key: "both", label: "Both",            icon: "tray.and.arrow.up.fill"},
 ] as const;
 type FormatKey = "pdf" | "csv" | "both";
 
@@ -164,9 +165,9 @@ export default function ITR12ExportSetupScreen() {
   return (
     <SafeAreaView
       edges={["top"]}
-      style={{ flex: 1, backgroundColor: colour.primary }}
+      style={{ flex: 1, backgroundColor: colour.background }}
     >
-      <StatusBar barStyle="light-content" backgroundColor={colour.primary} />
+      <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
       <MXHeader
         title="Export Setup"
         subtitle="Configure your ITR12 export"
@@ -282,9 +283,7 @@ export default function ITR12ExportSetupScreen() {
                         format === f.key ? colour.primary : colour.borderLight,
                     }}
                   >
-                    <Text style={{ fontSize: 20, marginBottom: 4 }}>
-                      {f.icon}
-                    </Text>
+                    <IconSymbol name={f.icon as any} size={20} color={format === f.key ? colour.onPrimary : colour.textSub} style={{ marginBottom: 4 } as any} />
                     <Text
                       style={{
                         fontSize: 11,
@@ -476,7 +475,7 @@ export default function ITR12ExportSetupScreen() {
                   lineHeight: 16,
                 }}
               >
-                ⚠️ This export is for your records and tax practitioner. Always
+                This export is for your records and tax practitioner. Always
                 have your ITR12 reviewed by a registered tax professional before
                 submission.
               </Text>

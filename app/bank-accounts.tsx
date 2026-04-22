@@ -1,4 +1,5 @@
 import { MXHeader } from "@/components/MXHeader";
+import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useAuthStore } from "@/stores/authStore";
 import { colour, radius, space, typography } from "@/tokens";
 import { useRouter } from "expo-router";
@@ -164,9 +165,9 @@ export default function BankAccountsScreen() {
   return (
     <SafeAreaView
       edges={["top"]}
-      style={{ flex: 1, backgroundColor: colour.primary }}
+      style={{ flex: 1, backgroundColor: colour.background }}
     >
-      <StatusBar barStyle="light-content" backgroundColor={colour.primary} />
+      <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
 
       <MXHeader
         title="Bank Accounts"
@@ -177,13 +178,13 @@ export default function BankAccountsScreen() {
           <TouchableOpacity
             onPress={() => setShowModal(true)}
             style={{
-              backgroundColor: "rgba(255,255,255,0.2)",
+              backgroundColor: colour.primary50,
               borderRadius: radius.pill,
               paddingHorizontal: space.md,
               paddingVertical: space.xs,
             }}
           >
-            <Text style={{ ...typography.labelS, color: colour.onPrimary }}>
+            <Text style={{ ...typography.labelS, color: colour.accentDeep }}>
               + Add
             </Text>
           </TouchableOpacity>
@@ -205,7 +206,7 @@ export default function BankAccountsScreen() {
           </View>
         ) : accounts.length === 0 ? (
           <View style={{ alignItems: "center", paddingTop: space["4xl"] }}>
-            <Text style={{ fontSize: 48, marginBottom: space.md }}>🏦</Text>
+            <IconSymbol name="building.columns.fill" size={48} color={colour.textHint} style={{ marginBottom: space.md } as any} />
             <Text style={{ ...typography.h4, color: colour.textPrimary }}>
               No bank accounts
             </Text>
@@ -290,7 +291,7 @@ export default function BankAccountsScreen() {
                       marginRight: space.md,
                     }}
                   >
-                    <Text style={{ fontSize: 22 }}>🏦</Text>
+                    <IconSymbol name="building.columns.fill" size={22} color={colour.primary} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text
@@ -414,7 +415,7 @@ export default function BankAccountsScreen() {
                   marginBottom: space.xs,
                 }}
               >
-                🔒 POPIA & Security
+                POPIA & Security
               </Text>
               <Text
                 style={{

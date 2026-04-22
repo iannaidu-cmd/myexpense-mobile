@@ -7,6 +7,7 @@
  */
 
 import { MXTabBar } from "@/components/MXTabBar";
+import { IconSymbol } from "@/components/ui/icon-symbol";
 import { colour, radius, space, typography } from "@/tokens";
 import { useRouter } from "expo-router";
 import React from "react";
@@ -142,7 +143,7 @@ export default function EmptyStateNoReportsScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colour.background }}>
-      <StatusBar barStyle="light-content" backgroundColor={colour.primary} />
+      <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
 
       {/* ── Blue header ── */}
       <View
@@ -230,7 +231,7 @@ export default function EmptyStateNoReportsScreen() {
             marginBottom: space.xxl,
           }}
         >
-          <Text style={{ fontSize: 14, marginRight: space.xs }}>📅</Text>
+          <IconSymbol name="calendar" size={14} color={colour.primary} style={{ marginRight: space.xs } as any} />
           <Text
             style={{
               ...typography.bodyS,

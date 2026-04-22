@@ -1,4 +1,6 @@
+import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
+import { IconSymbol } from "@/components/ui/icon-symbol";
 import { colour, radius, space, typography } from "@/tokens";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
@@ -54,7 +56,7 @@ export default function DeleteConfirmationScreen() {
             marginBottom: space.xl,
           }}
         >
-          <Text style={{ fontSize: 32 }}>✓</Text>
+          <IconSymbol name="checkmark" size={32} color={colour.success} />
         </View>
         <Text
           style={[
@@ -87,39 +89,7 @@ export default function DeleteConfirmationScreen() {
     >
       <StatusBar barStyle="dark-content" backgroundColor={colour.bgPage} />
 
-      {/* Header */}
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          padding: space.lg,
-          borderBottomWidth: 1,
-          borderBottomColor: colour.border,
-        }}
-      >
-        <TouchableOpacity
-          onPress={() => router.back()}
-          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-        >
-          <Text
-            style={{
-              fontSize: 26,
-              color: colour.textSecondary,
-              lineHeight: 30,
-            }}
-          >
-            ‹
-          </Text>
-        </TouchableOpacity>
-        <Text
-          style={[
-            typography.heading4,
-            { color: colour.textPrimary, marginLeft: space.md },
-          ]}
-        >
-          Delete expense
-        </Text>
-      </View>
+      <MXHeader title="Delete expense" showBack />
 
       <View
         style={{ flex: 1, padding: space.lg, justifyContent: "space-between" }}
@@ -143,7 +113,7 @@ export default function DeleteConfirmationScreen() {
                 justifyContent: "center",
               }}
             >
-              <Text style={{ fontSize: 36 }}>🗑️</Text>
+              <IconSymbol name="trash.fill" size={36} color={colour.danger} />
             </View>
           </View>
 

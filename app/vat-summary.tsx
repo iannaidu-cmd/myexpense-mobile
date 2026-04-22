@@ -1,5 +1,6 @@
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
+import { IconSymbol } from "@/components/ui/icon-symbol";
 import { expenseService } from "@/services/expenseService";
 import { useAuthStore } from "@/stores/authStore";
 import { useExpenseStore } from "@/stores/expenseStore";
@@ -109,9 +110,9 @@ export default function VATSummaryScreen() {
   return (
     <SafeAreaView
       edges={["top"]}
-      style={{ flex: 1, backgroundColor: colour.primary }}
+      style={{ flex: 1, backgroundColor: colour.background }}
     >
-      <StatusBar barStyle="light-content" backgroundColor={colour.primary} />
+      <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
       <MXHeader
         title="VAT Summary"
         subtitle={`VAT at ${(VAT_RATE * 100).toFixed(0)}% · South Africa`}
@@ -277,7 +278,7 @@ export default function VATSummaryScreen() {
                   marginBottom: space.xs,
                 }}
               >
-                ℹ️ VAT Registration Note
+                VAT Registration Note
               </Text>
               <Text style={{ ...typography.bodyS, color: colour.info }}>
                 VAT input claims apply only if you are a registered VAT vendor
@@ -300,7 +301,7 @@ export default function VATSummaryScreen() {
               <View
                 style={{ alignItems: "center", paddingVertical: space["3xl"] }}
               >
-                <Text style={{ fontSize: 36, marginBottom: space.sm }}>🧾</Text>
+                <IconSymbol name="doc.text.fill" size={36} color={colour.textHint} style={{ marginBottom: space.sm } as any} />
                 <Text style={{ ...typography.h4, color: colour.textPrimary }}>
                   No VAT records
                 </Text>

@@ -21,14 +21,14 @@ export const space = {
 export type SpaceKey = keyof typeof space;
 
 export const radius = {
-  /** 8px – inputs, small cards */
-  sm:   8,
-  /** 12px – standard cards */
-  md:   12,
-  /** 16px – large cards, modals */
-  lg:   16,
-  /** 24px – large radius for bottom-sheet cards */
-  xl:   24,
+  /** 10px – inputs, small cards */
+  sm:   10,
+  /** 14px – standard cards */
+  md:   14,
+  /** 20px – large cards, modals */
+  lg:   20,
+  /** 28px – large radius for bottom-sheet cards */
+  xl:   28,
   /** 100px – pill buttons */
   pill: 100,
   /** 100px – alias for pill, fully rounded */

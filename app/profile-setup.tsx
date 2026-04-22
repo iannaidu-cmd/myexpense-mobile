@@ -3,6 +3,7 @@
 // Collects the minimum details SARS requires: tax number, work type, name.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { IconSymbol } from "@/components/ui/icon-symbol";
 import { profileService } from "@/services/profileService";
 import { useAuthStore } from "@/stores/authStore";
 import { colour, radius, space, typography } from "@/tokens";
@@ -101,9 +102,9 @@ export default function ProfileSetupScreen() {
   return (
     <SafeAreaView
       edges={["top"]}
-      style={{ flex: 1, backgroundColor: colour.primary }}
+      style={{ flex: 1, backgroundColor: colour.background }}
     >
-      <StatusBar barStyle="light-content" backgroundColor={colour.primary} />
+      <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -400,7 +401,7 @@ export default function ProfileSetupScreen() {
             {/* SARS info callout */}
             <View
               style={{
-                backgroundColor: colour.infoLight ?? "#EAF4FF",
+                backgroundColor: colour.infoLight,
                 borderRadius: radius.md,
                 padding: space.md,
                 marginBottom: space["2xl"],
@@ -408,7 +409,7 @@ export default function ProfileSetupScreen() {
                 gap: space.sm,
               }}
             >
-              <Text style={{ fontSize: 18 }}>🔒</Text>
+              <IconSymbol name="lock.fill" size={18} color={colour.info ?? colour.primary} />
               <Text
                 style={{
                   ...typography.bodyXS,

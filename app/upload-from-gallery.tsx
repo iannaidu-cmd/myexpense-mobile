@@ -1,3 +1,4 @@
+import { MXHeader } from "@/components/MXHeader";
 import { receiptState } from "@/lib/receiptState";
 import { useAuthStore } from "@/stores/authStore";
 import { colour, radius, space, typography } from "@/tokens";
@@ -120,7 +121,7 @@ export default function UploadFromGalleryScreen() {
           justifyContent: "center",
         }}
       >
-        <StatusBar barStyle="light-content" backgroundColor={colour.primary} />
+        <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
         <ActivityIndicator color={colour.textOnPrimary} size="large" />
         <Text
           style={[
@@ -135,58 +136,10 @@ export default function UploadFromGalleryScreen() {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colour.primary }}>
-      <StatusBar barStyle="light-content" backgroundColor={colour.primary} />
+    <SafeAreaView style={{ flex: 1, backgroundColor: colour.background }}>
+      <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
 
-      {/* Header */}
-      <View
-        style={{
-          paddingHorizontal: space.lg,
-          paddingTop: space.sm,
-          paddingBottom: space["3xl"],
-        }}
-      >
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "space-between",
-            marginBottom: space.md,
-          }}
-        >
-          <TouchableOpacity
-            onPress={() => router.back()}
-            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-          >
-            <Text
-              style={{
-                color: colour.textOnPrimary,
-                fontSize: 26,
-                lineHeight: 30,
-              }}
-            >
-              ‹
-            </Text>
-          </TouchableOpacity>
-          <Text
-            style={[typography.labelM, { color: "rgba(255,255,255,0.85)" }]}
-          >
-            Upload Receipt
-          </Text>
-          <View style={{ width: 40 }} />
-        </View>
-        <Text style={[typography.heading3, { color: colour.textOnPrimary }]}>
-          Review & Upload
-        </Text>
-        <Text
-          style={[
-            typography.bodyS,
-            { color: "rgba(255,255,255,0.7)", marginTop: 2 },
-          ]}
-        >
-          Confirm your selected receipt
-        </Text>
-      </View>
+      <MXHeader title="Upload Receipt" showBack />
 
       {/* Card */}
       <View

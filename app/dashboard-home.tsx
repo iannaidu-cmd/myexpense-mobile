@@ -1,5 +1,6 @@
 import { MXCard } from "@/components/MXCard";
 import MXLogo from "@/components/MXLogo";
+import { IconSymbol } from "@/components/ui/icon-symbol";
 import { colour, radius, space, typography } from "@/tokens";
 import React, { useEffect, useState } from "react";
 import {
@@ -186,9 +187,9 @@ export default function DashboardHomeScreen() {
   return (
     <SafeAreaView
       edges={["top"]}
-      style={{ flex: 1, backgroundColor: colour.primary }}
+      style={{ flex: 1, backgroundColor: colour.background }}
     >
-      <StatusBar barStyle="light-content" backgroundColor={colour.primary} />
+      <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
 
       {/* ── Header ── */}
       <View
@@ -221,7 +222,7 @@ export default function DashboardHomeScreen() {
               width: 56,
               height: 56,
               borderRadius: radius.md,
-              backgroundColor: "rgba(255,255,255,0.15)",
+              backgroundColor: colour.primary50,
               alignItems: "center",
               justifyContent: "center",
             }}
@@ -381,7 +382,7 @@ export default function DashboardHomeScreen() {
             marginBottom: space.lg,
           }}
         >
-          <Text style={{ fontSize: 18, marginRight: 10 }}>🗓</Text>
+          <IconSymbol name="calendar" size={18} color={colour.primary} style={{ marginRight: 10 } as any} />
           <Text
             style={{
               flex: 1,
@@ -445,7 +446,7 @@ export default function DashboardHomeScreen() {
             alignItems: "center",
           }}
         >
-          <Text style={{ fontSize: 22, marginRight: 12 }}>💡</Text>
+          <IconSymbol name="lightbulb.fill" size={22} color={colour.onPrimary} style={{ marginRight: 12 } as any} />
           <View style={{ flex: 1 }}>
             <Text
               style={{

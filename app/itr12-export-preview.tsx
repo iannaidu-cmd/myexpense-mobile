@@ -1,5 +1,6 @@
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
+import { IconSymbol } from "@/components/ui/icon-symbol";
 import { expenseService } from "@/services/expenseService";
 import { generateITR12PDF } from "@/services/pdfExportService";
 import { profileService } from "@/services/profileService";
@@ -130,9 +131,9 @@ export default function ITR12ExportPreviewScreen() {
   return (
     <SafeAreaView
       edges={["top"]}
-      style={{ flex: 1, backgroundColor: colour.primary }}
+      style={{ flex: 1, backgroundColor: colour.background }}
     >
-      <StatusBar barStyle="light-content" backgroundColor={colour.primary} />
+      <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
       <MXHeader
         title="Export Preview"
         subtitle={`Tax Year ${ACTIVE_TAX_YEAR} · ITR12 Format`}
@@ -619,7 +620,7 @@ export default function ITR12ExportPreviewScreen() {
             gap: space.sm,
           }}
         >
-          <Text style={{ fontSize: 18 }}>📋</Text>
+          <IconSymbol name="doc.text.fill" size={18} color={colour.success} />
           <Text
             style={{ color: colour.success, fontSize: 15, fontWeight: "700" }}
           >

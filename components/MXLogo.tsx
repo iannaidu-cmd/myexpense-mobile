@@ -28,13 +28,13 @@ function MXLogoNative({ size, barColour, onPress, style }: {
 }) {
   // Lazy import so web bundler never tries to resolve react-native-svg
   const { default: Svg, Rect, Path } = require('react-native-svg');
-  const TEAL = colour.accent;
+  const smileColour = colour.primary;
 
   const logo = (
     <Svg width={size} height={size} viewBox="0 0 40 40">
       <Rect x="4"  y="8"    width="32" height="5.5" rx="2.75" fill={barColour} />
       <Rect x="4"  y="17.5" width="32" height="5.5" rx="2.75" fill={barColour} />
-      <Path d="M4 30 Q20 42 36 30" stroke={TEAL} strokeWidth="5.5" strokeLinecap="round" fill="none" />
+      <Path d="M4 30 Q20 42 36 30" stroke={smileColour} strokeWidth="5.5" strokeLinecap="round" fill="none" />
     </Svg>
   );
 
@@ -62,7 +62,7 @@ function MXLogoWeb({ size, barColour, onPress, style }: {
   onPress?: () => void;
   style?: ViewStyle;
 }) {
-  const TEAL = colour.accent;
+  const smileColour = colour.primary;
 
   // Use dangerouslySetInnerHTML to render a proper inline SVG on web
   // This is transparent and works on any background colour
@@ -70,7 +70,7 @@ function MXLogoWeb({ size, barColour, onPress, style }: {
     <svg width="${size}" height="${size}" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
       <rect x="4"  y="8"    width="32" height="5.5" rx="2.75" fill="${barColour}" />
       <rect x="4"  y="17.5" width="32" height="5.5" rx="2.75" fill="${barColour}" />
-      <path d="M4 30 Q20 42 36 30" stroke="${TEAL}" stroke-width="5.5" stroke-linecap="round" fill="none" />
+      <path d="M4 30 Q20 42 36 30" stroke="${smileColour}" stroke-width="5.5" stroke-linecap="round" fill="none" />
     </svg>
   `;
 
@@ -95,7 +95,7 @@ export default function MXLogo({
   onPress,
   style,
 }: MXLogoProps) {
-  const barColour = variant === 'light' ? colour.white : '#2D2E7A';
+  const barColour = variant === 'light' ? colour.white : colour.text;
 
   if (Platform.OS === 'web') {
     return (

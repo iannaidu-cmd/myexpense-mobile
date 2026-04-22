@@ -24,40 +24,32 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 // ─── Income Categories ────────────────────────────────────────────────────────
 const QUICK_PICKS = [
-  {
-    label: "Salary / Wage",
-    icon: "💵",
-    source: "Income of Employment (Salary / Wage)",
-  },
-  {
-    label: "Freelance",
-    icon: "💼",
-    source: "Fees from Companies / CC for Services Rendered",
-  },
-  { label: "Commission", icon: "🤝", source: "Commission" },
-  { label: "Rental Income", icon: "🏠", source: "Rental Income" },
-  { label: "Other", icon: "📋", source: "Other" },
+  { label: "Salary / Wage",   source: "Income of Employment (Salary / Wage)"          },
+  { label: "Freelance",       source: "Fees from Companies / CC for Services Rendered" },
+  { label: "Commission",      source: "Commission"                                      },
+  { label: "Rental Income",   source: "Rental Income"                                  },
+  { label: "Other",           source: "Other"                                           },
 ];
 
 const FULL_CATEGORIES = [
-  { label: "Commission", icon: "🤝" },
-  { label: "Consulting", icon: "💼" },
-  { label: "Cost of Goods Sold", icon: "📦" },
-  { label: "Delivery Expenses", icon: "🚚" },
-  { label: "Interest Received", icon: "💹" },
-  { label: "Petrol Allowance", icon: "⛽" },
-  { label: "Car Allowance", icon: "🚗" },
-  { label: "Income of Employment (Salary / Wage)", icon: "💵" },
-  { label: "Bonuses", icon: "🎉" },
-  { label: "Overtime", icon: "⏱️" },
-  { label: "Fridge Benefits", icon: "❄️" },
-  { label: "Income or Profits (Beneficiary of a Trust)", icon: "📑" },
-  { label: "Cell Phone Allowance", icon: "📱" },
-  { label: "Fees from Companies / CC for Services Rendered", icon: "🏢" },
-  { label: "Investment Income", icon: "📈" },
-  { label: "Rental Income", icon: "🏠" },
-  { label: "Income of Royalties", icon: "©️" },
-  { label: "Annuities", icon: "📋" },
+  { label: "Commission"                                       },
+  { label: "Consulting"                                       },
+  { label: "Cost of Goods Sold"                              },
+  { label: "Delivery Expenses"                               },
+  { label: "Interest Received"                               },
+  { label: "Petrol Allowance"                                },
+  { label: "Car Allowance"                                   },
+  { label: "Income of Employment (Salary / Wage)"            },
+  { label: "Bonuses"                                         },
+  { label: "Overtime"                                        },
+  { label: "Fridge Benefits"                                 },
+  { label: "Income or Profits (Beneficiary of a Trust)"     },
+  { label: "Cell Phone Allowance"                            },
+  { label: "Fees from Companies / CC for Services Rendered" },
+  { label: "Investment Income"                               },
+  { label: "Rental Income"                                   },
+  { label: "Income of Royalties"                             },
+  { label: "Annuities"                                       },
 ];
 
 function FieldLabel({ label }: { label: string }) {
@@ -182,9 +174,9 @@ export default function AddIncomeScreen() {
   return (
     <SafeAreaView
       edges={["top"]}
-      style={{ flex: 1, backgroundColor: colour.success }}
+      style={{ flex: 1, backgroundColor: colour.background }}
     >
-      <StatusBar barStyle="light-content" backgroundColor={colour.success} />
+      <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
 
       <MXHeader
         title="Add income"
@@ -193,12 +185,7 @@ export default function AddIncomeScreen() {
       />
 
       <ScrollView
-        style={{
-          flex: 1,
-          backgroundColor: colour.surface1,
-          borderTopLeftRadius: radius.xl,
-          borderTopRightRadius: radius.xl,
-        }}
+        style={{ flex: 1, backgroundColor: colour.background }}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ paddingBottom: space.xxxl }}
@@ -240,7 +227,6 @@ export default function AddIncomeScreen() {
                     gap: space.xs,
                   }}
                 >
-                  <Text style={{ fontSize: 14 }}>{q.icon}</Text>
                   <Text
                     style={{
                       ...typography.bodyS,
@@ -361,9 +347,7 @@ export default function AddIncomeScreen() {
                     borderBottomColor: colour.borderLight,
                   }}
                 >
-                  <Text style={{ fontSize: 18, marginRight: space.md }}>
-                    {cat.icon}
-                  </Text>
+                  <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: colour.primary, marginRight: space.md }} />
                   <Text
                     style={{ flex: 1, ...typography.bodyM, color: colour.text }}
                   >

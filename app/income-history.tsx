@@ -1,5 +1,6 @@
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
+import { IconSymbol } from "@/components/ui/icon-symbol";
 import { incomeService } from "@/services/incomeService";
 import { useAuthStore } from "@/stores/authStore";
 import { colour, radius, space, typography } from "@/tokens";
@@ -30,25 +31,24 @@ const formatDate = (dateStr: string) => {
   });
 };
 
-// Source → emoji mapping for visual variety
-const sourceIcon = (source: string) => {
+const sourceIcon = (source: string): any => {
   const s = source.toLowerCase();
   if (s.includes("salary") || s.includes("wage") || s.includes("employment"))
-    return "💵";
-  if (s.includes("commission")) return "🤝";
+    return "dollarsign.circle.fill";
+  if (s.includes("commission")) return "person.badge.fill";
   if (s.includes("consult") || s.includes("fees") || s.includes("services"))
-    return "💼";
-  if (s.includes("rental") || s.includes("rent")) return "🏠";
-  if (s.includes("investment")) return "📈";
-  if (s.includes("bonus")) return "🎉";
-  if (s.includes("royalt")) return "©️";
-  if (s.includes("interest")) return "💹";
-  if (s.includes("annuit")) return "📋";
-  if (s.includes("trust")) return "📑";
-  if (s.includes("petrol") || s.includes("fuel")) return "⛽";
-  if (s.includes("car") || s.includes("vehicle")) return "🚗";
-  if (s.includes("cell") || s.includes("phone")) return "📱";
-  return "💰";
+    return "briefcase.fill";
+  if (s.includes("rental") || s.includes("rent")) return "building.2.fill";
+  if (s.includes("investment")) return "chart.bar.fill";
+  if (s.includes("bonus")) return "star.fill";
+  if (s.includes("royalt")) return "doc.text.fill";
+  if (s.includes("interest")) return "chart.pie.fill";
+  if (s.includes("annuit")) return "calendar";
+  if (s.includes("trust")) return "lock.fill";
+  if (s.includes("petrol") || s.includes("fuel")) return "car.fill";
+  if (s.includes("car") || s.includes("vehicle")) return "car.fill";
+  if (s.includes("cell") || s.includes("phone")) return "phone.fill";
+  return "dollarsign.circle.fill";
 };
 
 export default function IncomeHistoryScreen() {
@@ -159,7 +159,7 @@ export default function IncomeHistoryScreen() {
       edges={["top"]}
       style={{ flex: 1, backgroundColor: colour.success }}
     >
-      <StatusBar barStyle="light-content" backgroundColor={colour.success} />
+      <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
 
       <MXHeader
         title="Income History"
@@ -168,13 +168,13 @@ export default function IncomeHistoryScreen() {
           <TouchableOpacity
             onPress={() => router.push("/add-income" as any)}
             style={{
-              backgroundColor: "rgba(255,255,255,0.2)",
+              backgroundColor: colour.primary50,
               borderRadius: radius.pill,
               paddingHorizontal: space.md,
               paddingVertical: space.xs,
             }}
           >
-            <Text style={{ ...typography.labelS, color: colour.onPrimary }}>
+            <Text style={{ ...typography.labelS, color: colour.accentDeep }}>
               + Add
             </Text>
           </TouchableOpacity>
@@ -186,21 +186,21 @@ export default function IncomeHistoryScreen() {
         >
           <View style={{ flex: 1 }}>
             <Text
-              style={{ ...typography.caption, color: "rgba(255,255,255,0.7)" }}
+              style={{ ...typography.caption, color: colour.textSub }}
             >
               Total Income
             </Text>
-            <Text style={{ ...typography.amountM, color: colour.onPrimary }}>
+            <Text style={{ ...typography.amountM, color: colour.text }}>
               {fmt(totalIncome)}
             </Text>
           </View>
           <View style={{ flex: 1 }}>
             <Text
-              style={{ ...typography.caption, color: "rgba(255,255,255,0.7)" }}
+              style={{ ...typography.caption, color: colour.textSub }}
             >
               Entries
             </Text>
-            <Text style={{ ...typography.amountM, color: colour.onPrimary }}>
+            <Text style={{ ...typography.amountM, color: colour.text }}>
               {filtered.length}
             </Text>
           </View>
@@ -228,7 +228,7 @@ export default function IncomeHistoryScreen() {
             height: 44,
           }}
         >
-          <Text style={{ fontSize: 16, marginRight: space.sm }}>🔍</Text>
+          <IconSymbol name="magnifyingglass" size={16} color={colour.textHint} style={{ marginRight: space.sm } as any} />
           <TextInput
             value={search}
             onChangeText={setSearch}
@@ -276,7 +276,7 @@ export default function IncomeHistoryScreen() {
             }
             ListEmptyComponent={
               <View style={{ alignItems: "center", paddingTop: space["4xl"] }}>
-                <Text style={{ fontSize: 40, marginBottom: space.md }}>💵</Text>
+                <IconSymbol name="dollarsign.circle.fill" size={40} color={colour.textHint} style={{ marginBottom: space.md } as any} />
                 <Text style={{ ...typography.h4, color: colour.textPrimary }}>
                   No income recorded
                 </Text>
@@ -304,7 +304,7 @@ export default function IncomeHistoryScreen() {
                     }}
                   >
                     <Text
-                      style={{ ...typography.btnL, color: colour.onPrimary }}
+                      style={{ ...typography.btnL, color: colour.text }}
                     >
                       Add Income
                     </Text>
@@ -340,9 +340,7 @@ export default function IncomeHistoryScreen() {
                   {deletingId === item.id ? (
                     <ActivityIndicator color={colour.success} size="small" />
                   ) : (
-                    <Text style={{ fontSize: 20 }}>
-                      {sourceIcon(item.source)}
-                    </Text>
+                    <IconSymbol name={sourceIcon(item.source)} size={20} color={colour.success} />
                   )}
                 </View>
 

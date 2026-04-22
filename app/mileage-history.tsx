@@ -1,5 +1,6 @@
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
+import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useAuthStore } from "@/stores/authStore";
 import { colour, radius, space, typography } from "@/tokens";
 import { ACTIVE_TAX_YEAR } from "@/types/database";
@@ -142,9 +143,9 @@ export default function MileageHistoryScreen() {
   return (
     <SafeAreaView
       edges={["top"]}
-      style={{ flex: 1, backgroundColor: colour.primary }}
+      style={{ flex: 1, backgroundColor: colour.background }}
     >
-      <StatusBar barStyle="light-content" backgroundColor={colour.primary} />
+      <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
 
       <MXHeader
         title="Trip Logbook"
@@ -266,7 +267,7 @@ export default function MileageHistoryScreen() {
           </View>
         ) : trips.length === 0 ? (
           <View style={{ alignItems: "center", paddingTop: space["4xl"] }}>
-            <Text style={{ fontSize: 48, marginBottom: space.md }}>🚗</Text>
+            <IconSymbol name="car.fill" size={48} color={colour.textHint} style={{ marginBottom: space.md } as any} />
             <Text style={{ ...typography.h4, color: colour.textPrimary }}>
               No trips yet
             </Text>
@@ -337,7 +338,7 @@ export default function MileageHistoryScreen() {
                       marginRight: space.md,
                     }}
                   >
-                    <Text style={{ fontSize: 22 }}>🚗</Text>
+                    <IconSymbol name="car.fill" size={22} color={colour.primary} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text
@@ -453,7 +454,7 @@ export default function MileageHistoryScreen() {
                       marginBottom: space.sm,
                     }}
                   >
-                    📝 {trip.notes}
+                    {trip.notes}
                   </Text>
                 )}
 
@@ -518,7 +519,7 @@ export default function MileageHistoryScreen() {
                   marginBottom: space.xs,
                 }}
               >
-                ℹ️ SARS Logbook Requirement
+                SARS Logbook Requirement
               </Text>
               <Text
                 style={{

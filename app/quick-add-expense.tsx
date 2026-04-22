@@ -1,4 +1,5 @@
 import { MXTabBar } from "@/components/MXTabBar";
+import { IconSymbol } from "@/components/ui/icon-symbol";
 import { colour } from "@/tokens";
 import React, { useEffect, useRef, useState } from "react";
 import {
@@ -31,14 +32,14 @@ interface QuickExpense {
 
 // ─── Quick Categories ─────────────────────────────────────────────────────────
 const QUICK_CATS = [
-  { icon: "🚗", label: "Travel", itr12: "S11(a)" },
-  { icon: "🏠", label: "Home Office", itr12: "S11(a)" },
-  { icon: "💻", label: "Software", itr12: "S11(a)" },
-  { icon: "🔧", label: "Equipment", itr12: "S11(e)" },
-  { icon: "🍽", label: "Meals", itr12: "S11(a)" },
-  { icon: "📋", label: "Professional", itr12: "S11(a)" },
-  { icon: "⚡", label: "Utilities", itr12: "S11(a)" },
-  { icon: "👤", label: "Personal", itr12: "N/A" },
+  { icon: "car.fill",       label: "Travel",       itr12: "S11(a)" },
+  { icon: "house.fill",     label: "Home Office",  itr12: "S11(a)" },
+  { icon: "gearshape.fill", label: "Software",     itr12: "S11(a)" },
+  { icon: "wrench.fill",    label: "Equipment",    itr12: "S11(e)" },
+  { icon: "fork.knife",     label: "Meals",        itr12: "S11(a)" },
+  { icon: "doc.text.fill",  label: "Professional", itr12: "S11(a)" },
+  { icon: "bolt.fill",      label: "Utilities",    itr12: "S11(a)" },
+  { icon: "person.fill",    label: "Personal",     itr12: "N/A"    },
 ];
 
 // ─── SCREEN: Quick Add Expense (Bottom Sheet) ─────────────────────────────────
@@ -211,7 +212,7 @@ export default function QuickAddExpenseScreen({
             </Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={handleClose}>
-            <Text style={{ fontSize: 20, color: C.textSub }}>✕</Text>
+            <IconSymbol name="xmark" size={20} color={C.textSub} />
           </TouchableOpacity>
         </View>
 
@@ -237,7 +238,7 @@ export default function QuickAddExpenseScreen({
                   elevation: 6,
                 }}
               >
-                <Text style={{ color: C.white, fontSize: 32 }}>✓</Text>
+                <IconSymbol name="checkmark" size={32} color={C.white} />
               </View>
               <Text style={{ fontSize: 18, fontWeight: "800", color: C.text }}>
                 Expense saved!
@@ -329,9 +330,7 @@ export default function QuickAddExpenseScreen({
                       borderColor: category === cat.label ? C.navy : C.border,
                     }}
                   >
-                    <Text style={{ fontSize: 14, marginRight: 6 }}>
-                      {cat.icon}
-                    </Text>
+                    <IconSymbol name={cat.icon as any} size={14} color={category === cat.label ? C.white : C.text} style={{ marginRight: 6 } as any} />
                     <Text
                       style={{
                         fontSize: 12,
@@ -423,7 +422,7 @@ export default function QuickAddExpenseScreen({
                     marginBottom: 20,
                   }}
                 >
-                  <Text style={{ fontSize: 16, marginRight: 10 }}>✅</Text>
+                  <IconSymbol name="checkmark.circle.fill" size={16} color={C.success} style={{ marginRight: 10 } as any} />
                   <Text
                     style={{
                       flex: 1,
@@ -473,7 +472,7 @@ export default function QuickAddExpenseScreen({
                 style={{ alignItems: "center", marginTop: 14 }}
               >
                 <Text style={{ fontSize: 13, color: C.textSub }}>
-                  📷 Scan a receipt instead
+                  Scan a receipt instead
                 </Text>
               </TouchableOpacity>
             </View>

@@ -14,9 +14,9 @@ import { colour } from '@/tokens';
 //   <MXWordmark width={160} style={{marginBottom: 24}} />
 //
 // Colours:
-//   Navy:  #2D2E7A   colour.text (dark variant)
-//   White: #FFFFFF   colour.onPrimary (light variant)
-//   Teal:  #3AC0A0   colour.accent  (always teal — visible on both backgrounds)
+//   Periwinkle: colour.primary  (dark variant)
+//   White:      colour.onPrimary (light variant)
+//   Accent:     colour.accent   (smile arc — always visible)
 // ─────────────────────────────────────────────────────────────────────────────
 
 const TEAL = colour.accent;
@@ -39,7 +39,7 @@ export default function MXWordmark({
   style,
 }: MXWordmarkProps) {
   const height = Math.round((width / VB_W) * VB_H);
-  const INK = variant === 'light' ? colour.white : '#2D2E7A';
+  const INK = variant === 'light' ? colour.white : colour.primary;
   const SW = 36; // stroke width
   const LC = 'round' as const;
 

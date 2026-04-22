@@ -1,3 +1,4 @@
+import { IconSymbol } from "@/components/ui/icon-symbol";
 import { MXHeader } from "@/components/MXHeader";
 import {
   validateAmount,
@@ -27,47 +28,22 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const CATEGORIES = [
-  { label: "Travel & Transport", icon: "🚗", code: "S11(a)", deductible: true },
-  { label: "Home Office", icon: "🏠", code: "S11(a)", deductible: true },
-  { label: "Equipment & Tools", icon: "🔧", code: "S11(e)", deductible: true },
-  {
-    label: "Software & Subscriptions",
-    icon: "💻",
-    code: "S11(a)",
-    deductible: true,
-  },
-  {
-    label: "Meals & Entertainment",
-    icon: "🍽",
-    code: "S11(a)",
-    deductible: true,
-  },
-  { label: "Professional Fees", icon: "📋", code: "S11(a)", deductible: true },
-  { label: "Telephone & Cell", icon: "📱", code: "S11(a)", deductible: true },
-  {
-    label: "Marketing & Advertising",
-    icon: "📣",
-    code: "S11(a)",
-    deductible: true,
-  },
-  { label: "Bank Charges", icon: "🏦", code: "S11(a)", deductible: true },
-  { label: "Insurance", icon: "🛡️", code: "S11(a)", deductible: true },
-  { label: "Rent", icon: "🏢", code: "S11(a)", deductible: true },
-  {
-    label: "Repairs & Maintenance",
-    icon: "🔨",
-    code: "S11(a)",
-    deductible: true,
-  },
-  { label: "Education", icon: "📚", code: "S11(a)", deductible: true },
-  { label: "Medical Aid", icon: "💊", code: "S11(a)", deductible: true },
-  { label: "Vehicle Expenses", icon: "🚘", code: "Page 24", deductible: true },
-  {
-    label: "Personal / Non-deductible",
-    icon: "👤",
-    code: "N/A",
-    deductible: false,
-  },
+  { label: "Travel & Transport",       code: "S11(a)",   deductible: true  },
+  { label: "Home Office",              code: "S11(a)",   deductible: true  },
+  { label: "Equipment & Tools",        code: "S11(e)",   deductible: true  },
+  { label: "Software & Subscriptions", code: "S11(a)",   deductible: true  },
+  { label: "Meals & Entertainment",    code: "S11(a)",   deductible: true  },
+  { label: "Professional Fees",        code: "S11(a)",   deductible: true  },
+  { label: "Telephone & Cell",         code: "S11(a)",   deductible: true  },
+  { label: "Marketing & Advertising",  code: "S11(a)",   deductible: true  },
+  { label: "Bank Charges",             code: "S11(a)",   deductible: true  },
+  { label: "Insurance",                code: "S11(a)",   deductible: true  },
+  { label: "Rent",                     code: "S11(a)",   deductible: true  },
+  { label: "Repairs & Maintenance",    code: "S11(a)",   deductible: true  },
+  { label: "Education",                code: "S11(a)",   deductible: true  },
+  { label: "Medical Aid",              code: "S11(a)",   deductible: true  },
+  { label: "Vehicle Expenses",         code: "Page 24",  deductible: true  },
+  { label: "Personal / Non-deductible",code: "N/A",      deductible: false },
 ];
 
 function FieldLabel({ label }: { label: string }) {
@@ -215,19 +191,14 @@ export default function AddExpenseTab() {
   return (
     <SafeAreaView
       edges={["top"]}
-      style={{ flex: 1, backgroundColor: colour.primary }}
+      style={{ flex: 1, backgroundColor: colour.background }}
     >
-      <StatusBar barStyle="light-content" backgroundColor={colour.primary} />
+      <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
 
-      <MXHeader title="Add expense" subtitle="Track your tax deductions" />
+      <MXHeader title="Add expense" showBack />
 
       <ScrollView
-        style={{
-          flex: 1,
-          backgroundColor: colour.surface1,
-          borderTopLeftRadius: radius.xl,
-          borderTopRightRadius: radius.xl,
-        }}
+        style={{ flex: 1, backgroundColor: colour.background }}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ paddingBottom: space.xxxl }}
@@ -255,7 +226,7 @@ export default function AddExpenseTab() {
               gap: space.sm,
             }}
           >
-            <Text style={{ fontSize: 18 }}>📷</Text>
+            <IconSymbol name="camera.fill" size={18} color={colour.onPrimary} />
             <Text style={{ ...typography.actionS, color: colour.onPrimary }}>
               Scan receipt
             </Text>
@@ -275,7 +246,7 @@ export default function AddExpenseTab() {
               borderColor: colour.border,
             }}
           >
-            <Text style={{ fontSize: 18 }}>🖼️</Text>
+            <IconSymbol name="photo.fill" size={18} color={colour.text} />
             <Text style={{ ...typography.actionS, color: colour.text }}>
               From gallery
             </Text>
@@ -347,9 +318,7 @@ export default function AddExpenseTab() {
                 color: category ? colour.text : colour.textHint,
               }}
             >
-              {selectedCat
-                ? `${selectedCat.icon}  ${selectedCat.label}`
-                : "Select a category…"}
+              {selectedCat ? selectedCat.label : "Select a category…"}
             </Text>
             <Text style={{ color: colour.textSub, fontSize: 16 }}>
               {showCatPicker ? "∨" : "›"}
@@ -397,9 +366,11 @@ export default function AddExpenseTab() {
                     borderBottomColor: colour.borderLight,
                   }}
                 >
-                  <Text style={{ fontSize: 18, marginRight: space.md }}>
-                    {cat.icon}
-                  </Text>
+                  <View style={{
+                    width: 6, height: 6, borderRadius: 3,
+                    backgroundColor: cat.deductible ? colour.primary : colour.textHint,
+                    marginRight: space.md,
+                  }} />
                   <Text
                     style={{ flex: 1, ...typography.bodyM, color: colour.text }}
                   >
@@ -415,15 +386,7 @@ export default function AddExpenseTab() {
                     {cat.code}
                   </Text>
                   {category === cat.label && (
-                    <Text
-                      style={{
-                        color: colour.success,
-                        marginLeft: space.sm,
-                        fontWeight: "800",
-                      }}
-                    >
-                      ✓
-                    </Text>
+                    <IconSymbol name="checkmark" size={14} color={colour.success} style={{ marginLeft: space.sm } as any} />
                   )}
                 </TouchableOpacity>
               ))}

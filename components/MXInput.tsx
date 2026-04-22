@@ -1,5 +1,5 @@
 // ─── MXInput ──────────────────────────────────────────────────────────────────
-// Rounded border input — focus (#006FFD), error (#ED3241), label + hint text
+// Rounded border input — focus (colour.primary), error (colour.danger), label + hint text
 
 import { colour, radius, space, typography } from "@/tokens";
 import React, { useState } from "react";

@@ -1,5 +1,6 @@
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
+import { IconSymbol } from "@/components/ui/icon-symbol";
 import { colour, radius, space, typography } from "@/tokens";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React from "react";
@@ -94,10 +95,10 @@ export default function MileageTripSummaryScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colour.background }}>
-      <StatusBar barStyle="light-content" backgroundColor={colour.primary} />
+      <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
 
       {/* Primary-blue header area */}
-      <SafeAreaView edges={["top"]} style={{ backgroundColor: colour.primary }}>
+      <SafeAreaView edges={["top"]} style={{ backgroundColor: colour.background }}>
         <MXHeader
           title="Trip summary"
           subtitle="Trip complete"
@@ -134,7 +135,7 @@ export default function MileageTripSummaryScreen() {
               marginBottom: space.sm,
             }}
           >
-            <Text style={{ fontSize: 28 }}>✓</Text>
+            <IconSymbol name="checkmark" size={28} color={colour.success} />
           </View>
           <Text style={{ ...typography.h4, color: colour.text }}>
             Trip saved!
@@ -195,7 +196,7 @@ export default function MileageTripSummaryScreen() {
               gap: space.xs,
             }}
           >
-            <Text style={{ fontSize: 12 }}>✅</Text>
+            <IconSymbol name="checkmark.circle.fill" size={12} color={colour.success} />
             <Text
               style={{
                 ...typography.bodyXS,
@@ -219,12 +220,12 @@ export default function MileageTripSummaryScreen() {
           }}
         >
           <StatCard
-            icon="📍"
+            icon="map.fill"
             label="Distance"
             value={`${distanceKm.toFixed(2)} km`}
           />
-          <StatCard icon="⏱" label="Duration" value={formatElapsed(elapsed)} />
-          <StatCard icon="🕐" label="Departed" value={formatTime(startTime)} />
+          <StatCard icon="clock.fill" label="Duration" value={formatElapsed(elapsed)} />
+          <StatCard icon="clock.fill" label="Departed" value={formatTime(startTime)} />
         </View>
 
         {/* Route map snapshot */}
@@ -259,10 +260,10 @@ export default function MileageTripSummaryScreen() {
               }}
             >
               <Text style={{ ...typography.captionM, color: "#fff" }}>
-                🟢 Start
+                Start
               </Text>
               <Text style={{ ...typography.captionM, color: "#fff" }}>
-                🔴 End
+                End
               </Text>
             </View>
           </View>
@@ -288,15 +289,15 @@ export default function MileageTripSummaryScreen() {
           >
             ITR12 compliance detail
           </Text>
-          <DetailRow icon="🏷" label="Purpose" value={purpose} />
-          <DetailRow icon="📋" label="SARS reference" value={itr12} />
-          <DetailRow icon="📅" label="Tax year" value="2024/25" />
+          <DetailRow icon="tag.fill" label="Purpose" value={purpose} />
+          <DetailRow icon="doc.text.fill" label="SARS reference" value={itr12} />
+          <DetailRow icon="calendar" label="Tax year" value="2024/25" />
           <DetailRow
-            icon="💰"
+            icon="dollarsign.circle.fill"
             label="SARS rate"
             value={`R${SARS_RATE_PER_KM}/km (deemed cost)`}
           />
-          {note ? <DetailRow icon="📝" label="Note" value={note} /> : null}
+          {note ? <DetailRow icon="pencil" label="Note" value={note} /> : null}
         </View>
 
         {/* Actions */}
@@ -364,7 +365,7 @@ export default function MileageTripSummaryScreen() {
           }}
         >
           <Text style={{ ...typography.bodyXS, color: colour.warning }}>
-            ⚠️ The deduction estimate uses the SARS 2024/25 deemed cost rate.
+            The deduction estimate uses the SARS 2024/25 deemed cost rate.
             Actual deductibility depends on your total business km vs private km
             ratio. Consult a tax professional for your ITR12 submission.
           </Text>
@@ -397,7 +398,7 @@ function StatCard({
         ...platformShadow,
       }}
     >
-      <Text style={{ fontSize: 18, marginBottom: 2 }}>{icon}</Text>
+      <IconSymbol name={icon as any} size={18} color={colour.primary} style={{ marginBottom: 2 } as any} />
       <Text
         style={{
           ...typography.bodyM,
@@ -440,9 +441,7 @@ function DetailRow({
         borderBottomColor: colour.borderLight,
       }}
     >
-      <Text style={{ fontSize: 14, marginRight: space.sm, marginTop: 2 }}>
-        {icon}
-      </Text>
+      <IconSymbol name={icon as any} size={14} color={colour.textSub} style={{ marginRight: space.sm, marginTop: 2 } as any} />
       <Text style={{ ...typography.bodyXS, color: colour.textSub, width: 110 }}>
         {label}
       </Text>

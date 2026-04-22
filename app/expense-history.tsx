@@ -1,5 +1,6 @@
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
+import { IconSymbol } from "@/components/ui/icon-symbol";
 import { expenseService } from "@/services/expenseService";
 import { useAuthStore } from "@/stores/authStore";
 import { useExpenseStore } from "@/stores/expenseStore";
@@ -117,16 +118,16 @@ export default function ExpenseHistoryScreen() {
   return (
     <SafeAreaView
       edges={["top"]}
-      style={{ flex: 1, backgroundColor: colour.primary }}
+      style={{ flex: 1, backgroundColor: colour.background }}
     >
-      <StatusBar barStyle="light-content" backgroundColor={colour.primary} />
+      <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
 
       <MXHeader
         title="Expense History"
         showBack
         right={
           <TouchableOpacity onPress={() => router.push("/filter-sort")}>
-            <Text style={{ fontSize: 20 }}>⚙</Text>
+            <IconSymbol name="gearshape.fill" size={20} color={colour.textSecondary} />
           </TouchableOpacity>
         }
       >
@@ -136,31 +137,27 @@ export default function ExpenseHistoryScreen() {
         >
           <View style={{ flex: 1 }}>
             <Text
-              style={{ ...typography.caption, color: "rgba(255,255,255,0.7)" }}
+              style={{ ...typography.caption, color: colour.textSub }}
             >
               Total Spent
             </Text>
-            <Text style={{ ...typography.amountM, color: colour.onPrimary }}>
+            <Text style={{ ...typography.amountM, color: colour.text }}>
               {fmt(total)}
             </Text>
           </View>
           <View style={{ flex: 1 }}>
-            <Text
-              style={{ ...typography.caption, color: "rgba(255,255,255,0.7)" }}
-            >
+            <Text style={{ ...typography.caption, color: colour.textSub }}>
               Claimable
             </Text>
-            <Text style={{ ...typography.amountM, color: colour.teal }}>
+            <Text style={{ ...typography.amountM, color: colour.success }}>
               {fmt(claimable)}
             </Text>
           </View>
           <View style={{ flex: 1 }}>
-            <Text
-              style={{ ...typography.caption, color: "rgba(255,255,255,0.7)" }}
-            >
+            <Text style={{ ...typography.caption, color: colour.textSub }}>
               Expenses
             </Text>
-            <Text style={{ ...typography.amountM, color: colour.onPrimary }}>
+            <Text style={{ ...typography.amountM, color: colour.text }}>
               {filtered.length}
             </Text>
           </View>
@@ -188,7 +185,7 @@ export default function ExpenseHistoryScreen() {
             height: 44,
           }}
         >
-          <Text style={{ fontSize: 16, marginRight: space.sm }}>🔍</Text>
+          <IconSymbol name="magnifyingglass" size={16} color={colour.textHint} style={{ marginRight: space.sm } as any} />
           <TextInput
             value={search}
             onChangeText={setSearch}
@@ -275,7 +272,7 @@ export default function ExpenseHistoryScreen() {
             }
             ListEmptyComponent={
               <View style={{ alignItems: "center", paddingTop: space["4xl"] }}>
-                <Text style={{ fontSize: 40, marginBottom: space.md }}>🔍</Text>
+                <IconSymbol name="magnifyingglass" size={40} color={colour.textHint} style={{ marginBottom: space.md } as any} />
                 <Text style={{ ...typography.h4, color: colour.textPrimary }}>
                   No expenses found
                 </Text>
@@ -317,7 +314,7 @@ export default function ExpenseHistoryScreen() {
                     marginRight: space.md,
                   }}
                 >
-                  <Text style={{ fontSize: 18 }}>💳</Text>
+                  <IconSymbol name="creditcard.fill" size={18} color={colour.primary} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text

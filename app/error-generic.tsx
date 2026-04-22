@@ -1,5 +1,6 @@
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { IconSymbol } from "@/components/ui/icon-symbol";
 import { colour, space } from "@/tokens";
 import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
@@ -250,16 +251,6 @@ export default function ErrorGenericScreen({
       >
         <ThemedText
           style={{
-            color: colour.primary200,
-            fontSize: 12,
-            fontWeight: "600",
-            letterSpacing: 1,
-          }}
-        >
-          MYEXPENSE
-        </ThemedText>
-        <ThemedText
-          style={{
             color: colour.onPrimary,
             fontSize: 22,
             fontWeight: "800",
@@ -395,7 +386,7 @@ export default function ErrorGenericScreen({
             alignItems: "flex-start",
           }}
         >
-          <Text style={{ fontSize: 18, marginRight: 10 }}>💾</Text>
+          <IconSymbol name="checkmark.circle.fill" size={18} color={C.success} style={{ marginRight: 10 } as any} />
           <Text
             style={{ flex: 1, fontSize: 12, color: C.textSub, lineHeight: 18 }}
           >

@@ -1,5 +1,6 @@
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
+import { IconSymbol } from "@/components/ui/icon-symbol";
 import { expenseService } from "@/services/expenseService";
 import { useAuthStore } from "@/stores/authStore";
 import { useExpenseStore } from "@/stores/expenseStore";
@@ -27,24 +28,24 @@ const CATEGORY_META: Record<
   string,
   { icon: string; color: string; itr12Code: string }
 > = {
-  "Travel & Transport":         { icon: "🚗", color: C.primary,    itr12Code: "S11(a)" },
-  "Home Office":                { icon: "🏠", color: C.teal,       itr12Code: "S11(a)" },
-  "Equipment & Tools":          { icon: "🔧", color: C.midNavy2,   itr12Code: "S11(e)" },
-  "Software & Subscriptions":   { icon: "💻", color: C.success,    itr12Code: "S11(a)" },
-  "Meals & Entertainment":      { icon: "🍽",  color: C.warning,    itr12Code: "S11(a)" },
-  "Professional Fees":          { icon: "📋", color: C.danger,     itr12Code: "S11(a)" },
-  "Telephone & Cell":           { icon: "📱", color: C.accent,     itr12Code: "S11(a)" },
-  "Marketing & Advertising":    { icon: "📣", color: C.warningMid, itr12Code: "S11(a)" },
-  "Bank Charges":               { icon: "🏦", color: C.navyDark,   itr12Code: "S11(a)" },
-  Insurance:                    { icon: "🛡️", color: C.successMid, itr12Code: "S11(a)" },
-  Rent:                         { icon: "🏢", color: C.info,       itr12Code: "S11(a)" },
-  "Repairs & Maintenance":      { icon: "🔨", color: C.warning,    itr12Code: "S11(a)" },
-  Education:                    { icon: "📚", color: C.accent,     itr12Code: "S11(a)" },
-  "Vehicle Expenses":           { icon: "🚙", color: C.navyDark,   itr12Code: "Page 24" },
-  "Personal / Non-deductible":  { icon: "👤", color: C.textDisabled, itr12Code: "N/A" },
+  "Travel & Transport":         { icon: "car.fill",             color: C.primary,    itr12Code: "S11(a)" },
+  "Home Office":                { icon: "house.fill",           color: C.teal,       itr12Code: "S11(a)" },
+  "Equipment & Tools":          { icon: "wrench.fill",          color: C.midNavy2,   itr12Code: "S11(e)" },
+  "Software & Subscriptions":   { icon: "gearshape.fill",       color: C.success,    itr12Code: "S11(a)" },
+  "Meals & Entertainment":      { icon: "fork.knife",           color: C.warning,    itr12Code: "S11(a)" },
+  "Professional Fees":          { icon: "doc.text.fill",        color: C.danger,     itr12Code: "S11(a)" },
+  "Telephone & Cell":           { icon: "phone.fill",           color: C.accent,     itr12Code: "S11(a)" },
+  "Marketing & Advertising":    { icon: "megaphone.fill",       color: C.warningMid, itr12Code: "S11(a)" },
+  "Bank Charges":               { icon: "building.columns.fill",color: C.navyDark,   itr12Code: "S11(a)" },
+  Insurance:                    { icon: "shield.fill",          color: C.successMid, itr12Code: "S11(a)" },
+  Rent:                         { icon: "building.2.fill",      color: C.info,       itr12Code: "S11(a)" },
+  "Repairs & Maintenance":      { icon: "wrench.fill",          color: C.warning,    itr12Code: "S11(a)" },
+  Education:                    { icon: "books.vertical.fill",  color: C.accent,     itr12Code: "S11(a)" },
+  "Vehicle Expenses":           { icon: "car.fill",             color: C.navyDark,   itr12Code: "Page 24" },
+  "Personal / Non-deductible":  { icon: "person.fill",          color: C.textDisabled, itr12Code: "N/A" },
 };
 
-const DEFAULT_META = { icon: "💼", color: C.primary, itr12Code: "S11(a)" };
+const DEFAULT_META = { icon: "briefcase.fill", color: C.primary, itr12Code: "S11(a)" };
 
 const fmt = (n: number) =>
   `R ${Number(n).toLocaleString("en-ZA", {
@@ -111,9 +112,9 @@ export default function CategoryBreakdownScreen() {
   return (
     <SafeAreaView
       edges={["top"]}
-      style={{ flex: 1, backgroundColor: C.primary }}
+      style={{ flex: 1, backgroundColor: C.background }}
     >
-      <StatusBar barStyle="light-content" backgroundColor={C.primary} />
+      <StatusBar barStyle="dark-content" backgroundColor={C.background} />
       <MXHeader
         title="Category breakdown"
         subtitle={`SARS ITR12 · Tax Year ${activeTaxYear}`}
@@ -122,12 +123,7 @@ export default function CategoryBreakdownScreen() {
       />
 
       <ScrollView
-        style={{
-          flex: 1,
-          backgroundColor: C.bgPage,
-          borderTopLeftRadius: radius.xl,
-          borderTopRightRadius: radius.xl,
-        }}
+        style={{ flex: 1, backgroundColor: C.background }}
         contentContainerStyle={{ paddingBottom: 30 }}
         showsVerticalScrollIndicator={false}
       >
@@ -258,9 +254,7 @@ export default function CategoryBreakdownScreen() {
                     marginBottom: space.sm,
                   }}
                 >
-                  <Text style={{ fontSize: 24, marginRight: space.sm }}>
-                    {selectedCat.icon}
-                  </Text>
+                  <IconSymbol name={selectedCat.icon as any} size={24} color={C.onPrimary} style={{ marginRight: space.sm } as any} />
                   <Text
                     style={{
                       ...typography.labelM,
@@ -271,11 +265,7 @@ export default function CategoryBreakdownScreen() {
                     {selectedCat.name}
                   </Text>
                   <TouchableOpacity onPress={() => setSelected(null)}>
-                    <Text
-                      style={{ color: "rgba(255,255,255,0.5)", fontSize: 16 }}
-                    >
-                      ✕
-                    </Text>
+                    <IconSymbol name="xmark" size={16} color="rgba(255,255,255,0.5)" />
                   </TouchableOpacity>
                 </View>
                 <View style={{ flexDirection: "row", gap: space.lg }}>
@@ -314,7 +304,7 @@ export default function CategoryBreakdownScreen() {
             {/* ── Category list ─────────────────────────────────────────────── */}
             {filtered.length === 0 ? (
               <View style={{ alignItems: "center", paddingTop: space["4xl"] }}>
-                <Text style={{ fontSize: 40, marginBottom: space.md }}>📊</Text>
+                <IconSymbol name="chart.bar.fill" size={40} color={C.textHint} style={{ marginBottom: space.md } as any} />
                 <Text style={{ ...typography.h4, color: C.textPrimary }}>
                   No expenses yet
                 </Text>
@@ -465,7 +455,7 @@ export default function CategoryBreakdownScreen() {
                 borderColor: C.border,
               }}
             >
-              <Text style={{ fontSize: 18, marginRight: space.sm }}>📖</Text>
+              <IconSymbol name="books.vertical.fill" size={18} color={C.primary} style={{ marginRight: space.sm } as any} />
               <Text
                 style={{
                   ...typography.labelM,

@@ -1,4 +1,5 @@
 import { MXBackHeader } from "@/components/MXBackHeader";
+import { IconSymbol } from "@/components/ui/icon-symbol";
 import {
     authenticateWithBiometrics,
     clearBiometricSession,
@@ -82,7 +83,7 @@ function ToggleRow({
           marginRight: space.md,
         }}
       >
-        <Text style={{ fontSize: 20 }}>{icon}</Text>
+        <IconSymbol name={icon as any} size={20} color={colour.primary} />
       </View>
       <View style={{ flex: 1, marginRight: space.sm }}>
         <Text style={{ ...typography.labelM, color: colour.text }}>
@@ -144,7 +145,7 @@ function ActionRow({
           marginRight: space.md,
         }}
       >
-        <Text style={{ fontSize: 20 }}>{icon}</Text>
+        <IconSymbol name={icon as any} size={20} color={colour.primary} />
       </View>
       <View style={{ flex: 1 }}>
         <Text
@@ -276,9 +277,9 @@ export default function SecuritySettingsScreen() {
   return (
     <SafeAreaView
       edges={["top"]}
-      style={{ flex: 1, backgroundColor: colour.primary }}
+      style={{ flex: 1, backgroundColor: colour.background }}
     >
-      <StatusBar barStyle="light-content" backgroundColor={colour.primary} />
+      <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
       <MXBackHeader title="Security" />
 
       <ScrollView
@@ -301,7 +302,7 @@ export default function SecuritySettingsScreen() {
           }}
         >
           <ToggleRow
-            icon="🪪"
+            icon="person.fill"
             label={biometricLabel}
             sub={
               biometricAvailable
@@ -324,7 +325,7 @@ export default function SecuritySettingsScreen() {
           }}
         >
           <ActionRow
-            icon="🔑"
+            icon="key.fill"
             label="Change password"
             sub="Send a password reset link to your email"
             onPress={handleChangePassword}
@@ -362,7 +363,7 @@ export default function SecuritySettingsScreen() {
                 marginRight: space.md,
               }}
             >
-              <Text style={{ fontSize: 20 }}>📧</Text>
+              <IconSymbol name="envelope.fill" size={20} color={colour.primary} />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={{ ...typography.labelM, color: colour.text }}>
@@ -382,7 +383,7 @@ export default function SecuritySettingsScreen() {
           </View>
 
           <ActionRow
-            icon="🚪"
+            icon="arrow.right.square.fill"
             label="Sign out of all devices"
             sub="Revoke all active sessions globally"
             onPress={handleSignOutAllDevices}

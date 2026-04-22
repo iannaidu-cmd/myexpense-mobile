@@ -1,4 +1,5 @@
 import { MXTabBar } from "@/components/MXTabBar";
+import { IconSymbol } from "@/components/ui/icon-symbol";
 import { colour } from "@/tokens";
 import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
@@ -157,7 +158,7 @@ export default function ITR12PDFReportScreen() {
               alignItems: "center",
             }}
           >
-            <Text style={{ fontSize: 24, marginRight: 10 }}>📄</Text>
+            <IconSymbol name="doc.text.fill" size={24} color={colour.white} style={{ marginRight: 10 } as any} />
             <View style={{ flex: 1 }}>
               <Text
                 style={{ color: C.white, fontSize: 14, fontWeight: "700" }}
@@ -210,7 +211,7 @@ export default function ITR12PDFReportScreen() {
                     SARS ITR12 Deduction Report
                   </Text>
                 </View>
-                <Text style={{ fontSize: 22 }}>🇿🇦</Text>
+                <Text style={{ fontSize: 12, fontWeight: "700", color: colour.textSub }}>ZA</Text>
               </View>
 
               <View

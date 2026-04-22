@@ -7,6 +7,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { colour } from '@/tokens';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -46,7 +47,7 @@ export default function SplashScreen() {
         flex: 1,
         width: SCREEN_WIDTH,
         height: SCREEN_HEIGHT,
-        backgroundColor: '#FFFFFF',
+        backgroundColor: colour.background,
         alignItems: 'center',
         justifyContent: 'center',
       }}
@@ -54,7 +55,7 @@ export default function SplashScreen() {
     >
       <StatusBar
         barStyle="dark-content"
-        backgroundColor="#FFFFFF"
+        backgroundColor={colour.background}
         translucent={false}
       />
       <Animated.View

@@ -1,4 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { IconSymbol } from "@/components/ui/icon-symbol";
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from "@/components/maps";
@@ -374,10 +375,10 @@ export default function MileageTrackerScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colour.background }}>
-      <StatusBar barStyle="light-content" backgroundColor={colour.primary} />
+      <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
 
       {/* Primary-blue header area */}
-      <SafeAreaView edges={["top"]} style={{ backgroundColor: colour.primary }}>
+      <SafeAreaView edges={["top"]} style={{ backgroundColor: colour.background }}>
         <MXHeader
           title="Mileage Tracker"
           showBack
@@ -385,13 +386,13 @@ export default function MileageTrackerScreen() {
             <TouchableOpacity
               onPress={() => router.push("/mileage-history")}
               style={{
-                backgroundColor: "rgba(255,255,255,0.18)",
+                backgroundColor: colour.primary50,
                 borderRadius: radius.pill,
                 paddingHorizontal: space.md,
                 paddingVertical: space.xs,
               }}
             >
-              <Text style={{ ...typography.actionS, color: colour.onPrimary }}>
+              <Text style={{ ...typography.actionS, color: colour.accentDeep }}>
                 History
               </Text>
             </TouchableOpacity>
@@ -537,16 +538,16 @@ export default function MileageTrackerScreen() {
               gap: space.sm,
             }}
           >
-            <StatPill label="Duration" value={elapsedStr} icon="⏱" />
+            <StatPill label="Duration" value={elapsedStr} icon="clock.fill" />
             <StatPill
               label="SARS Rate"
               value={`R${SARS_RATE_PER_KM}/km`}
-              icon="📋"
+              icon="tag.fill"
             />
             <StatPill
               label="Est. Deduction"
               value={`R${deductionEstimate.toFixed(2)}`}
-              icon="💰"
+              icon="dollarsign.circle"
               highlight
             />
           </View>
@@ -578,7 +579,7 @@ export default function MileageTrackerScreen() {
                   padding: space.sm,
                 }}
               >
-                <Text style={{ fontSize: 18 }}>🚗</Text>
+                <IconSymbol name="car.fill" size={18} color={colour.primary} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={{ ...typography.bodyM, color: colour.text }}>
@@ -603,15 +604,12 @@ export default function MileageTrackerScreen() {
               </View>
             </View>
             {tripNote ? (
-              <Text
-                style={{
-                  ...typography.bodyXS,
-                  color: colour.textSub,
-                  marginTop: space.sm,
-                }}
-              >
-                📝 {tripNote}
-              </Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: space.sm }}>
+                <IconSymbol name="pencil" size={11} color={colour.textSub} />
+                <Text style={{ ...typography.bodyXS, color: colour.textSub, flex: 1 }}>
+                  {tripNote}
+                </Text>
+              </View>
             ) : null}
           </View>
         )}
@@ -623,7 +621,7 @@ export default function MileageTrackerScreen() {
               <TouchableOpacity
                 onPress={handleStart}
                 style={{
-                  backgroundColor: colour.success,
+                  backgroundColor: colour.primary,
                   borderRadius: radius.pill,
                   paddingVertical: space.md,
                   alignItems: "center",
@@ -633,10 +631,8 @@ export default function MileageTrackerScreen() {
                 }}
                 activeOpacity={0.85}
               >
-                <Text style={{ fontSize: 20 }}>▶</Text>
-                <Text
-                  style={{ ...typography.actionL, color: colour.onPrimary }}
-                >
+                <IconSymbol name="play.fill" size={20} color={colour.onPrimary} />
+                <Text style={{ ...typography.actionL, color: colour.onPrimary }}>
                   Start Trip
                 </Text>
               </TouchableOpacity>
@@ -652,7 +648,7 @@ export default function MileageTrackerScreen() {
                   gap: space.sm,
                 }}
               >
-                <Text style={{ fontSize: 16 }}>ℹ️</Text>
+                <IconSymbol name="info.circle" size={16} color={colour.primary} />
                 <Text
                   style={{
                     ...typography.bodyXS,
@@ -682,10 +678,8 @@ export default function MileageTrackerScreen() {
                 }}
                 activeOpacity={0.85}
               >
-                <Text style={{ fontSize: 18 }}>⏸</Text>
-                <Text
-                  style={{ ...typography.actionL, color: colour.onPrimary }}
-                >
+                <IconSymbol name="pause.fill" size={18} color={colour.onPrimary} />
+                <Text style={{ ...typography.actionL, color: colour.onPrimary }}>
                   Pause trip
                 </Text>
               </TouchableOpacity>
@@ -709,10 +703,8 @@ export default function MileageTrackerScreen() {
                   <ActivityIndicator color={colour.danger} />
                 ) : (
                   <>
-                    <Text style={{ fontSize: 18 }}>⏹</Text>
-                    <Text
-                      style={{ ...typography.actionL, color: colour.danger }}
-                    >
+                    <IconSymbol name="stop.fill" size={18} color={colour.danger} />
+                    <Text style={{ ...typography.actionL, color: colour.danger }}>
                       End & save trip
                     </Text>
                   </>
@@ -736,10 +728,8 @@ export default function MileageTrackerScreen() {
                 }}
                 activeOpacity={0.85}
               >
-                <Text style={{ fontSize: 18 }}>▶</Text>
-                <Text
-                  style={{ ...typography.actionL, color: colour.onPrimary }}
-                >
+                <IconSymbol name="play.fill" size={18} color={colour.onPrimary} />
+                <Text style={{ ...typography.actionL, color: colour.onPrimary }}>
                   Resume Trip
                 </Text>
               </TouchableOpacity>
@@ -763,10 +753,8 @@ export default function MileageTrackerScreen() {
                   <ActivityIndicator color={colour.danger} />
                 ) : (
                   <>
-                    <Text style={{ fontSize: 18 }}>⏹</Text>
-                    <Text
-                      style={{ ...typography.actionL, color: colour.danger }}
-                    >
+                    <IconSymbol name="stop.fill" size={18} color={colour.danger} />
+                    <Text style={{ ...typography.actionL, color: colour.danger }}>
                       End & save trip
                     </Text>
                   </>
@@ -912,7 +900,7 @@ export default function MileageTrackerScreen() {
             <TouchableOpacity
               onPress={confirmStart}
               style={{
-                backgroundColor: colour.success,
+                backgroundColor: colour.primary,
                 borderRadius: radius.pill,
                 paddingVertical: space.md,
                 alignItems: "center",
@@ -923,7 +911,7 @@ export default function MileageTrackerScreen() {
               }}
               activeOpacity={0.85}
             >
-              <Text style={{ fontSize: 18 }}>▶</Text>
+              <IconSymbol name="play.fill" size={18} color={colour.onPrimary} />
               <Text style={{ ...typography.actionL, color: colour.onPrimary }}>
                 Start Tracking
               </Text>
@@ -1030,7 +1018,7 @@ function StatPill({
 }: {
   label: string;
   value: string;
-  icon: string;
+  icon: "clock.fill" | "tag.fill" | "dollarsign.circle";
   highlight?: boolean;
 }) {
   return (
@@ -1043,7 +1031,7 @@ function StatPill({
         alignItems: "center",
       }}
     >
-      <Text style={{ fontSize: 14, marginBottom: 2 }}>{icon}</Text>
+      <IconSymbol name={icon} size={14} color={highlight ? colour.primary : colour.textSub} style={{ marginBottom: 2 } as any} />
       <Text
         style={{
           ...typography.bodyXS,

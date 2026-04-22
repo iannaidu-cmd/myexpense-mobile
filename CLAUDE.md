@@ -77,7 +77,7 @@ Centralised validation for all user inputs. Max expense amount is 9,999,999.99 (
 
 ## Design system
 
-Design tokens live in `/tokens` (exported as `colour`). Material Design palette in `/constants/design-system.ts`. Primary blue: `#1565C0`. Always use token/constant references — no hard-coded hex values in components.
+Design tokens live in `/tokens` (exported as `colour`). Material Design palette in `/constants/design-system.ts`. Primary periwinkle: `#6B6AD8`. Always use token/constant references — no hard-coded hex values in components.
 
 Themed components: `ThemedText`, `ThemedView`. Custom MX component library: `MXButton`, `MXInput`, `MXCard`, `MXHeader`, `MXBadge`, `MXScreenHeader`, `MXShell`, `MXTabBar`. Use these over bare RN primitives.
 

@@ -1,3 +1,4 @@
+import { IconSymbol } from "@/components/ui/icon-symbol";
 import { MXHeader } from "@/components/MXHeader";
 import { useAuthStore } from "@/stores/authStore";
 import { colour, radius, space, typography } from "@/tokens";
@@ -65,22 +66,14 @@ export default function ScanTabScreen() {
   return (
     <SafeAreaView
       edges={["top"]}
-      style={{ flex: 1, backgroundColor: colour.primary }}
+      style={{ flex: 1, backgroundColor: colour.background }}
     >
-      <StatusBar barStyle="light-content" backgroundColor={colour.primary} />
+      <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
 
-      <MXHeader
-        title="Scan and upload"
-        subtitle="OCR-powered receipt capture"
-      />
+      <MXHeader title="Scan receipt" />
 
       <ScrollView
-        style={{
-          flex: 1,
-          backgroundColor: colour.bgPage,
-          borderTopLeftRadius: radius.xl,
-          borderTopRightRadius: radius.xl,
-        }}
+        style={{ flex: 1, backgroundColor: colour.background }}
         contentContainerStyle={{ paddingBottom: space["5xl"] }}
         showsVerticalScrollIndicator={false}
       >
@@ -138,13 +131,13 @@ export default function ScanTabScreen() {
                   width: 52,
                   height: 52,
                   borderRadius: radius.md,
-                  backgroundColor: colour.primaryLight,
+                  backgroundColor: colour.primary50,
                   alignItems: "center",
                   justifyContent: "center",
                   marginRight: space.lg,
                 }}
               >
-                <Text style={{ fontSize: 26 }}>🖼️</Text>
+                <IconSymbol name="photo.fill" size={26} color={colour.accentDeep} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={{ ...typography.h4, color: colour.textPrimary }}>
@@ -180,13 +173,13 @@ export default function ScanTabScreen() {
                   width: 52,
                   height: 52,
                   borderRadius: radius.md,
-                  backgroundColor: colour.tealLight,
+                  backgroundColor: colour.primary50,
                   alignItems: "center",
                   justifyContent: "center",
                   marginRight: space.lg,
                 }}
               >
-                <Text style={{ fontSize: 26 }}>✏️</Text>
+                <IconSymbol name="pencil" size={26} color={colour.accentDeep} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={{ ...typography.h4, color: colour.textPrimary }}>
@@ -225,7 +218,7 @@ export default function ScanTabScreen() {
                   marginBottom: space.lg,
                 }}
               >
-                <Text style={{ fontSize: 40 }}>📸</Text>
+                <IconSymbol name="camera.fill" size={40} color={colour.white} />
               </View>
               <Text
                 style={{
@@ -301,7 +294,9 @@ export default function ScanTabScreen() {
               <View
                 style={{ alignItems: "center", paddingVertical: space["4xl"] }}
               >
-                <Text style={{ fontSize: 40, marginBottom: space.md }}>🧾</Text>
+                <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: colour.primary50, alignItems: "center", justifyContent: "center", marginBottom: space.md }}>
+                  <IconSymbol name="doc.text.fill" size={28} color={colour.accentDeep} />
+                </View>
                 <Text style={{ ...typography.h4, color: colour.textPrimary }}>
                   No receipts yet
                 </Text>
@@ -345,13 +340,13 @@ export default function ScanTabScreen() {
                           width: 44,
                           height: 44,
                           borderRadius: radius.sm,
-                          backgroundColor: colour.primaryLight,
+                          backgroundColor: colour.primary50,
                           alignItems: "center",
                           justifyContent: "center",
                           marginRight: space.md,
                         }}
                       >
-                        <Text style={{ fontSize: 20 }}>🧾</Text>
+                        <IconSymbol name="doc.text.fill" size={20} color={colour.accentDeep} />
                       </View>
                       <View style={{ flex: 1 }}>
                         <Text

@@ -130,11 +130,11 @@ export function BudgetVsActualScreen({ navigation }: BudgetVsActualScreenProps) 
           }}
         >
           <TouchableOpacity onPress={() => navigation?.goBack()}>
-            <Text style={{ color: colour.teal, fontSize: 13, marginBottom: 10 }}>
+            <Text style={{ color: colour.accent2, fontSize: 13, marginBottom: 10 }}>
               ‹ Reports
             </Text>
           </TouchableOpacity>
-          <Text style={{ color: colour.teal, fontSize: 12, fontWeight: "600", letterSpacing: 1 }}>
+          <Text style={{ color: colour.accent2, fontSize: 12, fontWeight: "600", letterSpacing: 1 }}>
             BUDGET VS ACTUAL
           </Text>
           <Text style={{ color: colour.white, fontSize: 22, fontWeight: "800", marginTop: 4 }}>

@@ -1,4 +1,5 @@
 import { MXBackHeader } from "@/components/MXBackHeader";
+import { IconSymbol } from "@/components/ui/icon-symbol";
 import { colour, radius, space, typography } from "@/tokens";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
@@ -175,7 +176,7 @@ function ContactRow({
           marginRight: space.md,
         }}
       >
-        <Text style={{ fontSize: 20 }}>{icon}</Text>
+        <IconSymbol name={icon as any} size={20} color={colour.primary} />
       </View>
       <View style={{ flex: 1 }}>
         <Text style={{ ...typography.labelM, color: colour.text }}>
@@ -219,9 +220,9 @@ export default function HelpSupportScreen() {
   return (
     <SafeAreaView
       edges={["top"]}
-      style={{ flex: 1, backgroundColor: colour.primary }}
+      style={{ flex: 1, backgroundColor: colour.background }}
     >
-      <StatusBar barStyle="light-content" backgroundColor={colour.primary} />
+      <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
       <MXBackHeader title="Help & Support" />
 
       <ScrollView
@@ -244,13 +245,13 @@ export default function HelpSupportScreen() {
           }}
         >
           <ContactRow
-            icon="✉️"
+            icon="envelope.fill"
             label="Email support"
             sub={SUPPORT_EMAIL}
             onPress={handleEmail}
           />
           <ContactRow
-            icon="🌐"
+            icon="globe"
             label="Help centre"
             sub="Browse guides and tutorials online"
             onPress={handleDocs}
@@ -287,13 +288,13 @@ export default function HelpSupportScreen() {
           }}
         >
           <ContactRow
-            icon="🛡️"
+            icon="shield.fill"
             label="Privacy policy"
             sub="How we handle your data"
             onPress={handlePrivacy}
           />
           <ContactRow
-            icon="📋"
+            icon="doc.text.fill"
             label="Terms of service"
             sub="App terms & conditions"
             onPress={handleTerms}
