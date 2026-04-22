@@ -19,7 +19,7 @@ import { colour } from '@/tokens';
 //   Accent:     colour.accent   (smile arc — always visible)
 // ─────────────────────────────────────────────────────────────────────────────
 
-const TEAL = colour.accent;
+const TEAL = colour.brandTeal;
 
 // Artwork viewBox: 1140 × 290 (~4:1)
 const VB_W = 1140;

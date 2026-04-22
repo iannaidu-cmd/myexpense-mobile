@@ -28,7 +28,7 @@ function MXLogoNative({ size, barColour, onPress, style }: {
 }) {
   // Lazy import so web bundler never tries to resolve react-native-svg
   const { default: Svg, Rect, Path } = require('react-native-svg');
-  const smileColour = colour.primary;
+  const smileColour = colour.brandTeal;
 
   const logo = (
     <Svg width={size} height={size} viewBox="0 0 40 40">
@@ -62,7 +62,7 @@ function MXLogoWeb({ size, barColour, onPress, style }: {
   onPress?: () => void;
   style?: ViewStyle;
 }) {
-  const smileColour = colour.primary;
+  const smileColour = colour.brandTeal;
 
   // Use dangerouslySetInnerHTML to render a proper inline SVG on web
   // This is transparent and works on any background colour
@@ -95,7 +95,7 @@ export default function MXLogo({
   onPress,
   style,
 }: MXLogoProps) {
-  const barColour = variant === 'light' ? colour.white : colour.text;
+  const barColour = variant === 'light' ? colour.white : colour.noir;
 
   if (Platform.OS === 'web') {
     return (

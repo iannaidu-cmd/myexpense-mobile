@@ -75,6 +75,9 @@ export const colour = {
   dangerLight: "#FFE2E5", // alias for dangerBg
   warningLight: "#FCEAD9", // alias for warningBg
 
+  // ── Brand Teal (logo smile arc) ───────────────────────────────────────────
+  brandTeal: "#4DC9C4", // teal/cyan — logo smile arc
+
   // ── Navigation bar ────────────────────────────────────────────────────────
   navBg: "#F2EDE3", // tab bar background (matches page bg)
   navInactive: "#9A97B0", // inactive tab icon/label
