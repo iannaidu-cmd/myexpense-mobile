@@ -1,6 +1,7 @@
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/stores/authStore";
 import { colour, radius, space, typography } from "@/tokens";
 import { ACTIVE_TAX_YEAR } from "@/types/database";
@@ -77,7 +78,6 @@ export default function MileageHistoryScreen() {
     if (!user) return;
     setLoading(true);
     try {
-      const { supabase } = await import("@/lib/supabase");
       const { data, error } = await supabase
         .from("mileage_trips")
         .select("*")
@@ -121,7 +121,6 @@ export default function MileageHistoryScreen() {
           onPress: async () => {
             setDeleting(id);
             try {
-              const { supabase } = await import("@/lib/supabase");
               await supabase.from("mileage_trips").delete().eq("id", id);
               await loadTrips();
             } catch (e: any) {
