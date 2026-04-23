@@ -75,13 +75,7 @@ export default function ITR12ExportPreviewScreen() {
         incomeService.getTotals(user.id),
       ]);
       setProfile(prof);
-      setBreakdown(
-        Object.fromEntries(
-          Object.entries(byCategory).filter(
-            ([k]) => k !== "Personal / Other",
-          ),
-        ),
-      );
+      setBreakdown(byCategory);
       setTotalDeductions(totals.totalDeductions);
       setTotalIncome(incomeTotals.totalIncome);
     } catch (e) {
