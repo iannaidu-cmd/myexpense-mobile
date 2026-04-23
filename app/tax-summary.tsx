@@ -109,6 +109,17 @@ const fmt = (n: number) =>
 
 const fmtPct = (n: number) => `${Math.round(n)}%`;
 
+// SARS 2024/25 individual tax brackets (income year ending 28 Feb 2025)
+function getMarginalRate(income: number): number {
+  if (income <= 237100) return 0.18;
+  if (income <= 370500) return 0.26;
+  if (income <= 512800) return 0.31;
+  if (income <= 673000) return 0.36;
+  if (income <= 857900) return 0.39;
+  if (income <= 1817000) return 0.41;
+  return 0.45;
+}
+
 export default function TaxSummaryScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
@@ -153,7 +164,8 @@ export default function TaxSummaryScreen() {
     }, [loadData]),
   );
 
-  const estTaxSaving = Math.round(totalDeductions * 0.31);
+  const marginalRate = getMarginalRate(totalIncome);
+  const estTaxSaving = Math.round(totalDeductions * marginalRate);
   const deductionRate =
     totalExpenses > 0 ? Math.round((totalDeductions / totalExpenses) * 100) : 0;
 
@@ -232,7 +244,7 @@ export default function TaxSummaryScreen() {
                 <StatCard
                   label="Est. Tax Saving"
                   value={fmt(estTaxSaving)}
-                  sub="At 31% marginal rate"
+                  sub={`At ${Math.round(marginalRate * 100)}% marginal rate`}
                   color={colour.accent}
                 />
                 <StatCard

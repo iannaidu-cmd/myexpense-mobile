@@ -1,4 +1,5 @@
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { supabase } from "@/lib/supabase";
 import { receiptState } from "@/lib/receiptState";
 import { useAuthStore } from "@/stores/authStore";
 import { colour } from "@/tokens";
@@ -107,14 +108,22 @@ export default function ScanReceiptCameraScreen() {
     if (!user) return;
     setUploading(true);
     try {
-      const storagePath = `${user.id}/receipts/${fileName}`;
+      // Ensure the session is loaded and tokens are fresh before any Supabase call.
+      // On iOS the session is restored from AsyncStorage asynchronously; calling
+      // getSession() here guarantees the JWT is attached to subsequent requests.
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !session) {
+        throw new Error("Your session has expired. Please sign in again.");
+      }
+
+      const userId = session.user.id;
+      const storagePath = `${userId}/receipts/${fileName}`;
 
       // Upload full-quality image to Supabase storage
       const response = await fetch(uri);
       const arrayBuffer = await response.arrayBuffer();
       const uint8Array = new Uint8Array(arrayBuffer);
 
-      const { supabase } = await import("@/lib/supabase");
       const { error: uploadError } = await supabase.storage
         .from("receipts")
         .upload(storagePath, uint8Array, {
@@ -122,15 +131,18 @@ export default function ScanReceiptCameraScreen() {
           contentType: "image/jpeg",
         });
 
-      if (uploadError) throw new Error(uploadError.message);
+      if (uploadError) throw new Error(`Storage upload failed: ${uploadError.message}`);
 
-      // Insert receipt record
-      await supabase.from("receipts").insert({
-        user_id: user.id,
+      // Insert receipt record (non-fatal if it fails — upload succeeded)
+      const { error: insertError } = await supabase.from("receipts").insert({
+        user_id: userId,
         storage_path: storagePath,
         file_name: fileName,
         ocr_status: "pending",
       });
+      if (insertError) {
+        console.warn("Receipt record insert failed (non-fatal):", insertError.message);
+      }
 
       // Resize image and convert to base64 for OCR
       const base64 = await toBase64(uri);

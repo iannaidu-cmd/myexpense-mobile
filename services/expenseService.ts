@@ -6,6 +6,12 @@ import type { Expense, NewExpense, UpdateExpense } from "@/types/database";
 // Used by expenseStore — do not call directly from screens.
 // ─────────────────────────────────────────────────────────────────────────────
 
+// SARS partial-deductibility caps: only this fraction of the category amount counts.
+// S23(o) disallows 50% of meals & entertainment.
+const PARTIAL_CAPS: Record<string, number> = {
+  "Meals & Entertainment": 0.5,
+};
+
 export interface ExpenseTotals {
   totalExpenses: number;
   totalDeductions: number;
@@ -70,7 +76,7 @@ export const expenseService = {
   ): Promise<ExpenseTotals> => {
     const { data, error } = await supabase
       .from("expenses")
-      .select("amount, is_deductible")
+      .select("amount, is_deductible, category")
       .eq("user_id", userId)
       .eq("tax_year", taxYear);
 
@@ -81,7 +87,10 @@ export const expenseService = {
       totalExpenses: expenses.reduce((sum, e) => sum + Number(e.amount), 0),
       totalDeductions: expenses
         .filter((e) => e.is_deductible)
-        .reduce((sum, e) => sum + Number(e.amount), 0),
+        .reduce((sum, e) => {
+          const cap = PARTIAL_CAPS[e.category] ?? 1;
+          return sum + Number(e.amount) * cap;
+        }, 0),
       receiptCount: expenses.length,
     };
   },

@@ -1,3 +1,4 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -6,12 +7,13 @@ import { useAuthStore } from "@/stores/authStore";
 import { useExpenseStore } from "@/stores/expenseStore";
 import { colour, radius, space, typography } from "@/tokens";
 import { useFocusEffect, useRouter } from "expo-router";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   ScrollView,
   StatusBar,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -26,13 +28,13 @@ const C = colour;
 // updatable from one place.
 const CATEGORY_META: Record<
   string,
-  { icon: string; color: string; itr12Code: string }
+  { icon: string; color: string; itr12Code: string; deductiblePct?: number }
 > = {
   "Travel & Transport":         { icon: "car.fill",             color: C.primary,    itr12Code: "S11(a)" },
   "Home Office":                { icon: "house.fill",           color: C.teal,       itr12Code: "S11(a)" },
   "Equipment & Tools":          { icon: "wrench.fill",          color: C.midNavy2,   itr12Code: "S11(e)" },
   "Software & Subscriptions":   { icon: "gearshape.fill",       color: C.success,    itr12Code: "S11(a)" },
-  "Meals & Entertainment":      { icon: "fork.knife",           color: C.warning,    itr12Code: "S11(a)" },
+  "Meals & Entertainment":      { icon: "fork.knife",           color: C.warning,    itr12Code: "S11(a)", deductiblePct: 0.5 },
   "Professional Fees":          { icon: "doc.text.fill",        color: C.danger,     itr12Code: "S11(a)" },
   "Telephone & Cell":           { icon: "phone.fill",           color: C.accent,     itr12Code: "S11(a)" },
   "Marketing & Advertising":    { icon: "megaphone.fill",       color: C.warningMid, itr12Code: "S11(a)" },
@@ -64,6 +66,40 @@ export default function CategoryBreakdownScreen() {
   const [totalDeductions, setTotalDeductions] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>("All");
+
+  // Vehicle logbook
+  const [businessKm, setBusinessKm] = useState(0);
+  const [totalKmStr, setTotalKmStr] = useState('');
+
+  // Home office
+  const [officeSqmStr, setOfficeSqmStr] = useState('');
+  const [propertySqmStr, setPropertySqmStr] = useState('');
+
+  // Load persisted values from AsyncStorage on mount
+  useEffect(() => {
+    AsyncStorage.multiGet(['@mx_total_km', '@mx_office_sqm', '@mx_property_sqm']).then(pairs => {
+      setTotalKmStr(pairs[0][1] ?? '');
+      setOfficeSqmStr(pairs[1][1] ?? '');
+      setPropertySqmStr(pairs[2][1] ?? '');
+    });
+  }, []);
+
+  // Fetch GPS business km when Vehicle Expenses is selected
+  useEffect(() => {
+    if (selected !== 'Vehicle Expenses' || !user) return;
+    (async () => {
+      try {
+        const { supabase } = await import('@/lib/supabase');
+        const { data } = await supabase
+          .from('mileage_trips')
+          .select('distance_km')
+          .eq('user_id', user.id)
+          .eq('tax_year', activeTaxYear);
+        const km = (data ?? []).reduce((s: number, t: any) => s + Number(t.distance_km), 0);
+        setBusinessKm(km);
+      } catch { /* non-fatal */ }
+    })();
+  }, [selected, user, activeTaxYear]);
 
   const loadData = useCallback(async () => {
     if (!user) return;
@@ -301,6 +337,121 @@ export default function CategoryBreakdownScreen() {
               </View>
             )}
 
+            {/* ── Meals & Entertainment 50% cap notice ─────────────────────── */}
+            {selected === 'Meals & Entertainment' && selectedCat && (
+              <View style={{ marginHorizontal: space.md, backgroundColor: C.warningBg, borderRadius: radius.md, padding: space.md, marginBottom: space.md, borderWidth: 1, borderColor: C.warningMid }}>
+                <Text style={{ ...typography.labelS, color: C.warning, marginBottom: space.xs }}>
+                  SARS S23(o) — 50% cap applies
+                </Text>
+                <Text style={{ ...typography.micro, color: C.textSecondary, marginBottom: space.sm }}>
+                  Only 50% of meals & entertainment is deductible. SARS disallows the remainder under S23(o).
+                </Text>
+                <View style={{ flexDirection: 'row', gap: space.xl }}>
+                  <View>
+                    <Text style={{ ...typography.micro, color: C.textHint }}>Total spend</Text>
+                    <Text style={{ ...typography.labelM, color: C.textPrimary }}>{fmt(selectedCat.amount)}</Text>
+                  </View>
+                  <View>
+                    <Text style={{ ...typography.micro, color: C.textHint }}>Deductible (50%)</Text>
+                    <Text style={{ ...typography.labelM, color: C.success }}>{fmt(selectedCat.amount * 0.5)}</Text>
+                  </View>
+                </View>
+              </View>
+            )}
+
+            {/* ── Vehicle Expenses logbook panel ───────────────────────────── */}
+            {selected === 'Vehicle Expenses' && selectedCat && (
+              <View style={{ marginHorizontal: space.md, backgroundColor: C.white, borderRadius: radius.md, padding: space.md, marginBottom: space.md, borderWidth: 1, borderColor: C.border }}>
+                <Text style={{ ...typography.labelM, color: C.textPrimary, marginBottom: space.xs }}>
+                  Logbook deduction calculator
+                </Text>
+                <Text style={{ ...typography.micro, color: C.textSecondary, marginBottom: space.sm }}>
+                  SARS: (business km ÷ total km) × vehicle costs
+                </Text>
+                <View style={{ flexDirection: 'row', gap: space.md, marginBottom: space.sm }}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ ...typography.micro, color: C.textHint, marginBottom: 4 }}>Business km (GPS tracked)</Text>
+                    <Text style={{ ...typography.labelM, color: C.primary }}>{businessKm.toFixed(1)} km</Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ ...typography.micro, color: C.textHint, marginBottom: 4 }}>Total km (annual odometer)</Text>
+                    <TextInput
+                      value={totalKmStr}
+                      onChangeText={setTotalKmStr}
+                      onBlur={() => AsyncStorage.setItem('@mx_total_km', totalKmStr)}
+                      keyboardType="numeric"
+                      placeholder="e.g. 15000"
+                      placeholderTextColor={C.textHint}
+                      style={{ borderWidth: 1, borderColor: C.border, borderRadius: radius.sm, paddingHorizontal: space.sm, paddingVertical: 6, fontSize: 14, color: C.textPrimary }}
+                    />
+                  </View>
+                </View>
+                {(() => {
+                  const totalKm = parseFloat(totalKmStr);
+                  if (!totalKmStr || isNaN(totalKm) || totalKm <= 0 || businessKm <= 0) return null;
+                  const ratio = Math.min(businessKm / totalKm, 1);
+                  return (
+                    <View style={{ backgroundColor: C.successBg, borderRadius: radius.sm, padding: space.sm }}>
+                      <Text style={{ ...typography.micro, color: C.success }}>
+                        Business use: {(ratio * 100).toFixed(1)}% → Deductible: {fmt(selectedCat.amount * ratio)}
+                      </Text>
+                    </View>
+                  );
+                })()}
+              </View>
+            )}
+
+            {/* ── Home Office m² panel ─────────────────────────────────────── */}
+            {selected === 'Home Office' && selectedCat && (
+              <View style={{ marginHorizontal: space.md, backgroundColor: C.white, borderRadius: radius.md, padding: space.md, marginBottom: space.md, borderWidth: 1, borderColor: C.border }}>
+                <Text style={{ ...typography.labelM, color: C.textPrimary, marginBottom: space.xs }}>
+                  Home office deduction calculator
+                </Text>
+                <Text style={{ ...typography.micro, color: C.textSecondary, marginBottom: space.sm }}>
+                  SARS S11(a): (office m² ÷ total property m²) × home costs
+                </Text>
+                <View style={{ flexDirection: 'row', gap: space.md, marginBottom: space.sm }}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ ...typography.micro, color: C.textHint, marginBottom: 4 }}>Office area (m²)</Text>
+                    <TextInput
+                      value={officeSqmStr}
+                      onChangeText={setOfficeSqmStr}
+                      onBlur={() => AsyncStorage.setItem('@mx_office_sqm', officeSqmStr)}
+                      keyboardType="numeric"
+                      placeholder="e.g. 15"
+                      placeholderTextColor={C.textHint}
+                      style={{ borderWidth: 1, borderColor: C.border, borderRadius: radius.sm, paddingHorizontal: space.sm, paddingVertical: 6, fontSize: 14, color: C.textPrimary }}
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ ...typography.micro, color: C.textHint, marginBottom: 4 }}>Total property (m²)</Text>
+                    <TextInput
+                      value={propertySqmStr}
+                      onChangeText={setPropertySqmStr}
+                      onBlur={() => AsyncStorage.setItem('@mx_property_sqm', propertySqmStr)}
+                      keyboardType="numeric"
+                      placeholder="e.g. 120"
+                      placeholderTextColor={C.textHint}
+                      style={{ borderWidth: 1, borderColor: C.border, borderRadius: radius.sm, paddingHorizontal: space.sm, paddingVertical: 6, fontSize: 14, color: C.textPrimary }}
+                    />
+                  </View>
+                </View>
+                {(() => {
+                  const officeSqm = parseFloat(officeSqmStr);
+                  const propertySqm = parseFloat(propertySqmStr);
+                  if (!officeSqmStr || !propertySqmStr || isNaN(officeSqm) || isNaN(propertySqm) || propertySqm <= 0 || officeSqm <= 0) return null;
+                  const ratio = Math.min(officeSqm / propertySqm, 1);
+                  return (
+                    <View style={{ backgroundColor: C.successBg, borderRadius: radius.sm, padding: space.sm }}>
+                      <Text style={{ ...typography.micro, color: C.success }}>
+                        Home office: {(ratio * 100).toFixed(1)}% → Deductible: {fmt(selectedCat.amount * ratio)}
+                      </Text>
+                    </View>
+                  );
+                })()}
+              </View>
+            )}
+
             {/* ── Category list ─────────────────────────────────────────────── */}
             {filtered.length === 0 ? (
               <View style={{ alignItems: "center", paddingTop: space["4xl"] }}>
@@ -415,6 +566,13 @@ export default function CategoryBreakdownScreen() {
                             {cat.deductible ? "Deductible" : "Non-deductible"}
                           </Text>
                         </View>
+                        {cat.deductiblePct !== undefined && cat.deductiblePct < 1 && (
+                          <View style={{ backgroundColor: C.warningBg, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2, marginLeft: 4 }}>
+                            <Text style={{ fontSize: 9, fontWeight: "700", color: C.warning }}>
+                              {Math.round(cat.deductiblePct * 100)}% cap
+                            </Text>
+                          </View>
+                        )}
                       </View>
 
                       {/* Progress bar */}

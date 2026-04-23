@@ -1,5 +1,6 @@
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { MXHeader } from "@/components/MXHeader";
+import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/stores/authStore";
 import { colour, radius, space, typography } from "@/tokens";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -42,7 +43,6 @@ export default function ScanTabScreen() {
     if (!user || tab !== "history") return;
     setLoading(true);
     try {
-      const { supabase } = await import("@/lib/supabase");
       const { data } = await supabase
         .from("receipts")
         .select("*")
