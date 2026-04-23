@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import type { TaxSummary } from '@/types/database';
 import { expenseService } from './expenseService';
+import { incomeService } from './incomeService';
 
 // ─── Tax Service ──────────────────────────────────────────────────────────────
 // All Supabase database operations for tax summaries.
@@ -18,9 +19,15 @@ const TAX_BRACKETS = [
   { limit: Infinity, rate: 0.45, base: 644489 },
 ];
 
-const estimateTaxSaving = (deductions: number): number => {
-  // Estimate saving using 31% marginal rate (middle bracket — conservative)
-  return Math.round(deductions * 0.31);
+function getMarginalRate(income: number): number {
+  for (const bracket of TAX_BRACKETS) {
+    if (income <= bracket.limit) return bracket.rate;
+  }
+  return 0.45;
+}
+
+const estimateTaxSaving = (deductions: number, income: number): number => {
+  return Math.round(deductions * getMarginalRate(income));
 };
 
 export const taxService = {
@@ -40,14 +47,15 @@ export const taxService = {
 
   // ── Recalculate and upsert tax summary ───────────────────────────────────
   recalculateSummary: async (userId: string, taxYear: string): Promise<TaxSummary> => {
-    // Pull live data from expenses
-    const [totals, categoryBreakdown] = await Promise.all([
+    // Pull live data from expenses and income
+    const [totals, categoryBreakdown, incomeTotals] = await Promise.all([
       expenseService.getTotals(userId, taxYear),
       expenseService.getByCategory(userId, taxYear),
+      incomeService.getTotals(userId),
     ]);
 
     const { totalExpenses, totalDeductions } = totals;
-    const estTaxSaving = estimateTaxSaving(totalDeductions);
+    const estTaxSaving = estimateTaxSaving(totalDeductions, incomeTotals.totalIncome);
     const deductionRate = totalExpenses > 0
       ? Math.round((totalDeductions / totalExpenses) * 100)
       : 0;

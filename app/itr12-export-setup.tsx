@@ -389,8 +389,8 @@ export default function ITR12ExportSetupScreen() {
                     : "Not included",
                 },
                 {
-                  label: "Est. Tax Saving",
-                  value: fmt(Math.round(totalDeductions * 0.31)),
+                  label: "Est. Tax Saving (estimate)",
+                  value: fmt(Math.round(totalDeductions * 0.27)),
                 },
               ].map((row, i) => (
                 <View
@@ -466,18 +466,18 @@ export default function ITR12ExportSetupScreen() {
               )}
             </TouchableOpacity>
 
-            <View style={{ marginHorizontal: space.md }}>
-              <Text
-                style={{
-                  fontSize: 11,
-                  color: colour.textHint,
-                  textAlign: "center",
-                  lineHeight: 16,
-                }}
-              >
-                This export is for your records and tax practitioner. Always
-                have your ITR12 reviewed by a registered tax professional before
-                submission.
+            <View
+              style={{
+                marginHorizontal: space.md,
+                backgroundColor: "#FFF8E1",
+                borderRadius: radius.md,
+                padding: 12,
+                borderWidth: 1,
+                borderColor: "#FFE082",
+              }}
+            >
+              <Text style={{ fontSize: 12, color: "#7B5800", lineHeight: 18, textAlign: "center" }}>
+                MyExpense prepares your ITR12 data. You must file via SARS eFiling or a registered tax practitioner — MyExpense does not submit to SARS on your behalf.
               </Text>
             </View>
           </>

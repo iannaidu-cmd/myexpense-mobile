@@ -7,9 +7,9 @@ import type { Expense, NewExpense, UpdateExpense } from "@/types/database";
 // ─────────────────────────────────────────────────────────────────────────────
 
 // SARS partial-deductibility caps: only this fraction of the category amount counts.
-// S23(o) disallows 50% of meals & entertainment.
+// S23(n): only 80% of meals & entertainment is deductible.
 const PARTIAL_CAPS: Record<string, number> = {
-  "Meals & Entertainment": 0.5,
+  "Meals & Entertainment": 0.8,
 };
 
 export interface ExpenseTotals {

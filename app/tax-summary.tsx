@@ -13,6 +13,7 @@ import {
     ScrollView,
     StatusBar,
     Text,
+    TextInput,
     TouchableOpacity,
     View,
 } from "react-native";
@@ -133,6 +134,7 @@ export default function TaxSummaryScreen() {
     Record<string, number>
   >({});
   const [itr12Readiness, setItr12Readiness] = useState(0);
+  const [medDependants, setMedDependants] = useState(0);
 
   const loadData = useCallback(async () => {
     if (!user) return;
@@ -166,6 +168,15 @@ export default function TaxSummaryScreen() {
 
   const marginalRate = getMarginalRate(totalIncome);
   const estTaxSaving = Math.round(totalDeductions * marginalRate);
+
+  // Medical Aid Tax Credit (MTC): R364/month main member + R246/month per dependant
+  const medAidInExpenses = categoryBreakdown["Medical Aid"] ?? 0;
+  const annualMTC = Math.round((364 + medDependants * 246) * 12);
+
+  // RA: total RA contributions from expenses, cap = 27.5% of income, max R350,000
+  const raContributions = categoryBreakdown["Retirement Annuity"] ?? 0;
+  const raCap = Math.min(Math.round(totalIncome * 0.275), 350000);
+  const raDeductible = Math.min(raContributions, raCap);
   const deductionRate =
     totalExpenses > 0 ? Math.round((totalDeductions / totalExpenses) * 100) : 0;
 
@@ -259,6 +270,23 @@ export default function TaxSummaryScreen() {
                   sub="All sources"
                   color={colour.teal}
                 />
+              </View>
+
+              {/* eFiling disclaimer */}
+              <View
+                style={{
+                  marginHorizontal: space.md,
+                  backgroundColor: "#FFF8E1",
+                  borderRadius: radius.md,
+                  padding: 12,
+                  marginBottom: space.md,
+                  borderWidth: 1,
+                  borderColor: "#FFE082",
+                }}
+              >
+                <Text style={{ fontSize: 12, color: "#7B5800", lineHeight: 18 }}>
+                  MyExpense prepares your ITR12 data. You must file via SARS eFiling or a registered tax practitioner — MyExpense does not submit to SARS on your behalf.
+                </Text>
               </View>
 
               {/* Deduction rate bar */}
@@ -477,6 +505,91 @@ export default function TaxSummaryScreen() {
                   </View>
                 ))}
               </View>
+
+              {/* Retirement Annuity */}
+              {raContributions > 0 && (
+                <View
+                  style={{
+                    marginHorizontal: space.md,
+                    backgroundColor: colour.white,
+                    borderRadius: radius.md,
+                    padding: space.md,
+                    borderWidth: 1,
+                    borderColor: colour.borderLight,
+                    marginBottom: space.md,
+                  }}
+                >
+                  <Text style={{ fontSize: 13, fontWeight: "700", color: colour.text, marginBottom: 10 }}>
+                    Retirement Annuity (S11F)
+                  </Text>
+                  {[
+                    { label: "RA contributions", value: fmt(raContributions) },
+                    { label: `Cap (27.5% of R${totalIncome.toLocaleString("en-ZA")}, max R350,000)`, value: fmt(raCap) },
+                    { label: "Deductible amount", value: fmt(raDeductible) },
+                  ].map((row, i) => (
+                    <View key={i} style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 6 }}>
+                      <Text style={{ fontSize: 12, color: colour.textSub, flex: 1, marginRight: 8 }} numberOfLines={2}>{row.label}</Text>
+                      <Text style={{ fontSize: 12, fontWeight: "700", color: colour.primary }}>{row.value}</Text>
+                    </View>
+                  ))}
+                  {raContributions > raCap && (
+                    <Text style={{ fontSize: 11, color: "#BF360C", marginTop: 4 }}>
+                      Contributions exceed your annual cap by {fmt(raContributions - raCap)}. The excess rolls over to the next tax year.
+                    </Text>
+                  )}
+                </View>
+              )}
+
+              {/* Medical Aid Tax Credits */}
+              {medAidInExpenses > 0 && (
+                <View
+                  style={{
+                    marginHorizontal: space.md,
+                    backgroundColor: colour.white,
+                    borderRadius: radius.md,
+                    padding: space.md,
+                    borderWidth: 1,
+                    borderColor: colour.borderLight,
+                    marginBottom: space.md,
+                  }}
+                >
+                  <Text style={{ fontSize: 13, fontWeight: "700", color: colour.text, marginBottom: 4 }}>
+                    Medical Aid Tax Credits (S6A)
+                  </Text>
+                  <Text style={{ fontSize: 11, color: "#1B5E20", marginBottom: 12, backgroundColor: "#E8F5E9", borderRadius: 6, padding: 8 }}>
+                    Medical Aid is a tax credit (reduces your tax bill directly), not a deduction from income. It is NOT included in your total deductions above.
+                  </Text>
+                  <Text style={{ fontSize: 12, color: colour.textSub, marginBottom: 8 }}>
+                    Number of dependants (excluding yourself)
+                  </Text>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 12 }}>
+                    <TouchableOpacity
+                      onPress={() => setMedDependants((v) => Math.max(0, v - 1))}
+                      style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: colour.surface2, alignItems: "center", justifyContent: "center" }}
+                    >
+                      <Text style={{ fontSize: 18, color: colour.text }}>−</Text>
+                    </TouchableOpacity>
+                    <Text style={{ fontSize: 18, fontWeight: "700", color: colour.text, minWidth: 24, textAlign: "center" }}>{medDependants}</Text>
+                    <TouchableOpacity
+                      onPress={() => setMedDependants((v) => v + 1)}
+                      style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: colour.surface2, alignItems: "center", justifyContent: "center" }}
+                    >
+                      <Text style={{ fontSize: 18, color: colour.text }}>+</Text>
+                    </TouchableOpacity>
+                  </View>
+                  {[
+                    { label: "Annual MTC (R364 + dependants × R246) × 12", value: fmt(annualMTC) },
+                  ].map((row, i) => (
+                    <View key={i} style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                      <Text style={{ fontSize: 12, color: colour.textSub, flex: 1, marginRight: 8 }} numberOfLines={2}>{row.label}</Text>
+                      <Text style={{ fontSize: 14, fontWeight: "800", color: "#2E7D32" }}>{row.value}</Text>
+                    </View>
+                  ))}
+                  <Text style={{ fontSize: 11, color: colour.textHint, marginTop: 6 }}>
+                    Enter this amount on your ITR12 under "Medical tax credits" — do not include it in expense deductions.
+                  </Text>
+                </View>
+              )}
 
               {/* Deductions by Category */}
               <View

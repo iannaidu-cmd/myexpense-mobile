@@ -91,16 +91,21 @@ function UnderlineInput({
 }
 
 const ITR12_CATEGORIES = [
-  { label: "Travel & Transport", icon: "car.fill",             code: "S11(a)" },
-  { label: "Home Office",        icon: "house.fill",           code: "S11(a)" },
-  { label: "Equipment & Tools",  icon: "wrench.fill",          code: "S11(e)" },
-  { label: "Software & Subscr.", icon: "gearshape.fill",       code: "S11(a)" },
-  { label: "Meals & Entertain.", icon: "fork.knife",           code: "S11(a)" },
-  { label: "Professional Fees",  icon: "doc.text.fill",        code: "S11(a)" },
-  { label: "Utilities",          icon: "bolt.fill",            code: "S11(a)" },
-  { label: "Marketing & Adverts",icon: "megaphone.fill",       code: "S11(a)" },
-  { label: "Bank Charges",       icon: "building.columns.fill",code: "S11(a)" },
-  { label: "Personal / Other",   icon: "person.fill",          code: "N/A"    },
+  { label: "Travel & Transport",   icon: "car.fill",             code: "S11(a)" },
+  { label: "Home Office",          icon: "house.fill",           code: "S11(a)" },
+  { label: "Equipment & Tools",    icon: "wrench.fill",          code: "S11(e)" },
+  { label: "Software & Subscr.",   icon: "gearshape.fill",       code: "S11(a)" },
+  { label: "Meals & Entertainment",icon: "fork.knife",           code: "S11(a)" },
+  { label: "Professional Fees",    icon: "doc.text.fill",        code: "S11(a)" },
+  { label: "Utilities",            icon: "bolt.fill",            code: "S11(a)" },
+  { label: "Marketing & Adverts",  icon: "megaphone.fill",       code: "S11(a)" },
+  { label: "Bank Charges",         icon: "building.columns.fill",code: "S11(a)" },
+  { label: "Insurance",            icon: "shield.fill",          code: "S11(a)" },
+  { label: "Training & Education", icon: "book.fill",            code: "S11(a)" },
+  { label: "Telephone & Cell",     icon: "phone.fill",           code: "S11(a)" },
+  { label: "Vehicle Expenses",     icon: "car.fill",             code: "S11(a)" },
+  { label: "Retirement Annuity",   icon: "chart.bar.fill",       code: "S11F"   },
+  { label: "Personal / Other",     icon: "person.fill",          code: "N/A"    },
 ];
 
 export default function AddExpenseScreen() {
@@ -121,6 +126,7 @@ export default function AddExpenseScreen() {
   const [vatAmount, setVatAmount] = useState("");
   const [note, setNote] = useState("");
   const [showCatPicker, setShowCatPicker] = useState(false);
+  const [businessUsePct, setBusinessUsePct] = useState("100");
   const [saving, setSaving] = useState(false);
 
   const selectedCat = ITR12_CATEGORIES.find((c) => c.label === category);
@@ -140,9 +146,13 @@ export default function AddExpenseScreen() {
 
     setSaving(true);
     try {
+      const rawAmount = parseFloat(amount);
+      const pct = category === "Telephone & Cell" ? Math.min(Math.max(parseFloat(businessUsePct) || 100, 0), 100) / 100 : 1;
+      const savedAmount = parseFloat((rawAmount * pct).toFixed(2));
+
       await expenseService.addExpense(user.id, {
         vendor: vendor.trim(),
-        amount: parseFloat(amount),
+        amount: savedAmount,
         category,
         itr12_code: selectedCat?.code ?? null,
         tax_year: ACTIVE_TAX_YEAR,
@@ -157,10 +167,11 @@ export default function AddExpenseScreen() {
       setCategory("");
       setVatAmount("");
       setNote("");
+      setBusinessUsePct("100");
 
       Alert.alert(
         "Expense Saved ✓",
-        `R ${parseFloat(amount).toLocaleString("en-ZA", { minimumFractionDigits: 2 })} at ${vendor.trim()} has been saved.`,
+        `R ${savedAmount.toLocaleString("en-ZA", { minimumFractionDigits: 2 })} at ${vendor.trim()} has been saved.`,
         [
           { text: "Add another", style: "cancel" },
           { text: "Go home", onPress: () => router.replace("/(tabs)" as any) },
@@ -379,6 +390,59 @@ export default function AddExpenseScreen() {
               </Text>
             </View>
           )}
+          {/* Contextual notes per category */}
+          {category === "Telephone & Cell" && (
+            <View>
+              <View style={{ backgroundColor: "#FFF8E1", borderRadius: 8, padding: 10, marginBottom: 10 }}>
+                <Text style={{ fontSize: 12, color: "#7B5800", lineHeight: 18 }}>
+                  SARS requires a stated business-use percentage. Enter the % of this device used for business. The deductible amount will be adjusted accordingly.
+                </Text>
+              </View>
+              <FieldLabel label="Business use %" />
+              <UnderlineInput
+                value={businessUsePct}
+                onChangeText={setBusinessUsePct}
+                placeholder="e.g. 80"
+                keyboardType="decimal-pad"
+              />
+            </View>
+          )}
+          {(category === "Home Office" || category === "Utilities") && (
+            <View style={{ backgroundColor: "#E8F5E9", borderRadius: 8, padding: 10, marginBottom: 10 }}>
+              <Text style={{ fontSize: 12, color: "#1B5E20", lineHeight: 18 }}>
+                Only the office portion is deductible. Formula: office m² ÷ total property m² × total cost. Enter the proportional amount only (e.g. 15m² ÷ 120m² = 12.5%).
+              </Text>
+            </View>
+          )}
+          {category === "Equipment & Tools" && !!amount && parseFloat(amount) > 7000 && (
+            <View style={{ backgroundColor: "#FFF3E0", borderRadius: 8, padding: 10, marginBottom: 10 }}>
+              <Text style={{ fontSize: 12, color: "#BF360C", lineHeight: 18 }}>
+                Items over R7,000 may be subject to SARS wear & tear schedules (e.g. computers 3 years, furniture 6 years) rather than being expensed in full. Consult your tax practitioner.
+              </Text>
+            </View>
+          )}
+          {category === "Vehicle Expenses" && (
+            <View style={{ backgroundColor: "#E3F2FD", borderRadius: 8, padding: 10, marginBottom: 10 }}>
+              <Text style={{ fontSize: 12, color: "#0D47A1", lineHeight: 18 }}>
+                Actual cost method: only the business proportion is deductible (business km ÷ total annual km × total vehicle costs). Check your mileage logbook for this ratio. The deemed cost method (R4.84/km) is tracked separately under Mileage.
+              </Text>
+            </View>
+          )}
+          {category === "Retirement Annuity" && (
+            <View style={{ backgroundColor: "#F3E5F5", borderRadius: 8, padding: 10, marginBottom: 10 }}>
+              <Text style={{ fontSize: 12, color: "#4A148C", lineHeight: 18 }}>
+                RA deductions are capped at the greater of 27.5% of taxable income or remuneration, up to R350,000/year. SARS requires an IT3(a) certificate from your RA provider.
+              </Text>
+            </View>
+          )}
+          {category === "Meals & Entertainment" && (
+            <View style={{ backgroundColor: "#FFF8E1", borderRadius: 8, padding: 10, marginBottom: 10 }}>
+              <Text style={{ fontSize: 12, color: "#7B5800", lineHeight: 18 }}>
+                Only 80% of meals & entertainment is deductible under S23(n). MyExpense applies this cap automatically.
+              </Text>
+            </View>
+          )}
+
           {showCatPicker && (
             <View style={{ marginBottom: 16 }}>
               {ITR12_CATEGORIES.map((cat) => (
