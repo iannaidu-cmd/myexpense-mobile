@@ -1,6 +1,7 @@
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { CATEGORIES } from "@/constants/categories";
 import { expenseService } from "@/services/expenseService";
 import { useAuthStore } from "@/stores/authStore";
 import { colour } from "@/tokens";
@@ -90,23 +91,12 @@ function UnderlineInput({
   );
 }
 
-const ITR12_CATEGORIES = [
-  { label: "Travel & Transport",   icon: "car.fill",             code: "S11(a)" },
-  { label: "Home Office",          icon: "house.fill",           code: "S11(a)" },
-  { label: "Equipment & Tools",    icon: "wrench.fill",          code: "S11(e)" },
-  { label: "Software & Subscr.",   icon: "gearshape.fill",       code: "S11(a)" },
-  { label: "Meals & Entertainment",icon: "fork.knife",           code: "S11(a)" },
-  { label: "Professional Fees",    icon: "doc.text.fill",        code: "S11(a)" },
-  { label: "Utilities",            icon: "bolt.fill",            code: "S11(a)" },
-  { label: "Marketing & Adverts",  icon: "megaphone.fill",       code: "S11(a)" },
-  { label: "Bank Charges",         icon: "building.columns.fill",code: "S11(a)" },
-  { label: "Insurance",            icon: "shield.fill",          code: "S11(a)" },
-  { label: "Training & Education", icon: "book.fill",            code: "S11(a)" },
-  { label: "Telephone & Cell",     icon: "phone.fill",           code: "S11(a)" },
-  { label: "Vehicle Expenses",     icon: "car.fill",             code: "S11(a)" },
-  { label: "Retirement Annuity",   icon: "chart.bar.fill",       code: "S11F"   },
-  { label: "Personal / Other",     icon: "person.fill",          code: "N/A"    },
-];
+// Derived from shared canonical list — names must match category-breakdown and receipt-review.
+const ITR12_CATEGORIES = CATEGORIES.map((c) => ({
+  label: c.label,
+  icon: c.icon,
+  code: c.code,
+}));
 
 export default function AddExpenseScreen() {
   const router = useRouter();
@@ -438,7 +428,7 @@ export default function AddExpenseScreen() {
           {category === "Meals & Entertainment" && (
             <View style={{ backgroundColor: "#FFF8E1", borderRadius: 8, padding: 10, marginBottom: 10 }}>
               <Text style={{ fontSize: 12, color: "#7B5800", lineHeight: 18 }}>
-                Only 80% of meals & entertainment is deductible under S23(n). MyExpense applies this cap automatically.
+                Only 80% of meals & entertainment is deductible under S23(o). MyExpense applies this cap automatically.
               </Text>
             </View>
           )}

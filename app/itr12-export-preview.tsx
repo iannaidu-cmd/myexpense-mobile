@@ -5,6 +5,7 @@ import { expenseService } from "@/services/expenseService";
 import { generateITR12PDF } from "@/services/pdfExportService";
 import { profileService } from "@/services/profileService";
 import { useAuthStore } from "@/stores/authStore";
+import { incomeService } from "@/services/incomeService";
 import { colour, radius, space } from "@/tokens";
 import { ACTIVE_TAX_YEAR } from "@/types/database";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -23,6 +24,16 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 const fmt = (n: number) =>
   `R ${Number(n).toLocaleString("en-ZA", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+
+function getMarginalRate(income: number): number {
+  if (income <= 237100) return 0.18;
+  if (income <= 370500) return 0.26;
+  if (income <= 512800) return 0.31;
+  if (income <= 673000) return 0.36;
+  if (income <= 857900) return 0.39;
+  if (income <= 1817000) return 0.41;
+  return 0.45;
+}
 
 const ITR12_CODES: Record<string, string> = {
   "Travel & Transport": "4011",
@@ -49,6 +60,7 @@ export default function ITR12ExportPreviewScreen() {
   const [profile, setProfile] = useState<any>(null);
   const [breakdown, setBreakdown] = useState<Record<string, number>>({});
   const [totalDeductions, setTotalDeductions] = useState(0);
+  const [totalIncome, setTotalIncome] = useState(0);
   const [sharing, setSharing] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
 
@@ -56,20 +68,22 @@ export default function ITR12ExportPreviewScreen() {
     if (!user) return;
     setLoading(true);
     try {
-      const [prof, byCategory, totals] = await Promise.all([
+      const [prof, byCategory, totals, incomeTotals] = await Promise.all([
         profileService.getProfile(user.id),
         expenseService.getByCategory(user.id, ACTIVE_TAX_YEAR),
         expenseService.getTotals(user.id, ACTIVE_TAX_YEAR),
+        incomeService.getTotals(user.id),
       ]);
       setProfile(prof);
       setBreakdown(
         Object.fromEntries(
           Object.entries(byCategory).filter(
-            ([k]) => k !== "Personal / Non-deductible",
+            ([k]) => k !== "Personal / Other",
           ),
         ),
       );
       setTotalDeductions(totals.totalDeductions);
+      setTotalIncome(incomeTotals.totalIncome);
     } catch (e) {
       console.error("ITR12Preview load error:", e);
     } finally {
@@ -84,7 +98,8 @@ export default function ITR12ExportPreviewScreen() {
   );
 
   const deductionRows = Object.entries(breakdown).sort(([, a], [, b]) => b - a);
-  const estTaxSaving = Math.round(totalDeductions * 0.31);
+  const marginalRate = getMarginalRate(totalIncome);
+  const estTaxSaving = Math.round(totalDeductions * marginalRate);
   const initials = (profile?.full_name ?? "??")
     .split(" ")
     .map((n: string) => n[0])
@@ -112,7 +127,7 @@ export default function ITR12ExportPreviewScreen() {
         "─────────────────────",
         `${"TOTAL DEDUCTIONS".padEnd(30)} ${fmt(totalDeductions)}`,
         "",
-        `EST. TAX SAVING (31%):         ${fmt(estTaxSaving)}`,
+        `EST. TAX SAVING (${Math.round(marginalRate * 100)}% marginal): ${fmt(estTaxSaving)}`,
         "",
         "⚠️  For reference only. Submit via SARS eFiling.",
         `Generated: ${new Date().toLocaleDateString("en-ZA")}`,

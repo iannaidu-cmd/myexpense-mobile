@@ -2,6 +2,7 @@ import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { expenseService } from "@/services/expenseService";
+import { incomeService } from "@/services/incomeService";
 import { useAuthStore } from "@/stores/authStore";
 import { useExpenseStore } from "@/stores/expenseStore";
 import { useSubscriptionStore } from "@/stores/subscriptionStore";
@@ -72,6 +73,16 @@ type FormatKey = "pdf" | "csv" | "both";
 const fmt = (n: number) =>
   `R ${Number(n).toLocaleString("en-ZA", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 
+function getMarginalRate(income: number): number {
+  if (income <= 237100) return 0.18;
+  if (income <= 370500) return 0.26;
+  if (income <= 512800) return 0.31;
+  if (income <= 673000) return 0.36;
+  if (income <= 857900) return 0.39;
+  if (income <= 1817000) return 0.41;
+  return 0.45;
+}
+
 export default function ITR12ExportSetupScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
@@ -86,6 +97,7 @@ export default function ITR12ExportSetupScreen() {
   }, [isPro]);
   const [totalDeductions, setTotalDeductions] = useState(0);
   const [totalExpenses, setTotalExpenses] = useState(0);
+  const [totalIncome, setTotalIncome] = useState(0);
   const [receiptCount, setReceiptCount] = useState(0);
   const [categoryCount, setCategoryCount] = useState(0);
   const [taxYear, setTaxYear] = useState(() => activeTaxYear);
@@ -102,13 +114,15 @@ export default function ITR12ExportSetupScreen() {
     if (!user) return;
     setLoading(true);
     try {
-      const [totals, byCategory, expenses] = await Promise.all([
+      const [totals, byCategory, expenses, incomeTotals] = await Promise.all([
         expenseService.getTotals(user.id, taxYear),
         expenseService.getByCategory(user.id, taxYear),
         expenseService.getExpenses(user.id, taxYear),
+        incomeService.getTotals(user.id),
       ]);
       setTotalDeductions(totals.totalDeductions);
       setTotalExpenses(totals.totalExpenses);
+      setTotalIncome(incomeTotals.totalIncome);
       setCategoryCount(
         Object.keys(byCategory).filter((k) => k !== "Personal / Non-deductible")
           .length,
@@ -389,8 +403,8 @@ export default function ITR12ExportSetupScreen() {
                     : "Not included",
                 },
                 {
-                  label: "Est. Tax Saving (estimate)",
-                  value: fmt(Math.round(totalDeductions * 0.27)),
+                  label: `Est. Tax Saving (${Math.round(getMarginalRate(totalIncome) * 100)}% marginal)`,
+                  value: fmt(Math.round(totalDeductions * getMarginalRate(totalIncome))),
                 },
               ].map((row, i) => (
                 <View

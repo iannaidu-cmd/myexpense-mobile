@@ -1,5 +1,6 @@
 import { MXHeader } from "@/components/MXHeader";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { CATEGORIES } from "@/constants/categories";
 import { expenseService } from "@/services/expenseService";
 import { useAuthStore } from "@/stores/authStore";
 import { colour, radius, space, typography } from "@/tokens";
@@ -19,23 +20,12 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const CATEGORIES = [
-  { name: "Travel & transport", code: "S11(a)", deductible: true },
-  { name: "Home office", code: "S11(a)", deductible: true },
-  { name: "Equipment & tools", code: "S11(e)", deductible: true },
-  { name: "Software & subscriptions", code: "S11(a)", deductible: true },
-  { name: "Meals & entertainment", code: "S11(a)", deductible: true },
-  { name: "Professional fees", code: "S11(a)", deductible: true },
-  { name: "Telephone & cell", code: "S11(a)", deductible: true },
-  { name: "Marketing & advertising", code: "S11(a)", deductible: true },
-  { name: "Bank charges", code: "S11(a)", deductible: true },
-  { name: "Insurance", code: "S11(a)", deductible: true },
-  { name: "Rent", code: "S11(a)", deductible: true },
-  { name: "Repairs & maintenance", code: "S11(a)", deductible: true },
-  { name: "Education", code: "S11(a)", deductible: true },
-  { name: "Vehicle expenses", code: "Page 24", deductible: true },
-  { name: "Personal / non-deductible", code: "N/A", deductible: false },
-];
+// Derived from shared canonical list — do not define names inline here.
+const CATEGORIES_FOR_PICKER = CATEGORIES.map((c) => ({
+  name: c.label,
+  code: c.code,
+  deductible: c.deductible,
+}));
 
 const LOW_CONFIDENCE_THRESHOLD = 0.7;
 
@@ -140,7 +130,7 @@ export default function ReceiptReviewScreen() {
   const [showCatPicker, setShowCatPicker] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const selectedCat = CATEGORIES.find((c) => c.name === category);
+  const selectedCat = CATEGORIES_FOR_PICKER.find((c) => c.name === category);
 
   // Personal toggle overrides category deductibility
   const isDeductible =
@@ -606,7 +596,7 @@ export default function ReceiptReviewScreen() {
 
           {showCatPicker && (
             <View style={{ marginBottom: space.md }}>
-              {CATEGORIES.map((cat) => (
+              {CATEGORIES_FOR_PICKER.map((cat) => (
                 <TouchableOpacity
                   key={cat.name}
                   onPress={() => {

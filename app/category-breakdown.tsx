@@ -30,21 +30,23 @@ const CATEGORY_META: Record<
   string,
   { icon: string; color: string; itr12Code: string; deductiblePct?: number }
 > = {
-  "Travel & Transport":         { icon: "car.fill",             color: C.primary,    itr12Code: "S11(a)" },
-  "Home Office":                { icon: "house.fill",           color: C.teal,       itr12Code: "S11(a)" },
-  "Equipment & Tools":          { icon: "wrench.fill",          color: C.midNavy2,   itr12Code: "S11(e)" },
-  "Software & Subscriptions":   { icon: "gearshape.fill",       color: C.success,    itr12Code: "S11(a)" },
-  "Meals & Entertainment":      { icon: "fork.knife",           color: C.warning,    itr12Code: "S11(a)", deductiblePct: 0.5 },
-  "Professional Fees":          { icon: "doc.text.fill",        color: C.danger,     itr12Code: "S11(a)" },
-  "Telephone & Cell":           { icon: "phone.fill",           color: C.accent,     itr12Code: "S11(a)" },
-  "Marketing & Advertising":    { icon: "megaphone.fill",       color: C.warningMid, itr12Code: "S11(a)" },
-  "Bank Charges":               { icon: "building.columns.fill",color: C.navyDark,   itr12Code: "S11(a)" },
-  Insurance:                    { icon: "shield.fill",          color: C.successMid, itr12Code: "S11(a)" },
-  Rent:                         { icon: "building.2.fill",      color: C.info,       itr12Code: "S11(a)" },
-  "Repairs & Maintenance":      { icon: "wrench.fill",          color: C.warning,    itr12Code: "S11(a)" },
-  Education:                    { icon: "books.vertical.fill",  color: C.accent,     itr12Code: "S11(a)" },
-  "Vehicle Expenses":           { icon: "car.fill",             color: C.navyDark,   itr12Code: "Page 24" },
-  "Personal / Non-deductible":  { icon: "person.fill",          color: C.textDisabled, itr12Code: "N/A" },
+  "Travel & Transport":         { icon: "car.fill",             color: C.primary,      itr12Code: "S11(a)" },
+  "Home Office":                { icon: "house.fill",           color: C.teal,         itr12Code: "S11(a)" },
+  "Equipment & Tools":          { icon: "wrench.fill",          color: C.midNavy2,     itr12Code: "S11(e)" },
+  "Software & Subscriptions":   { icon: "gearshape.fill",       color: C.success,      itr12Code: "S11(a)" },
+  "Meals & Entertainment":      { icon: "fork.knife",           color: C.warning,      itr12Code: "S11(a)", deductiblePct: 0.8 },
+  "Professional Fees":          { icon: "doc.text.fill",        color: C.danger,       itr12Code: "S11(a)" },
+  "Utilities":                  { icon: "bolt.fill",            color: C.teal,         itr12Code: "S11(a)" },
+  "Telephone & Cell":           { icon: "phone.fill",           color: C.accent,       itr12Code: "S11(a)" },
+  "Marketing & Advertising":    { icon: "megaphone.fill",       color: C.warningMid,   itr12Code: "S11(a)" },
+  "Bank Charges":               { icon: "building.columns.fill",color: C.navyDark,     itr12Code: "S11(a)" },
+  "Insurance":                  { icon: "shield.fill",          color: C.successMid,   itr12Code: "S11(a)" },
+  "Rent":                       { icon: "building.2.fill",      color: C.info,         itr12Code: "S11(a)" },
+  "Repairs & Maintenance":      { icon: "wrench.fill",          color: C.warning,      itr12Code: "S11(a)" },
+  "Training & Education":       { icon: "book.fill",            color: C.accent,       itr12Code: "S11(a)" },
+  "Vehicle Expenses":           { icon: "car.fill",             color: C.navyDark,     itr12Code: "Page 24" },
+  "Retirement Annuity":         { icon: "chart.bar.fill",       color: C.primary300,   itr12Code: "S11F" },
+  "Personal / Other":           { icon: "person.fill",          color: C.textDisabled, itr12Code: "N/A" },
 };
 
 const DEFAULT_META = { icon: "briefcase.fill", color: C.primary, itr12Code: "S11(a)" };
@@ -131,7 +133,7 @@ export default function CategoryBreakdownScreen() {
         name,
         amount,
         ...meta,
-        deductible: name !== "Personal / Non-deductible",
+        deductible: name !== "Personal / Other",
       };
     })
     .sort((a, b) => b.amount - a.amount);
@@ -337,23 +339,23 @@ export default function CategoryBreakdownScreen() {
               </View>
             )}
 
-            {/* ── Meals & Entertainment 50% cap notice ─────────────────────── */}
+            {/* ── Meals & Entertainment 80% cap notice ─────────────────────── */}
             {selected === 'Meals & Entertainment' && selectedCat && (
               <View style={{ marginHorizontal: space.md, backgroundColor: C.warningBg, borderRadius: radius.md, padding: space.md, marginBottom: space.md, borderWidth: 1, borderColor: C.warningMid }}>
                 <Text style={{ ...typography.labelS, color: C.warning, marginBottom: space.xs }}>
-                  SARS S23(o) — 50% cap applies
+                  SARS S23(o) — 80% cap applies
                 </Text>
                 <Text style={{ ...typography.micro, color: C.textSecondary, marginBottom: space.sm }}>
-                  Only 50% of meals & entertainment is deductible. SARS disallows the remainder under S23(o).
+                  Only 80% of meals & entertainment is deductible. SARS disallows the remainder under S23(o).
                 </Text>
                 <View style={{ flexDirection: 'row', gap: space.xl }}>
                   <View>
                     <Text style={{ ...typography.micro, color: C.textHint }}>Total spend</Text>
-                    <Text style={{ ...typography.labelM, color: C.textPrimary }}>{fmt(selectedCat.amount)}</Text>
+                    <Text style={{ ...typography.labelM, color: C.textPrimary }}>{fmt(selectedCat.amount / 0.8)}</Text>
                   </View>
                   <View>
-                    <Text style={{ ...typography.micro, color: C.textHint }}>Deductible (50%)</Text>
-                    <Text style={{ ...typography.labelM, color: C.success }}>{fmt(selectedCat.amount * 0.5)}</Text>
+                    <Text style={{ ...typography.micro, color: C.textHint }}>Deductible (80%)</Text>
+                    <Text style={{ ...typography.labelM, color: C.success }}>{fmt(selectedCat.amount)}</Text>
                   </View>
                 </View>
               </View>
