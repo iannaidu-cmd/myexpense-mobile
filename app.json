@@ -6,24 +6,28 @@
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "myexpense",
-    "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "co.za.myexpense",
+      "buildNumber": "1",
       "infoPlist": {
+        "NSCameraUsageDescription": "MyExpense uses the camera to scan receipts for expense records.",
+        "NSPhotoLibraryUsageDescription": "MyExpense accesses your photo library to import receipt images.",
+        "NSPhotoLibraryAddUsageDescription": "MyExpense saves exported tax reports to your photo library.",
+        "NSFaceIDUsageDescription": "MyExpense uses Face ID to secure access to your financial data.",
+        "NSLocationWhenInUseUsageDescription": "MyExpense tracks business travel distance for SARS mileage deductions.",
         "UIBackgroundModes": [
-          "remote-notification",
           "remote-notification"
         ],
         "LSApplicationQueriesSchemes": [
-          "myexpense",
           "myexpense"
         ]
       }
     },
     "android": {
       "package": "co.za.myexpense",
+      "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -61,7 +65,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/sm_logo.gif",
+          "image": "./assets/images/splash-icon.png",
           "resizeMode": "contain",
           "backgroundColor": "#F2EDE3"
         }
