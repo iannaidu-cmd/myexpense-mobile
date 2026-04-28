@@ -49,7 +49,7 @@ export function MXTabBar() {
       {TABS.map((tab) => {
         const active = isActive(tab.route);
 
-        if (tab.isFab) {
+        if ('isFab' in tab && tab.isFab) {
           return (
             <View key={tab.name} style={{ flex: 1, alignItems: "center", overflow: "visible" }}>
               <TouchableOpacity

@@ -1,6 +1,7 @@
 import { MXTabBar } from "@/components/MXTabBar";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { colour } from "@/tokens";
+import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
     Animated,

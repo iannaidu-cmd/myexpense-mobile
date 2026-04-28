@@ -97,7 +97,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           });
         }
       });
-      return () => subscription.unsubscribe();
+      subscription.unsubscribe; // subscription lives for app lifetime
     } catch {
       set({ isInitialised: true });
     }

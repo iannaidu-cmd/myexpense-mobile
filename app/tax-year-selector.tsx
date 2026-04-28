@@ -1,8 +1,10 @@
 import { MXHeader } from "@/components/MXHeader";
+import { expenseService } from "@/services/expenseService";
 import { useAuthStore } from "@/stores/authStore";
+import { useExpenseStore } from "@/stores/expenseStore";
 import { colour, radius, space, typography } from "@/tokens";
-import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import React, { useCallback, useState } from "react";
 import {
     ScrollView,
     StatusBar,

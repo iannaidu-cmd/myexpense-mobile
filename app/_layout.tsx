@@ -56,8 +56,7 @@ function AuthGate() {
       segments[0] === "sign-in" ||
       segments[0] === "sign-up" ||
       segments[0] === "forgot-password" ||
-      segments[0] === "email-verification" ||
-      segments[0] === "auth/callback";
+      segments[0] === "email-verification";
     // reset-password is intentionally excluded: the Supabase recovery code
     // creates a temporary session, and we must not redirect the user away
     // from the form while they still need to submit their new password.
