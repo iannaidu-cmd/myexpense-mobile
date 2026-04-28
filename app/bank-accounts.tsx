@@ -1,5 +1,6 @@
 import { MXHeader } from "@/components/MXHeader";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/stores/authStore";
 import { colour, radius, space, typography } from "@/tokens";
 import { useRouter } from "expo-router";
@@ -68,7 +69,6 @@ export default function BankAccountsScreen() {
     if (!user) return;
     setLoading(true);
     try {
-      const { supabase } = await import("@/lib/supabase");
       const { data } = await supabase
         .from("bank_accounts")
         .select("*")
@@ -102,13 +102,12 @@ export default function BankAccountsScreen() {
     if (!user) return;
     setSaving(true);
     try {
-      const { supabase } = await import("@/lib/supabase");
       await supabase.from("bank_accounts").insert({
         user_id: user.id,
-        bank_name: bankName,
-        account_holder: accountHolder,
-        account_number: accountNumber,
-        branch_code: branchCode,
+        bank_name: bankName.trim(),
+        account_holder: accountHolder.trim(),
+        account_number: accountNumber.trim(),
+        branch_code: branchCode.trim(),
         account_type: accountType,
         is_primary: accounts.length === 0,
       });
@@ -125,7 +124,6 @@ export default function BankAccountsScreen() {
   const handleSetPrimary = async (id: string) => {
     if (!user) return;
     try {
-      const { supabase } = await import("@/lib/supabase");
       await supabase
         .from("bank_accounts")
         .update({ is_primary: false })
@@ -133,7 +131,8 @@ export default function BankAccountsScreen() {
       await supabase
         .from("bank_accounts")
         .update({ is_primary: true })
-        .eq("id", id);
+        .eq("id", id)
+        .eq("user_id", user.id);
       await loadAccounts();
     } catch (e: any) {
       Alert.alert("Error", e.message);
@@ -149,8 +148,11 @@ export default function BankAccountsScreen() {
         onPress: async () => {
           setDeleting(id);
           try {
-            const { supabase } = await import("@/lib/supabase");
-            await supabase.from("bank_accounts").delete().eq("id", id);
+            await supabase
+              .from("bank_accounts")
+              .delete()
+              .eq("id", id)
+              .eq("user_id", user!.id);
             await loadAccounts();
           } catch (e: any) {
             Alert.alert("Error", e.message);

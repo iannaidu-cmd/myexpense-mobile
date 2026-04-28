@@ -1,11 +1,12 @@
 import MXLogo from "@/components/MXLogo";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { SA_MARGINAL_TAX_RATE } from "@/constants/tax";
 import { expenseService } from "@/services/expenseService";
 import { incomeService } from "@/services/incomeService";
 import { profileService } from "@/services/profileService";
 import { useAuthStore } from "@/stores/authStore";
 import { colour, radius, space, typography } from "@/tokens";
-import { ACTIVE_TAX_YEAR } from "@/types/database";
+import { ACTIVE_TAX_YEAR, Expense } from "@/types/database";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
 import {
@@ -42,14 +43,14 @@ export default function HomeScreen() {
   const [totalExpenses, setTotalExpenses] = useState(0);
   const [totalDeductions, setTotalDeductions] = useState(0);
   const [totalIncome, setTotalIncome] = useState(0);
-  const [recentExpenses, setRecentExpenses] = useState<any[]>([]);
+  const [recentExpenses, setRecentExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
 
   const now = new Date();
   const hour = now.getHours();
   const dayName = DAY_NAMES[now.getDay()];
   const greeting = hour < 12 ? "Morning" : hour < 17 ? "Afternoon" : "Evening";
-  const estimatedSaving = Math.round(totalDeductions * 0.31);
+  const estimatedSaving = Math.round(totalDeductions * SA_MARGINAL_TAX_RATE);
 
   const loadData = useCallback(async () => {
     if (!user) return;
