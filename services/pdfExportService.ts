@@ -56,7 +56,7 @@ const fmtDate = (iso: string) => {
 
 // ─── ITR12 code lookup ────────────────────────────────────────────────────────
 
-function getITR12Code(category: string, itr12_code?: string | null): string {
+export function getITR12Code(category: string, itr12_code?: string | null): string {
   if (itr12_code) return itr12_code;
   return ITR12_CATEGORIES[category]?.code ?? "4011";
 }

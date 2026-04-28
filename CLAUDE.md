@@ -9,9 +9,11 @@ expo start              # Start dev server (Expo Go / dev client)
 expo start --android    # Launch on Android
 expo start --ios        # Launch on iOS
 expo lint               # Run ESLint (expo flat config)
+npm test                # Run Jest unit tests (jest-expo preset)
+npm test -- --watch     # Watch mode
 ```
 
-No test runner is configured in this project.
+Test files live in `__tests__/` mirroring the source tree. 59 unit tests cover `lib/validation.ts`, `constants/tax.ts`, and `services/csvExportService.ts`. Tests run in CI on every PR.
 
 ## What this app is
 

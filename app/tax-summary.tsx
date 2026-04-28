@@ -1,5 +1,6 @@
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
+import { calculateAnnualMTC } from "@/constants/tax";
 import { expenseService } from "@/services/expenseService";
 import { incomeService } from "@/services/incomeService";
 import { taxService } from "@/services/taxService";
@@ -169,9 +170,8 @@ export default function TaxSummaryScreen() {
   const marginalRate = getMarginalRate(totalIncome);
   const estTaxSaving = Math.round(totalDeductions * marginalRate);
 
-  // Medical Aid Tax Credit (MTC): R364/month main member + R246/month per dependant
   const medAidInExpenses = categoryBreakdown["Medical Aid"] ?? 0;
-  const annualMTC = Math.round((364 + medDependants * 246) * 12);
+  const annualMTC = calculateAnnualMTC(medDependants);
 
   // RA: total RA contributions from expenses, cap = 27.5% of income, max R350,000
   const raContributions = categoryBreakdown["Retirement Annuity"] ?? 0;
