@@ -48,7 +48,7 @@ export default function HomeScreen() {
   const now = new Date();
   const hour = now.getHours();
   const dayName = DAY_NAMES[now.getDay()];
-  const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+  const greeting = hour < 12 ? "Morning" : hour < 17 ? "Afternoon" : "Evening";
   const estimatedSaving = Math.round(totalDeductions * 0.31);
 
   const loadData = useCallback(async () => {
