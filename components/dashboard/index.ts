@@ -7,7 +7,7 @@ export { ExpenseDetailScreen } from "./expense-detail";
 export { ExpenseItem } from "./expense-item";
 export { GlobalSearch } from "./global-search";
 export { ITR12CategoryBreakdownScreen } from "./itr12-category-breakdown";
-export { ITR12DeductibilityGuideScreen } from "./itr12-deductibility-guide";
+export { ITR12DeductibilityGuideScreen } from "./ITR12-deductibility-guide";
 export { ITR12ExportPreviewScreen } from "./itr12-export-preview";
 export { ITR12ExportSetupScreen } from "./itr12-export-setup";
 export { ITR12PDFReportScreen } from "./itr12-pdf-report";
