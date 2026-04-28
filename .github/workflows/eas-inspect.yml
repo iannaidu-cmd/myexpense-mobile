@@ -57,7 +57,7 @@ jobs:
           EXPO_PUBLIC_SENTRY_DSN: ${{ secrets.EXPO_PUBLIC_SENTRY_DSN }}
 
       - name: Upload inspect bundle
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: eas-inspect-${{ inputs.platform }}-${{ inputs.profile }}
           path: /tmp/eas-inspect
