@@ -36,11 +36,12 @@ export const mileageService = {
     return (data ?? []).reduce((sum, t) => sum + Number(t.distance_km), 0);
   },
 
-  deleteTrip: async (id: string): Promise<void> => {
+  deleteTrip: async (id: string, userId: string): Promise<void> => {
     const { error } = await supabase
       .from("mileage_trips")
       .delete()
-      .eq("id", id);
+      .eq("id", id)
+      .eq("user_id", userId);
     if (error) throw new Error(error.message);
   },
 };

@@ -95,7 +95,7 @@ export default function MileageHistoryScreen() {
           onPress: async () => {
             setDeleting(id);
             try {
-              await mileageService.deleteTrip(id);
+              await mileageService.deleteTrip(id, user!.id);
               await loadTrips();
             } catch (e: any) {
               Alert.alert("Error", e.message);
