@@ -6,7 +6,7 @@
 import { expenseService } from "@/services/expenseService";
 import type { Expense } from "@/types/database";
 import { ITR12_CATEGORIES } from "@/types/database";
-import * as FileSystem from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

@@ -79,7 +79,7 @@ const MAPPING = {
   "briefcase.fill": "work",
   "calendar": "calendar-today",
   "mappin": "location-on",
-} as IconMapping;
+} as unknown as IconMapping;
 
 /**
  * An icon component that uses native SF Symbols on iOS, and Material Icons on Android and web.

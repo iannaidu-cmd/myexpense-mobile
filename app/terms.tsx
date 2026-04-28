@@ -29,9 +29,9 @@ function Section({ title, children }: SectionProps) {
   );
 }
 
-function Body({ children }: { children: React.ReactNode }) {
+function Body({ children, style }: { children: React.ReactNode; style?: object }) {
   return (
-    <Text style={{ fontSize: 14, color: colour.textSub, lineHeight: 22 }}>
+    <Text style={[{ fontSize: 14, color: colour.textSub, lineHeight: 22 }, style]}>
       {children}
     </Text>
   );

@@ -2,6 +2,7 @@ import { MXCard } from "@/components/MXCard";
 import MXLogo from "@/components/MXLogo";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { colour, radius, space, typography } from "@/tokens";
+import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
     ScrollView,

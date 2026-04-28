@@ -277,19 +277,11 @@ export default function PaywallUpgradeScreen() {
                   alignItems: "center",
                   backgroundColor:
                     selectedPlan === plan ? colour.white : "transparent",
-                  ...Platform.select({
-                    ios:
-                      selectedPlan === plan
-                        ? {
-                            shadowColor: "#000",
-                            shadowOpacity: 0.08,
-                            shadowRadius: 4,
-                            shadowOffset: { width: 0, height: 2 },
-                          }
-                        : {},
-                    android: selectedPlan === plan ? { elevation: 2 } : {},
-                    default: {},
-                  }),
+                  ...(selectedPlan === plan && Platform.OS === "ios"
+                    ? { shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 4, shadowOffset: { width: 0, height: 2 } }
+                    : selectedPlan === plan && Platform.OS === "android"
+                    ? { elevation: 2 }
+                    : {}),
                 }}
               >
                 <Text
