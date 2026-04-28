@@ -1,7 +1,7 @@
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { supabase } from "@/lib/supabase";
+import { mileageService, type MileageTrip } from "@/services/mileageService";
 import { useAuthStore } from "@/stores/authStore";
 import { colour, radius, space, typography } from "@/tokens";
 import { ACTIVE_TAX_YEAR } from "@/types/database";
@@ -54,17 +54,6 @@ function formatDate(dateStr: string): string {
   });
 }
 
-interface MileageTrip {
-  id: string;
-  purpose: string;
-  distance_km: number;
-  duration_seconds: number;
-  trip_date: string;
-  is_deductible: boolean;
-  notes: string | null;
-  tax_year: string;
-  created_at: string;
-}
 
 export default function MileageHistoryScreen() {
   const router = useRouter();
@@ -78,23 +67,8 @@ export default function MileageHistoryScreen() {
     if (!user) return;
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from("mileage_trips")
-        .select("*")
-        .eq("user_id", user.id)
-        .eq("tax_year", ACTIVE_TAX_YEAR)
-        .order("trip_date", { ascending: false });
-
-      if (error) {
-        // PGRST205 = table not in schema cache yet — treat as empty rather than crashing
-        if (error.code === "PGRST205") {
-          setTrips([]);
-        } else {
-          throw error;
-        }
-      } else {
-        setTrips(data ?? []);
-      }
+      const data = await mileageService.getTrips(user.id, ACTIVE_TAX_YEAR);
+      setTrips(data);
     } catch (e: any) {
       console.error("MileageHistory load error:", e);
       setTrips([]);
@@ -121,7 +95,7 @@ export default function MileageHistoryScreen() {
           onPress: async () => {
             setDeleting(id);
             try {
-              await supabase.from("mileage_trips").delete().eq("id", id);
+              await mileageService.deleteTrip(id);
               await loadTrips();
             } catch (e: any) {
               Alert.alert("Error", e.message);
