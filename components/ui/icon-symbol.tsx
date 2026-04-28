@@ -24,7 +24,6 @@ const MAPPING = {
   "camera.fill": "camera",
   "plus.circle.fill": "add-circle",
   "plus": "add",
-  "car.fill": "directions-car",
   "gearshape.fill": "settings",
   "person.fill": "person",
   "list.bullet": "format-list-bulleted",

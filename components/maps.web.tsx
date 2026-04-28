@@ -8,7 +8,8 @@ import { colour, space, typography } from "@/tokens";
 import React from "react";
 import { Text, View } from "react-native";
 
-const placeholder = (name: string) => () => (
+const placeholder = (name: string) => {
+  const Component = () => (
   <View
     style={{
       flex: 1,
@@ -28,7 +29,10 @@ const placeholder = (name: string) => () => (
       {name} · Use the mobile app for live tracking
     </Text>
   </View>
-);
+  );
+  Component.displayName = name;
+  return Component;
+};
 
 export default {
   Marker: placeholder("Marker"),

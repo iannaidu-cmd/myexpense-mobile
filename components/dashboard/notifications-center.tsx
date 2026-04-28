@@ -65,7 +65,6 @@ export function NotificationsCenter({ onClose }: NotificationsCenterProps) {
                 style={{
                   flexDirection: "row",
                   alignItems: "flex-start",
-                  backgroundColor: colour.white,
                   borderRadius: radius.md,
                   padding: 12,
                   marginBottom: 8,
