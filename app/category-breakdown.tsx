@@ -91,13 +91,8 @@ export default function CategoryBreakdownScreen() {
     if (selected !== 'Vehicle Expenses' || !user) return;
     (async () => {
       try {
-        const { supabase } = await import('@/lib/supabase');
-        const { data } = await supabase
-          .from('mileage_trips')
-          .select('distance_km')
-          .eq('user_id', user.id)
-          .eq('tax_year', activeTaxYear);
-        const km = (data ?? []).reduce((s: number, t: any) => s + Number(t.distance_km), 0);
+        const { mileageService } = await import('@/services/mileageService');
+        const km = await mileageService.getTotalBusinessKm(user.id, activeTaxYear);
         setBusinessKm(km);
       } catch { /* non-fatal */ }
     })();
