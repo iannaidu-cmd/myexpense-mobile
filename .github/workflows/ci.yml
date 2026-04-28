@@ -42,3 +42,6 @@ jobs:
 
       - name: Expo Doctor
         run: npx expo-doctor
+
+      - name: Unit tests
+        run: npm test -- --no-coverage

@@ -55,3 +55,4 @@ startup.log
 supabase/.temp/
 
 .env.local
+.claude/
