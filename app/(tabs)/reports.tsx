@@ -1,5 +1,6 @@
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { MXHeader } from "@/components/MXHeader";
+import { SA_MARGINAL_TAX_RATE } from "@/constants/tax";
 import { expenseService } from "@/services/expenseService";
 import { incomeService } from "@/services/incomeService";
 import { useAuthStore } from "@/stores/authStore";
@@ -93,7 +94,7 @@ export default function ReportsTabScreen() {
     useCallback(() => { loadData(); }, [loadData]),
   );
 
-  const estTaxSaving = Math.round(totalDeductions * 0.31);
+  const estTaxSaving = Math.round(totalDeductions * SA_MARGINAL_TAX_RATE);
   const deductPct = totalExpenses > 0
     ? Math.round((totalDeductions / totalExpenses) * 100)
     : 0;

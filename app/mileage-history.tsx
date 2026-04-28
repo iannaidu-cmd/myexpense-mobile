@@ -121,7 +121,11 @@ export default function MileageHistoryScreen() {
           onPress: async () => {
             setDeleting(id);
             try {
-              await supabase.from("mileage_trips").delete().eq("id", id);
+              await supabase
+                .from("mileage_trips")
+                .delete()
+                .eq("id", id)
+                .eq("user_id", user!.id);
               await loadTrips();
             } catch (e: any) {
               Alert.alert("Error", e.message);
