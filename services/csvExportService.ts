@@ -6,7 +6,7 @@
 import { expenseService } from "@/services/expenseService";
 import type { Expense } from "@/types/database";
 import { ITR12_CATEGORIES } from "@/types/database";
-import * as FileSystem from "expo-file-system/legacy";
+import { File, Paths } from "expo-file-system";
 import * as Sharing from "expo-sharing";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -30,7 +30,7 @@ function getITR12Code(category: string, itr12_code?: string | null): string {
 
 export function generateCSV(expenses: Expense[]): string {
   // BOM for Excel to auto-detect UTF-8
-  const BOM = "\uFEFF";
+  const BOM = "﻿";
 
   const HEADER = [
     "Date",
@@ -87,11 +87,8 @@ export async function exportExpensesCSV(opts: CSVExportOptions): Promise<void> {
   const csv = generateCSV(expenses);
 
   const fileName = `MyExpense_ITR12_${taxYear.replace("/", "-")}_${Date.now()}.csv`;
-  const fileUri = `${FileSystem.cacheDirectory}${fileName}`;
-
-  await FileSystem.writeAsStringAsync(fileUri, csv, {
-    encoding: FileSystem.EncodingType.UTF8,
-  });
+  const file = new File(Paths.cache, fileName);
+  file.write(csv, { encoding: "utf8" });
 
   const canShare = await Sharing.isAvailableAsync();
   if (!canShare) {
@@ -100,7 +97,7 @@ export async function exportExpensesCSV(opts: CSVExportOptions): Promise<void> {
     );
   }
 
-  await Sharing.shareAsync(fileUri, {
+  await Sharing.shareAsync(file.uri, {
     mimeType: "text/csv",
     dialogTitle: `MyExpense expenses ${taxYear}`,
     UTI: "public.comma-separated-values-text",
