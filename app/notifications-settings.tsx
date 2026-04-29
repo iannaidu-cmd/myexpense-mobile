@@ -1,4 +1,5 @@
 import { MXBackHeader } from "@/components/MXBackHeader";
+import { MXTabBar } from "@/components/MXTabBar";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { colour, radius, space, typography } from "@/tokens";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -233,6 +234,7 @@ export default function NotificationsSettingsScreen() {
           />
         </View>
       </ScrollView>
+      <MXTabBar />
     </SafeAreaView>
   );
 }

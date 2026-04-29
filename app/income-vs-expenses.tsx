@@ -1,4 +1,5 @@
 import { MXBackHeader } from "@/components/MXBackHeader";
+import { MXTabBar } from "@/components/MXTabBar";
 import { expenseService } from "@/services/expenseService";
 import { incomeService } from "@/services/incomeService";
 import { useAuthStore } from "@/stores/authStore";
@@ -495,6 +496,7 @@ export default function IncomeVsExpensesScreen() {
           </>
         )}
       </ScrollView>
+      <MXTabBar />
     </SafeAreaView>
   );
 }

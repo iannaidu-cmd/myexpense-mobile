@@ -1,4 +1,5 @@
 import { MXHeader } from "@/components/MXHeader";
+import { MXTabBar } from "@/components/MXTabBar";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/stores/authStore";
@@ -712,6 +713,7 @@ export default function BankAccountsScreen() {
           </ScrollView>
         </SafeAreaView>
       </Modal>
+      <MXTabBar />
     </SafeAreaView>
   );
 }

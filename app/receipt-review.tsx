@@ -1,4 +1,5 @@
 import { MXHeader } from "@/components/MXHeader";
+import { MXTabBar } from "@/components/MXTabBar";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { CATEGORIES } from "@/constants/categories";
 import { expenseService } from "@/services/expenseService";
@@ -715,6 +716,7 @@ export default function ReceiptReviewScreen() {
           </Text>
         </TouchableOpacity>
       </ScrollView>
+      <MXTabBar />
     </SafeAreaView>
   );
 }

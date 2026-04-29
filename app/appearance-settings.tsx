@@ -1,4 +1,5 @@
 import { MXBackHeader } from "@/components/MXBackHeader";
+import { MXTabBar } from "@/components/MXTabBar";
 import { colour, radius, space, typography } from "@/tokens";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { useEffect, useState } from "react";
@@ -325,6 +326,7 @@ export default function AppearanceSettingsScreen() {
           </Text>
         </View>
       </ScrollView>
+      <MXTabBar />
     </SafeAreaView>
   );
 }

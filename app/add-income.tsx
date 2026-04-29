@@ -1,4 +1,5 @@
 import { MXHeader } from "@/components/MXHeader";
+import { MXTabBar } from "@/components/MXTabBar";
 import {
   validateAmount,
   validateDate,
@@ -416,6 +417,7 @@ export default function AddIncomeScreen() {
           </Text>
         </TouchableOpacity>
       </ScrollView>
+      <MXTabBar />
     </SafeAreaView>
   );
 }

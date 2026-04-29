@@ -1,4 +1,5 @@
 import { MXBackHeader } from "@/components/MXBackHeader";
+import { MXTabBar } from "@/components/MXTabBar";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import {
     authenticateWithBiometrics,
@@ -391,6 +392,7 @@ export default function SecuritySettingsScreen() {
           />
         </View>
       </ScrollView>
+      <MXTabBar />
     </SafeAreaView>
   );
 }

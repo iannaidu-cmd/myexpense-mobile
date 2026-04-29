@@ -1,4 +1,5 @@
 ﻿import { MXHeader } from "@/components/MXHeader";
+import { MXTabBar } from "@/components/MXTabBar";
 import { profileService } from "@/services/profileService";
 import { useAuthStore } from "@/stores/authStore";
 import { colour, radius, space, typography } from "@/tokens";
@@ -295,6 +296,7 @@ export default function ProfileScreen() {
           )}
         </View>
       </KeyboardAvoidingView>
+      <MXTabBar />
     </SafeAreaView>
   );
 }
