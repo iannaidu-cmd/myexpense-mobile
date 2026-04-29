@@ -1,4 +1,5 @@
 import { MXHeader } from "@/components/MXHeader";
+import { MXTabBar } from "@/components/MXTabBar";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { expenseService } from "@/services/expenseService";
 import { incomeService } from "@/services/incomeService";
@@ -575,6 +576,7 @@ export default function ReportsDashboardScreen() {
           </>
         )}
       </ScrollView>
+      <MXTabBar />
     </SafeAreaView>
   );
 }

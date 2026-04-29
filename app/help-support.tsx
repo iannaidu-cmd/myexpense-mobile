@@ -1,4 +1,5 @@
 import { MXBackHeader } from "@/components/MXBackHeader";
+import { MXTabBar } from "@/components/MXTabBar";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { colour, radius, space, typography } from "@/tokens";
 import { useRouter } from "expo-router";
@@ -324,6 +325,7 @@ export default function HelpSupportScreen() {
           </Text>
         </View>
       </ScrollView>
+      <MXTabBar />
     </SafeAreaView>
   );
 }

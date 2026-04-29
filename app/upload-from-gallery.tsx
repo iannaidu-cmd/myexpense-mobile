@@ -1,4 +1,5 @@
 import { MXHeader } from "@/components/MXHeader";
+import { MXTabBar } from "@/components/MXTabBar";
 import { receiptState } from "@/lib/receiptState";
 import { useAuthStore } from "@/stores/authStore";
 import { colour, radius, space, typography } from "@/tokens";
@@ -214,7 +215,7 @@ export default function UploadFromGalleryScreen() {
             height: 52,
             alignItems: "center",
             justifyContent: "center",
-            marginBottom: Math.max(insets.bottom, space.md),
+            marginBottom: space.md,
           }}
         >
           {uploading ? (
@@ -226,6 +227,7 @@ export default function UploadFromGalleryScreen() {
           )}
         </TouchableOpacity>
       </View>
+      <MXTabBar />
     </SafeAreaView>
   );
 }
