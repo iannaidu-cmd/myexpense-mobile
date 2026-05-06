@@ -72,7 +72,7 @@ export default function HomeScreen() {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user?.id]);
 
   useFocusEffect(
     useCallback(() => { loadData(); }, [loadData])
@@ -191,14 +191,6 @@ export default function HomeScreen() {
                     {formatZAR(totalExpenses)}
                   </Text>
                 </View>
-                <View style={{ flex: 1, paddingLeft: 16 }}>
-                  <Text style={{ fontSize: 11, color: colour.onNoir2, fontWeight: "500", marginBottom: 6 }}>
-                    Deductible
-                  </Text>
-                  <Text style={{ fontSize: 18, fontWeight: "700", color: colour.onNoir, letterSpacing: -0.5 }}>
-                    {formatZAR(totalDeductions)}
-                  </Text>
-                </View>
               </View>
             </View>
 
@@ -241,7 +233,7 @@ export default function HomeScreen() {
 
             {/* ── Scan CTA banner ── */}
             <TouchableOpacity
-              onPress={() => router.push("/(tabs)/scan")}
+              onPress={() => router.push("/scan-receipt-camera" as any)}
               style={{
                 backgroundColor: colour.primary, borderRadius: radius.lg,
                 paddingVertical: 28, paddingHorizontal: 18, flexDirection: "row",

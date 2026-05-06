@@ -246,7 +246,7 @@ export default function EmptyStateNoExpensesScreen({
   const handleCta1 =
     onAddExpense ?? (() => router.push("/add-expense-manual" as any));
   const handleCta2 =
-    onScanReceipt ?? (() => router.push("/(tabs)/scan" as any));
+    onScanReceipt ?? (() => router.push("/scan-receipt-camera" as any));
   const handleClear = onClearFilter ?? (() => router.back());
 
   return (

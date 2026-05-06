@@ -15,7 +15,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const SECTIONS: {
+const BASE_SECTIONS: {
   title: string;
   items: { icon: string; label: string; sub: string; route: string }[];
 }[] = [
@@ -31,7 +31,6 @@ const SECTIONS: {
     title: "Preferences",
     items: [
       { icon: "bell.fill",      label: "Notifications",   sub: "Push, email & filing reminders", route: "/notifications-settings" },
-      { icon: "eye.fill",       label: "Appearance",      sub: "Theme & display settings",       route: "/appearance-settings"    },
     ],
   },
   {
@@ -52,7 +51,7 @@ const SECTIONS: {
 
 export default function SettingsTabScreen() {
   const router = useRouter();
-  const { user, signOut } = useAuthStore();
+  const { user, signOut, isPremium, isDevUser } = useAuthStore();
   const [fullName, setFullName] = useState("");
   const [subscription, setSubscription] = useState<"free" | "pro" | "business">("free");
 
@@ -71,8 +70,23 @@ export default function SettingsTabScreen() {
     (user?.email?.[0]?.toUpperCase() ?? "?");
 
   const planLabel =
-    subscription === "pro" ? "Pro plan" :
-    subscription === "business" ? "Business plan" : "Free plan";
+    isDevUser ? "Developer account" :
+    subscription === "pro" ? "Pro plan · Active" :
+    subscription === "business" ? "Business plan · Active" : "Free plan";
+
+  const SECTIONS = BASE_SECTIONS.map((section) => ({
+    ...section,
+    items: section.items.map((item) => {
+      if (item.route === "/paywall-upgrade" && isPremium) {
+        return {
+          ...item,
+          sub: isDevUser ? "Developer access · All features unlocked" : "Pro plan · Active",
+          route: "",
+        };
+      }
+      return item;
+    }),
+  }));
 
   const handleSignOut = () => {
     Alert.alert("Sign out", "Are you sure you want to sign out?", [

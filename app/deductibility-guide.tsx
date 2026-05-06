@@ -1,25 +1,22 @@
+import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
-import { ThemedText } from "@/components/themed-text";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { ThemedView } from "@/components/themed-view";
-import { colour, space } from "@/tokens";
-import { useRouter } from "expo-router";
+import { colour, radius, space, typography } from "@/tokens";
 import React, { useState } from "react";
-import { ScrollView, TextInput, TouchableOpacity, View } from "react-native";
-
-function PhoneShell({ children }: { children: React.ReactNode }) {
-  return (
-    <ThemedView style={{ flex: 1, backgroundColor: colour.surface1 }}>
-      <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
-        {children}
-      </ScrollView>
-      <MXTabBar />
-    </ThemedView>
-  );
-}
+import {
+  ScrollView,
+  StatusBar,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 interface GuideEntry {
   icon: string;
+  iconBg: string;
+  iconColor: string;
   category: string;
   section: string;
   itr12Line: string;
@@ -30,7 +27,9 @@ interface GuideEntry {
 
 const GUIDE: GuideEntry[] = [
   {
-    icon: "🚗",
+    icon: "car.fill",
+    iconBg: colour.warningBg,
+    iconColor: colour.warning,
     category: "Travel & Vehicle",
     section: "S11(a)",
     itr12Line: "4011",
@@ -39,7 +38,9 @@ const GUIDE: GuideEntry[] = [
     docs: "Logbook, fuel receipts, trip purpose",
   },
   {
-    icon: "🏠",
+    icon: "house.fill",
+    iconBg: colour.tealLight,
+    iconColor: colour.teal,
     category: "Home Office",
     section: "S11(a)",
     itr12Line: "4018",
@@ -49,7 +50,9 @@ const GUIDE: GuideEntry[] = [
     docs: "Floor plan or measurements, utility bills, lease or title deed",
   },
   {
-    icon: "🏦",
+    icon: "building.columns.fill",
+    iconBg: colour.primary50,
+    iconColor: colour.primary,
     category: "Home Office — Bond Interest",
     section: "S11(a)",
     itr12Line: "4018",
@@ -59,7 +62,9 @@ const GUIDE: GuideEntry[] = [
     docs: "Annual bond statement (interest vs capital split), floor plan or room measurements, proof of exclusive business use",
   },
   {
-    icon: "🔑",
+    icon: "key.fill",
+    iconBg: colour.successBg,
+    iconColor: colour.success,
     category: "Home Office — Rent",
     section: "S11(a)",
     itr12Line: "4018",
@@ -69,7 +74,9 @@ const GUIDE: GuideEntry[] = [
     docs: "Lease agreement, monthly rental invoices or bank statements, floor plan or room measurements",
   },
   {
-    icon: "🔧",
+    icon: "wrench.fill",
+    iconBg: colour.surface2,
+    iconColor: colour.textSub,
     category: "Equipment & Tools",
     section: "S11(e)",
     itr12Line: "4022",
@@ -78,7 +85,9 @@ const GUIDE: GuideEntry[] = [
     docs: "Purchase invoice, asset register",
   },
   {
-    icon: "💻",
+    icon: "laptopcomputer",
+    iconBg: colour.primary50,
+    iconColor: colour.accentDeep,
     category: "Software & Subscr.",
     section: "S11(a)",
     itr12Line: "4011",
@@ -87,7 +96,9 @@ const GUIDE: GuideEntry[] = [
     docs: "Invoices or statements",
   },
   {
-    icon: "🍽",
+    icon: "fork.knife",
+    iconBg: colour.warningBg,
+    iconColor: colour.warning,
     category: "Meals & Entertain.",
     section: "S11(a)",
     itr12Line: "4011",
@@ -96,7 +107,9 @@ const GUIDE: GuideEntry[] = [
     docs: "Receipt with attendees and purpose noted",
   },
   {
-    icon: "📋",
+    icon: "doc.text.fill",
+    iconBg: colour.primary50,
+    iconColor: colour.accentDeep,
     category: "Professional Fees",
     section: "S11(a)",
     itr12Line: "4011",
@@ -105,7 +118,9 @@ const GUIDE: GuideEntry[] = [
     docs: "Tax invoice from registered practitioner",
   },
   {
-    icon: "⚡",
+    icon: "bolt.fill",
+    iconBg: colour.warningBg,
+    iconColor: colour.warning,
     category: "Utilities",
     section: "S11(a)",
     itr12Line: "4011",
@@ -114,7 +129,9 @@ const GUIDE: GuideEntry[] = [
     docs: "Municipal bill, floor plan calculation",
   },
   {
-    icon: "📣",
+    icon: "megaphone.fill",
+    iconBg: colour.dangerBg,
+    iconColor: colour.danger,
     category: "Marketing & Adverts",
     section: "S11(a)",
     itr12Line: "4011",
@@ -123,7 +140,9 @@ const GUIDE: GuideEntry[] = [
     docs: "Invoice, proof of business purpose",
   },
   {
-    icon: "🏦",
+    icon: "creditcard.fill",
+    iconBg: colour.surface2,
+    iconColor: colour.textSub,
     category: "Bank Charges",
     section: "S11(a)",
     itr12Line: "4011",
@@ -132,7 +151,9 @@ const GUIDE: GuideEntry[] = [
     docs: "Bank statement",
   },
   {
-    icon: "📞",
+    icon: "phone.fill",
+    iconBg: colour.primary50,
+    iconColor: colour.primary,
     category: "Communication",
     section: "S11(a)",
     itr12Line: "4011",
@@ -141,7 +162,9 @@ const GUIDE: GuideEntry[] = [
     docs: "Invoice, call log or allocation method",
   },
   {
-    icon: "🎓",
+    icon: "graduationcap.fill",
+    iconBg: colour.successBg,
+    iconColor: colour.success,
     category: "Training & CPD",
     section: "S11(a)",
     itr12Line: "4011",
@@ -150,7 +173,9 @@ const GUIDE: GuideEntry[] = [
     docs: "Invoice, certificate of attendance",
   },
   {
-    icon: "👤",
+    icon: "person.fill",
+    iconBg: colour.surface2,
+    iconColor: colour.textSub,
     category: "Personal Expenses",
     section: "Not allowed",
     itr12Line: "—",
@@ -173,10 +198,11 @@ function GuideCard({
   return (
     <TouchableOpacity
       onPress={onToggle}
+      activeOpacity={0.7}
       style={{
-        backgroundColor: colour.background,
+        backgroundColor: colour.white,
         borderBottomWidth: 1,
-        borderBottomColor: colour.border,
+        borderBottomColor: colour.borderLight,
       }}
     >
       <View
@@ -184,112 +210,110 @@ function GuideCard({
           flexDirection: "row",
           alignItems: "center",
           paddingHorizontal: space.md,
-          paddingVertical: space.md,
+          paddingVertical: 14,
         }}
       >
-        <ThemedText style={{ fontSize: 20, marginRight: space.md }}>
-          {entry.icon}
-        </ThemedText>
-        <View style={{ flex: 1 }}>
-          <ThemedText
-            style={{ fontSize: 13, fontWeight: "600", color: colour.text }}
-          >
-            {entry.category}
-          </ThemedText>
-          <ThemedText
-            style={{ fontSize: 11, color: colour.textSub, marginTop: 2 }}
-          >
-            {entry.section} · Line {entry.itr12Line}
-          </ThemedText>
+        <View
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: radius.md,
+            backgroundColor: entry.iconBg,
+            alignItems: "center",
+            justifyContent: "center",
+            marginRight: space.md,
+            flexShrink: 0,
+          }}
+        >
+          <IconSymbol name={entry.icon as any} size={16} color={entry.iconColor} />
         </View>
-        <View style={{ alignItems: "flex-end", marginRight: space.md }}>
-          <View
+        <View style={{ flex: 1 }}>
+          <Text style={{ fontSize: 13, fontWeight: "600", color: colour.text }}>
+            {entry.category}
+          </Text>
+          <Text style={{ fontSize: 11, color: colour.textSub, marginTop: 2 }}>
+            {entry.section} · Line {entry.itr12Line}
+          </Text>
+        </View>
+        <View
+          style={{
+            backgroundColor: isDeductible ? colour.successBg : colour.surface2,
+            borderRadius: radius.sm,
+            paddingHorizontal: 8,
+            paddingVertical: 3,
+            marginRight: space.sm,
+          }}
+        >
+          <Text
             style={{
-              backgroundColor: isDeductible
-                ? colour.successLight
-                : colour.surface2,
-              borderRadius: space.xxs,
-              paddingHorizontal: space.xxs,
-              paddingVertical: 3,
+              fontSize: 11,
+              fontWeight: "700",
+              color: isDeductible ? colour.success : colour.textSub,
             }}
           >
-            <ThemedText
-              style={{
-                fontSize: 11,
-                fontWeight: "700",
-                color: isDeductible ? colour.successMid : colour.textSub,
-              }}
-            >
-              {entry.deductPct}
-            </ThemedText>
-          </View>
+            {entry.deductPct}
+          </Text>
         </View>
-        <ThemedText style={{ color: colour.primary, fontSize: 16 }}>
-          {expanded ? "∨" : "›"}
-        </ThemedText>
+        <IconSymbol
+          name={expanded ? "chevron.down" : "chevron.right"}
+          size={14}
+          color={colour.textSub}
+        />
       </View>
+
       {expanded && (
-        <ThemedView
+        <View
           style={{
             paddingHorizontal: space.md,
             paddingBottom: space.md,
             backgroundColor: colour.surface1,
+            borderTopWidth: 1,
+            borderTopColor: colour.borderLight,
           }}
         >
-          <View style={{ marginBottom: space.xxs }}>
-            <ThemedText
+          <View style={{ marginBottom: space.sm, marginTop: space.sm }}>
+            <Text
               style={{
-                fontSize: 11,
-                fontWeight: "700",
+                ...typography.labelS,
                 color: colour.textSub,
                 letterSpacing: 0.5,
                 marginBottom: 4,
               }}
             >
-              Condition
-            </ThemedText>
-            <ThemedText
-              style={{ fontSize: 13, color: colour.text, lineHeight: 19 }}
-            >
+              CONDITION
+            </Text>
+            <Text style={{ fontSize: 13, color: colour.text, lineHeight: 19 }}>
               {entry.condition}
-            </ThemedText>
+            </Text>
           </View>
           <View>
-            <ThemedText
+            <Text
               style={{
-                fontSize: 11,
-                fontWeight: "700",
+                ...typography.labelS,
                 color: colour.textSub,
                 letterSpacing: 0.5,
                 marginBottom: 4,
               }}
             >
-              Required documentation
-            </ThemedText>
-            <ThemedText
-              style={{ fontSize: 13, color: colour.text, lineHeight: 19 }}
-            >
+              REQUIRED DOCUMENTATION
+            </Text>
+            <Text style={{ fontSize: 13, color: colour.text, lineHeight: 19 }}>
               {entry.docs}
-            </ThemedText>
+            </Text>
           </View>
-          <ThemedText
-            style={{ fontSize: 11, color: colour.textSub, marginTop: 8 }}
-          >
+          <Text style={{ fontSize: 11, color: colour.textHint, marginTop: 8 }}>
             Retain all supporting documents for 5 years (SARS requirement).
-          </ThemedText>
-        </ThemedView>
+          </Text>
+        </View>
       )}
     </TouchableOpacity>
   );
 }
 
 export default function DeductibilityGuideScreen() {
-  const router = useRouter();
   const [search, setSearch] = useState("");
   const [expanded, setExpanded] = useState<string | null>(null);
-  const [filter, setFilter] = useState<"All" | "Deductible" | "Not Deductible">(
-    "All",
-  );
+  const [filter, setFilter] = useState<"All" | "Deductible" | "Not Deductible">("All");
 
   const filtered = GUIDE.filter((e) => {
     const matchSearch =
@@ -299,186 +323,142 @@ export default function DeductibilityGuideScreen() {
       filter === "All"
         ? true
         : filter === "Deductible"
-          ? e.deductPct !== "0%"
-          : e.deductPct === "0%";
+        ? e.deductPct !== "0%"
+        : e.deductPct === "0%";
     return matchSearch && matchFilter;
   });
 
   return (
-    <PhoneShell>
-      <ThemedView
-        style={{
-          backgroundColor: colour.primary,
-          paddingTop: space.xxl,
-          paddingBottom: space.xl,
-          paddingHorizontal: space.lg,
-        }}
-      >
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={{ marginBottom: space.md }}
-        >
-          <ThemedText style={{ color: colour.accent, fontSize: 13 }}>
-            ‹ Tax summary
-          </ThemedText>
-        </TouchableOpacity>
-        <ThemedText
-          style={{
-            color: colour.accent,
-            fontSize: 12,
-            fontWeight: "600",
-            letterSpacing: 1,
-          }}
-        >
-          TAX & ITR12
-        </ThemedText>
-        <ThemedText
-          style={{
-            color: colour.onPrimary,
-            fontSize: 22,
-            fontWeight: "800",
-            marginTop: 4,
-          }}
-        >
-          Deductibility Guide
-        </ThemedText>
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            backgroundColor: colour.primary200,
-            borderRadius: space.md,
-            paddingHorizontal: space.md,
-            paddingVertical: space.md,
-            marginTop: space.md,
-          }}
-        >
-          <ThemedText style={{ fontSize: 16, marginRight: space.md }}>
-            🔍
-          </ThemedText>
-          <TextInput
-            value={search}
-            onChangeText={setSearch}
-            placeholder="Search categories…"
-            placeholderTextColor={colour.textSub}
-            style={{ flex: 1, color: colour.onPrimary, fontSize: 14 }}
-          />
-        </View>
-      </ThemedView>
+    <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colour.background }}>
+      <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
 
-      <ThemedView
+      <MXHeader title="Deductibility Guide" showBack />
+
+      {/* Search bar */}
+      <View
         style={{
+          flexDirection: "row",
+          alignItems: "center",
           backgroundColor: colour.surface1,
-          borderTopLeftRadius: space.xl,
-          borderTopRightRadius: space.xl,
-          marginTop: -16,
-          paddingBottom: space.xl,
+          borderRadius: radius.md,
+          borderWidth: 1,
+          borderColor: colour.borderLight,
+          paddingHorizontal: space.md,
+          paddingVertical: space.sm,
+          marginHorizontal: space.lg,
+          marginBottom: space.sm,
         }}
       >
+        <IconSymbol name="magnifyingglass" size={15} color={colour.textSub} />
+        <TextInput
+          value={search}
+          onChangeText={setSearch}
+          placeholder="Search categories…"
+          placeholderTextColor={colour.textHint}
+          style={{
+            flex: 1,
+            color: colour.text,
+            fontSize: 14,
+            marginLeft: space.sm,
+            paddingVertical: 0,
+          }}
+        />
+      </View>
+
+      {/* Filter pills */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={{ flexGrow: 0 }}
+        contentContainerStyle={{ paddingHorizontal: space.lg, paddingVertical: space.xs, gap: space.xs }}
+      >
+        {(["All", "Deductible", "Not Deductible"] as const).map((f) => (
+          <TouchableOpacity
+            key={f}
+            onPress={() => setFilter(f)}
+            style={{
+              paddingHorizontal: space.md,
+              paddingVertical: 6,
+              borderRadius: radius.pill,
+              backgroundColor: filter === f ? colour.noir : colour.surface1,
+              borderWidth: 1,
+              borderColor: filter === f ? colour.noir : colour.borderLight,
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 12,
+                fontWeight: "600",
+                color: filter === f ? colour.onNoir : colour.textSub,
+              }}
+            >
+              {f}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
+      <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
         {/* SARS disclaimer */}
         <View
           style={{
-            margin: space.md,
-            backgroundColor: colour.primary200,
-            borderRadius: space.md,
+            marginHorizontal: space.lg,
+            marginVertical: space.sm,
+            backgroundColor: colour.primary50,
+            borderRadius: radius.md,
             padding: space.md,
             flexDirection: "row",
             alignItems: "flex-start",
+            gap: space.sm,
           }}
         >
-          <ThemedText style={{ fontSize: 18, marginRight: space.md }}>
-            ⚖️
-          </ThemedText>
-          <ThemedText
-            style={{
-              flex: 1,
-              fontSize: 12,
-              color: colour.textSub,
-              lineHeight: 18,
-            }}
-          >
+          <IconSymbol name="info.circle.fill" size={16} color={colour.primary} style={{ marginTop: 1 } as any} />
+          <Text style={{ flex: 1, fontSize: 12, color: colour.textSub, lineHeight: 18 }}>
             Based on SARS Income Tax Act provisions. Always confirm
-            deductibility with a registered tax practitioner. Rules may change
-            annually.
-          </ThemedText>
+            deductibility with a registered tax practitioner. Rules may change annually.
+          </Text>
         </View>
 
-        {/* Filter pills */}
-        <ThemedView
-          style={{ paddingHorizontal: space.md, marginBottom: space.md }}
-        >
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <View style={{ flexDirection: "row", gap: space.xxs }}>
-              {(["All", "Deductible", "Not Deductible"] as const).map((f) => (
-                <TouchableOpacity
-                  key={f}
-                  onPress={() => setFilter(f)}
-                  style={{
-                    paddingHorizontal: space.md,
-                    paddingVertical: space.xxs,
-                    borderRadius: 20,
-                    backgroundColor:
-                      filter === f ? colour.primary : colour.surface2,
-                  }}
-                >
-                  <ThemedText
-                    style={{
-                      fontSize: 12,
-                      fontWeight: "600",
-                      color: filter === f ? colour.onPrimary : colour.textSub,
-                    }}
-                  >
-                    {f}
-                  </ThemedText>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </ScrollView>
-        </ThemedView>
-
-        <ThemedView
+        {/* Guide list */}
+        <View
           style={{
-            borderTopWidth: 1,
-            borderBottomWidth: 1,
-            borderColor: colour.border,
+            marginHorizontal: space.lg,
+            borderRadius: radius.md,
+            borderWidth: 1,
+            borderColor: colour.borderLight,
             overflow: "hidden",
+            marginBottom: space.xl,
           }}
         >
           {filtered.length > 0 ? (
-            filtered.map((entry, i) => (
+            filtered.map((entry) => (
               <GuideCard
-                key={i}
+                key={entry.category}
                 entry={entry}
                 expanded={expanded === entry.category}
                 onToggle={() =>
-                  setExpanded(
-                    expanded === entry.category ? null : entry.category,
-                  )
+                  setExpanded(expanded === entry.category ? null : entry.category)
                 }
               />
             ))
           ) : (
-            <ThemedView
+            <View
               style={{
                 padding: space.xl,
                 alignItems: "center",
-                backgroundColor: colour.background,
+                backgroundColor: colour.white,
               }}
             >
               <IconSymbol name="magnifyingglass" size={32} color={colour.textSub} />
-              <ThemedText
-                style={{
-                  fontSize: 13,
-                  color: colour.textSub,
-                  marginTop: space.md,
-                }}
-              >
+              <Text style={{ fontSize: 13, color: colour.textSub, marginTop: space.md }}>
                 No categories match "{search}"
-              </ThemedText>
-            </ThemedView>
+              </Text>
+            </View>
           )}
-        </ThemedView>
-      </ThemedView>
-    </PhoneShell>
+        </View>
+      </ScrollView>
+
+      <MXTabBar />
+    </SafeAreaView>
   );
 }

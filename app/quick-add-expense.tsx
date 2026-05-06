@@ -201,13 +201,13 @@ export default function QuickAddExpenseScreen({
             style={{
               paddingHorizontal: 12,
               paddingVertical: 6,
-              backgroundColor: C.bgLight,
+              backgroundColor: C.surface1,
               borderRadius: 10,
               marginRight: 10,
             }}
           >
             <Text
-              style={{ fontSize: 12, color: C.midNavy2, fontWeight: "600" }}
+              style={{ fontSize: 12, color: C.accentDeep, fontWeight: "600" }}
             >
               Full form
             </Text>
@@ -283,11 +283,11 @@ export default function QuickAddExpenseScreen({
                     style={{
                       fontSize: 44,
                       fontWeight: "900",
-                      color: C.navy,
+                      color: C.text,
                       minWidth: 120,
                       textAlign: "center",
                       borderBottomWidth: 2,
-                      borderBottomColor: amount ? C.teal : C.border,
+                      borderBottomColor: amount ? C.accent : C.border,
                       paddingBottom: 4,
                     }}
                   />
@@ -326,9 +326,9 @@ export default function QuickAddExpenseScreen({
                       paddingVertical: 8,
                       borderRadius: 20,
                       backgroundColor:
-                        category === cat.label ? C.navy : C.bgLight,
+                        category === cat.label ? C.primary : C.surface1,
                       borderWidth: 1,
-                      borderColor: category === cat.label ? C.navy : C.border,
+                      borderColor: category === cat.label ? C.primary : C.border,
                     }}
                   >
                     <IconSymbol name={cat.icon as any} size={14} color={category === cat.label ? C.white : C.text} style={{ marginRight: 6 } as any} />
@@ -345,7 +345,7 @@ export default function QuickAddExpenseScreen({
                       <Text
                         style={{
                           fontSize: 9,
-                          color: C.teal,
+                          color: C.accent,
                           marginLeft: 4,
                           fontWeight: "700",
                         }}
@@ -417,7 +417,7 @@ export default function QuickAddExpenseScreen({
                   style={{
                     flexDirection: "row",
                     alignItems: "center",
-                    backgroundColor: C.bgLight,
+                    backgroundColor: C.surface1,
                     borderRadius: 10,
                     padding: 12,
                     marginBottom: 20,
@@ -445,7 +445,7 @@ export default function QuickAddExpenseScreen({
                 onPress={handleSave}
                 disabled={!amount || !category}
                 style={{
-                  backgroundColor: amount && category ? C.teal : C.bgLight,
+                  backgroundColor: amount && category ? C.accent : C.surface1,
                   borderRadius: 14,
                   padding: 16,
                   alignItems: "center",
@@ -468,7 +468,7 @@ export default function QuickAddExpenseScreen({
               <TouchableOpacity
                 onPress={() => {
                   handleClose();
-                  router.push("/(tabs)/scan" as any);
+                  router.push("/scan-receipt-camera" as any);
                 }}
                 style={{ alignItems: "center", marginTop: 14 }}
               >

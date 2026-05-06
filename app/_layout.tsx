@@ -28,8 +28,17 @@ import { Stack, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
+import { LogBox } from "react-native";
 import "react-native-reanimated";
 import "react-native-url-polyfill/auto";
+
+// Supabase internally console.errors when a stored refresh token is stale.
+// We handle this gracefully in authStore (signOut + redirect), so suppress
+// the LogBox overlay here to avoid alarming users with a red error screen.
+LogBox.ignoreLogs([
+  "AuthApiError: Invalid Refresh Token",
+  "Unable to activate keep awake",
+]);
 
 Sentry.init({
   dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,

@@ -17,17 +17,18 @@
         "NSPhotoLibraryAddUsageDescription": "MyExpense saves exported tax reports to your photo library.",
         "NSFaceIDUsageDescription": "MyExpense uses Face ID to secure access to your financial data.",
         "NSLocationWhenInUseUsageDescription": "MyExpense tracks business travel distance for SARS mileage deductions.",
-        "UIBackgroundModes": [
-          "remote-notification"
-        ],
-        "LSApplicationQueriesSchemes": [
-          "myexpense"
-        ]
+        "UIBackgroundModes": ["remote-notification"],
+        "LSApplicationQueriesSchemes": ["myexpense"]
       }
     },
     "android": {
       "package": "co.za.myexpense",
       "versionCode": 1,
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyBL--so3xB4jH3-Pdg62BnWMegG2VSORqk"
+        }
+      },
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -45,10 +46,7 @@
               "scheme": "myexpense"
             }
           ],
-          "category": [
-            "BROWSABLE",
-            "DEFAULT"
-          ]
+          "category": ["BROWSABLE", "DEFAULT"]
         }
       ],
       "permissions": [
@@ -78,8 +76,15 @@
       ],
       "expo-font",
       "expo-secure-store",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/android-icon-monochrome.png",
+          "color": "#006FFD",
+          "defaultChannel": "default"
+        }
+      ],
       "expo-web-browser",
-      "@sentry/react-native",
       [
         "@sentry/react-native/expo",
         {

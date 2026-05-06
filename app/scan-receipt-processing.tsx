@@ -1,11 +1,28 @@
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { CATEGORIES } from "@/constants/categories";
 import { receiptState } from "@/lib/receiptState";
-import { colour } from "@/tokens";
+import { colour, radius, space, typography } from "@/tokens";
 import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
-import { Animated, Easing, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Animated, Easing, Text, TouchableOpacity, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-const C = colour;
+// Fuzzy-match OCR category string against the canonical CATEGORIES list.
+// Tries exact → case-insensitive → partial containment.
+function normalizeCategoryName(raw: string | undefined, labels: string[]): string {
+  if (!raw) return "";
+  const exact = labels.find((l) => l === raw);
+  if (exact) return exact;
+  const lower = raw.toLowerCase();
+  const ci = labels.find((l) => l.toLowerCase() === lower);
+  if (ci) return ci;
+  const partial = labels.find(
+    (l) => l.toLowerCase().includes(lower) || lower.includes(l.toLowerCase()),
+  );
+  return partial ?? "";
+}
+
+const CATEGORY_LABELS = CATEGORIES.map((c) => c.label);
 
 const STEPS = [
   {
@@ -17,7 +34,7 @@ const STEPS = [
   {
     id: 2,
     label: "Reading receipt image",
-    detail: "Claude AI analysing the photo",
+    detail: "Analysing the photo — retrying if busy",
     durationMs: 800,
   },
   {
@@ -50,34 +67,49 @@ interface ExtractedData {
 }
 
 async function extractReceiptData(base64: string): Promise<ExtractedData> {
-  try {
-    if (!base64 || base64.length < 100) {
+  if (!base64 || base64.length < 100) return {};
+
+  const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL!;
+  const ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
+  const MAX_RETRIES = 2;
+
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/ocr-receipt`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${ANON_KEY}`,
+          apikey: ANON_KEY,
+        },
+        body: JSON.stringify({ imageBase64: base64 }),
+      });
+
+      const data = await response.json();
+
+      if (data.error) {
+        const isOverloaded =
+          response.status === 529 ||
+          data.error?.type === "overloaded_error" ||
+          (typeof data.error === "string" && data.error.includes("overloaded_error"));
+
+        if (isOverloaded && attempt < MAX_RETRIES) {
+          await new Promise((r) => setTimeout(r, 3000 * (attempt + 1)));
+          continue;
+        }
+        return {};
+      }
+
+      return data ?? {};
+    } catch {
+      if (attempt < MAX_RETRIES) {
+        await new Promise((r) => setTimeout(r, 2000));
+        continue;
+      }
       return {};
     }
-
-    const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL!;
-    const ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
-
-    const response = await fetch(`${SUPABASE_URL}/functions/v1/ocr-receipt`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${ANON_KEY}`,
-        apikey: ANON_KEY,
-      },
-      body: JSON.stringify({ imageBase64: base64 }),
-    });
-
-    const data = await response.json();
-    if (data.error) {
-      console.error("OCR error from function:", data.error);
-      return {};
-    }
-    return data ?? {};
-  } catch (e) {
-    console.error("OCR extraction error:", e);
-    return {};
   }
+  return {};
 }
 
 export default function ScanReceiptProcessingScreen() {
@@ -119,7 +151,6 @@ export default function ScanReceiptProcessingScreen() {
   }, []);
 
   useEffect(() => {
-    // Read from in-memory state — avoids URL param size limits for base64
     const base64 = receiptState.getBase64() ?? "";
     const receiptUrl = receiptState.getUrl() ?? "";
     const storagePath = receiptState.getPath() ?? "";
@@ -144,7 +175,7 @@ export default function ScanReceiptProcessingScreen() {
             amount: ocrResult.amount ?? "",
             date: ocrResult.date ?? "",
             vatAmount: ocrResult.vatAmount ?? "",
-            category: ocrResult.category ?? "",
+            category: normalizeCategoryName(ocrResult.category, CATEGORY_LABELS),
             notes: ocrResult.notes ?? "",
           });
           router.replace(`/receipt-review?${params.toString()}` as any);
@@ -159,7 +190,6 @@ export default function ScanReceiptProcessingScreen() {
         useNativeDriver: false,
       }).start();
 
-      // Run Claude OCR on step 2 — errors are caught and return {} so flow continues
       if (step === 2 && base64) {
         ocrResult = await extractReceiptData(base64);
         setExtractedData(ocrResult);
@@ -183,193 +213,131 @@ export default function ScanReceiptProcessingScreen() {
   });
 
   return (
-    <View style={{ flex: 1, backgroundColor: C.primary }}>
-      <View
-        style={{
-          paddingTop: 52,
-          paddingHorizontal: 20,
-          paddingBottom: 16,
-          flexDirection: "row",
-          alignItems: "center",
-        }}
-      >
-        <Text
-          style={{
-            flex: 1,
-            color: C.onPrimary,
-            fontSize: 17,
-            fontWeight: "700",
-          }}
-        >
+    <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colour.background }}>
+
+      {/* Header */}
+      <View style={{
+        paddingHorizontal: space.lg,
+        paddingVertical: space.md,
+        flexDirection: "row",
+        alignItems: "center",
+        borderBottomWidth: 1,
+        borderBottomColor: colour.borderLight,
+      }}>
+        <Text style={{ flex: 1, ...typography.h4, color: colour.text }}>
           Processing Receipt
         </Text>
         {!done && (
           <TouchableOpacity
             onPress={() => router.back()}
             style={{
-              paddingHorizontal: 12,
-              paddingVertical: 6,
-              backgroundColor: "rgba(255,255,255,0.15)",
-              borderRadius: 10,
+              paddingHorizontal: space.md,
+              paddingVertical: space.xs,
+              backgroundColor: colour.surface1,
+              borderRadius: radius.pill,
             }}
           >
-            <Text
-              style={{ color: C.onPrimary, fontSize: 12, fontWeight: "600" }}
-            >
-              Cancel
-            </Text>
+            <Text style={{ ...typography.labelS, color: colour.textSub }}>Cancel</Text>
           </TouchableOpacity>
         )}
       </View>
 
-      <View
-        style={{
-          flex: 1,
-          alignItems: "center",
-          justifyContent: "center",
-          paddingHorizontal: 32,
-        }}
-      >
+      {/* Content */}
+      <View style={{
+        flex: 1,
+        alignItems: "center",
+        justifyContent: "center",
+        paddingHorizontal: space.xxxl,
+      }}>
         {done ? (
           <View style={{ alignItems: "center" }}>
-            <View
-              style={{
-                width: 100,
-                height: 100,
-                borderRadius: 50,
-                backgroundColor: C.success,
-                alignItems: "center",
-                justifyContent: "center",
-                marginBottom: 24,
-              }}
-            >
-              <IconSymbol name="checkmark" size={48} color="#fff" />
+            <View style={{
+              width: 80,
+              height: 80,
+              borderRadius: 40,
+              backgroundColor: colour.successBg,
+              alignItems: "center",
+              justifyContent: "center",
+              marginBottom: space.xxl,
+            }}>
+              <IconSymbol name="checkmark" size={40} color={colour.success} />
             </View>
-            <Text
-              style={{
-                color: C.onPrimary,
-                fontSize: 22,
-                fontWeight: "800",
-                marginBottom: 8,
-              }}
-            >
+            <Text style={{ ...typography.h2, color: colour.text, marginBottom: space.sm, textAlign: "center" }}>
               Receipt Ready!
             </Text>
             {extractedData.vendor ? (
-              <Text
-                style={{
-                  color: "rgba(255,255,255,0.75)",
-                  fontSize: 14,
-                  textAlign: "center",
-                }}
-              >
-                Found: {extractedData.vendor}
+              <Text style={{ ...typography.bodyM, color: colour.textSub, textAlign: "center" }}>
+                {extractedData.vendor}
                 {extractedData.amount ? ` · R ${extractedData.amount}` : ""}
               </Text>
             ) : (
-              <Text
-                style={{
-                  color: "rgba(255,255,255,0.65)",
-                  fontSize: 14,
-                  textAlign: "center",
-                }}
-              >
+              <Text style={{ ...typography.bodyM, color: colour.textSub, textAlign: "center" }}>
                 Opening review screen…
               </Text>
             )}
           </View>
         ) : (
           <>
-            <Animated.View
-              style={{ transform: [{ scale: pulse }], marginBottom: 32 }}
-            >
-              <View
-                style={{
-                  width: 110,
-                  height: 110,
-                  borderRadius: 55,
-                  backgroundColor: "rgba(255,255,255,0.1)",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  borderWidth: 2,
-                  borderColor: "rgba(255,255,255,0.2)",
-                }}
-              >
-                <Animated.Text
-                  style={{ fontSize: 48, transform: [{ rotate: spinDeg }] }}
-                >
-                  ⚙
-                </Animated.Text>
+            {/* Pulsing icon */}
+            <Animated.View style={{ transform: [{ scale: pulse }], marginBottom: space.xxl }}>
+              <View style={{
+                width: 96,
+                height: 96,
+                borderRadius: 48,
+                backgroundColor: colour.primary50,
+                alignItems: "center",
+                justifyContent: "center",
+                borderWidth: 2,
+                borderColor: colour.primary100,
+              }}>
+                <Animated.View style={{ transform: [{ rotate: spinDeg }] }}>
+                  <IconSymbol name="gearshape" size={44} color={colour.primary} />
+                </Animated.View>
               </View>
             </Animated.View>
 
-            <Text
-              style={{
-                color: C.onPrimary,
-                fontSize: 20,
-                fontWeight: "800",
-                marginBottom: 8,
-                textAlign: "center",
-              }}
-            >
+            <Text style={{ ...typography.h3, color: colour.text, marginBottom: space.sm, textAlign: "center" }}>
               Analysing Receipt
             </Text>
-            <Text
-              style={{
-                color: "rgba(255,255,255,0.6)",
-                fontSize: 13,
-                textAlign: "center",
-                marginBottom: 32,
-              }}
-            >
-              Claude AI is reading your receipt and extracting expense details
+            <Text style={{ ...typography.bodyM, color: colour.textSub, textAlign: "center", marginBottom: space.xxl }}>
+              Reading your receipt and extracting expense details
             </Text>
 
-            <View style={{ width: "100%", marginBottom: 32 }}>
-              <View
-                style={{
+            {/* Progress bar */}
+            <View style={{ width: "100%", marginBottom: space.xxl }}>
+              <View style={{
+                height: 6,
+                backgroundColor: colour.borderLight,
+                borderRadius: radius.pill,
+                overflow: "hidden",
+                marginBottom: space.sm,
+              }}>
+                <Animated.View style={{
                   height: 6,
-                  backgroundColor: "rgba(255,255,255,0.15)",
-                  borderRadius: 3,
-                  overflow: "hidden",
-                  marginBottom: 8,
-                }}
-              >
-                <Animated.View
-                  style={{
-                    height: 6,
-                    backgroundColor: C.teal,
-                    borderRadius: 3,
-                    width: progressWidth,
-                  }}
-                />
+                  backgroundColor: colour.primary,
+                  borderRadius: radius.pill,
+                  width: progressWidth,
+                }} />
               </View>
-              <View
-                style={{
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                }}
-              >
-                <Text style={{ color: "rgba(255,255,255,0.5)", fontSize: 11 }}>
-                  Step {Math.min(currentStep + 1, STEPS.length)} of{" "}
-                  {STEPS.length}
+              <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                <Text style={{ ...typography.micro, color: colour.textSub }}>
+                  Step {Math.min(currentStep + 1, STEPS.length)} of {STEPS.length}
                 </Text>
-                <Text
-                  style={{ color: C.teal, fontSize: 11, fontWeight: "700" }}
-                >
+                <Text style={{ ...typography.micro, color: colour.primary, fontWeight: "700" }}>
                   {Math.round(((currentStep + 1) / STEPS.length) * 100)}%
                 </Text>
               </View>
             </View>
 
-            <View
-              style={{
-                width: "100%",
-                backgroundColor: "rgba(255,255,255,0.06)",
-                borderRadius: 14,
-                overflow: "hidden",
-              }}
-            >
+            {/* Steps list */}
+            <View style={{
+              width: "100%",
+              backgroundColor: colour.white,
+              borderRadius: radius.md,
+              borderWidth: 1,
+              borderColor: colour.borderLight,
+              overflow: "hidden",
+            }}>
               {STEPS.map((step, i) => {
                 const isActive = i === currentStep;
                 const isComplete = i < currentStep;
@@ -379,79 +347,49 @@ export default function ScanReceiptProcessingScreen() {
                     style={{
                       flexDirection: "row",
                       alignItems: "center",
-                      paddingHorizontal: 16,
-                      paddingVertical: 12,
+                      paddingHorizontal: space.lg,
+                      paddingVertical: space.md,
                       borderBottomWidth: i < STEPS.length - 1 ? 1 : 0,
-                      borderBottomColor: "rgba(255,255,255,0.06)",
-                      backgroundColor: isActive
-                        ? "rgba(255,255,255,0.08)"
-                        : "transparent",
+                      borderBottomColor: colour.borderLight,
+                      backgroundColor: isActive ? colour.primary50 : colour.white,
                     }}
                   >
-                    <View
-                      style={{
-                        width: 24,
-                        height: 24,
-                        borderRadius: 12,
-                        backgroundColor: isComplete
-                          ? C.success
-                          : isActive
-                            ? C.teal
-                            : "rgba(255,255,255,0.15)",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        marginRight: 12,
-                      }}
-                    >
+                    <View style={{
+                      width: 24,
+                      height: 24,
+                      borderRadius: 12,
+                      backgroundColor: isComplete
+                        ? colour.success
+                        : isActive
+                          ? colour.primary
+                          : colour.surface1,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      marginRight: space.md,
+                    }}>
                       {isComplete ? (
-                        <Text
-                          style={{
-                            color: "#fff",
-                            fontSize: 12,
-                            fontWeight: "800",
-                          }}
-                        >
-                          ✓
-                        </Text>
+                        <IconSymbol name="checkmark" size={12} color={colour.white} />
                       ) : isActive ? (
-                        <Animated.Text
-                          style={{
-                            color: "#fff",
-                            fontSize: 11,
-                            transform: [{ rotate: spinDeg }],
-                          }}
-                        >
-                          ↻
-                        </Animated.Text>
+                        <ActivityIndicator size="small" color={colour.white} />
                       ) : (
-                        <Text
-                          style={{
-                            color: "rgba(255,255,255,0.4)",
-                            fontSize: 11,
-                          }}
-                        >
+                        <Text style={{ ...typography.micro, color: colour.textSub }}>
                           {step.id}
                         </Text>
                       )}
                     </View>
                     <View style={{ flex: 1 }}>
-                      <Text
-                        style={{
-                          fontSize: 13,
-                          fontWeight: isActive ? "700" : "500",
-                          color: isComplete
-                            ? "rgba(255,255,255,0.45)"
-                            : isActive
-                              ? "#fff"
-                              : "rgba(255,255,255,0.4)",
-                        }}
-                      >
+                      <Text style={{
+                        ...typography.labelM,
+                        color: isComplete
+                          ? colour.textSub
+                          : isActive
+                            ? colour.text
+                            : colour.textHint,
+                      }}>
                         {step.label}
                       </Text>
                       {isActive && (
-                        <Text
-                          style={{ fontSize: 11, color: C.teal, marginTop: 2 }}
-                        >
+                        <Text style={{ ...typography.micro, color: colour.primary, marginTop: 2 }}>
                           {step.detail}
                         </Text>
                       )}
@@ -464,19 +402,14 @@ export default function ScanReceiptProcessingScreen() {
         )}
       </View>
 
+      {/* Footer */}
       {!done && (
-        <View style={{ paddingHorizontal: 32, paddingBottom: 40 }}>
-          <Text
-            style={{
-              color: "rgba(255,255,255,0.3)",
-              fontSize: 11,
-              textAlign: "center",
-            }}
-          >
-            🔒 Powered by Claude AI · Receipt data stays private
+        <View style={{ paddingHorizontal: space.xxxl, paddingBottom: space["4xl"] }}>
+          <Text style={{ ...typography.micro, color: colour.textHint, textAlign: "center" }}>
+            Your receipt data is stored privately and securely
           </Text>
         </View>
       )}
-    </View>
+    </SafeAreaView>
   );
 }

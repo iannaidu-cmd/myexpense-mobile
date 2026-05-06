@@ -1,3 +1,5 @@
+import { OnboardingFeatureScene } from '@/components/illustrations/OnboardingFeatureScene';
+import { OnboardingHeroScene } from '@/components/illustrations/OnboardingHeroScene';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { colour, radius, space } from '@/tokens';
 import { useRouter } from 'expo-router';
@@ -18,96 +20,6 @@ const { width: SW } = Dimensions.get('window');
 const LOGO_W = SW * 0.58;
 const LOGO_H = 42;
 
-// ── Page 1 hero placeholder ───────────────────────────────────────────────────
-function HeroPlaceholder() {
-  return (
-    <View style={{ alignItems: 'center', marginBottom: space.xl }}>
-      <View
-        style={{
-          width: 200,
-          height: 200,
-          borderRadius: 100,
-          backgroundColor: colour.surface2,
-          alignItems: 'center',
-          justifyContent: 'center',
-          overflow: 'hidden',
-        }}
-      >
-        <View
-          style={{
-            position: 'absolute',
-            width: 150,
-            height: 90,
-            borderRadius: 45,
-            backgroundColor: colour.primary100,
-            bottom: 10,
-            right: -15,
-            opacity: 0.8,
-            transform: [{ rotate: '-30deg' }],
-          }}
-        />
-        <View
-          style={{
-            width: 120,
-            height: 120,
-            borderRadius: 60,
-            backgroundColor: colour.white,
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: colour.primary200, marginBottom: 6 }} />
-          <View style={{ width: 56, height: 28, borderRadius: 14, backgroundColor: colour.primary100 }} />
-        </View>
-      </View>
-    </View>
-  );
-}
-
-// ── Page 2 feature placeholder ────────────────────────────────────────────────
-const PLACEHOLDER_ITEMS = [
-  { icon: 'camera.fill' as const, label: 'Scan' },
-  { icon: 'car.fill' as const,    label: 'Track' },
-  { icon: 'chart.bar.fill' as const, label: 'Reports' },
-];
-
-function FeaturePlaceholder() {
-  return (
-    <View
-      style={{
-        flexDirection: 'row',
-        gap: space.sm,
-        backgroundColor: colour.surface1,
-        borderRadius: radius.xl,
-        padding: space.md,
-        marginBottom: space.xl,
-        borderWidth: 1,
-        borderColor: colour.borderLight,
-        height: 100,
-      }}
-    >
-      {PLACEHOLDER_ITEMS.map((item) => (
-        <View
-          key={item.label}
-          style={{
-            flex: 1,
-            backgroundColor: colour.white,
-            borderRadius: radius.lg,
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderWidth: 1,
-            borderColor: colour.borderLight,
-          }}
-        >
-          <IconSymbol name={item.icon} size={24} color={colour.primary} />
-          <Text style={{ fontSize: 10, color: colour.textSub, marginTop: 5, fontWeight: '600' }}>
-            {item.label}
-          </Text>
-        </View>
-      ))}
-    </View>
-  );
-}
 
 // ── Page 3 option card ────────────────────────────────────────────────────────
 const OPTIONS = [
@@ -218,7 +130,7 @@ export default function OnboardingScreen() {
 
         {/* ── Page 1: Hero ── */}
         <View style={{ width: SW, paddingHorizontal: space.lg, paddingTop: space.md }}>
-          <HeroPlaceholder />
+          <OnboardingHeroScene />
           <View style={{ marginBottom: space.xl }}>
             <View
               style={{
@@ -246,7 +158,7 @@ export default function OnboardingScreen() {
 
         {/* ── Page 2: Features ── */}
         <View style={{ width: SW, paddingHorizontal: space.lg, paddingTop: space.md }}>
-          <FeaturePlaceholder />
+          <OnboardingFeatureScene />
           <View
             style={{
               backgroundColor: colour.primary50,
@@ -261,13 +173,9 @@ export default function OnboardingScreen() {
               Built for South Africa
             </Text>
           </View>
-          <Text style={{ fontSize: 34, fontWeight: '800', color: colour.text, lineHeight: 40, marginBottom: space.sm }}>
+          <Text style={{ fontSize: 34, fontWeight: '800', color: colour.text, lineHeight: 40, marginBottom: space.md }}>
             Built for SA{'\n'}
             <Text style={{ color: colour.primary }}>freelancers.</Text>
-          </Text>
-          <Text style={{ fontSize: 15, color: colour.textSub, lineHeight: 22, marginBottom: space.lg }}>
-            Every feature designed specifically for the SA tax ecosystem — not a
-            generic expense app.
           </Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md, marginBottom: space.md }}>
             <View style={{ width: 48, height: 48, borderRadius: radius.md, backgroundColor: colour.primary50, alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>

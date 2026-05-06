@@ -383,8 +383,8 @@ export default function AddExpenseScreen() {
           {/* Contextual notes per category */}
           {category === "Telephone & Cell" && (
             <View>
-              <View style={{ backgroundColor: "#FFF8E1", borderRadius: 8, padding: 10, marginBottom: 10 }}>
-                <Text style={{ fontSize: 12, color: "#7B5800", lineHeight: 18 }}>
+              <View style={{ backgroundColor: colour.warningBg, borderRadius: 8, padding: 10, marginBottom: 10 }}>
+                <Text style={{ fontSize: 12, color: colour.warning, lineHeight: 18 }}>
                   SARS requires a stated business-use percentage. Enter the % of this device used for business. The deductible amount will be adjusted accordingly.
                 </Text>
               </View>
@@ -398,36 +398,36 @@ export default function AddExpenseScreen() {
             </View>
           )}
           {(category === "Home Office" || category === "Utilities") && (
-            <View style={{ backgroundColor: "#E8F5E9", borderRadius: 8, padding: 10, marginBottom: 10 }}>
-              <Text style={{ fontSize: 12, color: "#1B5E20", lineHeight: 18 }}>
+            <View style={{ backgroundColor: colour.primary50, borderRadius: 8, padding: 10, marginBottom: 10 }}>
+              <Text style={{ fontSize: 12, color: colour.primary, lineHeight: 18 }}>
                 Only the office portion is deductible. Formula: office m² ÷ total property m² × total cost. Enter the proportional amount only (e.g. 15m² ÷ 120m² = 12.5%).
               </Text>
             </View>
           )}
           {category === "Equipment & Tools" && !!amount && parseFloat(amount) > 7000 && (
-            <View style={{ backgroundColor: "#FFF3E0", borderRadius: 8, padding: 10, marginBottom: 10 }}>
-              <Text style={{ fontSize: 12, color: "#BF360C", lineHeight: 18 }}>
+            <View style={{ backgroundColor: colour.warningBg, borderRadius: 8, padding: 10, marginBottom: 10 }}>
+              <Text style={{ fontSize: 12, color: colour.warning, lineHeight: 18 }}>
                 Items over R7,000 may be subject to SARS wear & tear schedules (e.g. computers 3 years, furniture 6 years) rather than being expensed in full. Consult your tax practitioner.
               </Text>
             </View>
           )}
           {category === "Vehicle Expenses" && (
-            <View style={{ backgroundColor: "#E3F2FD", borderRadius: 8, padding: 10, marginBottom: 10 }}>
-              <Text style={{ fontSize: 12, color: "#0D47A1", lineHeight: 18 }}>
+            <View style={{ backgroundColor: colour.infoLight, borderRadius: 8, padding: 10, marginBottom: 10 }}>
+              <Text style={{ fontSize: 12, color: colour.info, lineHeight: 18 }}>
                 Actual cost method: only the business proportion is deductible (business km ÷ total annual km × total vehicle costs). Check your mileage logbook for this ratio. The deemed cost method (R4.84/km) is tracked separately under Mileage.
               </Text>
             </View>
           )}
           {category === "Retirement Annuity" && (
-            <View style={{ backgroundColor: "#F3E5F5", borderRadius: 8, padding: 10, marginBottom: 10 }}>
-              <Text style={{ fontSize: 12, color: "#4A148C", lineHeight: 18 }}>
+            <View style={{ backgroundColor: colour.primaryLight, borderRadius: 8, padding: 10, marginBottom: 10 }}>
+              <Text style={{ fontSize: 12, color: colour.primary, lineHeight: 18 }}>
                 RA deductions are capped at the greater of 27.5% of taxable income or remuneration, up to R350,000/year. SARS requires an IT3(a) certificate from your RA provider.
               </Text>
             </View>
           )}
           {category === "Meals & Entertainment" && (
-            <View style={{ backgroundColor: "#FFF8E1", borderRadius: 8, padding: 10, marginBottom: 10 }}>
-              <Text style={{ fontSize: 12, color: "#7B5800", lineHeight: 18 }}>
+            <View style={{ backgroundColor: colour.warningBg, borderRadius: 8, padding: 10, marginBottom: 10 }}>
+              <Text style={{ fontSize: 12, color: colour.warning, lineHeight: 18 }}>
                 Only 80% of meals & entertainment is deductible under S23(o). MyExpense applies this cap automatically.
               </Text>
             </View>

@@ -36,12 +36,15 @@ async function fetchPremiumStatus(userId: string): Promise<{
 }> {
   const { data } = await supabase
     .from("profiles")
-    .select("is_dev_user, subscription_status")
+    .select("is_dev_user, subscription")
     .eq("id", userId)
     .single();
 
   const isDevUser = data?.is_dev_user === true;
-  const isPremium = isDevUser || data?.subscription_status === "active";
+  const isPremium =
+    isDevUser ||
+    data?.subscription === "pro" ||
+    data?.subscription === "business";
   return { isDevUser, isPremium };
 }
 
@@ -58,9 +61,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       const {
         data: { session },
+        error,
       } = await supabase.auth.getSession();
 
-      if (session?.user) {
+      if (error) {
+        // Stale or rotated refresh token — wipe local storage so the next
+        // launch starts clean instead of hitting the same AuthApiError.
+        await supabase.auth.signOut({ scope: "local" });
+        set({ isInitialised: true });
+      } else if (session?.user) {
         const { isDevUser, isPremium } = await fetchPremiumStatus(
           session.user.id
         );
@@ -77,7 +86,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       const {
         data: { subscription },
-      } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      } = supabase.auth.onAuthStateChange(async (event, session) => {
+        // INITIAL_SESSION fires immediately on registration and duplicates the
+        // getSession() call above — skip it to avoid a double state update.
+        if (event === 'INITIAL_SESSION') return;
         if (session?.user) {
           const { isDevUser, isPremium } = await fetchPremiumStatus(
             session.user.id

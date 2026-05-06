@@ -46,7 +46,7 @@ function QuickAction({
           marginBottom: space.sm,
         }}
       >
-        <Text style={{ fontSize: 22 }}>{icon}</Text>
+        <IconSymbol name={icon as any} size={22} color={accent ? colour.onPrimary : colour.textSub} />
       </View>
       <Text
         style={{
@@ -102,7 +102,7 @@ function RecentRow({
           marginRight: space.md,
         }}
       >
-        <Text style={{ fontSize: 18 }}>{icon}</Text>
+        <IconSymbol name={icon as any} size={18} color={colour.accentDeep} />
       </View>
       <View style={{ flex: 1 }}>
         <Text
@@ -157,28 +157,28 @@ export default function DashboardHomeScreen() {
 
   const recentExpenses = [
     {
-      icon: "🚗",
+      icon: "car.fill",
       vendor: "Engen Fuel",
       category: "Travel",
       amount: "R 650",
       date: "15 Mar",
     },
     {
-      icon: "💻",
+      icon: "laptopcomputer",
       vendor: "Microsoft 365",
       category: "Software",
       amount: "R 330",
       date: "14 Mar",
     },
     {
-      icon: "🏠",
+      icon: "house.fill",
       vendor: "Home Office",
       category: "Home Office",
       amount: "R 1,200",
       date: "12 Mar",
     },
     {
-      icon: "🍽",
+      icon: "fork.knife",
       vendor: "Business Lunch",
       category: "Meals",
       amount: "R 480",
@@ -348,23 +348,23 @@ export default function DashboardHomeScreen() {
             }}
           >
             <QuickAction
-              icon="➕"
+              icon="plus"
               label="Add expense"
               onPress={() => router.push("/add-expense-manual" as any)}
               accent
             />
             <QuickAction
-              icon="📷"
+              icon="camera.fill"
               label="Scan receipt"
-              onPress={() => router.push("/(tabs)/scan" as any)}
+              onPress={() => router.push("/scan-receipt-camera" as any)}
             />
             <QuickAction
-              icon="📊"
+              icon="chart.bar.fill"
               label="Reports"
               onPress={() => router.push("/(tabs)/reports" as any)}
             />
             <QuickAction
-              icon="📋"
+              icon="doc.text.fill"
               label="ITR12"
               onPress={() => router.push("/tax-summary" as any)}
             />

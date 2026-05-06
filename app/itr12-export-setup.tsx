@@ -7,7 +7,6 @@ import { incomeService } from "@/services/incomeService";
 import { generateITR12PDF } from "@/services/pdfExportService";
 import { useAuthStore } from "@/stores/authStore";
 import { useExpenseStore } from "@/stores/expenseStore";
-import { useSubscriptionStore } from "@/stores/subscriptionStore";
 import { colour, radius, space } from "@/tokens";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
@@ -87,16 +86,15 @@ function getMarginalRate(income: number): number {
 
 export default function ITR12ExportSetupScreen() {
   const router = useRouter();
-  const { user } = useAuthStore();
+  const { user, isPremium } = useAuthStore();
   const { activeTaxYear } = useExpenseStore();
-  const { isPro } = useSubscriptionStore();
 
-  // Gate: redirect to paywall if not Pro
+  // Gate: redirect to paywall if not premium (covers dev bypass + RevenueCat Pro)
   useEffect(() => {
-    if (!isPro) {
+    if (!isPremium) {
       router.replace("/paywall-upgrade" as any);
     }
-  }, [isPro]);
+  }, [isPremium]);
   const [totalDeductions, setTotalDeductions] = useState(0);
   const [totalExpenses, setTotalExpenses] = useState(0);
   const [totalIncome, setTotalIncome] = useState(0);
@@ -485,14 +483,14 @@ export default function ITR12ExportSetupScreen() {
             <View
               style={{
                 marginHorizontal: space.md,
-                backgroundColor: "#FFF8E1",
+                backgroundColor: colour.warningBg,
                 borderRadius: radius.md,
                 padding: 12,
                 borderWidth: 1,
-                borderColor: "#FFE082",
+                borderColor: colour.warningMid,
               }}
             >
-              <Text style={{ fontSize: 12, color: "#7B5800", lineHeight: 18, textAlign: "center" }}>
+              <Text style={{ fontSize: 12, color: colour.warning, lineHeight: 18, textAlign: "center" }}>
                 MyExpense prepares your ITR12 data. You must file via SARS eFiling or a registered tax practitioner — MyExpense does not submit to SARS on your behalf.
               </Text>
             </View>

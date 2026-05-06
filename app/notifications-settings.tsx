@@ -19,7 +19,6 @@ interface NotificationPrefs {
   sarsDeadlines: boolean;
   receiptReminders: boolean;
   monthlyReport: boolean;
-  promoUpdates: boolean;
 }
 
 const DEFAULTS: NotificationPrefs = {
@@ -27,7 +26,6 @@ const DEFAULTS: NotificationPrefs = {
   sarsDeadlines: true,
   receiptReminders: true,
   monthlyReport: true,
-  promoUpdates: false,
 };
 
 // ─── Row ──────────────────────────────────────────────────────────────────────
@@ -216,23 +214,7 @@ export default function NotificationsSettingsScreen() {
           />
         </View>
 
-        {/* App updates */}
-        <SectionHeader title="App Updates" />
-        <View
-          style={{
-            borderTopWidth: 1,
-            borderBottomWidth: 1,
-            borderColor: colour.border,
-          }}
-        >
-          <PreferenceRow
-            icon="bell.fill"
-            label="Tips & new features"
-            sub="Occasional updates about new MyExpense features"
-            value={prefs.promoUpdates}
-            onToggle={update("promoUpdates")}
-          />
-        </View>
+
       </ScrollView>
       <MXTabBar />
     </SafeAreaView>

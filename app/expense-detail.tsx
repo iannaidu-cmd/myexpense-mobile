@@ -226,7 +226,7 @@ function ReceiptViewer({
               bottom: 40,
             }}
           >
-            🔒 Secure view · Link expires in 5 minutes
+            Secure view · Link expires in 5 minutes
           </Text>
         )}
       </View>
@@ -506,9 +506,9 @@ export default function ExpenseDetailScreen() {
           }}
         >
           <View style={{ flexDirection: "row", alignItems: "center" }}>
-            <Text style={{ fontSize: 20, marginRight: space.sm }}>
-              {hasReceipt ? "🧾" : "📎"}
-            </Text>
+            <View style={{ width: 36, height: 36, borderRadius: radius.md, backgroundColor: hasReceipt ? colour.primary50 : colour.surface2, alignItems: "center", justifyContent: "center", marginRight: space.sm }}>
+              <IconSymbol name={hasReceipt ? "doc.fill" : "paperclip"} size={16} color={hasReceipt ? colour.primary : colour.textSub} />
+            </View>
             <View>
               <Text
                 style={{
@@ -537,15 +537,12 @@ export default function ExpenseDetailScreen() {
             marginBottom: space.xl,
           }}
         >
-          <Text
-            style={{
-              ...typography.labelS,
-              color: colour.info,
-              marginBottom: space.xs,
-            }}
-          >
-            📋 SARS Compliance
-          </Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: space.xs, marginBottom: space.xs }}>
+            <IconSymbol name="checkmark.seal.fill" size={14} color={colour.info} />
+            <Text style={{ ...typography.labelS, color: colour.info }}>
+              SARS Compliance
+            </Text>
+          </View>
           <Text style={{ ...typography.bodyS, color: colour.info }}>
             Keep this receipt for 5 years from the date of assessment. Required
             for {itr12Code} deduction claims on your ITR12.

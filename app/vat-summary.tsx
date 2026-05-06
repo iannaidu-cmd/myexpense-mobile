@@ -29,6 +29,14 @@ const formatDate = (dateStr: string) =>
     year: "numeric",
   });
 
+function csvField(val: string | number | null | undefined): string {
+  if (val === null || val === undefined) return "";
+  const str = String(val);
+  if (str.includes(",") || str.includes('"') || str.includes("\n"))
+    return `"${str.replace(/"/g, '""')}"`;
+  return str;
+}
+
 type Period = "month" | "quarter" | "year";
 
 export default function VATSummaryScreen() {
@@ -81,20 +89,42 @@ export default function VATSummaryScreen() {
 
   const handleExport = async () => {
     try {
+      const periodLabel =
+        period === "month"
+          ? now.toLocaleDateString("en-ZA", { month: "long", year: "numeric" })
+          : period === "quarter"
+          ? `Q${Math.floor(now.getMonth() / 3) + 1} ${now.getFullYear()}`
+          : `Tax year ${activeTaxYear}`;
+
+      const header = [
+        "Vendor", "Date", "Gross Amount (ZAR)", "VAT Amount (ZAR)", "Category", "Claimable",
+      ].join(",");
+
+      const rows = filtered.map((e) =>
+        [
+          csvField(e.vendor),
+          csvField(e.expense_date),
+          csvField(Number(e.amount).toFixed(2)),
+          csvField(Number(e.vat_amount).toFixed(2)),
+          csvField(e.category),
+          csvField(e.is_deductible ? "Yes" : "No"),
+        ].join(","),
+      );
+
       const lines = [
         "MyExpense VAT Report",
         `Tax Year: ${activeTaxYear}`,
-        `Period: ${period}`,
+        `Period: ${periodLabel}`,
+        `Generated: ${now.toLocaleDateString("en-ZA")}`,
         "",
-        "Vendor,Date,Amount,VAT,Category,Claimable",
-        ...filtered.map(
-          (e) =>
-            `${e.vendor},${e.expense_date},${e.amount},${e.vat_amount},${e.category},${e.is_deductible ? "Yes" : "No"}`,
-        ),
+        header,
+        ...rows,
         "",
-        `Total VAT: ${fmt(totalVAT)}`,
-        `Claimable VAT: ${fmt(claimableVAT)}`,
+        `Total VAT paid,${fmt(totalVAT)}`,
+        `Claimable input tax,${fmt(claimableVAT)}`,
+        `Non-claimable VAT,${fmt(nonClaimable)}`,
       ].join("\n");
+
       await Share.share({ message: lines, title: "VAT Report" });
     } catch (e) {
       Alert.alert("Export failed", "Could not export VAT report.");
@@ -211,7 +241,7 @@ export default function VATSummaryScreen() {
               <View
                 style={{
                   flex: 1,
-                  backgroundColor: colour.successLight,
+                  backgroundColor: colour.white,
                   borderRadius: radius.md,
                   padding: space.md,
                   borderLeftWidth: 3,
@@ -254,7 +284,7 @@ export default function VATSummaryScreen() {
                   <Text
                     style={{ ...typography.caption, color: colour.warning }}
                   >
-                    Zero-rated or exempt supplies
+                    VAT on non-business expenses
                   </Text>
                 </View>
                 <Text style={{ ...typography.amountS, color: colour.warning }}>
@@ -358,8 +388,8 @@ export default function VATSummaryScreen() {
                     <View
                       style={{
                         backgroundColor: entry.is_deductible
-                          ? colour.successLight
-                          : colour.dangerLight,
+                          ? colour.successBg
+                          : colour.dangerBg,
                         borderRadius: radius.full,
                         paddingHorizontal: space.xs,
                         paddingVertical: 2,

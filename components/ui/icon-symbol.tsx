@@ -22,6 +22,7 @@ const MAPPING = {
   "chart.bar.fill": "bar-chart",
   "chart.bar": "bar-chart",
   "camera.fill": "camera",
+  "camera.aperture": "camera",
   "plus.circle.fill": "add-circle",
   "plus": "add",
   "gearshape.fill": "settings",

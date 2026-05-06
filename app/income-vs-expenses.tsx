@@ -7,29 +7,40 @@ import { colour, radius, space, typography } from "@/tokens";
 import { useFocusEffect } from "expo-router";
 import React, { useCallback, useState } from "react";
 import {
-    ActivityIndicator,
-    ScrollView,
-    StatusBar,
-    Text,
-    View,
+  ActivityIndicator,
+  Platform,
+  ScrollView,
+  StatusBar,
+  Text,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import Svg, { Circle, G } from "react-native-svg";
 
-function monthKey(dateStr: string): string {
+// ── helpers ────────────────────────────────────────────────────────────────────
+
+function monthKey(dateStr: string | null | undefined): string {
+  if (!dateStr) return "__none__";
   const parts = dateStr.substring(0, 10).split("-");
+  if (parts.length < 2 || !parts[1]) return "__none__";
   return `${parts[0]}-${parts[1]}`;
 }
 
-function buildRecentMonths(
-  count: number,
-): { key: string; label: string; fullLabel: string }[] {
-  const result = [];
+function buildRecentMonths(count: number) {
+  const result: {
+    key: string;
+    label: string;
+    yearBadge: string;
+    fullLabel: string;
+  }[] = [];
   const now = new Date();
   for (let i = count - 1; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const monthShort = d.toLocaleString("en-ZA", { month: "short" });
     result.push({
       key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`,
-      label: d.toLocaleString("en-ZA", { month: "short" }),
+      label: monthShort.charAt(0).toUpperCase() + monthShort.slice(1),
+      yearBadge: `${monthShort.toUpperCase()} ${d.getFullYear()}`,
       fullLabel: d.toLocaleString("en-ZA", { month: "long", year: "numeric" }),
     });
   }
@@ -39,43 +50,201 @@ function buildRecentMonths(
 const fmt = (n: number) =>
   `R ${n.toLocaleString("en-ZA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-function statusConfig(income: number, expenses: number) {
-  if (income === 0 && expenses === 0)
-    return {
-      dot: colour.textHint,
-      color: colour.textHint,
-      label: "No data yet",
-      bg: colour.surface1,
-    };
-  if (income === 0)
-    return {
-      dot: colour.warning,
-      color: colour.warning,
-      label: "No income logged",
-      bg: colour.warningBg,
-    };
-  const pct = expenses / income;
-  if (pct <= 0.7)
-    return {
-      dot: colour.success,
-      color: colour.success,
-      label: "Looking good",
-      bg: colour.successBg,
-    };
-  if (pct <= 1.0)
-    return {
-      dot: colour.warning,
-      color: colour.warning,
-      label: "Spending is high",
-      bg: colour.warningBg,
-    };
-  return {
-    dot: colour.danger,
-    color: colour.danger,
-    label: "Spending exceeds income",
-    bg: colour.dangerBg,
-  };
+// ── Donut chart ────────────────────────────────────────────────────────────────
+
+function DonutChart({
+  income,
+  expenses,
+}: {
+  income: number;
+  expenses: number;
+}) {
+  const SIZE = 116;
+  const STROKE = 15;
+  const R = (SIZE - STROKE) / 2;
+  const C = 2 * Math.PI * R;
+
+  const isEmpty = income === 0 && expenses === 0;
+  const spendPct =
+    income > 0 ? Math.min(expenses / income, 1) : expenses > 0 ? 1 : 0;
+  const expenseLen = spendPct * C;
+
+  return (
+    <View
+      style={{
+        width: SIZE,
+        height: SIZE,
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <Svg width={SIZE} height={SIZE}>
+        <G rotation="-90" origin={`${SIZE / 2},${SIZE / 2}`}>
+          {/* Track */}
+          <Circle
+            cx={SIZE / 2}
+            cy={SIZE / 2}
+            r={R}
+            stroke={isEmpty ? colour.border : colour.successBg}
+            strokeWidth={STROKE}
+            fill="none"
+          />
+          {/* Income arc — full green ring when income exists */}
+          {income > 0 && (
+            <Circle
+              cx={SIZE / 2}
+              cy={SIZE / 2}
+              r={R}
+              stroke={colour.success}
+              strokeWidth={STROKE}
+              fill="none"
+              strokeDasharray={`${C} ${C}`}
+            />
+          )}
+          {/* Expense arc — red fill proportional to spend ratio */}
+          {expenses > 0 && (
+            <Circle
+              cx={SIZE / 2}
+              cy={SIZE / 2}
+              r={R}
+              stroke={colour.danger}
+              strokeWidth={STROKE}
+              fill="none"
+              strokeDasharray={`${expenseLen} ${C}`}
+            />
+          )}
+        </G>
+      </Svg>
+      <View
+        style={{
+          position: "absolute",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        {isEmpty ? (
+          <Text
+            style={{
+              fontSize: 11,
+              fontWeight: "500",
+              color: colour.textHint,
+            }}
+          >
+            Empty
+          </Text>
+        ) : (
+          <Text
+            style={{ fontSize: 13, fontWeight: "700", color: colour.text }}
+          >
+            {Math.round(spendPct * 100)}%
+          </Text>
+        )}
+      </View>
+    </View>
+  );
 }
+
+// ── Month card ─────────────────────────────────────────────────────────────────
+
+function MonthCard({
+  label,
+  income,
+  expenses,
+  net,
+}: {
+  label: string;
+  income: number;
+  expenses: number;
+  net: number;
+}) {
+  const hasData = income > 0 || expenses > 0;
+
+  const shadow = Platform.select({
+    ios: {
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.06,
+      shadowRadius: 4,
+    },
+    android: { elevation: 2 },
+  });
+
+  return (
+    <View
+      style={{
+        backgroundColor: colour.white,
+        borderRadius: radius.lg,
+        marginHorizontal: space.lg,
+        marginBottom: space.sm,
+        paddingHorizontal: space.md,
+        paddingVertical: 14,
+        flexDirection: "row",
+        alignItems: "center",
+        ...shadow,
+      }}
+    >
+      {/* Month badge */}
+      <View
+        style={{
+          width: 50,
+          height: 50,
+          borderRadius: radius.md,
+          backgroundColor: hasData ? colour.successBg : colour.surface1,
+          alignItems: "center",
+          justifyContent: "center",
+          marginRight: space.md,
+          flexShrink: 0,
+        }}
+      >
+        <Text
+          style={{
+            fontSize: 13,
+            fontWeight: "700",
+            color: hasData ? colour.success : colour.textHint,
+          }}
+        >
+          {label}
+        </Text>
+      </View>
+
+      {/* Middle text */}
+      <View style={{ flex: 1 }}>
+        {hasData ? (
+          <>
+            <Text
+              style={{ fontSize: 13, fontWeight: "600", color: colour.success }}
+            >
+              +{fmt(income)}
+            </Text>
+            <Text
+              style={{ fontSize: 12, color: colour.danger, marginTop: 2 }}
+            >
+              -{fmt(expenses)}
+            </Text>
+          </>
+        ) : (
+          <Text style={{ fontSize: 13, color: colour.textHint }}>
+            No transactions
+          </Text>
+        )}
+      </View>
+
+      {/* Net */}
+      <Text
+        style={{
+          fontSize: 14,
+          fontWeight: "700",
+          color: net >= 0 ? colour.success : colour.danger,
+        }}
+      >
+        {net >= 0 ? "+" : ""}
+        {fmt(net)}
+      </Text>
+    </View>
+  );
+}
+
+// ── Screen ─────────────────────────────────────────────────────────────────────
 
 export default function IncomeVsExpensesScreen() {
   const { user } = useAuthStore();
@@ -84,7 +253,7 @@ export default function IncomeVsExpensesScreen() {
 
   const [currentIncome, setCurrentIncome] = useState(0);
   const [currentExpenses, setCurrentExpenses] = useState(0);
-  const [currentLabel, setCurrentLabel] = useState("");
+  const [currentYearBadge, setCurrentYearBadge] = useState("");
   const [recentMonths, setRecentMonths] = useState<
     { label: string; income: number; expenses: number; net: number }[]
   >([]);
@@ -95,7 +264,7 @@ export default function IncomeVsExpensesScreen() {
       setLoading(true);
       setError(null);
 
-      const months = buildRecentMonths(4); // current + 3 previous
+      const months = buildRecentMonths(6); // current + 5 previous
       const validKeys = new Set(months.map((m) => m.key));
 
       Promise.all([
@@ -118,15 +287,13 @@ export default function IncomeVsExpensesScreen() {
             if (validKeys.has(k)) expenseByMonth[k] += Number(e.amount);
           }
 
-          // Current month is last in array
           const current = months[months.length - 1];
-          setCurrentLabel(current.fullLabel);
+          setCurrentYearBadge(current.yearBadge);
           setCurrentIncome(incomeByMonth[current.key]);
           setCurrentExpenses(expenseByMonth[current.key]);
 
-          // Previous 3 months
           setRecentMonths(
-            months.slice(0, 3).map((m) => ({
+            months.slice(0, 5).map((m) => ({
               label: m.label,
               income: incomeByMonth[m.key],
               expenses: expenseByMonth[m.key],
@@ -139,10 +306,17 @@ export default function IncomeVsExpensesScreen() {
     }, [user?.id]),
   );
 
-  const net = currentIncome - currentExpenses;
-  const spendPct =
-    currentIncome > 0 ? Math.min(currentExpenses / currentIncome, 1) : 0;
-  const status = statusConfig(currentIncome, currentExpenses);
+  const heroShadow = Platform.select({
+    ios: {
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.08,
+      shadowRadius: 10,
+    },
+    android: { elevation: 3 },
+  });
+
+  const isEmpty = currentIncome === 0 && currentExpenses === 0;
 
   return (
     <SafeAreaView
@@ -153,12 +327,7 @@ export default function IncomeVsExpensesScreen() {
       <MXBackHeader title="Income vs Expenses" />
 
       <ScrollView
-        style={{
-          flex: 1,
-          backgroundColor: colour.background,
-          borderTopLeftRadius: radius.xl,
-          borderTopRightRadius: radius.xl,
-        }}
+        style={{ flex: 1 }}
         contentContainerStyle={{ paddingBottom: space["5xl"] }}
         showsVerticalScrollIndicator={false}
       >
@@ -186,196 +355,167 @@ export default function IncomeVsExpensesScreen() {
           </View>
         ) : (
           <>
-            {/* -- This month hero card ------------------------------- */}
-            <View
-              style={{
-                margin: space.lg,
-                backgroundColor: colour.bgCard,
-                borderRadius: radius.lg,
-                padding: space.lg,
-                borderWidth: 1,
-                borderColor: colour.border,
-              }}
-            >
-              <Text
-                style={{
-                  ...typography.captionM,
-                  color: colour.textHint,
-                  textTransform: "uppercase",
-                  letterSpacing: 0.8,
-                }}
-              >
-                {currentLabel}
-              </Text>
-
-              {/* Plain-language summary */}
+            {/* Date badge */}
+            <View style={{ alignItems: "center", paddingVertical: space.md }}>
               <View
                 style={{
-                  backgroundColor: status.bg,
-                  borderRadius: radius.md,
-                  padding: space.md,
-                  marginTop: space.md,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  backgroundColor: colour.surface1,
+                  borderRadius: radius.pill,
+                  paddingHorizontal: 16,
+                  paddingVertical: 8,
+                  gap: 8,
                 }}
               >
-                <View
-                  style={{
-                    width: 10,
-                    height: 10,
-                    borderRadius: 5,
-                    backgroundColor: status.dot,
-                    marginBottom: space.sm,
-                  }}
-                />
-                {currentIncome === 0 && currentExpenses === 0 ? (
-                  <Text style={{ ...typography.bodyM, color: colour.textHint }}>
-                    No income or expenses logged for this month yet.
-                  </Text>
-                ) : (
-                  <Text
-                    style={{
-                      ...typography.bodyM,
-                      color: colour.text,
-                      lineHeight: 24,
-                    }}
-                  >
-                    You earned{" "}
-                    <Text style={{ fontWeight: "700", color: colour.success }}>
-                      {fmt(currentIncome)}
-                    </Text>{" "}
-                    and spent{" "}
-                    <Text style={{ fontWeight: "700", color: colour.danger }}>
-                      {fmt(currentExpenses)}
-                    </Text>
-                    {"."}
-                    {"\n"}
-                    {net >= 0 ? (
-                      <>
-                        You{"'"}re{" "}
-                        <Text
-                          style={{ fontWeight: "700", color: colour.primary }}
-                        >
-                          {fmt(net)} ahead
-                        </Text>{" "}
-                        this month.
-                      </>
-                    ) : (
-                      <>
-                        You{"'"}re{" "}
-                        <Text
-                          style={{ fontWeight: "700", color: colour.danger }}
-                        >
-                          {fmt(Math.abs(net))} over
-                        </Text>{" "}
-                        your income this month.
-                      </>
-                    )}
-                  </Text>
-                )}
                 <Text
                   style={{
-                    ...typography.labelS,
-                    color: status.color,
-                    marginTop: space.sm,
+                    fontSize: 13,
+                    fontWeight: "700",
+                    color: colour.text,
+                    letterSpacing: 0.4,
                   }}
                 >
-                  {status.label}
+                  {currentYearBadge}
+                </Text>
+                <View
+                  style={{
+                    width: 7,
+                    height: 7,
+                    borderRadius: 4,
+                    backgroundColor: colour.success,
+                  }}
+                />
+                <Text
+                  style={{
+                    fontSize: 13,
+                    fontWeight: "500",
+                    color: colour.textSub,
+                  }}
+                >
+                  Current
                 </Text>
               </View>
+            </View>
 
-              {/* Spending bar */}
-              {currentIncome > 0 && (
-                <View style={{ marginTop: space.md }}>
+            {/* Hero card */}
+            <View
+              style={{
+                marginHorizontal: space.lg,
+                marginBottom: space.lg,
+                backgroundColor: colour.white,
+                borderRadius: radius.xl,
+                padding: space.lg,
+                ...heroShadow,
+              }}
+            >
+              <View
+                style={{ flexDirection: "row", alignItems: "center", gap: space.lg }}
+              >
+                {/* Donut */}
+                <DonutChart
+                  income={currentIncome}
+                  expenses={currentExpenses}
+                />
+
+                {/* Breakdown */}
+                <View style={{ flex: 1 }}>
+                  {isEmpty && (
+                    <Text
+                      style={{
+                        fontSize: 12,
+                        color: colour.textHint,
+                        lineHeight: 18,
+                        marginBottom: space.md,
+                      }}
+                    >
+                      No activity yet.{"\n"}Start tracking to see your summary.
+                    </Text>
+                  )}
+
+                  {/* Income row */}
                   <View
                     style={{
                       flexDirection: "row",
-                      justifyContent: "space-between",
-                      marginBottom: space.xs,
-                    }}
-                  >
-                    <Text
-                      style={{ ...typography.bodyXS, color: colour.textSub }}
-                    >
-                      Expenses as % of income
-                    </Text>
-                    <Text
-                      style={{ ...typography.bodyXS, color: colour.textSub }}
-                    >
-                      {Math.round(spendPct * 100)}%
-                    </Text>
-                  </View>
-                  <View
-                    style={{
-                      height: 10,
-                      backgroundColor: colour.surface2,
-                      borderRadius: radius.pill,
-                      overflow: "hidden",
+                      alignItems: "center",
+                      gap: 6,
+                      marginBottom: 4,
                     }}
                   >
                     <View
                       style={{
-                        height: 10,
-                        width: `${Math.round(spendPct * 100)}%`,
-                        backgroundColor:
-                          spendPct <= 0.7
-                            ? colour.success
-                            : spendPct <= 1
-                              ? colour.warning
-                              : colour.danger,
-                        borderRadius: radius.pill,
+                        width: 8,
+                        height: 8,
+                        borderRadius: 4,
+                        backgroundColor: colour.success,
                       }}
                     />
+                    <Text
+                      style={{
+                        fontSize: 10,
+                        fontWeight: "700",
+                        color: colour.success,
+                        letterSpacing: 0.8,
+                      }}
+                    >
+                      INCOME
+                    </Text>
                   </View>
-                </View>
-              )}
-
-              {/* Income / Expenses row */}
-              <View
-                style={{
-                  flexDirection: "row",
-                  gap: space.md,
-                  marginTop: space.lg,
-                }}
-              >
-                <View style={{ flex: 1, alignItems: "center" }}>
                   <Text
                     style={{
-                      ...typography.captionM,
-                      color: colour.success,
-                      textTransform: "uppercase",
-                      letterSpacing: 0.6,
-                    }}
-                  >
-                    Income
-                  </Text>
-                  <Text
-                    style={{
-                      ...typography.h4,
-                      color: colour.success,
-                      fontWeight: "700",
-                      marginTop: 2,
+                      fontSize: 20,
+                      fontWeight: "800",
+                      color: colour.text,
+                      letterSpacing: -0.5,
+                      marginBottom: space.sm,
                     }}
                   >
                     {fmt(currentIncome)}
                   </Text>
-                </View>
-                <View style={{ width: 1, backgroundColor: colour.border }} />
-                <View style={{ flex: 1, alignItems: "center" }}>
-                  <Text
+
+                  {/* Divider */}
+                  <View
                     style={{
-                      ...typography.captionM,
-                      color: colour.danger,
-                      textTransform: "uppercase",
-                      letterSpacing: 0.6,
+                      height: 1,
+                      backgroundColor: colour.borderLight,
+                      marginBottom: space.sm,
+                    }}
+                  />
+
+                  {/* Expenses row */}
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 6,
+                      marginBottom: 4,
                     }}
                   >
-                    Expenses
-                  </Text>
+                    <View
+                      style={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: 4,
+                        backgroundColor: colour.danger,
+                      }}
+                    />
+                    <Text
+                      style={{
+                        fontSize: 10,
+                        fontWeight: "700",
+                        color: colour.danger,
+                        letterSpacing: 0.8,
+                      }}
+                    >
+                      EXPENSES
+                    </Text>
+                  </View>
                   <Text
                     style={{
-                      ...typography.h4,
-                      color: colour.danger,
-                      fontWeight: "700",
-                      marginTop: 2,
+                      fontSize: 20,
+                      fontWeight: "800",
+                      color: colour.text,
+                      letterSpacing: -0.5,
                     }}
                   >
                     {fmt(currentExpenses)}
@@ -384,12 +524,13 @@ export default function IncomeVsExpensesScreen() {
               </View>
             </View>
 
-            {/* -- Previous 3 months --------------------------------- */}
+            {/* Previous months header */}
             <Text
               style={{
-                ...typography.captionM,
+                fontSize: 11,
+                fontWeight: "700",
                 color: colour.textSub,
-                letterSpacing: 0.8,
+                letterSpacing: 1,
                 textTransform: "uppercase",
                 paddingHorizontal: space.lg,
                 paddingBottom: space.sm,
@@ -397,73 +538,23 @@ export default function IncomeVsExpensesScreen() {
             >
               Previous months
             </Text>
-            <View
-              style={{
-                borderTopWidth: 1,
-                borderBottomWidth: 1,
-                borderColor: colour.border,
-              }}
-            >
-              {recentMonths.map((m, i) => {
-                const s = statusConfig(m.income, m.expenses);
-                return (
-                  <View
-                    key={m.label}
-                    style={{
-                      backgroundColor: colour.bgCard,
-                      paddingHorizontal: space.lg,
-                      paddingVertical: space.md,
-                      borderBottomWidth: i < recentMonths.length - 1 ? 1 : 0,
-                      borderBottomColor: colour.border,
-                      flexDirection: "row",
-                      alignItems: "center",
-                    }}
-                  >
-                    <View
-                      style={{
-                        width: 10,
-                        height: 10,
-                        borderRadius: 5,
-                        backgroundColor: s.dot,
-                        marginRight: space.md,
-                        flexShrink: 0,
-                      }}
-                    />
-                    <View style={{ flex: 1 }}>
-                      <Text
-                        style={{ ...typography.labelM, color: colour.text }}
-                      >
-                        {m.label}
-                      </Text>
-                      <Text
-                        style={{
-                          ...typography.bodyXS,
-                          color: colour.textSub,
-                          marginTop: 2,
-                        }}
-                      >
-                        Earned {fmt(m.income)} · Spent {fmt(m.expenses)}
-                      </Text>
-                    </View>
-                    <Text
-                      style={{
-                        ...typography.labelM,
-                        color: m.net >= 0 ? colour.primary : colour.danger,
-                        fontWeight: "700",
-                      }}
-                    >
-                      {m.net >= 0 ? "+" : "-"}
-                      {fmt(Math.abs(m.net))}
-                    </Text>
-                  </View>
-                );
-              })}
-            </View>
+
+            {/* Month cards */}
+            {recentMonths.map((m) => (
+              <MonthCard
+                key={m.label}
+                label={m.label}
+                income={m.income}
+                expenses={m.expenses}
+                net={m.net}
+              />
+            ))}
 
             {/* Tip */}
             <View
               style={{
-                margin: space.lg,
+                marginHorizontal: space.lg,
+                marginTop: space.sm,
                 backgroundColor: colour.primary50,
                 borderRadius: radius.md,
                 padding: space.md,
@@ -489,8 +580,9 @@ export default function IncomeVsExpensesScreen() {
                   lineHeight: 20,
                 }}
               >
-                Keep your expenses below 70% of your income to maintain a
-                healthy buffer and maximise your SARS deduction benefit.
+                Expenses are grouped by their expense date, not the date you
+                entered them. If a scanned receipt has an older date, check the
+                relevant month above.
               </Text>
             </View>
           </>

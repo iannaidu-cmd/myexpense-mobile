@@ -1,4 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useKeepAwake } from "expo-keep-awake";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
@@ -25,6 +26,14 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 // ─── SARS deemed cost rate for 2024/25 tax year ───────────────────────────────
 const SARS_RATE_PER_KM = 4.84;
+
+// ─── Default map region — Johannesburg, SA ────────────────────────────────────
+const DEFAULT_REGION = {
+  latitude: -26.2041,
+  longitude: 28.0473,
+  latitudeDelta: 0.15,
+  longitudeDelta: 0.15,
+};
 
 // ─── ITR12 purpose categories ─────────────────────────────────────────────────
 const TRIP_PURPOSES = [
@@ -108,9 +117,15 @@ export default function MileageTrackerScreen() {
   const [selectedPurpose, setSelectedPurpose] = useState(TRIP_PURPOSES[0]);
   const [tripNote, setTripNote] = useState("");
 
+  const [locationReady, setLocationReady] = useState(false);
+
+  useKeepAwake(status !== "idle" ? "mileage-trip" : undefined);
+
   const mapRef = useRef<MapView>(null);
   const locationSub = useRef<Location.LocationSubscription | null>(null);
+  const bgWatchRef = useRef<Location.LocationSubscription | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const gpsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastCoordRef = useRef<Coord | null>(null);
   const pausedKmRef = useRef(0);
 
@@ -170,30 +185,62 @@ export default function MileageTrackerScreen() {
             "Location Required",
             "MyExpense needs location access to track your business travel for SARS compliance.",
           );
+          setLocationReady(true);
           return;
         }
+
+        // Stage 1: try last-known position (instant — uses OS cache)
         try {
-          const pos = await Location.getCurrentPositionAsync({
-            accuracy: Location.Accuracy.Balanced,
-          });
-          setCurrentPos({
-            latitude: pos.coords.latitude,
-            longitude: pos.coords.longitude,
-          });
-        } catch {
-          // Location services disabled or unavailable — show default map position,
-          // trip tracking will still work once the user enables GPS and starts a trip
-          Alert.alert(
-            "Location Unavailable",
-            "Please enable location services (GPS) on your device to track trips accurately.",
+          const last = await Location.getLastKnownPositionAsync({ maxAge: 300_000 });
+          if (last) {
+            setCurrentPos({ latitude: last.coords.latitude, longitude: last.coords.longitude });
+            setLocationReady(true);
+            return;
+          }
+        } catch { /* no cached position — fall through */ }
+
+        // Stage 2: watch for first fresh fix, clear watch once received
+        try {
+          bgWatchRef.current = await Location.watchPositionAsync(
+            { accuracy: Location.Accuracy.Balanced, distanceInterval: 0, timeInterval: 2000 },
+            (loc) => {
+              setCurrentPos({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
+              setLocationReady(true);
+              bgWatchRef.current?.remove();
+              bgWatchRef.current = null;
+              if (gpsTimeoutRef.current) clearTimeout(gpsTimeoutRef.current);
+            },
           );
-        }
+        } catch { /* GPS unavailable */ }
+
+        // Fallback: hide overlay after 20 s regardless so user can still start a trip
+        gpsTimeoutRef.current = setTimeout(() => setLocationReady(true), 20_000);
       } catch {
-        // Permission check itself failed — ignore silently
+        setLocationReady(true);
       }
     })();
-    return () => stopTracking();
+    return () => {
+      stopTracking();
+      bgWatchRef.current?.remove();
+      if (gpsTimeoutRef.current) clearTimeout(gpsTimeoutRef.current);
+    };
   }, []);
+
+  // ── Centre map on first GPS fix ──────────────────────────────────────────
+  const hasAnimatedToUser = useRef(false);
+  useEffect(() => {
+    if (!currentPos || hasAnimatedToUser.current) return;
+    hasAnimatedToUser.current = true;
+    mapRef.current?.animateToRegion(
+      {
+        latitude: currentPos.latitude,
+        longitude: currentPos.longitude,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      },
+      800,
+    );
+  }, [currentPos]);
 
   // ── Elapsed timer ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -416,53 +463,52 @@ export default function MileageTrackerScreen() {
             ...platformShadow,
           }}
         >
-          {currentPos ? (
-            <MapView
-              ref={mapRef}
-              provider={PROVIDER_GOOGLE}
-              style={{ flex: 1 }}
-              initialRegion={{
-                ...currentPos,
-                latitudeDelta: 0.01,
-                longitudeDelta: 0.01,
-              }}
-              showsUserLocation
-              showsMyLocationButton={false}
-              showsCompass={false}
-            >
-              {startPos && (
-                <Marker
-                  coordinate={startPos}
-                  title="Start"
-                  pinColor={colour.success}
-                />
-              )}
-              {coords.length > 1 && (
-                <Polyline
-                  coordinates={coords}
-                  strokeColor={colour.primary}
-                  strokeWidth={4}
-                />
-              )}
-            </MapView>
-          ) : (
+          <MapView
+            ref={mapRef}
+            provider={Platform.OS === "android" ? PROVIDER_GOOGLE : undefined}
+            style={{ flex: 1 }}
+            initialRegion={
+              currentPos
+                ? { ...currentPos, latitudeDelta: 0.01, longitudeDelta: 0.01 }
+                : DEFAULT_REGION
+            }
+            showsUserLocation
+            showsMyLocationButton={false}
+            showsCompass={false}
+          >
+            {startPos && (
+              <Marker
+                coordinate={startPos}
+                title="Start"
+                pinColor={colour.success}
+              />
+            )}
+            {coords.length > 1 && (
+              <Polyline
+                coordinates={coords}
+                strokeColor={colour.primary}
+                strokeWidth={4}
+              />
+            )}
+          </MapView>
+          {!locationReady && (
             <View
               style={{
-                flex: 1,
+                position: "absolute",
+                bottom: space.sm,
+                alignSelf: "center",
+                backgroundColor: "rgba(0,0,0,0.55)",
+                borderRadius: radius.pill,
+                paddingHorizontal: space.md,
+                paddingVertical: 6,
+                flexDirection: "row",
                 alignItems: "center",
-                justifyContent: "center",
-                backgroundColor: colour.surface1,
+                gap: 6,
               }}
             >
-              <ActivityIndicator color={colour.primary} />
-              <Text
-                style={{
-                  ...typography.bodyS,
-                  color: colour.textSub,
-                  marginTop: space.xs,
-                }}
-              >
-                Locating you…
+              <ActivityIndicator color="#fff" size="small" />
+              <Text style={{ ...typography.captionM, color: "#fff" }}>
+                Acquiring GPS…
               </Text>
             </View>
           )}

@@ -171,13 +171,13 @@ const TYPE_META: Record<
   ActivityType,
   { icon: string; color: string; bg: string }
 > = {
-  expense_added:    { icon: "🧾", color: C.primary,    bg: C.primary50    },
-  receipt_scanned:  { icon: "📷", color: C.teal,       bg: C.tealLight    },
-  report_generated: { icon: "📊", color: C.midNavy2,   bg: C.surface2     },
-  deadline:         { icon: "🗓",  color: C.warning,    bg: C.warningBg    },
-  budget_alert:     { icon: "⚠️", color: C.danger,     bg: C.dangerBg     },
-  export:           { icon: "📤", color: C.success,    bg: C.successBg    },
-  login:            { icon: "🔐", color: C.textSub,    bg: C.surface2     },
+  expense_added:    { icon: "doc.fill",                      color: C.primary,  bg: C.primary50  },
+  receipt_scanned:  { icon: "camera.fill",                   color: C.teal,     bg: C.tealLight  },
+  report_generated: { icon: "chart.bar.fill",                color: C.textSub,  bg: C.surface2   },
+  deadline:         { icon: "calendar",                      color: C.warning,  bg: C.warningBg  },
+  budget_alert:     { icon: "exclamationmark.triangle.fill", color: C.danger,   bg: C.dangerBg   },
+  export:           { icon: "square.and.arrow.up.fill",      color: C.success,  bg: C.successBg  },
+  login:            { icon: "lock.fill",                     color: C.textSub,  bg: C.surface2   },
 };
 
 function ActivityRow({
@@ -212,7 +212,7 @@ function ActivityRow({
             justifyContent: "center",
           }}
         >
-          <Text style={{ fontSize: 18 }}>{meta.icon}</Text>
+          <IconSymbol name={meta.icon as any} size={18} color={meta.color} />
         </View>
         {!item.read && (
           <View

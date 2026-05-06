@@ -7,6 +7,7 @@ import { CameraType, CameraView, useCameraPermissions } from "expo-camera";
 import * as Haptics from "expo-haptics";
 import * as ImageManipulator from "expo-image-manipulator";
 import * as ImagePicker from "expo-image-picker";
+import { useIsFocused } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import React, { useRef, useState } from "react";
 import {
@@ -15,6 +16,7 @@ import {
     Animated,
     Text,
     TouchableOpacity,
+    useWindowDimensions,
     View,
 } from "react-native";
 
@@ -82,6 +84,10 @@ const toBase64 = async (uri: string): Promise<string> => {
 export default function ScanReceiptCameraScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
+  const isFocused = useIsFocused();
+  const { width: screenWidth } = useWindowDimensions();
+  const frameWidth = screenWidth - 48;
+  const frameHeight = frameWidth * 1.4;
   const cameraRef = useRef<CameraView>(null);
   const [permission, requestPermission] = useCameraPermissions();
   const [facing] = useState<CameraType>("back");
@@ -253,7 +259,7 @@ export default function ScanReceiptCameraScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: "#000" }}>
-      <CameraView
+      {isFocused ? <CameraView
         ref={cameraRef}
         style={{ flex: 1 }}
         facing={facing}
@@ -334,12 +340,12 @@ export default function ScanReceiptCameraScreen() {
           />
           <Animated.View
             style={{
-              width: 280,
-              height: 240,
+              width: frameWidth,
+              height: frameHeight,
               transform: [{ scale: captureAnim }],
             }}
           >
-            <CornerBrackets color={C.teal} size={28} thickness={3} />
+            <CornerBrackets color="#FCEAD9" size={28} thickness={3} />
           </Animated.View>
           <View
             style={{
@@ -483,18 +489,8 @@ export default function ScanReceiptCameraScreen() {
               </Text>
             </TouchableOpacity>
           </View>
-          <Text
-            style={{
-              marginTop: 16,
-              fontSize: 11,
-              color: "rgba(255,255,255,0.4)",
-              textAlign: "center",
-            }}
-          >
-            Receipt stored securely in your private Supabase vault
-          </Text>
         </View>
-      </CameraView>
+      </CameraView> : null}
     </View>
   );
 }

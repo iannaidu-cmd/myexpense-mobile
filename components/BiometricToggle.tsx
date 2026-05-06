@@ -8,7 +8,6 @@ import {
     getBiometricLabel,
     isBiometricAvailable,
     isBiometricEnabled,
-    saveBiometricSession,
     setBiometricEnabled,
 } from "@/services/biometricService";
 import { colour, radius, space, typography } from "@/tokens";
@@ -39,33 +38,9 @@ export function BiometricToggle() {
       );
       if (!success) return;
 
-      try {
-        const { supabase } = await import("@/lib/supabase");
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-        if (
-          !session?.access_token ||
-          !session?.refresh_token ||
-          !session?.user?.email
-        ) {
-          Alert.alert(
-            "Error",
-            "Could not enable biometrics. Please sign in again.",
-          );
-          return;
-        }
-        await saveBiometricSession(
-          session.user.email,
-          session.access_token,
-          session.refresh_token,
-        );
-        await setBiometricEnabled(true);
-        setEnabled(true);
-        Alert.alert("Enabled", `${label} sign-in is now active.`);
-      } catch (e: any) {
-        Alert.alert("Error", e.message);
-      }
+      await setBiometricEnabled(true);
+      setEnabled(true);
+      Alert.alert("Enabled", `${label} sign-in is now active.`);
     } else {
       Alert.alert(
         `Disable ${label}?`,

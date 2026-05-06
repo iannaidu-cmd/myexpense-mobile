@@ -131,9 +131,11 @@ export default function PaywallUpgradeScreen() {
   // ── Dev / premium bypass — skip paywall entirely ──────────────────────────
   useEffect(() => {
     if (isPremium) {
-      router.back();
+      router.replace("/(tabs)/settings" as any);
     }
   }, [isPremium]);
+
+  if (isPremium) return null;
 
   // If already Pro via RevenueCat (e.g. restored), go back
   useEffect(() => {

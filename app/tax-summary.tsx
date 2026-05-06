@@ -1,3 +1,4 @@
+import { IconSymbol } from "@/components/ui/icon-symbol";
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { expenseService } from "@/services/expenseService";
@@ -90,7 +91,7 @@ function NavRow({
           marginRight: 14,
         }}
       >
-        <Text style={{ fontSize: 20 }}>{icon}</Text>
+        <IconSymbol name={icon as any} size={18} color={colour.accentDeep} />
       </View>
       <View style={{ flex: 1 }}>
         <Text style={{ fontSize: 14, fontWeight: "600", color: colour.text }}>
@@ -100,7 +101,7 @@ function NavRow({
           {sub}
         </Text>
       </View>
-      <Text style={{ color: colour.primary, fontSize: 18 }}>›</Text>
+      <IconSymbol name="chevron.right" size={14} color={colour.textSub} />
     </TouchableOpacity>
   );
 }
@@ -201,7 +202,7 @@ export default function TaxSummaryScreen() {
         right={
           <View
             style={{
-              backgroundColor: "rgba(255,255,255,0.15)",
+              backgroundColor: colour.primary50,
               borderRadius: 10,
               paddingHorizontal: 12,
               paddingVertical: 6,
@@ -209,7 +210,7 @@ export default function TaxSummaryScreen() {
           >
             <Text
               style={{
-                color: colour.onPrimary,
+                color: colour.accentDeep,
                 fontSize: 12,
                 fontWeight: "600",
               }}
@@ -276,15 +277,15 @@ export default function TaxSummaryScreen() {
               <View
                 style={{
                   marginHorizontal: space.md,
-                  backgroundColor: "#FFF8E1",
+                  backgroundColor: colour.warningBg,
                   borderRadius: radius.md,
                   padding: 12,
                   marginBottom: space.md,
                   borderWidth: 1,
-                  borderColor: "#FFE082",
+                  borderColor: colour.warningMid,
                 }}
               >
-                <Text style={{ fontSize: 12, color: "#7B5800", lineHeight: 18 }}>
+                <Text style={{ fontSize: 12, color: colour.warning, lineHeight: 18 }}>
                   MyExpense prepares your ITR12 data. You must file via SARS eFiling or a registered tax practitioner — MyExpense does not submit to SARS on your behalf.
                 </Text>
               </View>
@@ -413,7 +414,7 @@ export default function TaxSummaryScreen() {
                   onPress={() => router.push("/itr12-export-setup")}
                   style={{
                     marginTop: 12,
-                    backgroundColor: colour.primary,
+                    backgroundColor: colour.noir,
                     borderRadius: 10,
                     padding: 12,
                     alignItems: "center",
@@ -421,7 +422,7 @@ export default function TaxSummaryScreen() {
                 >
                   <Text
                     style={{
-                      color: colour.onPrimary,
+                      color: colour.onNoir,
                       fontSize: 13,
                       fontWeight: "700",
                     }}
@@ -435,22 +436,44 @@ export default function TaxSummaryScreen() {
               <View
                 style={{
                   marginHorizontal: space.md,
-                  backgroundColor: colour.primary,
+                  backgroundColor: colour.noir,
                   borderRadius: radius.md,
                   padding: space.md,
                   marginBottom: space.md,
+                  overflow: "hidden",
                 }}
               >
-                <Text
+                <View
                   style={{
-                    color: colour.onPrimary,
-                    fontSize: 13,
-                    fontWeight: "700",
-                    marginBottom: 12,
+                    position: "absolute",
+                    width: 120,
+                    height: 120,
+                    borderRadius: 60,
+                    backgroundColor: colour.primary,
+                    opacity: 0.3,
+                    top: -40,
+                    right: -30,
+                  }}
+                />
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 8,
+                    marginBottom: 14,
                   }}
                 >
-                  📅 SARS Key Dates — 2024/25
-                </Text>
+                  <IconSymbol name="calendar" size={16} color={colour.onNoir} />
+                  <Text
+                    style={{
+                      color: colour.onNoir,
+                      fontSize: 13,
+                      fontWeight: "700",
+                    }}
+                  >
+                    SARS Key Dates — 2024/25
+                  </Text>
+                </View>
                 {[
                   { label: "Tax year end", date: "28 Feb 2025", done: true },
                   { label: "eFiling opens", date: "1 Jul 2025", done: false },
@@ -480,7 +503,7 @@ export default function TaxSummaryScreen() {
                         borderRadius: 4,
                         backgroundColor: d.done
                           ? colour.successMid
-                          : colour.accent,
+                          : colour.primary200,
                         marginRight: 10,
                       }}
                     />
@@ -488,7 +511,7 @@ export default function TaxSummaryScreen() {
                       style={{
                         flex: 1,
                         fontSize: 12,
-                        color: d.done ? colour.primary200 : colour.onPrimary,
+                        color: d.done ? colour.onNoir2 : colour.onNoir,
                       }}
                     >
                       {d.label}
@@ -497,7 +520,7 @@ export default function TaxSummaryScreen() {
                       style={{
                         fontSize: 12,
                         fontWeight: "600",
-                        color: d.done ? colour.primary200 : colour.primary100,
+                        color: d.done ? colour.onNoir2 : colour.primary100,
                       }}
                     >
                       {d.date}
@@ -533,7 +556,7 @@ export default function TaxSummaryScreen() {
                     </View>
                   ))}
                   {raContributions > raCap && (
-                    <Text style={{ fontSize: 11, color: "#BF360C", marginTop: 4 }}>
+                    <Text style={{ fontSize: 11, color: colour.danger, marginTop: 4 }}>
                       Contributions exceed your annual cap by {fmt(raContributions - raCap)}. The excess rolls over to the next tax year.
                     </Text>
                   )}
@@ -556,7 +579,7 @@ export default function TaxSummaryScreen() {
                   <Text style={{ fontSize: 13, fontWeight: "700", color: colour.text, marginBottom: 4 }}>
                     Medical Aid Tax Credits (S6A)
                   </Text>
-                  <Text style={{ fontSize: 11, color: "#1B5E20", marginBottom: 12, backgroundColor: "#E8F5E9", borderRadius: 6, padding: 8 }}>
+                  <Text style={{ fontSize: 11, color: colour.success, marginBottom: 12, backgroundColor: colour.successBg, borderRadius: 6, padding: 8 }}>
                     Medical Aid is a tax credit (reduces your tax bill directly), not a deduction from income. It is NOT included in your total deductions above.
                   </Text>
                   <Text style={{ fontSize: 12, color: colour.textSub, marginBottom: 8 }}>
@@ -700,25 +723,25 @@ export default function TaxSummaryScreen() {
                 }}
               >
                 <NavRow
-                  icon="📤"
+                  icon="square.and.arrow.up"
                   label="ITR12 export setup"
                   sub="Configure and export your return"
                   onPress={() => router.push("/itr12-export-setup")}
                 />
                 <NavRow
-                  icon="🏷"
+                  icon="tag.fill"
                   label="Category breakdown"
                   sub="Detailed ITR12 category analysis"
                   onPress={() => router.push("/category-breakdown")}
                 />
                 <NavRow
-                  icon="📖"
+                  icon="book.fill"
                   label="Deductibility guide"
                   sub="Which expenses qualify under SARS"
                   onPress={() => router.push("/deductibility-guide")}
                 />
                 <NavRow
-                  icon="📅"
+                  icon="calendar"
                   label="Tax year selector"
                   sub="Switch between tax years"
                   onPress={() => router.push("/tax-year-selector")}

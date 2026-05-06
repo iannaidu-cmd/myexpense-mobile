@@ -490,24 +490,37 @@ export default function ReportsDashboardScreen() {
             {/* ── Tax saving callout ───────────────────────────────────────── */}
             <View
               style={{
-                backgroundColor: colour.successLight,
+                backgroundColor: colour.noir,
                 borderRadius: radius.md,
                 padding: space.lg,
                 flexDirection: "row",
                 justifyContent: "space-between",
                 alignItems: "center",
                 marginBottom: space.xl,
+                overflow: "hidden",
               }}
             >
+              <View
+                style={{
+                  position: "absolute",
+                  width: 100,
+                  height: 100,
+                  borderRadius: 50,
+                  backgroundColor: colour.primary,
+                  opacity: 0.25,
+                  top: -40,
+                  right: -20,
+                }}
+              />
               <View>
-                <Text style={[typography.labelM, { color: colour.success }]}>
+                <Text style={[typography.labelM, { color: colour.onNoir }]}>
                   Estimated Tax Saving
                 </Text>
-                <Text style={[typography.caption, { color: colour.success }]}>
+                <Text style={[typography.caption, { color: colour.onNoir2 }]}>
                   Based on 31% marginal rate
                 </Text>
               </View>
-              <Text style={[typography.amountM, { color: colour.success }]}>
+              <Text style={[typography.amountM, { color: colour.accent }]}>
                 {fmt(estTaxSaving)}
               </Text>
             </View>

@@ -12,6 +12,7 @@ export interface Profile {
   work_type: string | null;
   active_tax_year: string;
   subscription: "free" | "pro" | "business";
+  is_dev_user: boolean;
   push_token: string | null;
   created_at: string;
   updated_at: string;
