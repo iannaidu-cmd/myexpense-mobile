@@ -24,11 +24,6 @@
     "android": {
       "package": "co.za.myexpense",
       "versionCode": 1,
-      "config": {
-        "googleMaps": {
-          "apiKey": "AIzaSyBL--so3xB4jH3-Pdg62BnWMegG2VSORqk"
-        }
-      },
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
