@@ -3,9 +3,11 @@ import { supabase } from "@/lib/supabase";
 import {
   authenticateWithBiometrics,
   clearBiometricSession,
+  getBiometricSession,
   getBiometricLabel,
   isBiometricAvailable,
   isBiometricEnabled,
+  saveBiometricSession,
   setBiometricEnabled,
 } from "@/services/biometricService";
 import { signInWithGoogle } from "@/services/googleAuthService";
@@ -163,9 +165,23 @@ export function SigninScreen() {
     if (!authenticated) return;
 
     try {
-      // Use the session Supabase already persists — no need to store tokens
-      // ourselves, which avoids stale-token errors from refresh token rotation.
-      const { data, error } = await supabase.auth.getSession();
+      const stored = await getBiometricSession();
+
+      if (!stored) {
+        await setBiometricEnabled(false);
+        setBiometricEnabledState(false);
+        Alert.alert(
+          "Session expired",
+          "Please sign in with your email and password to re-enable biometric login.",
+        );
+        return;
+      }
+
+      // Restore the Supabase session from the stored tokens
+      const { data, error } = await supabase.auth.setSession({
+        access_token: stored.accessToken,
+        refresh_token: stored.refreshToken,
+      });
 
       if (error || !data.session?.user) {
         await clearBiometricSession();
@@ -177,6 +193,13 @@ export function SigninScreen() {
         );
         return;
       }
+
+      // Supabase rotates refresh tokens — always persist the new pair
+      await saveBiometricSession(
+        data.session.user.email ?? stored.email,
+        data.session.access_token,
+        data.session.refresh_token,
+      );
 
       const { user } = data.session;
       useAuthStore.setState({
@@ -213,8 +236,21 @@ export function SigninScreen() {
 
       // Offer biometrics after first successful password login
       const available = await isBiometricAvailable();
-      const enabled = await isBiometricEnabled();
-      if (available && !enabled) {
+      const alreadyEnabled = await isBiometricEnabled();
+
+      // Always persist fresh tokens so biometric login has a valid session
+      if (available) {
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (sessionData.session) {
+          await saveBiometricSession(
+            email,
+            sessionData.session.access_token,
+            sessionData.session.refresh_token,
+          );
+        }
+      }
+
+      if (available && !alreadyEnabled) {
         Alert.alert(
           `Enable ${biometricLabel}?`,
           `Use ${biometricLabel} to sign in faster next time.`,

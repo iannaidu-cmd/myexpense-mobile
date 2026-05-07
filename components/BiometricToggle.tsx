@@ -8,8 +8,10 @@ import {
     getBiometricLabel,
     isBiometricAvailable,
     isBiometricEnabled,
+    saveBiometricSession,
     setBiometricEnabled,
 } from "@/services/biometricService";
+import { supabase } from "@/lib/supabase";
 import { colour, radius, space, typography } from "@/tokens";
 import { useEffect, useState } from "react";
 import { Alert, Switch, Text, View } from "react-native";
@@ -37,6 +39,21 @@ export function BiometricToggle() {
         `Enable ${label} for MyExpense`,
       );
       if (!success) return;
+
+      // Save the current session so biometric login can restore it
+      const { data } = await supabase.auth.getSession();
+      if (!data.session) {
+        Alert.alert(
+          "Error",
+          "Could not save session. Please sign out and back in, then try again.",
+        );
+        return;
+      }
+      await saveBiometricSession(
+        data.session.user?.email ?? "",
+        data.session.access_token,
+        data.session.refresh_token,
+      );
 
       await setBiometricEnabled(true);
       setEnabled(true);
