@@ -296,8 +296,8 @@ export default function TaxYearSelectorScreen() {
                   }}
                 >
                   <Text style={[typography.bodyS, { color: colour.warning }]}>
-                    ⚠️ ITR12 filing is currently open for this tax year. Submit
-                    before 23 October 2025.
+                    ⚠️ ITR12 filing is currently open for this tax year. SARS
+                    typically closes individual submissions in late October.
                   </Text>
                 </View>
               )}

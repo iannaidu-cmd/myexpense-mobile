@@ -234,7 +234,7 @@ export default function ErrorGenericScreen({
   const handleRetry = onRetry ?? (() => router.back());
   const handleHome = onGoHome ?? (() => router.replace("/(tabs)" as any));
   const handleSupport =
-    onContactSupport ?? (() => router.push("/settings-screens" as any));
+    onContactSupport ?? (() => router.push("/help-support" as any));
 
   const accentColour = severity === "warning" ? C.warning : C.danger;
 

@@ -239,7 +239,7 @@ export default function EmptyStateNoReportsScreen() {
               fontWeight: "600",
             }}
           >
-            Tax year: 1 Mar 2024 – 28 Feb 2025
+            Tax year: 1 Mar 2025 – 28 Feb 2026
           </Text>
         </View>
 
