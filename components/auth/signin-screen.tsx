@@ -184,13 +184,12 @@ export function SigninScreen() {
       });
 
       if (error || !data.session?.user) {
-        // Tokens are truly expired — only now disable biometrics
+        // Clear the stale tokens but keep biometrics ENABLED so the button
+        // stays visible. The next password login will re-save fresh tokens.
         await clearBiometricSession();
-        await setBiometricEnabled(false);
-        setBiometricEnabledState(false);
         Alert.alert(
-          "Session expired",
-          "Please sign in with your email and password to re-enable biometric login.",
+          "Sign in with password",
+          "Your session has expired. Sign in once with your email and password — fingerprint will reactivate automatically.",
         );
         return;
       }
