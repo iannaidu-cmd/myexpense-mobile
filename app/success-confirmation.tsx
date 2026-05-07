@@ -16,6 +16,7 @@
 import { MXTabBar } from "@/components/MXTabBar";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { colour, radius, space, typography } from "@/tokens";
+import { ACTIVE_TAX_YEAR } from "@/types/database";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useRef } from "react";
 import {
@@ -310,7 +311,7 @@ export default function SuccessConfirmationScreen() {
                 fontWeight: "600",
               }}
             >
-              Categorised for SARS ITR12 · 2024/25 tax year
+              Categorised for SARS ITR12 · {ACTIVE_TAX_YEAR} tax year
             </Text>
           </View>
         )}

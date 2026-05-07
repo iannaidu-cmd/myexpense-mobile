@@ -135,8 +135,6 @@ export default function PaywallUpgradeScreen() {
     }
   }, [isPremium]);
 
-  if (isPremium) return null;
-
   // If already Pro via RevenueCat (e.g. restored), go back
   useEffect(() => {
     if (isPro) {
@@ -147,6 +145,8 @@ export default function PaywallUpgradeScreen() {
       );
     }
   }, [isPro]);
+
+  if (isPremium) return null;
 
   const monthlyPkg = packages.find(
     (p) => p.product.identifier === PRODUCT_MONTHLY

@@ -503,8 +503,7 @@ export default function MileageHistoryScreen() {
               >
                 SARS requires a travel logbook for vehicle expense claims. This
                 logbook records each business trip with date, distance, purpose
-                and calculated deduction at the deemed rate of R4.84/km for the
-                2024/25 tax year.
+                and calculated deduction at the SARS deemed rate of R{SARS_RATE_PER_KM}/km.
               </Text>
             </View>
           </>
