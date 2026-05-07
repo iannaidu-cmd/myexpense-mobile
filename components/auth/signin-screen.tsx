@@ -10,6 +10,7 @@ import {
   saveBiometricSession,
   setBiometricEnabled,
 } from "@/services/biometricService";
+import { signInWithFacebook } from "@/services/facebookAuthService";
 import { signInWithGoogle } from "@/services/googleAuthService";
 import { useAuthStore } from "@/stores/authStore";
 import { colour, radius, space, typography } from "@/tokens";
@@ -148,17 +149,15 @@ export function SigninScreen() {
       setBiometricAvailable(available);
       setBiometricEnabledState(enabled);
       setBiometricLabel(label);
-      if (available && enabled) handleBiometricLogin();
+      if (available && enabled) handleBiometricLogin(true);
     })();
   }, []);
 
   // ── Biometric login ───────────────────────────────────────────────────────
-  // 1. Prompt biometric (fingerprint/face)
-  // 2. Load stored access_token + refresh_token from SecureStore
-  // 3. Call supabase.auth.setSession() to restore the full session
-  // 4. Manually update the authStore user state
-  // 5. Navigate — AuthGate now sees a valid user
-  const handleBiometricLogin = async () => {
+  // auto=true  → called on app launch; skip silently if no stored session
+  // auto=false → user tapped the button; show actionable message if no session
+  // Biometrics is only disabled when setSession() fails (truly expired tokens).
+  const handleBiometricLogin = async (auto = false) => {
     const authenticated = await authenticateWithBiometrics(
       "Sign in to MyExpense",
     );
@@ -168,12 +167,13 @@ export function SigninScreen() {
       const stored = await getBiometricSession();
 
       if (!stored) {
-        await setBiometricEnabled(false);
-        setBiometricEnabledState(false);
-        Alert.alert(
-          "Session expired",
-          "Please sign in with your email and password to re-enable biometric login.",
-        );
+        if (!auto) {
+          Alert.alert(
+            "Setup required",
+            "Please sign in with your email and password once to activate fingerprint login.",
+          );
+        }
+        // Auto-launch: silently skip — do NOT disable biometrics
         return;
       }
 
@@ -184,6 +184,7 @@ export function SigninScreen() {
       });
 
       if (error || !data.session?.user) {
+        // Tokens are truly expired — only now disable biometrics
         await clearBiometricSession();
         await setBiometricEnabled(false);
         setBiometricEnabledState(false);
@@ -300,10 +301,15 @@ export function SigninScreen() {
   const handleFacebookSignIn = async () => {
     setFbLoading(true);
     try {
-      Alert.alert(
-        "Coming Soon",
-        "Facebook Sign-In will be available in the next update.",
-      );
+      const result = await signInWithFacebook();
+      if (result.success) {
+        router.replace("/(tabs)");
+      } else if (result.error !== "cancelled") {
+        Alert.alert(
+          "Facebook Sign-In failed",
+          result.error ?? "Please try again.",
+        );
+      }
     } finally {
       setFbLoading(false);
     }
@@ -440,7 +446,7 @@ export function SigninScreen() {
             {/* Biometric button — shown for both fingerprint and Face ID */}
             {biometricAvailable && biometricEnabled && (
               <TouchableOpacity
-                onPress={handleBiometricLogin}
+                onPress={() => handleBiometricLogin(false)}
                 style={{
                   borderWidth: 1.5,
                   borderColor: colour.primary,
