@@ -1,3 +1,4 @@
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { configurePurchases } from "@/lib/purchases";
 import * as Sentry from "@sentry/react-native";
@@ -11,6 +12,7 @@ import {
 } from "@/services/notificationService";
 import { useAuthStore } from "@/stores/authStore";
 import { useSubscriptionStore } from "@/stores/subscriptionStore";
+import { colour } from "@/tokens";
 import {
     Inter_400Regular,
     Inter_500Medium,
@@ -27,10 +29,11 @@ import {
 import { Stack, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
-import { useEffect } from "react";
-import { LogBox } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { Animated, Image, Linking, LogBox, View } from "react-native";
 import "react-native-reanimated";
 import "react-native-url-polyfill/auto";
+import { supabase } from "@/lib/supabase";
 
 // Supabase internally console.errors when a stored refresh token is stale.
 // We handle this gracefully in authStore (signOut + redirect), so suppress
@@ -49,13 +52,11 @@ Sentry.init({
 
 SplashScreen.preventAutoHideAsync();
 
-export const unstable_settings = { anchor: "splash" };
-
 // ── Auth gate ─────────────────────────────────────────────────────────────────
 function AuthGate() {
   const router = useRouter();
   const segments = useSegments();
-  const { user, isInitialised } = useAuthStore();
+  const { user, isInitialised, termsAccepted } = useAuthStore();
 
   useEffect(() => {
     if (!isInitialised) return;
@@ -73,22 +74,69 @@ function AuthGate() {
     // profile-setup is NOT in inAuthGroup so authenticated users can access it
     const inProfileSetup = segments[0] === "profile-setup";
 
-    const inOnboarding =
-      segments[0] === "onboarding-step-1" ||
-      segments[0] === "onboarding-step-2" ||
-      segments[0] === "onboarding-step-3" ||
-      segments[0] === "splash";
+    const inOnboarding = segments[0] === "onboarding-step-1";
 
     // Legal screens are always accessible regardless of auth state
     const inLegal = segments[0] === "terms" || segments[0] === "privacy";
+
+    const inTermsAccept = (segments[0] as string) === "terms-accept";
 
     if (!user && !inAuthGroup && !inOnboarding && !inLegal && !inProfileSetup) {
       router.replace("/onboarding-step-1");
     } else if (user && (inAuthGroup || inOnboarding)) {
       router.replace("/(tabs)");
+    } else if (user && !termsAccepted && !inTermsAccept && !inLegal) {
+      // Gate: authenticated but hasn't accepted terms yet.
+      // Catches email sign-ups, social sign-ins, and existing users alike.
+      router.replace("/terms-accept" as any);
     }
-  }, [user, isInitialised, segments]);
+  }, [user, isInitialised, termsAccepted, segments]);
 
+  return null;
+}
+
+// ── OAuth deep-link handler ───────────────────────────────────────────────────
+// Two cases:
+//   1. PKCE code via HTTPS App Link — when openAuthSessionAsync returns "cancel"
+//      because the OS routed the intent separately, the Linking event fires with
+//      the HTTPS callback URL. Extract the code and push to auth/callback.
+//   2. Implicit-flow hash tokens — password-reset magic links.
+function OAuthHandler() {
+  const router = useRouter();
+  useEffect(() => {
+    const handle = async (url: string | null) => {
+      if (!url) return;
+
+      // PKCE code in HTTPS App Link (custom scheme handled by Expo Router natively)
+      if (url.includes("myexpense.co.za/auth/callback")) {
+        const codeMatch = url.match(/[?&]code=([^&#]+)/);
+        if (codeMatch) {
+          router.push(`/auth/callback?code=${codeMatch[1]}` as any);
+          return;
+        }
+      }
+
+      // Implicit-flow hash tokens (password-reset magic links)
+      const hashIdx = url.indexOf("#");
+      const hash = hashIdx >= 0 ? url.slice(hashIdx + 1) : "";
+      if (!hash) return;
+      const p = new URLSearchParams(hash);
+      const at = p.get("access_token");
+      const rt = p.get("refresh_token");
+      if (at && rt) {
+        try {
+          const { data: { session: existing } } = await supabase.auth.getSession();
+          if (existing) return;
+          await supabase.auth.setSession({ access_token: at, refresh_token: rt });
+        } catch {
+          // Silent
+        }
+      }
+    };
+    Linking.getInitialURL().then(handle);
+    const sub = Linking.addEventListener("url", ({ url }) => handle(url));
+    return () => sub.remove();
+  }, []);
   return null;
 }
 
@@ -155,9 +203,30 @@ function NotificationSetup() {
   return null;
 }
 
+const SPLASH_MIN_MS = 4000;
+const SPLASH_MAX_MS = 15000;
+
+// Overlay opacity is controlled by RootLayout so it can fade out smoothly.
+// InlineSplash only handles the logo entrance animation.
+function InlineSplash({ opacity }: { opacity: Animated.Value }) {
+  const scaleAnim = useRef(new Animated.Value(0.85)).current;
+  useEffect(() => {
+    Animated.spring(scaleAnim, { toValue: 1, delay: 200, useNativeDriver: true, tension: 60, friction: 8 }).start();
+  }, []);
+  return (
+    <Animated.View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: colour.background, alignItems: "center", justifyContent: "center", opacity }}>
+      <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+        <Image source={require("@/assets/images/sm_logo.gif")} style={{ width: 162, height: 162, resizeMode: "contain" }} />
+      </Animated.View>
+    </Animated.View>
+  );
+}
+
 function RootLayout() {
   const colorScheme = useColorScheme();
   const { initialise } = useAuthStore();
+  const [splashDone, setSplashDone] = useState(false);
+  const splashOpacity = useRef(new Animated.Value(1)).current;
   useFonts({
     Inter_400Regular,
     Inter_500Medium,
@@ -167,29 +236,31 @@ function RootLayout() {
   });
 
   useEffect(() => {
+    const startMs = Date.now();
     SplashScreen.hideAsync();
-    initialise();
+    const timeout = new Promise<void>((resolve) => setTimeout(resolve, SPLASH_MAX_MS));
+    Promise.race([initialise(), timeout]).then(() => {
+      const elapsed = Date.now() - startMs;
+      const remaining = Math.max(0, SPLASH_MIN_MS - elapsed);
+      setTimeout(() => {
+        Animated.timing(splashOpacity, { toValue: 0, duration: 500, useNativeDriver: true })
+          .start(() => setSplashDone(true));
+      }, remaining);
+    });
   }, []);
 
   return (
+    <ErrorBoundary>
+    <View style={{ flex: 1 }}>
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
       <AuthGate />
+      <OAuthHandler />
       <PurchasesSetup />
       <NotificationSetup />
       <Stack>
-        {" "}
         {/* ── Entry ── */}
-        <Stack.Screen name="splash" options={{ headerShown: false }} />
         <Stack.Screen
           name="onboarding-step-1"
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="onboarding-step-2"
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="onboarding-step-3"
           options={{ headerShown: false }}
         />
         {/* ── Auth ── */}
@@ -207,11 +278,13 @@ function RootLayout() {
         {/* ── Legal (accessible without login) ── */}
         <Stack.Screen name="terms" options={{ headerShown: false }} />
         <Stack.Screen name="privacy" options={{ headerShown: false }} />
+        <Stack.Screen name="terms-accept" options={{ headerShown: false }} />
         {/* ── Main tabs ── */}
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         {/* ── Income ── */}
         <Stack.Screen name="add-income" options={{ headerShown: false }} />
         <Stack.Screen name="income-history" options={{ headerShown: false }} />
+        <Stack.Screen name="income-detail" options={{ headerShown: false }} />
         <Stack.Screen
           name="income-vs-expenses"
           options={{ headerShown: false }}
@@ -297,13 +370,10 @@ function RootLayout() {
         />
         {/* ── Settings ── */}
         <Stack.Screen name="bank-accounts" options={{ headerShown: false }} />
+        <Stack.Screen name="bank-import" options={{ headerShown: false }} />
         <Stack.Screen name="profile" options={{ headerShown: false }} />
         <Stack.Screen
           name="notifications-settings"
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="appearance-settings"
           options={{ headerShown: false }}
         />
         <Stack.Screen
@@ -341,19 +411,14 @@ function RootLayout() {
           name="error-no-internet"
           options={{ headerShown: false }}
         />
-        {/* ── Stubs ── */}
-        <Stack.Screen name="reports-screens" options={{ headerShown: false }} />
-        <Stack.Screen
-          name="settings-screens"
-          options={{ headerShown: false }}
-        />
         {/* ── Modal ── */}
         <Stack.Screen name="modal" options={{ presentation: "modal" }} />
       </Stack>
       <StatusBar style="auto" />
-
-
     </ThemeProvider>
+    {!splashDone && <InlineSplash opacity={splashOpacity} />}
+    </View>
+    </ErrorBoundary>
   );
 }
 
