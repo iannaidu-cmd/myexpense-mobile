@@ -14,8 +14,8 @@ const config = {
   ios: {
     supportsTablet: true,
     bundleIdentifier: "co.za.myexpense",
-    buildNumber: "1",
     infoPlist: {
+      ITSAppUsesNonExemptEncryption: false,
       NSCameraUsageDescription:
         "MyExpense uses the camera to scan receipts for expense records.",
       NSPhotoLibraryUsageDescription:
@@ -32,17 +32,14 @@ const config = {
   },
   android: {
     package: "co.za.myexpense",
-    versionCode: 1,
     config: {
       googleMaps: {
         apiKey: process.env.GOOGLE_MAPS_API_KEY,
       },
     },
     adaptiveIcon: {
-      backgroundColor: "#E6F4FE",
-      foregroundImage: "./assets/images/android-icon-foreground.png",
-      backgroundImage: "./assets/images/android-icon-background.png",
-      monochromeImage: "./assets/images/android-icon-monochrome.png",
+      foregroundImage: "./assets/images/adaptive-icon.png",
+      backgroundColor: "#FFFFFF",
     },
     edgeToEdgeEnabled: true,
     predictiveBackGestureEnabled: false,
@@ -51,6 +48,18 @@ const config = {
         action: "VIEW",
         autoVerify: true,
         data: [{ scheme: "myexpense" }],
+        category: ["BROWSABLE", "DEFAULT"],
+      },
+      {
+        action: "VIEW",
+        autoVerify: true,
+        data: [
+          {
+            scheme: "https",
+            host: "myexpense.co.za",
+            pathPrefix: "/auth/callback",
+          },
+        ],
         category: ["BROWSABLE", "DEFAULT"],
       },
     ],
@@ -85,8 +94,8 @@ const config = {
     [
       "expo-notifications",
       {
-        icon: "./assets/images/android-icon-monochrome.png",
-        color: "#006FFD",
+        icon: "./assets/images/adaptive-icon.png",
+        color: "#2B2B7A",
         defaultChannel: "default",
       },
     ],
