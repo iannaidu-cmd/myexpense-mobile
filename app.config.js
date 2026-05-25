@@ -77,9 +77,9 @@ const config = {
     [
       "expo-splash-screen",
       {
-        image: "./assets/images/splash-icon.png",
+        image: "./assets/images/icon.png",
         resizeMode: "contain",
-        backgroundColor: "#F2EDE3",
+        backgroundColor: "#FFFFFF",
       },
     ],
     [
