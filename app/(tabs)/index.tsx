@@ -8,7 +8,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { colour, radius, space, typography } from "@/tokens";
 import { ACTIVE_TAX_YEAR, Expense } from "@/types/database";
 import { useFocusEffect, useRouter } from "expo-router";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Platform,
@@ -44,7 +44,10 @@ export default function HomeScreen() {
   const [totalDeductions, setTotalDeductions] = useState(0);
   const [totalIncome, setTotalIncome] = useState(0);
   const [recentExpenses, setRecentExpenses] = useState<Expense[]>([]);
+  const [recentIncome, setRecentIncome] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const isFetching = useRef(false);
+  const hasLoaded = useRef(false);
 
   const now = new Date();
   const hour = now.getHours();
@@ -52,31 +55,71 @@ export default function HomeScreen() {
   const greeting = hour < 12 ? "Morning" : hour < 17 ? "Afternoon" : "Evening";
   const estimatedSaving = Math.round(totalDeductions * SA_MARGINAL_TAX_RATE);
 
-  const loadData = useCallback(async () => {
-    if (!user) return;
-    setLoading(true);
+  const loadData = useCallback(async (silent = false) => {
+    if (!user) { setLoading(false); return; }
+    if (isFetching.current) return;
+    isFetching.current = true;
+    if (!silent) setLoading(true);
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("timeout")), 10_000),
+    );
     try {
-      const [profile, totals, incomeTotals, recent] = await Promise.all([
-        profileService.getProfile(user.id),
-        expenseService.getTotals(user.id, ACTIVE_TAX_YEAR),
-        incomeService.getTotals(user.id),
-        expenseService.getRecentExpenses(user.id, 5),
+      const [profile, totals, incomeTotals, recent, recentInc] = await Promise.race([
+        Promise.all([
+          profileService.getProfile(user.id),
+          expenseService.getTotals(user.id, ACTIVE_TAX_YEAR),
+          incomeService.getTotals(user.id),
+          expenseService.getRecentExpenses(user.id, 5),
+          incomeService.getRecentIncome(user.id, 5),
+        ]),
+        timeout,
       ]);
       if (profile?.full_name) setFirstName(profile.full_name.split(" ")[0]);
       setTotalExpenses(totals.totalExpenses);
       setTotalDeductions(totals.totalDeductions);
       setTotalIncome(incomeTotals.totalIncome);
       setRecentExpenses(recent);
+      setRecentIncome(recentInc);
+      hasLoaded.current = true;
     } catch (e) {
-      console.error("HomeScreen load error:", e);
+      console.warn("HomeScreen load error:", e);
     } finally {
       setLoading(false);
+      isFetching.current = false;
     }
   }, [user?.id]);
 
+  // Fire when auth initialises (user changes null → User)
+  useEffect(() => { loadData(); }, [loadData]);
+
+  // Re-fire silently when tab gains focus — don't re-show spinner if data exists
   useFocusEffect(
-    useCallback(() => { loadData(); }, [loadData])
+    useCallback(() => { loadData(hasLoaded.current); }, [loadData])
   );
+
+  const recentActivity = useMemo(() => {
+    const expenses = recentExpenses.map(e => ({
+      type: 'expense' as const,
+      id: e.id,
+      label: e.vendor,
+      sublabel: e.category ?? "Expense",
+      date: e.expense_date,
+      amount: e.amount,
+      isDeductible: e.is_deductible,
+    }));
+    const income = recentIncome.map(i => ({
+      type: 'income' as const,
+      id: i.id,
+      label: i.source,
+      sublabel: i.description ?? "Income",
+      date: i.date,
+      amount: i.amount,
+      isDeductible: undefined,
+    }));
+    return [...expenses, ...income]
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, 6);
+  }, [recentExpenses, recentIncome]);
 
   const cardShadow =
     Platform.OS === "ios"
@@ -124,11 +167,6 @@ export default function HomeScreen() {
             }}>
               <IconSymbol name="bell.fill" size={16} color={colour.text} />
             </View>
-            <View style={{
-              position: "absolute", width: 8, height: 8, borderRadius: 4,
-              backgroundColor: colour.primary, top: 7, right: 7,
-              borderWidth: 2, borderColor: colour.background,
-            }} />
           </TouchableOpacity>
         </View>
 
@@ -174,23 +212,31 @@ export default function HomeScreen() {
                 flexDirection: "row", paddingTop: 16,
                 borderTopWidth: 1, borderTopColor: "rgba(255,255,255,0.10)",
               }}>
-                <View style={{ flex: 1 }}>
+                <TouchableOpacity
+                  style={{ flex: 1 }}
+                  activeOpacity={0.75}
+                  onPress={() => router.push("/income-history" as any)}
+                >
                   <Text style={{ fontSize: 11, color: colour.onNoir2, fontWeight: "500", marginBottom: 6 }}>
                     Income
                   </Text>
                   <Text style={{ fontSize: 18, fontWeight: "700", color: colour.onNoir, letterSpacing: -0.5 }}>
                     {formatZAR(totalIncome)}
                   </Text>
-                </View>
+                </TouchableOpacity>
                 <View style={{ width: 1, backgroundColor: "rgba(255,255,255,0.10)" }} />
-                <View style={{ flex: 1, paddingLeft: 16 }}>
+                <TouchableOpacity
+                  style={{ flex: 1, paddingLeft: 16 }}
+                  activeOpacity={0.75}
+                  onPress={() => router.push("/expense-history" as any)}
+                >
                   <Text style={{ fontSize: 11, color: colour.onNoir2, fontWeight: "500", marginBottom: 6 }}>
                     Expenses
                   </Text>
                   <Text style={{ fontSize: 18, fontWeight: "700", color: colour.onNoir, letterSpacing: -0.5 }}>
                     {formatZAR(totalExpenses)}
                   </Text>
-                </View>
+                </TouchableOpacity>
               </View>
             </View>
 
@@ -286,7 +332,7 @@ export default function HomeScreen() {
               </View>
             </TouchableOpacity>
 
-            {/* ── Recent transactions ── */}
+            {/* ── Recent activity ── */}
             <View style={{
               flexDirection: "row", justifyContent: "space-between",
               alignItems: "baseline", marginBottom: 8, marginHorizontal: 2,
@@ -294,12 +340,12 @@ export default function HomeScreen() {
               <Text style={{ fontSize: 14, fontWeight: "600", color: colour.text, letterSpacing: -0.2 }}>
                 Recent
               </Text>
-              <TouchableOpacity onPress={() => router.push("/(tabs)/reports")}>
-                <Text style={{ ...typography.labelS, color: colour.primary }}>See all</Text>
+              <TouchableOpacity onPress={() => router.push("/expense-history" as any)}>
+                <Text style={{ fontSize: 12, fontWeight: "600", color: colour.primary }}>See all</Text>
               </TouchableOpacity>
             </View>
 
-            {recentExpenses.length === 0 ? (
+            {recentActivity.length === 0 ? (
               <View style={{
                 backgroundColor: colour.white, borderRadius: radius.md,
                 borderWidth: 1, borderColor: colour.borderLight,
@@ -307,14 +353,18 @@ export default function HomeScreen() {
               }}>
                 <IconSymbol name="doc.text.fill" size={28} color={colour.textHint} style={{ marginBottom: 8 } as any} />
                 <Text style={{ ...typography.bodyS, color: colour.textSub, textAlign: "center" }}>
-                  No expenses yet.{"\n"}Add your first expense to get started.
+                  No activity yet.{"\n"}Add your first expense or income to get started.
                 </Text>
               </View>
             ) : (
-              recentExpenses.map((expense) => (
+              recentActivity.map((item) => (
                 <TouchableOpacity
-                  key={expense.id}
-                  onPress={() => router.push(`/expense-detail?id=${expense.id}` as any)}
+                  key={`${item.type}-${item.id}`}
+                  onPress={() => router.push(
+                    item.type === 'income'
+                      ? `/income-detail?id=${item.id}` as any
+                      : `/expense-detail?id=${item.id}` as any
+                  )}
                   style={{
                     backgroundColor: colour.white, borderRadius: radius.md,
                     borderWidth: 1, borderColor: colour.borderLight,
@@ -325,28 +375,37 @@ export default function HomeScreen() {
                 >
                   <View style={{
                     width: 32, height: 32, borderRadius: 10,
-                    backgroundColor: colour.surface1,
+                    backgroundColor: item.type === 'income' ? colour.successBg : colour.surface1,
                     alignItems: "center", justifyContent: "center",
                   }}>
-                    <Text style={{ fontSize: 13, fontWeight: "600", color: colour.textMid }}>
-                      {expense.category?.charAt(0)?.toUpperCase() ?? "?"}
-                    </Text>
+                    {item.type === 'income' ? (
+                      <IconSymbol name="arrow.down.circle.fill" size={16} color={colour.success} />
+                    ) : (
+                      <Text style={{ fontSize: 13, fontWeight: "600", color: colour.textMid }}>
+                        {item.sublabel?.charAt(0)?.toUpperCase() ?? "?"}
+                      </Text>
+                    )}
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={{ fontSize: 13, fontWeight: "600", color: colour.text }}>
-                      {expense.vendor}
+                      {item.label}
                     </Text>
                     <Text style={{ fontSize: 11, color: colour.textSub, marginTop: 1, fontWeight: "500" }}>
-                      {expense.category} · {formatDate(expense.expense_date)}
+                      {item.type === 'income' ? "Income" : item.sublabel} · {formatDate(item.date)}
                     </Text>
                   </View>
                   <View style={{ alignItems: "flex-end" }}>
-                    <Text style={{ fontSize: 13, fontWeight: "700", color: colour.text }}>
-                      {formatZAR(expense.amount)}
+                    <Text style={{ fontSize: 13, fontWeight: "700", color: item.type === 'income' ? colour.success : colour.text }}>
+                      {item.type === 'income' ? "+" : ""}{formatZAR(item.amount)}
                     </Text>
-                    {expense.is_deductible && (
+                    {item.type === 'expense' && item.isDeductible && (
                       <Text style={{ fontSize: 11, color: colour.success, fontWeight: "500", marginTop: 1 }}>
                         deductible
+                      </Text>
+                    )}
+                    {item.type === 'income' && (
+                      <Text style={{ fontSize: 11, color: colour.success, fontWeight: "500", marginTop: 1 }}>
+                        income
                       </Text>
                     )}
                   </View>

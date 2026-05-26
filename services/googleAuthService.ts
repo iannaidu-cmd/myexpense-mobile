@@ -1,49 +1,56 @@
-import * as Linking from "expo-linking";
 import * as WebBrowser from "expo-web-browser";
+import { generateAndStorePkce } from "@/lib/pkce";
+import { useAuthStore } from "@/stores/authStore";
+import { Linking } from "react-native";
 
 WebBrowser.maybeCompleteAuthSession();
+
+const REDIRECT_URL = "https://myexpense.co.za/auth/callback";
+const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL!;
+
+const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
 export async function signInWithGoogle(): Promise<{
   success: boolean;
   error?: string;
 }> {
   try {
-    const { supabase } = await import("@/lib/supabase");
+    const { challenge } = await generateAndStorePkce();
 
-    // Build the redirect URI that matches this app's deep-link scheme
-    const redirectUrl = Linking.createURL("auth/callback");
-
-    const { data, error } = await supabase.auth.signInWithOAuth({
+    const params = new URLSearchParams({
       provider: "google",
-      options: {
-        redirectTo: redirectUrl,
-        skipBrowserRedirect: true,
-        queryParams: {
-          access_type: "offline",
-          prompt: "consent",
-        },
-      },
+      redirect_to: REDIRECT_URL,
+      code_challenge: challenge,
+      code_challenge_method: "s256",
+      access_type: "offline",
+      prompt: "consent",
     });
+    const oauthUrl = `${SUPABASE_URL}/auth/v1/authorize?${params.toString()}`;
 
-    if (error) throw error;
-    if (!data.url) throw new Error("No OAuth URL returned from Supabase");
+    const result = await WebBrowser.openAuthSessionAsync(oauthUrl, REDIRECT_URL);
+    WebBrowser.dismissBrowser();
 
-    // Open Google sign-in in an in-app auth session.
-    // openAuthSessionAsync captures the redirect URL instead of navigating away,
-    // which lets us complete the PKCE code exchange right here.
-    const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
-
-    if (result.type !== "success") {
-      return { success: false, error: "cancelled" };
+    // Extract code from the captured HTTPS callback URL and re-route via the
+    // custom scheme so auth/callback.tsx receives the code param correctly.
+    if (result.type === "success" && result.url) {
+      const codeMatch = result.url.match(/[?&]code=([^&#]+)/);
+      if (codeMatch) {
+        await Linking.openURL(`myexpense://auth/callback?code=${codeMatch[1]}`);
+      }
     }
 
-    // Exchange the PKCE authorisation code for a Supabase session
-    const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(
-      result.url,
-    );
-    if (exchangeError) throw exchangeError;
+    for (let i = 0; i < 120; i++) {
+      await sleep(500);
+      if (useAuthStore.getState().isAuthenticated) return { success: true };
+    }
 
-    return { success: true };
+    return {
+      success: false,
+      error:
+        result.type !== "success"
+          ? "cancelled"
+          : "Sign-in failed. Please try again.",
+    };
   } catch (e: any) {
     console.error("Google Sign-In error:", e);
     return {

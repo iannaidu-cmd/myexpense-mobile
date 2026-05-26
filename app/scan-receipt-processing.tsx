@@ -66,7 +66,9 @@ interface ExtractedData {
   notes?: string;
 }
 
-async function extractReceiptData(base64: string): Promise<ExtractedData> {
+const OCR_TIMEOUT_MS = 30_000;
+
+async function _extractReceiptData(base64: string): Promise<ExtractedData> {
   if (!base64 || base64.length < 100) return {};
 
   const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL!;
@@ -75,6 +77,8 @@ async function extractReceiptData(base64: string): Promise<ExtractedData> {
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     try {
+      const controller = new AbortController();
+      const abortTimer = setTimeout(() => controller.abort(), 15_000);
       const response = await fetch(`${SUPABASE_URL}/functions/v1/ocr-receipt`, {
         method: "POST",
         headers: {
@@ -83,7 +87,8 @@ async function extractReceiptData(base64: string): Promise<ExtractedData> {
           apikey: ANON_KEY,
         },
         body: JSON.stringify({ imageBase64: base64 }),
-      });
+        signal: controller.signal,
+      }).finally(() => clearTimeout(abortTimer));
 
       const data = await response.json();
 
@@ -110,6 +115,13 @@ async function extractReceiptData(base64: string): Promise<ExtractedData> {
     }
   }
   return {};
+}
+
+async function extractReceiptData(base64: string): Promise<ExtractedData> {
+  const timeout = new Promise<ExtractedData>((resolve) =>
+    setTimeout(() => resolve({}), OCR_TIMEOUT_MS),
+  );
+  return Promise.race([_extractReceiptData(base64), timeout]);
 }
 
 export default function ScanReceiptProcessingScreen() {

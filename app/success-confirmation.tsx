@@ -1,18 +1,3 @@
-/**
- * SuccessConfirmationScreen.tsx
- * Route: app/success-confirmation.tsx
- *
- * Generic success screen shown after key user actions (expense saved, receipt scanned,
- * report exported, subscription activated, etc.).
- *
- * Accepts route params to customise the message and next action:
- *   - title:    string   — e.g. "Expense Saved!"
- *   - subtitle: string   — e.g. "Your receipt has been categorised under S11(a)."
- *   - context:  string   — e.g. "expense" | "receipt" | "report" | "subscription"
- *   - nextRoute: string  — route to push on the primary CTA (defaults to dashboard)
- *   - nextLabel: string  — primary CTA label (defaults to "Go to Dashboard")
- */
-
 import { MXTabBar } from "@/components/MXTabBar";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { colour, radius, space, typography } from "@/tokens";
@@ -21,180 +6,69 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useRef } from "react";
 import {
     Animated,
-    Platform,
-    SafeAreaView,
     StatusBar,
     Text,
     TouchableOpacity,
     View,
 } from "react-native";
 
-// ─── Context-aware config ─────────────────────────────────────────────────────
-
-type SuccessContext =
-  | "expense"
-  | "receipt"
-  | "report"
-  | "subscription"
-  | "generic";
+type SuccessContext = "expense" | "receipt" | "report" | "subscription" | "generic";
 
 const CONTEXT_CONFIG: Record<
   SuccessContext,
   {
     icon: string;
+    accentColour: string;
     defaultTitle: string;
     defaultSubtitle: string;
-    accentColour: string;
   }
 > = {
   expense: {
-    icon: "✅",
-    defaultTitle: "Expense saved!",
-    defaultSubtitle:
-      "Your expense has been recorded and categorised for ITR12.",
-    accentColour: colour.success,
+    icon: "checkmark",
+    accentColour: colour.primary,
+    defaultTitle: "Expense saved",
+    defaultSubtitle: "Your expense has been recorded and categorised for ITR12.",
   },
   receipt: {
-    icon: "🧾",
-    defaultTitle: "Receipt scanned!",
-    defaultSubtitle:
-      "Your receipt was processed and matched to an ITR12 category.",
+    icon: "doc.text.fill",
     accentColour: colour.primary,
+    defaultTitle: "Receipt scanned",
+    defaultSubtitle: "Your receipt was processed and matched to an ITR12 category.",
   },
   report: {
-    icon: "📊",
-    defaultTitle: "Report exported!",
-    defaultSubtitle:
-      "Your tax summary report is ready to share with your accountant.",
+    icon: "chart.bar.fill",
     accentColour: colour.teal,
+    defaultTitle: "Report exported",
+    defaultSubtitle: "Your tax summary report is ready to share with your accountant.",
   },
   subscription: {
-    icon: "⭐",
-    defaultTitle: "You're on Pro!",
-    defaultSubtitle:
-      "Welcome to MyExpense Pro. All premium features are now unlocked.",
+    icon: "star.fill",
     accentColour: colour.warning,
+    defaultTitle: "You're on Pro",
+    defaultSubtitle: "Welcome to MyExpense Pro. All premium features are now unlocked.",
   },
   generic: {
-    icon: "🎉",
-    defaultTitle: "Done!",
+    icon: "checkmark",
+    accentColour: colour.primary,
+    defaultTitle: "Done",
     defaultSubtitle: "Your action was completed successfully.",
-    accentColour: colour.success,
   },
 };
 
-// ─── Animated checkmark circle ───────────────────────────────────────────────
-
-function SuccessCircle({
-  icon,
-  accentColour,
-}: {
-  icon: string;
-  accentColour: string;
-}) {
-  const scale = useRef(new Animated.Value(0)).current;
-  const opacity = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    Animated.parallel([
-      Animated.spring(scale, {
-        toValue: 1,
-        tension: 60,
-        friction: 7,
-        useNativeDriver: true,
-      }),
-      Animated.timing(opacity, {
-        toValue: 1,
-        duration: 300,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, []);
-
-  return (
-    <Animated.View
-      style={{
-        opacity,
-        transform: [{ scale }],
-        alignItems: "center",
-        justifyContent: "center",
-        marginBottom: space.xl,
-      }}
-    >
-      {/* Outer pulse ring */}
-      <View
-        style={{
-          position: "absolute",
-          width: 152,
-          height: 152,
-          borderRadius: 76,
-          borderWidth: 1.5,
-          borderColor: accentColour,
-          opacity: 0.2,
-        }}
-      />
-      {/* Inner circle */}
-      <View
-        style={{
-          width: 120,
-          height: 120,
-          borderRadius: 60,
-          backgroundColor: accentColour + "1A", // 10% opacity
-          alignItems: "center",
-          justifyContent: "center",
-          borderWidth: 2,
-          borderColor: accentColour + "33", // 20% opacity
-        }}
-      >
-        <Text style={{ fontSize: 44 }}>{icon}</Text>
-      </View>
-    </Animated.View>
-  );
-}
-
-// ─── Detail chip ──────────────────────────────────────────────────────────────
-
-function DetailChip({ label, value }: { label: string; value: string }) {
-  return (
-    <View
-      style={{
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        paddingVertical: space.sm,
-        borderBottomWidth: 1,
-        borderBottomColor: colour.borderLight,
-      }}
-    >
-      <Text style={{ ...typography.bodyS, color: colour.textSub }}>
-        {label}
-      </Text>
-      <Text
-        style={{ ...typography.bodyS, color: colour.text, fontWeight: "600" }}
-      >
-        {value}
-      </Text>
-    </View>
-  );
-}
-
-// ─── Main screen ─────────────────────────────────────────────────────────────
 
 export default function SuccessConfirmationScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{
     title?: string;
     subtitle?: string;
-    context?: SuccessContext;
+    context?: string;
     nextRoute?: string;
     nextLabel?: string;
-    // Optional detail chips passed as JSON string
-    details?: string; // JSON: Array<{ label: string; value: string }>
+    details?: string;
   }>();
 
-  const ctx: SuccessContext = (params.context as SuccessContext) ?? "generic";
+  const ctx = (params.context as SuccessContext) ?? "generic";
   const config = CONTEXT_CONFIG[ctx] ?? CONTEXT_CONFIG.generic;
-
   const title = params.title ?? config.defaultTitle;
   const subtitle = params.subtitle ?? config.defaultSubtitle;
   const nextRoute = params.nextRoute ?? "/";
@@ -202,169 +76,222 @@ export default function SuccessConfirmationScreen() {
   const details: Array<{ label: string; value: string }> = params.details
     ? JSON.parse(params.details)
     : [];
+  const accent = config.accentColour;
 
-  const accentColour = config.accentColour;
+  // Staggered entrance animations
+  const iconScale = useRef(new Animated.Value(0)).current;
+  const iconOpacity = useRef(new Animated.Value(0)).current;
+  const contentY = useRef(new Animated.Value(24)).current;
+  const contentOpacity = useRef(new Animated.Value(0)).current;
+  const buttonsY = useRef(new Animated.Value(16)).current;
+  const buttonsOpacity = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.sequence([
+      Animated.parallel([
+        Animated.spring(iconScale, { toValue: 1, tension: 65, friction: 7, useNativeDriver: true }),
+        Animated.timing(iconOpacity, { toValue: 1, duration: 300, useNativeDriver: true }),
+      ]),
+      Animated.parallel([
+        Animated.timing(contentOpacity, { toValue: 1, duration: 240, useNativeDriver: true }),
+        Animated.spring(contentY, { toValue: 0, tension: 70, friction: 10, useNativeDriver: true }),
+      ]),
+      Animated.parallel([
+        Animated.timing(buttonsOpacity, { toValue: 1, duration: 200, useNativeDriver: true }),
+        Animated.spring(buttonsY, { toValue: 0, tension: 70, friction: 10, useNativeDriver: true }),
+      ]),
+    ]).start();
+  }, []);
 
   return (
     <View style={{ flex: 1, backgroundColor: colour.background }}>
       <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
 
-      {/* ── Blue header ── */}
-      <View
-        style={{
-          backgroundColor: colour.primary,
-          paddingTop: 52,
-          paddingHorizontal: space.lg,
-          paddingBottom: space.xxl,
-        }}
-      >
-        <SafeAreaView>
-          <Text
-            style={{ ...typography.bodyS, color: "rgba(255,255,255,0.75)" }}
-          >
-            MyExpense
-          </Text>
-          <Text
-            style={{ ...typography.h2, color: colour.onPrimary, marginTop: 2 }}
-          >
-            Action Complete
-          </Text>
-        </SafeAreaView>
-      </View>
+      {/* Main centred content */}
+      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: space.xl }}>
 
-      {/* ── White card body ── */}
-      <View
-        style={{
-          flex: 1,
-          backgroundColor: colour.white,
-          borderTopLeftRadius: radius.xl,
-          borderTopRightRadius: radius.xl,
-          marginTop: -space.lg,
-          alignItems: "center",
-          paddingHorizontal: space.xl,
-          paddingTop: space.xxxl,
-        }}
-      >
-        <SuccessCircle icon={config.icon} accentColour={accentColour} />
-
-        <Text
+        {/* Icon */}
+        <Animated.View
           style={{
-            ...typography.h2,
-            color: colour.text,
-            textAlign: "center",
-            marginBottom: space.sm,
+            opacity: iconOpacity,
+            transform: [{ scale: iconScale }],
+            alignItems: "center",
+            marginBottom: space.xxl,
           }}
         >
-          {title}
-        </Text>
-
-        <Text
-          style={{
-            ...typography.bodyM,
-            color: colour.textSub,
-            textAlign: "center",
-            lineHeight: 22,
-            marginBottom: space.xl,
-            maxWidth: 300,
-          }}
-        >
-          {subtitle}
-        </Text>
-
-        {/* Optional detail chips */}
-        {details.length > 0 && (
+          {/* Outer ring */}
           <View
             style={{
-              width: "100%",
-              backgroundColor: colour.surface1,
-              borderRadius: radius.md,
-              padding: space.md,
-              marginBottom: space.xl,
-              borderWidth: 1,
-              borderColor: colour.borderLight,
+              position: "absolute",
+              width: 128,
+              height: 128,
+              borderRadius: 64,
+              backgroundColor: accent,
+              opacity: 0.08,
             }}
-          >
-            {details.map((d, i) => (
-              <DetailChip key={i} label={d.label} value={d.value} />
-            ))}
-          </View>
-        )}
-
-        {/* SARS ITR12 note for expense/receipt contexts */}
-        {(ctx === "expense" || ctx === "receipt") && (
+          />
+          {/* Mid ring */}
           <View
             style={{
-              flexDirection: "row",
+              position: "absolute",
+              width: 104,
+              height: 104,
+              borderRadius: 52,
+              backgroundColor: accent,
+              opacity: 0.12,
+            }}
+          />
+          {/* Icon circle */}
+          <View
+            style={{
+              width: 80,
+              height: 80,
+              borderRadius: 40,
+              backgroundColor: accent,
               alignItems: "center",
-              backgroundColor: colour.primary50,
-              borderRadius: radius.pill,
-              paddingVertical: space.xs,
-              paddingHorizontal: space.md,
-              marginBottom: space.xxl,
+              justifyContent: "center",
             }}
           >
-            <IconSymbol name="building.columns.fill" size={14} color={colour.primary} style={{ marginRight: space.xs } as any} />
-            <Text
+            <IconSymbol name={config.icon as any} size={34} color={colour.onPrimary} />
+          </View>
+        </Animated.View>
+
+        {/* Text + details */}
+        <Animated.View
+          style={{
+            opacity: contentOpacity,
+            transform: [{ translateY: contentY }],
+            alignItems: "center",
+            width: "100%",
+          }}
+        >
+          <Text
+            style={{
+              fontSize: 30,
+              fontWeight: "700",
+              color: colour.text,
+              textAlign: "center",
+              letterSpacing: -0.8,
+              marginBottom: space.sm,
+            }}
+          >
+            {title}
+          </Text>
+
+          <Text
+            style={{
+              ...typography.bodyM,
+              color: colour.textSub,
+              textAlign: "center",
+              lineHeight: 23,
+              maxWidth: 300,
+              marginBottom: details.length > 0 ? space.xl : 0,
+            }}
+          >
+            {subtitle}
+          </Text>
+
+          {/* Detail rows */}
+          {details.length > 0 && (
+            <View
               style={{
-                ...typography.bodyXS,
-                color: colour.primary,
-                fontWeight: "600",
+                width: "100%",
+                backgroundColor: colour.noir,
+                borderRadius: radius.lg,
+                paddingHorizontal: space.lg,
+                paddingVertical: space.sm,
+                marginBottom: space.lg,
               }}
             >
-              Categorised for SARS ITR12 · {ACTIVE_TAX_YEAR} tax year
-            </Text>
-          </View>
-        )}
+              {details.map((d, i) => (
+                <View
+                  key={i}
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                    paddingVertical: space.sm,
+                    borderBottomWidth: i < details.length - 1 ? 1 : 0,
+                    borderBottomColor: "rgba(255,255,255,0.08)",
+                  }}
+                >
+                  <Text style={{ ...typography.bodyS, color: colour.onNoir2 }}>{d.label}</Text>
+                  <Text style={{ ...typography.bodyS, color: colour.onNoir, fontWeight: "600" }}>{d.value}</Text>
+                </View>
+              ))}
+            </View>
+          )}
 
-        {/* Primary CTA */}
+          {/* SARS badge */}
+          {(ctx === "expense" || ctx === "receipt") && (
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                backgroundColor: colour.primary50,
+                borderRadius: radius.pill,
+                paddingVertical: 6,
+                paddingHorizontal: space.md,
+              }}
+            >
+              <IconSymbol
+                name="building.columns.fill"
+                size={13}
+                color={colour.primary}
+                style={{ marginRight: 6 } as any}
+              />
+              <Text style={{ ...typography.bodyXS, color: colour.primary, fontWeight: "600" }}>
+                Categorised for SARS ITR12 · {ACTIVE_TAX_YEAR}
+              </Text>
+            </View>
+          )}
+        </Animated.View>
+      </View>
+
+      {/* Buttons pinned to bottom */}
+      <Animated.View
+        style={{
+          opacity: buttonsOpacity,
+          transform: [{ translateY: buttonsY }],
+          paddingHorizontal: space.lg,
+          paddingBottom: space.md,
+        }}
+      >
         <TouchableOpacity
           activeOpacity={0.88}
           onPress={() => router.replace(nextRoute as any)}
           style={{
             backgroundColor: colour.primary,
             borderRadius: radius.pill,
-            paddingVertical: space.md,
-            paddingHorizontal: space.xxl,
+            height: 54,
             alignItems: "center",
-            width: "100%",
-            marginBottom: space.sm,
-            ...(Platform.OS === "ios"
-              ? {
-                  shadowColor: colour.primary,
-                  shadowOffset: { width: 0, height: 4 },
-                  shadowOpacity: 0.28,
-                  shadowRadius: 8,
-                }
-              : Platform.OS === "android"
-                ? { elevation: 4 }
-                : { boxShadow: "0 4px 12px rgba(0,111,253,0.28)" }),
+            justifyContent: "center",
+            marginBottom: (ctx === "expense" || ctx === "receipt") ? space.sm : 0,
           }}
         >
-          <Text style={{ ...typography.actionM, color: colour.onPrimary }}>
+          <Text style={{ ...typography.btnL, color: colour.onPrimary }}>
             {nextLabel}
           </Text>
         </TouchableOpacity>
 
-        {/* Secondary: add another */}
         {(ctx === "expense" || ctx === "receipt") && (
           <TouchableOpacity
-            onPress={() => router.replace("/add-expense")}
+            onPress={() => router.replace("/(tabs)/add-expense" as any)}
             style={{
               borderWidth: 1.5,
               borderColor: colour.primary,
               borderRadius: radius.pill,
-              paddingVertical: space.md,
-              paddingHorizontal: space.xxl,
+              height: 54,
               alignItems: "center",
-              width: "100%",
+              justifyContent: "center",
             }}
           >
-            <Text style={{ ...typography.actionM, color: colour.primary }}>
-              Add Another Expense
+            <Text style={{ ...typography.btnL, color: colour.primary }}>
+              Add another expense
             </Text>
           </TouchableOpacity>
         )}
-      </View>
+      </Animated.View>
+
       <MXTabBar />
     </View>
   );

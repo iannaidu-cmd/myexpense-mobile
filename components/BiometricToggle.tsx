@@ -11,6 +11,7 @@ import {
     saveBiometricSession,
     setBiometricEnabled,
 } from "@/services/biometricService";
+import { IconSymbol } from "@/components/ui/icon-symbol";
 import { supabase } from "@/lib/supabase";
 import { colour, radius, space, typography } from "@/tokens";
 import { useEffect, useState } from "react";
@@ -93,9 +94,20 @@ export function BiometricToggle() {
         marginBottom: space.sm,
       }}
     >
+      <View style={{
+        width: 30, height: 30, borderRadius: radius.pill,
+        backgroundColor: colour.primary50,
+        alignItems: "center", justifyContent: "center", marginRight: 12,
+      }}>
+        <IconSymbol
+          name={label === "Face ID" ? "faceid" : "touchid"}
+          size={14}
+          color={colour.accentDeep}
+        />
+      </View>
       <View style={{ flex: 1 }}>
         <Text style={{ ...typography.labelM, color: colour.textPrimary }}>
-          {label === "Face ID" ? "🔐" : "👆"} {label} Sign-In
+          {label} Sign-In
         </Text>
         <Text
           style={{

@@ -1,5 +1,6 @@
 ﻿import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
+import { SuccessModal } from "@/components/SuccessModal";
 import { profileService } from "@/services/profileService";
 import { useAuthStore } from "@/stores/authStore";
 import { colour, radius, space, typography } from "@/tokens";
@@ -28,6 +29,7 @@ export default function ProfileScreen() {
   const { user } = useAuthStore();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [successVisible, setSuccessVisible] = useState(false);
 
   // Profile fields
   const [fullName, setFullName] = useState("");
@@ -38,7 +40,7 @@ export default function ProfileScreen() {
   const [subscription, setSubscription] = useState("free");
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) { setLoading(false); return; }
     setEmail(user.email ?? "");
     profileService
       .getProfile(user.id)
@@ -65,7 +67,7 @@ export default function ProfileScreen() {
         phone: phone.trim(),
         tax_number: taxNumber.trim(),
       });
-      Alert.alert("Saved", "Your profile has been updated.");
+      setSuccessVisible(true);
     } catch (e: any) {
       Alert.alert("Error", e.message ?? "Could not save profile.");
     } finally {
@@ -297,6 +299,14 @@ export default function ProfileScreen() {
         </View>
       </KeyboardAvoidingView>
       <MXTabBar />
+
+      <SuccessModal
+        visible={successVisible}
+        title="Profile saved"
+        message="Your profile has been updated."
+        primaryLabel="Done"
+        onPrimary={() => setSuccessVisible(false)}
+      />
     </SafeAreaView>
   );
 }

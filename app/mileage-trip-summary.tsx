@@ -1,6 +1,7 @@
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { SARS_RATE_PER_KM } from "@/lib/taxRules";
 import { colour, radius, space, typography } from "@/tokens";
 import { ACTIVE_TAX_YEAR } from "@/types/database";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -16,7 +17,6 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const SARS_RATE_PER_KM = 4.84;
 
 function formatElapsed(seconds: number): string {
   const h = Math.floor(seconds / 3600);

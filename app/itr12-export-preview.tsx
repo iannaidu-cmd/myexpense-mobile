@@ -1,11 +1,12 @@
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { getMarginalRate } from "@/lib/taxRules";
 import { expenseService } from "@/services/expenseService";
+import { incomeService } from "@/services/incomeService";
 import { generateITR12PDF } from "@/services/pdfExportService";
 import { profileService } from "@/services/profileService";
 import { useAuthStore } from "@/stores/authStore";
-import { incomeService } from "@/services/incomeService";
 import { colour, radius, space } from "@/tokens";
 import { ACTIVE_TAX_YEAR } from "@/types/database";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -25,31 +26,30 @@ import { SafeAreaView } from "react-native-safe-area-context";
 const fmt = (n: number) =>
   `R ${Number(n).toLocaleString("en-ZA", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 
-function getMarginalRate(income: number): number {
-  if (income <= 237100) return 0.18;
-  if (income <= 370500) return 0.26;
-  if (income <= 512800) return 0.31;
-  if (income <= 673000) return 0.36;
-  if (income <= 857900) return 0.39;
-  if (income <= 1817000) return 0.41;
-  return 0.45;
-}
-
-const ITR12_CODES: Record<string, string> = {
-  "Travel & Transport": "4011",
-  "Home Office": "4018",
-  "Equipment & Tools": "4022",
-  "Software & Subscriptions": "4011",
-  "Meals & Entertainment": "4011",
-  "Professional Fees": "4011",
-  "Telephone & Cell": "4011",
-  "Marketing & Advertising": "4011",
-  "Bank Charges": "4011",
-  Insurance: "4011",
-  Rent: "4011",
-  "Repairs & Maintenance": "4011",
-  Education: "4011",
-  "Vehicle Expenses": "4020",
+// Maps MyExpense categories to the exact eFiling field names in the
+// Local Business, Trade and Professional Income section (ITR12 s6.6).
+// Labels match the SARS Comprehensive Guide (IT-AE-36-G05, Rev 39, Aug 2025).
+// Retirement Annuity maps to the standalone Retirement Contributions section
+// (s9.3, source code 4006) — not the s6.6 business expenditure block.
+const ITR12_FIELD: Record<string, string> = {
+  "Travel & Transport": "Travel – Local (s8(1)(b))",
+  "Home Office": "Home Office Expenses (s11(a)/s23(b))",
+  "Equipment & Tools": "Wear and Tear (s11(e))",
+  "Software & Subscriptions": "Computer Software",
+  "Meals & Entertainment": "Entertainment (Limited – s23(o))",
+  "Professional Fees": "Consulting / Professional Fees",
+  "Telephone & Internet": "Telephone and Internet",
+  "Telephone & Cell": "Telephone and Internet",
+  "Marketing & Advertising": "Advertising",
+  "Bank Charges": "Bank Charges",
+  Insurance: "Insurance",
+  Rent: "Rental – Business Premises",
+  "Repairs & Maintenance": "Repairs and Maintenance",
+  "Training & Education": "Staff Training / Development",
+  "Vehicle Expenses": "Motor Vehicle Expenses",
+  Utilities: "Electricity and Water",
+  "Retirement Annuity": "Retirement Contributions (s9.3 – code 4006)",
+  "Other Deductible": "Other Expenditure",
 };
 
 export default function ITR12ExportPreviewScreen() {
@@ -65,7 +65,10 @@ export default function ITR12ExportPreviewScreen() {
   const [pdfLoading, setPdfLoading] = useState(false);
 
   const loadData = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const [prof, byCategory, totals, incomeTotals] = await Promise.all([
@@ -115,15 +118,21 @@ export default function ITR12ExportPreviewScreen() {
         `Return Type:     ITR12`,
         `Work Type:       ${profile?.work_type ?? "Sole Proprietor"}`,
         "",
-        "SECTION 11 DEDUCTIONS",
+        "ALLOWABLE DEDUCTIONS",
         "─────────────────────",
-        ...deductionRows.map(([cat, amt]) => `${cat.padEnd(30)} ${fmt(amt)}`),
+        ...deductionRows.map(
+          ([cat, amt]) =>
+            `${(ITR12_FIELD[cat] ?? "Other Expenditure").padEnd(38)} ${fmt(amt)}`,
+        ),
         "─────────────────────",
-        `${"TOTAL DEDUCTIONS".padEnd(30)} ${fmt(totalDeductions)}`,
+        `${"TOTAL ALLOWABLE DEDUCTIONS".padEnd(38)} ${fmt(totalDeductions)}`,
         "",
         `EST. TAX SAVING (${Math.round(marginalRate * 100)}% marginal): ${fmt(estTaxSaving)}`,
         "",
-        "⚠️  For reference only. Submit via SARS eFiling.",
+        "Fields mapped to SARS ITR12 s6.6 (Local Business, Trade",
+        "and Professional Income). Retirement Annuity per s9.3.",
+        "",
+        "For reference only. Submit via SARS eFiling.",
         `Generated: ${new Date().toLocaleDateString("en-ZA")}`,
       ].join("\n");
       await Share.share({
@@ -265,7 +274,13 @@ export default function ITR12ExportPreviewScreen() {
               </View>
               {[
                 { label: "Income Tax Return", value: "ITR12" },
-                { label: "Tax Period", value: "1 Mar 2024 – 28 Feb 2025" },
+                {
+                  label: "Tax Period",
+                  value: (() => {
+                    const y = parseInt(ACTIVE_TAX_YEAR.split("/")[0], 10);
+                    return `1 Mar ${y} \u2013 28 Feb ${y + 1}`;
+                  })(),
+                },
                 {
                   label: "Employment Type",
                   value: profile?.work_type ?? "Sole Proprietor",
@@ -312,7 +327,7 @@ export default function ITR12ExportPreviewScreen() {
                   marginBottom: 6,
                 }}
               >
-                Total Section 11 Deductions
+                Total Allowable Deductions
               </Text>
               <Text
                 style={{
@@ -373,7 +388,7 @@ export default function ITR12ExportPreviewScreen() {
                     textAlign: "center",
                   }}
                 >
-                  ITR12
+                  eFILING FIELD
                 </Text>
                 <Text
                   style={{
@@ -420,7 +435,7 @@ export default function ITR12ExportPreviewScreen() {
                           textAlign: "center",
                         }}
                       >
-                        {ITR12_CODES[cat] ?? "4011"}
+                        {ITR12_FIELD[cat] ?? "Other Expenditure"}
                       </Text>
                       <Text
                         style={{
@@ -517,7 +532,8 @@ export default function ITR12ExportPreviewScreen() {
                 </View>
                 <View style={{ paddingHorizontal: 14, paddingVertical: 10 }}>
                   <Text style={{ fontSize: 11, color: colour.textSub }}>
-                    ITR12 Code {ITR12_CODES[cat] ?? "4011"} · Section 11(a)
+                    eFiling field: {ITR12_FIELD[cat] ?? "Other Expenditure"} ·
+                    Local Business Income (s6.6)
                   </Text>
                   <View
                     style={{
@@ -641,7 +657,7 @@ export default function ITR12ExportPreviewScreen() {
           style={{ alignItems: "center", paddingVertical: 8 }}
         >
           <Text style={{ color: colour.textSub, fontSize: 13 }}>
-            ← Back to setup
+            Back to setup
           </Text>
         </TouchableOpacity>
       </ScrollView>

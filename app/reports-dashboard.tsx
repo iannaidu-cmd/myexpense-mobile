@@ -290,7 +290,7 @@ export default function ReportsDashboardScreen() {
   >([]);
 
   const loadData = useCallback(async () => {
-    if (!user) return;
+    if (!user) { setLoading(false); return; }
     setLoading(true);
     try {
       const [incomeTotals, expenseTotals, allExpenses, allIncome, byCategory] =

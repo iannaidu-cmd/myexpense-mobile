@@ -5,6 +5,7 @@ import { exportExpensesCSV } from "@/services/csvExportService";
 import { expenseService } from "@/services/expenseService";
 import { incomeService } from "@/services/incomeService";
 import { generateITR12PDF } from "@/services/pdfExportService";
+import { getMarginalRate } from "@/lib/taxRules";
 import { useAuthStore } from "@/stores/authStore";
 import { useExpenseStore } from "@/stores/expenseStore";
 import { colour, radius, space } from "@/tokens";
@@ -65,76 +66,86 @@ function ToggleRow({
 
 const YEARS = ["2025/26", "2024/25", "2023/24", "2022/23"];
 const FORMATS = [
-  { key: "pdf",  label: "PDF report",      icon: "doc.text.fill"        },
-  { key: "csv",  label: "CSV spreadsheet", icon: "chart.bar.fill"       },
-  { key: "both", label: "Both",            icon: "tray.and.arrow.up.fill"},
+  { key: "pdf",  label: "PDF report",      icon: "doc.text.fill"         },
+  { key: "csv",  label: "CSV spreadsheet", icon: "chart.bar.fill"        },
+  { key: "both", label: "Both",            icon: "tray.and.arrow.up.fill" },
 ] as const;
 type FormatKey = "pdf" | "csv" | "both";
 
 const fmt = (n: number) =>
   `R ${Number(n).toLocaleString("en-ZA", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 
-function getMarginalRate(income: number): number {
-  if (income <= 237100) return 0.18;
-  if (income <= 370500) return 0.26;
-  if (income <= 512800) return 0.31;
-  if (income <= 673000) return 0.36;
-  if (income <= 857900) return 0.39;
-  if (income <= 1817000) return 0.41;
-  return 0.45;
-}
 
 export default function ITR12ExportSetupScreen() {
   const router = useRouter();
-  const { user, isPremium } = useAuthStore();
+  const { user, isPremium, isInitialised, refreshPremiumStatus } = useAuthStore();
   const { activeTaxYear } = useExpenseStore();
+  const [premiumChecked, setPremiumChecked] = useState(false);
 
-  // Gate: redirect to paywall if not premium (covers dev bypass + RevenueCat Pro)
+  // Refresh premium status on mount before making the redirect decision.
+  // This handles the case where fetchPremiumStatus failed silently on init.
   useEffect(() => {
+    if (!isInitialised || !user) return;
+    refreshPremiumStatus().finally(() => setPremiumChecked(true));
+  }, [isInitialised, user]);
+
+  useEffect(() => {
+    if (!premiumChecked) return;
     if (!isPremium) {
       router.replace("/paywall-upgrade" as any);
     }
-  }, [isPremium]);
+  }, [premiumChecked, isPremium]);
+
   const [totalDeductions, setTotalDeductions] = useState(0);
-  const [totalExpenses, setTotalExpenses] = useState(0);
-  const [totalIncome, setTotalIncome] = useState(0);
-  const [receiptCount, setReceiptCount] = useState(0);
-  const [categoryCount, setCategoryCount] = useState(0);
-  const [taxYear, setTaxYear] = useState(() => activeTaxYear);
+  const [totalExpenses,   setTotalExpenses]   = useState(0);
+  const [totalIncome,     setTotalIncome]     = useState(0);
+  const [receiptCount,    setReceiptCount]    = useState(0);
+  const [categoryCount,   setCategoryCount]   = useState(0);
+  const [taxYear,         setTaxYear]         = useState(() => activeTaxYear);
   const [includeReceipts, setIncludeReceipts] = useState(true);
-  const [includeVAT, setIncludeVAT] = useState(false);
-  const [includeTravel, setIncludeTravel] = useState(true);
+  const [includeVAT,      setIncludeVAT]      = useState(false);
+  const [includeTravel,   setIncludeTravel]   = useState(true);
   const [includePersonal, setIncludePersonal] = useState(false);
-  const [summaryOnly, setSummaryOnly] = useState(false);
-  const [format, setFormat] = useState<FormatKey>("pdf");
-  const [exporting, setExporting] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [summaryOnly,     setSummaryOnly]     = useState(false);
+  const [format,          setFormat]          = useState<FormatKey>("pdf");
+  const [exporting,       setExporting]       = useState(false);
+  const [loading,         setLoading]         = useState(false);
 
   const loadData = useCallback(async () => {
-    if (!user) return;
+    if (!user) { setLoading(false); return; }
     setLoading(true);
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("Request timed out")), 20_000),
+    );
     try {
-      const [totals, byCategory, expenses, incomeTotals] = await Promise.all([
-        expenseService.getTotals(user.id, taxYear),
-        expenseService.getByCategory(user.id, taxYear),
-        expenseService.getExpenses(user.id, taxYear),
-        incomeService.getTotals(user.id),
+      const [totals, byCategory, expenses, incomeTotals] = await Promise.race([
+        Promise.all([
+          expenseService.getTotals(user.id, taxYear),
+          expenseService.getByCategory(user.id, taxYear),
+          expenseService.getExpenses(user.id, taxYear),
+          incomeService.getTotals(user.id),
+        ]),
+        timeout,
       ]);
       setTotalDeductions(totals.totalDeductions);
       setTotalExpenses(totals.totalExpenses);
       setTotalIncome(incomeTotals.totalIncome);
       setCategoryCount(
-        Object.keys(byCategory).filter((k) => k !== "Personal / Non-deductible")
-          .length,
+        // "Personal / Other" is the NON_DEDUCTIBLE_LABEL from categories.ts — exclude from count
+        Object.keys(byCategory).filter((k) => k !== "Personal / Other").length,
       );
       setReceiptCount(expenses.filter((e) => e.receipt_url).length);
     } catch (e) {
-      console.error("ITR12Export load error:", e);
+      console.warn("ITR12Export load error:", e);
     } finally {
       setLoading(false);
     }
   }, [user, taxYear]);
 
+  // Fire when auth initialises (user changes null → User)
+  useEffect(() => { loadData(); }, [loadData]);
+
+  // Re-fire when screen gains focus after navigation
   useFocusEffect(
     useCallback(() => {
       loadData();
@@ -186,7 +197,6 @@ export default function ITR12ExportSetupScreen() {
         title="Export Setup"
         subtitle="Configure your ITR12 export"
         showBack
-        backLabel="Tax & ITR12"
       />
 
       <ScrollView
@@ -205,6 +215,7 @@ export default function ITR12ExportSetupScreen() {
           </View>
         ) : (
           <>
+            {/* ── Tax year selector ── */}
             <View
               style={{
                 marginHorizontal: space.md,
@@ -236,20 +247,17 @@ export default function ITR12ExportSetupScreen() {
                       flex: 1,
                       paddingVertical: 10,
                       borderRadius: 10,
-                      backgroundColor:
-                        taxYear === y ? colour.primary : colour.surface1,
+                      backgroundColor: taxYear === y ? colour.primary : colour.surface1,
                       alignItems: "center",
                       borderWidth: 1,
-                      borderColor:
-                        taxYear === y ? colour.primary : colour.borderLight,
+                      borderColor: taxYear === y ? colour.primary : colour.borderLight,
                     }}
                   >
                     <Text
                       style={{
                         fontSize: 12,
                         fontWeight: "700",
-                        color:
-                          taxYear === y ? colour.onPrimary : colour.textSub,
+                        color: taxYear === y ? colour.onPrimary : colour.textSub,
                       }}
                     >
                       {y}
@@ -259,6 +267,7 @@ export default function ITR12ExportSetupScreen() {
               </View>
             </View>
 
+            {/* ── Export format selector ── */}
             <View
               style={{
                 marginHorizontal: space.md,
@@ -290,21 +299,23 @@ export default function ITR12ExportSetupScreen() {
                       alignItems: "center",
                       paddingVertical: 12,
                       borderRadius: radius.sm,
-                      backgroundColor:
-                        format === f.key ? colour.primary : colour.surface1,
+                      backgroundColor: format === f.key ? colour.primary : colour.surface1,
                       borderWidth: 1,
-                      borderColor:
-                        format === f.key ? colour.primary : colour.borderLight,
+                      borderColor: format === f.key ? colour.primary : colour.borderLight,
                     }}
                   >
-                    <IconSymbol name={f.icon as any} size={20} color={format === f.key ? colour.onPrimary : colour.textSub} style={{ marginBottom: 4 } as any} />
+                    <IconSymbol
+                      name={f.icon as any}
+                      size={20}
+                      color={format === f.key ? colour.onPrimary : colour.textSub}
+                      style={{ marginBottom: 4 } as any}
+                    />
                     <Text
                       style={{
                         fontSize: 11,
                         fontWeight: "600",
                         textAlign: "center",
-                        color:
-                          format === f.key ? colour.onPrimary : colour.textSub,
+                        color: format === f.key ? colour.onPrimary : colour.textSub,
                       }}
                     >
                       {f.label}
@@ -314,6 +325,7 @@ export default function ITR12ExportSetupScreen() {
               </View>
             </View>
 
+            {/* ── Include toggles ── */}
             <Text
               style={{
                 fontSize: 11,
@@ -367,6 +379,7 @@ export default function ITR12ExportSetupScreen() {
               />
             </View>
 
+            {/* ── Export summary card ── */}
             <View
               style={{
                 marginHorizontal: space.md,
@@ -389,18 +402,13 @@ export default function ITR12ExportSetupScreen() {
                 Export summary
               </Text>
               {[
-                { label: "Tax Year", value: taxYear },
-                {
-                  label: "Format",
-                  value: FORMATS.find((f) => f.key === format)?.label ?? "",
-                },
-                { label: "Total Deductions", value: fmt(totalDeductions) },
-                { label: "Categories", value: `${categoryCount} deductible` },
+                { label: "Tax Year",                 value: taxYear },
+                { label: "Format",                   value: FORMATS.find((f) => f.key === format)?.label ?? "" },
+                { label: "Total Allowable Deductions", value: fmt(totalDeductions) },
+                { label: "Categories",               value: `${categoryCount} deductible` },
                 {
                   label: "Receipts",
-                  value: includeReceipts
-                    ? `${receiptCount} attached`
-                    : "Not included",
+                  value: includeReceipts ? `${receiptCount} attached` : "Not included",
                 },
                 {
                   label: `Est. Tax Saving (${Math.round(getMarginalRate(totalIncome) * 100)}% marginal)`,
@@ -418,19 +426,14 @@ export default function ITR12ExportSetupScreen() {
                   <Text style={{ fontSize: 12, color: colour.textSub }}>
                     {row.label}
                   </Text>
-                  <Text
-                    style={{
-                      fontSize: 12,
-                      fontWeight: "600",
-                      color: colour.text,
-                    }}
-                  >
+                  <Text style={{ fontSize: 12, fontWeight: "600", color: colour.text }}>
                     {row.value}
                   </Text>
                 </View>
               ))}
             </View>
 
+            {/* ── Preview button ── */}
             <TouchableOpacity
               onPress={() => router.push("/itr12-export-preview")}
               style={{
@@ -442,13 +445,12 @@ export default function ITR12ExportSetupScreen() {
                 marginBottom: space.sm,
               }}
             >
-              <Text
-                style={{ color: colour.white, fontSize: 15, fontWeight: "700" }}
-              >
+              <Text style={{ color: colour.white, fontSize: 15, fontWeight: "700" }}>
                 Preview export
               </Text>
             </TouchableOpacity>
 
+            {/* ── PDF / CSV generate button ── */}
             <TouchableOpacity
               onPress={handleExport}
               disabled={exporting}
@@ -464,13 +466,7 @@ export default function ITR12ExportSetupScreen() {
               {exporting ? (
                 <ActivityIndicator color={colour.white} />
               ) : (
-                <Text
-                  style={{
-                    color: colour.white,
-                    fontSize: 15,
-                    fontWeight: "700",
-                  }}
-                >
+                <Text style={{ color: colour.white, fontSize: 15, fontWeight: "700" }}>
                   {format === "pdf"
                     ? "Generate PDF & Share"
                     : format === "csv"
@@ -480,6 +476,7 @@ export default function ITR12ExportSetupScreen() {
               )}
             </TouchableOpacity>
 
+            {/* ── SARS disclaimer ── */}
             <View
               style={{
                 marginHorizontal: space.md,
@@ -490,8 +487,17 @@ export default function ITR12ExportSetupScreen() {
                 borderColor: colour.warningMid,
               }}
             >
-              <Text style={{ fontSize: 12, color: colour.warning, lineHeight: 18, textAlign: "center" }}>
-                MyExpense prepares your ITR12 data. You must file via SARS eFiling or a registered tax practitioner — MyExpense does not submit to SARS on your behalf.
+              <Text
+                style={{
+                  fontSize: 12,
+                  color: colour.warning,
+                  lineHeight: 18,
+                  textAlign: "center",
+                }}
+              >
+                MyExpense prepares your ITR12 data. You must file via SARS eFiling
+                or a registered tax practitioner - MyExpense does not submit to
+                SARS on your behalf.
               </Text>
             </View>
           </>

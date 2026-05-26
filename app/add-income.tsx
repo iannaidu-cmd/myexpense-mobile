@@ -1,5 +1,6 @@
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
+import { SuccessModal } from "@/components/SuccessModal";
 import {
   validateAmount,
   validateDate,
@@ -9,8 +10,8 @@ import {
 import { incomeService } from "@/services/incomeService";
 import { useAuthStore } from "@/stores/authStore";
 import { colour, radius, space, typography } from "@/tokens";
-import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import React, { useEffect, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
@@ -107,6 +108,8 @@ function UnderlineInput({
 export default function AddIncomeScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
+  const { id } = useLocalSearchParams<{ id?: string }>();
+  const isEditing = !!id;
 
   const [amount, setAmount] = useState("");
   const [source, setSource] = useState("");
@@ -114,6 +117,20 @@ export default function AddIncomeScreen() {
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [showFullList, setShowFullList] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [loadingExisting, setLoadingExisting] = useState(isEditing);
+  const [successVisible, setSuccessVisible] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
+
+  // Pre-fill form when editing
+  useEffect(() => {
+    if (!id) return;
+    incomeService.getIncomeById(id).then((entry) => {
+      setAmount(String(entry.amount));
+      setSource(entry.source);
+      setDescription(entry.description ?? "");
+      setDate(entry.date);
+    }).catch(console.error).finally(() => setLoadingExisting(false));
+  }, [id]);
 
   const canSave = !!amount && parseFloat(amount) > 0 && !!source;
 
@@ -145,32 +162,46 @@ export default function AddIncomeScreen() {
 
     setSaving(true);
     try {
-      await incomeService.addIncome(user.id, {
-        amount: parseFloat(amount),
-        source: source.trim(),
-        description: description.trim() || undefined,
-        date: incomeDate,
-      });
-
-      setAmount("");
-      setSource("");
-      setDescription("");
-      setDate(new Date().toISOString().split("T")[0]);
-
-      Alert.alert(
-        "Income Saved ✓",
-        `R ${parseFloat(amount).toLocaleString("en-ZA", { minimumFractionDigits: 2 })} from ${source} has been saved.`,
-        [
-          { text: "Add another", style: "cancel" },
-          { text: "Go home", onPress: () => router.replace("/(tabs)") },
-        ],
-      );
+      if (isEditing && id) {
+        await incomeService.updateIncome(id, {
+          amount: parseFloat(amount),
+          source: source.trim(),
+          description: description.trim() || undefined,
+          date: incomeDate,
+        });
+        setSuccessMessage(`Income updated successfully.`);
+      } else {
+        await incomeService.addIncome(user.id, {
+          amount: parseFloat(amount),
+          source: source.trim(),
+          description: description.trim() || undefined,
+          date: incomeDate,
+        });
+        setAmount("");
+        setSource("");
+        setDescription("");
+        setDate(new Date().toISOString().split("T")[0]);
+        setSuccessMessage(`R ${parseFloat(amount).toLocaleString("en-ZA", { minimumFractionDigits: 2 })} from ${source} has been saved.`);
+      }
+      setSuccessVisible(true);
     } catch (e: any) {
-      Alert.alert("Error saving income", e.message);
+      Alert.alert(isEditing ? "Error updating income" : "Error saving income", e.message);
     } finally {
       setSaving(false);
     }
   };
+
+  if (loadingExisting) {
+    return (
+      <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colour.background }}>
+        <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
+        <MXHeader title="Edit income" subtitle="Update your income entry" showBack />
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+          <ActivityIndicator color={colour.success} size="large" />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView
@@ -180,8 +211,8 @@ export default function AddIncomeScreen() {
       <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
 
       <MXHeader
-        title="Add income"
-        subtitle="Track your earnings for ITR12"
+        title={isEditing ? "Edit income" : "Add income"}
+        subtitle={isEditing ? "Update your income entry" : "Track your earnings for ITR12"}
         showBack
       />
 
@@ -403,7 +434,7 @@ export default function AddIncomeScreen() {
                 color: canSave ? colour.onPrimary : colour.textSub,
               }}
             >
-              {canSave ? "Save income" : "Fill in required fields"}
+              {canSave ? (isEditing ? "Save changes" : "Save income") : "Fill in required fields"}
             </Text>
           )}
         </TouchableOpacity>
@@ -418,6 +449,19 @@ export default function AddIncomeScreen() {
         </TouchableOpacity>
       </ScrollView>
       <MXTabBar />
+
+      <SuccessModal
+        visible={successVisible}
+        title={isEditing ? "Income updated" : "Income saved"}
+        message={successMessage}
+        primaryLabel={isEditing ? "Back to details" : "Go to dashboard"}
+        onPrimary={() => {
+          setSuccessVisible(false);
+          isEditing ? router.back() : router.replace("/(tabs)");
+        }}
+        secondaryLabel={isEditing ? undefined : "Add another"}
+        onSecondary={isEditing ? undefined : () => setSuccessVisible(false)}
+      />
     </SafeAreaView>
   );
 }

@@ -1,3 +1,4 @@
+import { ConfirmModal } from "@/components/ConfirmModal";
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -58,6 +59,7 @@ export default function BankAccountsScreen() {
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [confirmRemove, setConfirmRemove] = useState<{ id: string; name: string } | null>(null);
   const [showBankPicker, setShowBankPicker] = useState(false);
   const [showTypePicker, setShowTypePicker] = useState(false);
   const [bankName, setBankName] = useState("");
@@ -67,7 +69,7 @@ export default function BankAccountsScreen() {
   const [accountType, setAccountType] = useState("Cheque / Current");
 
   const loadAccounts = async () => {
-    if (!user) return;
+    if (!user) { setLoading(false); return; }
     setLoading(true);
     try {
       const { data } = await supabase
@@ -140,29 +142,21 @@ export default function BankAccountsScreen() {
     }
   };
 
-  const handleDelete = (id: string, name: string) => {
-    Alert.alert("Remove Account", `Remove ${name} account?`, [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Remove",
-        style: "destructive",
-        onPress: async () => {
-          setDeleting(id);
-          try {
-            await supabase
-              .from("bank_accounts")
-              .delete()
-              .eq("id", id)
-              .eq("user_id", user!.id);
-            await loadAccounts();
-          } catch (e: any) {
-            Alert.alert("Error", e.message);
-          } finally {
-            setDeleting(null);
-          }
-        },
-      },
-    ]);
+  const handleDelete = (id: string, name: string) => setConfirmRemove({ id, name });
+
+  const confirmRemoveAccount = async () => {
+    if (!confirmRemove) return;
+    const { id } = confirmRemove;
+    setConfirmRemove(null);
+    setDeleting(id);
+    try {
+      await supabase.from("bank_accounts").delete().eq("id", id).eq("user_id", user!.id);
+      await loadAccounts();
+    } catch (e: any) {
+      Alert.alert("Error", e.message);
+    } finally {
+      setDeleting(null);
+    }
   };
 
   return (
@@ -713,6 +707,15 @@ export default function BankAccountsScreen() {
           </ScrollView>
         </SafeAreaView>
       </Modal>
+      <ConfirmModal
+        visible={!!confirmRemove}
+        title="Remove account"
+        message={confirmRemove ? `Remove ${confirmRemove.name} account? This cannot be undone.` : undefined}
+        confirmLabel="Remove"
+        cancelLabel="Keep it"
+        onConfirm={confirmRemoveAccount}
+        onCancel={() => setConfirmRemove(null)}
+      />
       <MXTabBar />
     </SafeAreaView>
   );

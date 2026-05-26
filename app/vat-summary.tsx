@@ -1,6 +1,7 @@
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { VAT_RATE } from "@/lib/taxRules";
 import { expenseService } from "@/services/expenseService";
 import { useAuthStore } from "@/stores/authStore";
 import { useExpenseStore } from "@/stores/expenseStore";
@@ -19,7 +20,6 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const VAT_RATE = 0.15;
 const fmt = (n: number) =>
   `R ${Number(n).toLocaleString("en-ZA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const formatDate = (dateStr: string) =>
@@ -48,7 +48,7 @@ export default function VATSummaryScreen() {
   const [period, setPeriod] = useState<Period>("month");
 
   const loadData = useCallback(async () => {
-    if (!user) return;
+    if (!user) { setLoading(false); return; }
     setLoading(true);
     try {
       const data = await expenseService.getExpenses(user.id, activeTaxYear);

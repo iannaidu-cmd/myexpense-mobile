@@ -104,6 +104,7 @@ export default function OnboardingScreen() {
           paddingHorizontal: space.lg,
           paddingTop: space.md,
           paddingBottom: space.sm,
+          marginTop: 9,
         }}
       >
         <Image

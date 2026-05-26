@@ -1,5 +1,6 @@
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
+import { SuccessModal } from "@/components/SuccessModal";
 import {
   validateAmount,
   validateDate,
@@ -61,6 +62,7 @@ export default function EditExpenseScreen() {
 
   const [loadingExpense, setLoadingExpense] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [successVisible, setSuccessVisible] = useState(false);
   const [error, setError] = useState("");
 
   const [expenseType, setExpenseType] = useState<"business" | "personal">(
@@ -129,9 +131,7 @@ export default function EditExpenseScreen() {
         is_deductible: isDeductible,
         notes: notes.trim() || undefined,
       });
-      Alert.alert("Saved", "Your expense has been updated.", [
-        { text: "OK", onPress: () => router.back() },
-      ]);
+      setSuccessVisible(true);
     } catch (e: any) {
       setError(e.message ?? "Failed to save. Please try again.");
     } finally {
@@ -529,6 +529,14 @@ export default function EditExpenseScreen() {
         </SafeAreaView>
       </Modal>
       <MXTabBar />
+
+      <SuccessModal
+        visible={successVisible}
+        title="Changes saved"
+        message="Your expense has been updated."
+        primaryLabel="Done"
+        onPrimary={() => { setSuccessVisible(false); router.back(); }}
+      />
     </SafeAreaView>
   );
 }

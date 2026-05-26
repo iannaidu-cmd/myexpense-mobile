@@ -19,7 +19,7 @@ interface GuideEntry {
   iconColor: string;
   category: string;
   section: string;
-  itr12Line: string;
+  itr12Field: string;  // exact field name from ITR12 Local Business Expenditure section (Pg 11-12)
   deductPct: string;
   condition: string;
   docs: string;
@@ -32,7 +32,7 @@ const GUIDE: GuideEntry[] = [
     iconColor: colour.warning,
     category: "Travel & Vehicle",
     section: "S11(a)",
-    itr12Line: "4011",
+    itr12Field: "Travel Costs – Local",
     deductPct: "100%",
     condition: "Business travel only. Logbook required.",
     docs: "Logbook, fuel receipts, trip purpose",
@@ -43,7 +43,7 @@ const GUIDE: GuideEntry[] = [
     iconColor: colour.teal,
     category: "Home Office",
     section: "S11(a)",
-    itr12Line: "4018",
+    itr12Field: "Rental Paid",
     deductPct: "Floor ratio",
     condition:
       "Dedicated workspace used regularly and exclusively for business. General costs (utilities, levies, rates) are claimed proportionally: office m² ÷ total floor m².",
@@ -55,7 +55,7 @@ const GUIDE: GuideEntry[] = [
     iconColor: colour.primary,
     category: "Home Office — Bond Interest",
     section: "S11(a)",
-    itr12Line: "4018",
+    itr12Field: "Interest / Finance Charges",
     deductPct: "Floor ratio",
     condition:
       "Sole proprietors and freelancers may deduct the proportional interest portion of their home bond — not the capital repayment. Formula: (Office m² ÷ Total floor m²) × Annual bond interest paid. The workspace must be used exclusively and regularly for trade.",
@@ -67,7 +67,7 @@ const GUIDE: GuideEntry[] = [
     iconColor: colour.success,
     category: "Home Office — Rent",
     section: "S11(a)",
-    itr12Line: "4018",
+    itr12Field: "Rental Paid",
     deductPct: "Floor ratio",
     condition:
       "Renters may deduct the proportional rental cost attributable to the home office. Formula: (Office m² ÷ Total floor m²) × Annual rent paid. The workspace must be used exclusively and regularly for trade.",
@@ -79,7 +79,7 @@ const GUIDE: GuideEntry[] = [
     iconColor: colour.textSub,
     category: "Equipment & Tools",
     section: "S11(e)",
-    itr12Line: "4022",
+    itr12Field: "Depreciation",
     deductPct: "Wear & Tear",
     condition: "Business use assets. Depreciation schedule applies.",
     docs: "Purchase invoice, asset register",
@@ -90,7 +90,7 @@ const GUIDE: GuideEntry[] = [
     iconColor: colour.accentDeep,
     category: "Software & Subscr.",
     section: "S11(a)",
-    itr12Line: "4011",
+    itr12Field: "Other",
     deductPct: "100%",
     condition: "Business-use software and services only.",
     docs: "Invoices or statements",
@@ -100,8 +100,8 @@ const GUIDE: GuideEntry[] = [
     iconBg: colour.warningBg,
     iconColor: colour.warning,
     category: "Meals & Entertain.",
-    section: "S11(a)",
-    itr12Line: "4011",
+    section: "S23(o)",
+    itr12Field: "Entertainment",
     deductPct: "80%",
     condition: "80% of amount. Business purpose must be documented.",
     docs: "Receipt with attendees and purpose noted",
@@ -112,7 +112,7 @@ const GUIDE: GuideEntry[] = [
     iconColor: colour.accentDeep,
     category: "Professional Fees",
     section: "S11(a)",
-    itr12Line: "4011",
+    itr12Field: "Consulting Fees Paid",
     deductPct: "100%",
     condition: "Legal, accounting, consulting fees for business.",
     docs: "Tax invoice from registered practitioner",
@@ -123,7 +123,7 @@ const GUIDE: GuideEntry[] = [
     iconColor: colour.warning,
     category: "Utilities",
     section: "S11(a)",
-    itr12Line: "4011",
+    itr12Field: "Electricity / Rates and Taxes",
     deductPct: "Office ratio",
     condition: "Proportional to home office floor area.",
     docs: "Municipal bill, floor plan calculation",
@@ -134,7 +134,7 @@ const GUIDE: GuideEntry[] = [
     iconColor: colour.danger,
     category: "Marketing & Adverts",
     section: "S11(a)",
-    itr12Line: "4011",
+    itr12Field: "Other",
     deductPct: "100%",
     condition: "Direct business promotion expenses.",
     docs: "Invoice, proof of business purpose",
@@ -145,7 +145,7 @@ const GUIDE: GuideEntry[] = [
     iconColor: colour.textSub,
     category: "Bank Charges",
     section: "S11(a)",
-    itr12Line: "4011",
+    itr12Field: "Bank Charges",
     deductPct: "100%",
     condition: "Business account charges only.",
     docs: "Bank statement",
@@ -156,7 +156,7 @@ const GUIDE: GuideEntry[] = [
     iconColor: colour.primary,
     category: "Communication",
     section: "S11(a)",
-    itr12Line: "4011",
+    itr12Field: "Telephone",
     deductPct: "Business %",
     condition: "Business % of phone/internet costs.",
     docs: "Invoice, call log or allocation method",
@@ -167,7 +167,7 @@ const GUIDE: GuideEntry[] = [
     iconColor: colour.success,
     category: "Training & CPD",
     section: "S11(a)",
-    itr12Line: "4011",
+    itr12Field: "Other",
     deductPct: "100%",
     condition: "Job-related training and professional development.",
     docs: "Invoice, certificate of attendance",
@@ -178,7 +178,7 @@ const GUIDE: GuideEntry[] = [
     iconColor: colour.textSub,
     category: "Personal Expenses",
     section: "Not allowed",
-    itr12Line: "—",
+    itr12Field: "—",
     deductPct: "0%",
     condition: "Personal expenses may not be claimed.",
     docs: "N/A",
@@ -232,7 +232,7 @@ function GuideCard({
             {entry.category}
           </Text>
           <Text style={{ fontSize: 11, color: colour.textSub, marginTop: 2 }}>
-            {entry.section} · Line {entry.itr12Line}
+            {entry.section} · eFiling: {entry.itr12Field}
           </Text>
         </View>
         <View

@@ -1,5 +1,6 @@
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
+import { SuccessModal } from "@/components/SuccessModal";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { CATEGORIES } from "@/constants/categories";
 import { expenseService } from "@/services/expenseService";
@@ -118,6 +119,8 @@ export default function AddExpenseScreen() {
   const [showCatPicker, setShowCatPicker] = useState(false);
   const [businessUsePct, setBusinessUsePct] = useState("100");
   const [saving, setSaving] = useState(false);
+  const [successVisible, setSuccessVisible] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
 
   const selectedCat = ITR12_CATEGORIES.find((c) => c.label === category);
   const canSave = !!amount && parseFloat(amount) > 0 && !!vendor && !!category;
@@ -159,14 +162,8 @@ export default function AddExpenseScreen() {
       setNote("");
       setBusinessUsePct("100");
 
-      Alert.alert(
-        "Expense Saved ✓",
-        `R ${savedAmount.toLocaleString("en-ZA", { minimumFractionDigits: 2 })} at ${vendor.trim()} has been saved.`,
-        [
-          { text: "Add another", style: "cancel" },
-          { text: "Go home", onPress: () => router.replace("/(tabs)" as any) },
-        ],
-      );
+      setSuccessMessage(`R ${savedAmount.toLocaleString("en-ZA", { minimumFractionDigits: 2 })} at ${vendor.trim()} has been saved.`);
+      setSuccessVisible(true);
     } catch (e: any) {
       Alert.alert("Error saving expense", e.message);
     } finally {
@@ -585,6 +582,16 @@ export default function AddExpenseScreen() {
         </TouchableOpacity>
       </View>
     </PhoneShell>
+
+      <SuccessModal
+        visible={successVisible}
+        title="Expense saved"
+        message={successMessage}
+        primaryLabel="Go to dashboard"
+        onPrimary={() => { setSuccessVisible(false); router.replace("/(tabs)" as any); }}
+        secondaryLabel="Add another"
+        onSecondary={() => setSuccessVisible(false)}
+      />
     </SafeAreaView>
   );
 }

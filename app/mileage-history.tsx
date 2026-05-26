@@ -1,7 +1,9 @@
+import { ConfirmModal } from "@/components/ConfirmModal";
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { mileageService, type MileageTrip } from "@/services/mileageService";
+import { SARS_RATE_PER_KM } from "@/lib/taxRules";
 import { useAuthStore } from "@/stores/authStore";
 import { colour, radius, space, typography } from "@/tokens";
 import { ACTIVE_TAX_YEAR } from "@/types/database";
@@ -19,7 +21,6 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const SARS_RATE_PER_KM = 4.84;
 
 const platformShadow =
   Platform.select({
@@ -62,9 +63,10 @@ export default function MileageHistoryScreen() {
   const [loading, setLoading] = useState(true);
   const [trips, setTrips] = useState<MileageTrip[]>([]);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const loadTrips = useCallback(async () => {
-    if (!user) return;
+    if (!user) { setLoading(false); return; }
     setLoading(true);
     try {
       const data = await mileageService.getTrips(user.id, ACTIVE_TAX_YEAR);
@@ -83,29 +85,21 @@ export default function MileageHistoryScreen() {
     }, [loadTrips]),
   );
 
-  const handleDelete = (id: string) => {
-    Alert.alert(
-      "Delete trip",
-      "Remove this trip from your logbook? This cannot be undone.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            setDeleting(id);
-            try {
-              await mileageService.deleteTrip(id, user!.id);
-              await loadTrips();
-            } catch (e: any) {
-              Alert.alert("Error", e.message);
-            } finally {
-              setDeleting(null);
-            }
-          },
-        },
-      ],
-    );
+  const handleDelete = (id: string) => setConfirmDeleteId(id);
+
+  const confirmDelete = async () => {
+    if (!confirmDeleteId) return;
+    const id = confirmDeleteId;
+    setConfirmDeleteId(null);
+    setDeleting(id);
+    try {
+      await mileageService.deleteTrip(id, user!.id);
+      await loadTrips();
+    } catch (e: any) {
+      Alert.alert("Error", e.message);
+    } finally {
+      setDeleting(null);
+    }
   };
 
   // Totals
@@ -509,6 +503,15 @@ export default function MileageHistoryScreen() {
           </>
         )}
       </ScrollView>
+      <ConfirmModal
+        visible={!!confirmDeleteId}
+        title="Delete trip"
+        message="Remove this trip from your logbook? This cannot be undone."
+        confirmLabel="Delete"
+        cancelLabel="Keep it"
+        onConfirm={confirmDelete}
+        onCancel={() => setConfirmDeleteId(null)}
+      />
       <MXTabBar />
     </SafeAreaView>
   );

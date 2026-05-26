@@ -1,5 +1,6 @@
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
+import { SuccessModal } from "@/components/SuccessModal";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { CATEGORIES } from "@/constants/categories";
 import { expenseService } from "@/services/expenseService";
@@ -130,6 +131,8 @@ export default function ReceiptReviewScreen() {
   const [notes, setNotes] = useState(params.notes ?? "");
   const [showCatPicker, setShowCatPicker] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [successVisible, setSuccessVisible] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
 
   const selectedCat = CATEGORIES_FOR_PICKER.find((c) => c.name === category);
 
@@ -205,11 +208,8 @@ export default function ReceiptReviewScreen() {
           .eq("storage_path", params.storagePath);
       }
 
-      Alert.alert(
-        "Expense saved ✓",
-        `${vendor} — R ${parseFloat(amount).toLocaleString("en-ZA", { minimumFractionDigits: 2 })} saved${hasReceipt ? " with receipt" : ""}.`,
-        [{ text: "Done", onPress: () => router.replace("/(tabs)") }],
-      );
+      setSuccessMessage(`${vendor} — R ${parseFloat(amount).toLocaleString("en-ZA", { minimumFractionDigits: 2 })} saved${hasReceipt ? " with receipt" : ""}.`);
+      setSuccessVisible(true);
     } catch (e: any) {
       Alert.alert("Error", e.message);
     } finally {
@@ -717,6 +717,14 @@ export default function ReceiptReviewScreen() {
         </TouchableOpacity>
       </ScrollView>
       <MXTabBar />
+
+      <SuccessModal
+        visible={successVisible}
+        title="Expense saved"
+        message={successMessage}
+        primaryLabel="Go to dashboard"
+        onPrimary={() => { setSuccessVisible(false); router.replace("/(tabs)"); }}
+      />
     </SafeAreaView>
   );
 }

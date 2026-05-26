@@ -41,7 +41,7 @@ function ReceiptCard() {
   const LINE = { height: 5, borderRadius: 2.5, backgroundColor: "#DDDDE8" };
   return (
     <View style={{
-      position: "absolute", right: 6, top: 30,
+      position: "absolute", right: 26, top: 30,
       width: 82, height: 70,
       backgroundColor: "#EAEAF2", borderRadius: 12, overflow: "hidden",
     }}>
@@ -72,6 +72,7 @@ export function OnboardingFeatureScene() {
         width: 260, height: 260, borderRadius: 130,
         backgroundColor: "#E8E7FA", opacity: 0.4,
         top: 18, alignSelf: "center",
+        transform: [{ translateX: -47 }],
       }} />
 
       {/* Overlay panels */}
@@ -93,13 +94,14 @@ export function OnboardingFeatureScene() {
         alignSelf: "center",
         top: 14,
         width: 260, height: 260,
+        transform: [{ translateX: -47 }],
       }}>
         <SvgXml xml={mobileInboxSvg} width={260} height={260} />
       </View>
 
       {/* Amount chip badge */}
       <View style={{
-        position: "absolute", top: 22, right: 22,
+        position: "absolute", top: 22, right: 42,
         backgroundColor: colour.success,
         borderRadius: 20,
         paddingHorizontal: 10, paddingVertical: 5,
@@ -123,8 +125,8 @@ export function OnboardingFeatureScene() {
       </View>
 
       {/* Sparkle dots */}
-      <View style={{ position: "absolute", width: 9, height: 9, borderRadius: 4.5, backgroundColor: "#D8D7F5", top: 60, right: 16 }} />
-      <View style={{ position: "absolute", width: 6, height: 6, borderRadius: 3, backgroundColor: colour.warning, opacity: 0.6, top: 82, right: 10 }} />
+      <View style={{ position: "absolute", width: 9, height: 9, borderRadius: 4.5, backgroundColor: "#D8D7F5", top: 60, right: 36 }} />
+      <View style={{ position: "absolute", width: 6, height: 6, borderRadius: 3, backgroundColor: colour.warning, opacity: 0.6, top: 82, right: 30 }} />
       <View style={{ position: "absolute", width: 8, height: 8, borderRadius: 4, backgroundColor: "#D8D7F5", top: 170, left: 44 }} />
     </View>
   );

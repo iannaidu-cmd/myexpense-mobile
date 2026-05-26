@@ -8,7 +8,6 @@ import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   RefreshControl,
   StatusBar,
@@ -59,10 +58,9 @@ export default function IncomeHistoryScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [income, setIncome] = useState<any[]>([]);
   const [search, setSearch] = useState("");
-  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
-    if (!user) return;
+    if (!user) { setLoading(false); return; }
     setLoading(true);
     try {
       const data = await incomeService.getIncome(user.id);
@@ -93,52 +91,6 @@ export default function IncomeHistoryScreen() {
     }, [loadData]),
   );
 
-  const handleView = (item: any) => {
-    Alert.alert(
-      item.source,
-      [
-        `Amount: ${fmt(item.amount)}`,
-        `Date: ${formatDate(item.date)}`,
-        item.description ? `Notes: ${item.description}` : null,
-        item.category ? `Category: ${item.category}` : null,
-      ]
-        .filter(Boolean)
-        .join("\n"),
-      [
-        { text: "Close", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: () => handleDelete(item.id, item.source),
-        },
-      ],
-    );
-  };
-
-  const handleDelete = (id: string, source: string) => {
-    Alert.alert(
-      "Delete income",
-      `Remove "${source}" from your income records? This cannot be undone.`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            setDeletingId(id);
-            try {
-              await incomeService.deleteIncome(id);
-              setIncome((prev) => prev.filter((e) => e.id !== id));
-            } catch (e: any) {
-              Alert.alert("Error", e.message);
-            } finally {
-              setDeletingId(null);
-            }
-          },
-        },
-      ],
-    );
-  };
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
@@ -314,8 +266,7 @@ export default function IncomeHistoryScreen() {
             }
             renderItem={({ item }) => (
               <TouchableOpacity
-                onPress={() => handleView(item)}
-                onLongPress={() => handleDelete(item.id, item.source)}
+                onPress={() => router.push(`/income-detail?id=${item.id}` as any)}
                 delayLongPress={500}
                 style={{
                   flexDirection: "row",
@@ -337,11 +288,7 @@ export default function IncomeHistoryScreen() {
                     marginRight: space.md,
                   }}
                 >
-                  {deletingId === item.id ? (
-                    <ActivityIndicator color={colour.success} size="small" />
-                  ) : (
-                    <IconSymbol name={sourceIcon(item.source)} size={20} color={colour.success} />
-                  )}
+                  <IconSymbol name={sourceIcon(item.source)} size={20} color={colour.success} />
                 </View>
 
                 {/* Details */}
@@ -389,27 +336,6 @@ export default function IncomeHistoryScreen() {
           />
         )}
       </View>
-
-      {/* Hint */}
-      {income.length > 0 && !loading && (
-        <View
-          style={{
-            backgroundColor: colour.bgCard,
-            paddingHorizontal: space.lg,
-            paddingVertical: space.sm,
-          }}
-        >
-          <Text
-            style={{
-              ...typography.micro,
-              color: colour.textHint,
-              textAlign: "center",
-            }}
-          >
-            Tap to view details · Long press to delete
-          </Text>
-        </View>
-      )}
 
       <MXTabBar />
     </SafeAreaView>

@@ -4,6 +4,7 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from "@/components/maps";
+import { SARS_RATE_PER_KM } from "@/lib/taxRules";
 import { useAuthStore } from "@/stores/authStore";
 import { colour, radius, space, typography } from "@/tokens";
 import { ACTIVE_TAX_YEAR } from "@/types/database";
@@ -24,8 +25,6 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-// ─── SARS deemed cost rate for 2024/25 tax year ───────────────────────────────
-const SARS_RATE_PER_KM = 4.84;
 
 // ─── Default map region — Johannesburg, SA ────────────────────────────────────
 const DEFAULT_REGION = {

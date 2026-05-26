@@ -240,6 +240,8 @@ function CustomTabBar({
                   fontFamily: "Inter_500Medium",
                   color: isFocused ? colour.text : colour.navInactive,
                   marginTop: 3,
+                  alignSelf: "stretch",
+                  textAlign: "center",
                 }}
               >
                 {tab.label}

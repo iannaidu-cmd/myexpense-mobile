@@ -1,5 +1,6 @@
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { MXHeader } from "@/components/MXHeader";
+import { SuccessModal } from "@/components/SuccessModal";
 import {
   validateAmount,
   validateCategory,
@@ -109,6 +110,8 @@ export default function AddExpenseTab() {
   const [note, setNote] = useState("");
   const [showCatPicker, setShowCatPicker] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [successVisible, setSuccessVisible] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
 
   const selectedCat = CATEGORIES.find((c) => c.label === category);
   const canSave = !!amount && !!vendor && !!category && parseFloat(amount) > 0;
@@ -173,14 +176,8 @@ export default function AddExpenseTab() {
       setVatAmount("");
       setNote("");
 
-      Alert.alert(
-        "Expense Saved ✓",
-        `${vendor} — R ${parseFloat(amount).toLocaleString("en-ZA", { minimumFractionDigits: 2 })} has been saved.`,
-        [
-          { text: "Add Another", style: "cancel" },
-          { text: "Go Home", onPress: () => router.replace("/(tabs)") },
-        ],
-      );
+      setSuccessMessage(`${vendor} — R ${parseFloat(amount).toLocaleString("en-ZA", { minimumFractionDigits: 2 })} has been saved.`);
+      setSuccessVisible(true);
     } catch (e: any) {
       Alert.alert("Error saving expense", e.message);
     } finally {
@@ -493,6 +490,15 @@ export default function AddExpenseTab() {
           </Text>
         </TouchableOpacity>
       </ScrollView>
+      <SuccessModal
+        visible={successVisible}
+        title="Expense saved"
+        message={successMessage}
+        primaryLabel="Go to dashboard"
+        onPrimary={() => { setSuccessVisible(false); router.replace("/(tabs)"); }}
+        secondaryLabel="Add another"
+        onSecondary={() => setSuccessVisible(false)}
+      />
     </SafeAreaView>
   );
 }

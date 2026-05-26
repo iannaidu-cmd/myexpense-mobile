@@ -1,7 +1,9 @@
+import { ConfirmModal } from "@/components/ConfirmModal";
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { expenseService } from "@/services/expenseService";
+import { incomeService } from "@/services/incomeService";
 import { useAuthStore } from "@/stores/authStore";
 import { colour, radius, space, typography } from "@/tokens";
 import { ACTIVE_TAX_YEAR } from "@/types/database";
@@ -242,8 +244,11 @@ export default function ExpenseDetailScreen() {
 
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
+  const [converting, setConverting] = useState(false);
   const [expense, setExpense] = useState<any>(null);
   const [viewerVisible, setViewerVisible] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showConvertConfirm, setShowConvertConfirm] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -259,29 +264,38 @@ export default function ExpenseDetailScreen() {
       });
   }, [id]);
 
-  const handleDelete = () => {
-    Alert.alert(
-      "Delete expense",
-      "Are you sure you want to delete this expense? This cannot be undone.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            if (!expense) return;
-            setDeleting(true);
-            try {
-              await expenseService.deleteExpense(expense.id);
-              router.replace("/(tabs)" as any);
-            } catch (e: any) {
-              Alert.alert("Error", e.message);
-              setDeleting(false);
-            }
-          },
-        },
-      ],
-    );
+  const handleDelete = () => setShowDeleteConfirm(true);
+
+  const confirmConvertToIncome = async () => {
+    if (!expense || !user) return;
+    setShowConvertConfirm(false);
+    setConverting(true);
+    try {
+      await incomeService.addIncome(user.id, {
+        amount: expense.amount,
+        source: expense.vendor,
+        date: expense.expense_date,
+        description: expense.notes ?? "Converted from expense",
+      });
+      await expenseService.deleteExpense(expense.id);
+      router.replace("/income-history" as any);
+    } catch (e: any) {
+      Alert.alert("Error", e.message);
+      setConverting(false);
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!expense) return;
+    setShowDeleteConfirm(false);
+    setDeleting(true);
+    try {
+      await expenseService.deleteExpense(expense.id);
+      router.back();
+    } catch (e: any) {
+      Alert.alert("Error", e.message);
+      setDeleting(false);
+    }
   };
 
   // Determine the storage path for signed URL generation.
@@ -566,6 +580,32 @@ export default function ExpenseDetailScreen() {
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
+          onPress={() => setShowConvertConfirm(true)}
+          disabled={converting}
+          style={{
+            borderRadius: radius.pill,
+            borderWidth: 1.5,
+            borderColor: colour.success,
+            height: 52,
+            alignItems: "center",
+            justifyContent: "center",
+            marginBottom: space.md,
+            flexDirection: "row",
+            gap: space.sm,
+          }}
+        >
+          {converting ? (
+            <ActivityIndicator color={colour.success} />
+          ) : (
+            <>
+              <IconSymbol name="arrow.left.arrow.right" size={16} color={colour.success} />
+              <Text style={{ ...typography.btnL, color: colour.success }}>
+                Reclassify as income
+              </Text>
+            </>
+          )}
+        </TouchableOpacity>
+        <TouchableOpacity
           onPress={handleDelete}
           disabled={deleting}
           style={{
@@ -586,6 +626,25 @@ export default function ExpenseDetailScreen() {
           )}
         </TouchableOpacity>
       </ScrollView>
+      <ConfirmModal
+        visible={showDeleteConfirm}
+        title="Delete expense"
+        message="This expense will be permanently removed. This cannot be undone."
+        confirmLabel="Delete"
+        cancelLabel="Keep it"
+        onConfirm={confirmDelete}
+        onCancel={() => setShowDeleteConfirm(false)}
+      />
+      <ConfirmModal
+        visible={showConvertConfirm}
+        title="Reclassify as income?"
+        message="This will remove the expense record and create a new income entry with the same amount and date."
+        confirmLabel="Convert"
+        cancelLabel="Cancel"
+        onConfirm={confirmConvertToIncome}
+        onCancel={() => setShowConvertConfirm(false)}
+        icon="arrow.left.arrow.right"
+      />
       <MXTabBar />
     </SafeAreaView>
   );

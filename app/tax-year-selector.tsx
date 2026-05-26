@@ -90,7 +90,7 @@ export default function TaxYearSelectorScreen() {
   >({});
 
   const loadTotals = useCallback(async () => {
-    if (!user) return;
+    if (!user) { setLoadingTotals(false); return; }
     setLoadingTotals(true);
     try {
       const results = await Promise.all(

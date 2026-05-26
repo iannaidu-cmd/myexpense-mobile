@@ -99,7 +99,11 @@ export default function TermsScreen() {
             MyExpense is a mobile expense tracking and SARS ITR12 tax compliance
             application operated by MyExpense (PTY) Ltd, a company registered in
             the Republic of South Africa. The app is designed for sole
-            proprietors, freelancers, and independent contractors.
+            proprietors, freelancers, and independent contractors. These terms
+            are governed by and must be interpreted in accordance with the
+            Electronic Communications and Transactions Act, 2002 (ECT Act), the
+            Consumer Protection Act, 2008 (CPA), and other applicable South
+            African legislation.
           </Body>
         </Section>
 
@@ -146,12 +150,18 @@ export default function TermsScreen() {
 
         <Section title="5. Subscription & Billing">
           <Body>
-            MyExpense offers a free tier and a paid subscription plan at
-            R99/month. Subscriptions are billed monthly or annually in advance.
-            All prices are inclusive of applicable VAT.{"\n\n"}
-            You may cancel your subscription at any time. Cancellation takes
-            effect at the end of the current billing period. We do not offer
-            refunds for partial billing periods.
+            MyExpense offers a free tier and a paid subscription plan at R99 per
+            month (inclusive of VAT). Subscriptions are billed monthly in
+            advance at the start of each billing cycle.{"\n\n"}
+            Paid subscriptions automatically renew each month unless cancelled.
+            You may cancel your subscription at any time through the app or by
+            contacting us at support@myexpense.co.za. Cancellation takes effect
+            at the end of the current billing period and no refund will be issued
+            for the remaining portion of that period.{"\n\n"}
+            We reserve the right to change subscription fees with at least 30
+            days' prior notice. In accordance with the Consumer Protection Act,
+            you have the right to cancel your subscription if you do not agree
+            with any revised pricing.
           </Body>
         </Section>
 
@@ -174,7 +184,17 @@ export default function TermsScreen() {
           </Body>
         </Section>
 
-        <Section title="8. Intellectual Property">
+        <Section title="8. Data Export & Account Deletion">
+          <Body>
+            You may export your expense data at any time from within the app.
+            Upon deletion of your account, you will have 30 days to export your
+            data before it is permanently deleted in accordance with our Privacy
+            Policy. To delete your account, contact us at
+            support@myexpense.co.za.
+          </Body>
+        </Section>
+
+        <Section title="9. Intellectual Property">
           <Body>
             All content, features, and functionality of MyExpense — including
             the software, design, logos, and text — are owned by MyExpense (PTY)
@@ -183,34 +203,40 @@ export default function TermsScreen() {
           </Body>
         </Section>
 
-        <Section title="9. Limitation of Liability">
+        <Section title="10. Limitation of Liability">
           <Body>
-            To the maximum extent permitted by applicable law, MyExpense (PTY)
-            Ltd shall not be liable for any indirect, incidental, special, or
-            consequential damages arising from your use of the app, including
-            but not limited to errors in tax calculations, data loss, or SARS
-            penalties.
+            To the maximum extent permitted by applicable South African law,
+            including the Consumer Protection Act, MyExpense (PTY) Ltd shall not
+            be liable for any indirect, incidental, special, or consequential
+            damages arising from your use of the app, including but not limited
+            to errors in tax calculations, data loss, or SARS penalties. Our
+            total aggregate liability for any claim arising out of or related to
+            the app shall not exceed the total fees paid by you in the twelve
+            months preceding the claim.
           </Body>
         </Section>
 
-        <Section title="10. Governing Law">
+        <Section title="11. Governing Law">
           <Body>
             These terms are governed by the laws of the Republic of South
             Africa. Any disputes arising from these terms shall be subject to
-            the exclusive jurisdiction of the courts of South Africa.
+            the exclusive jurisdiction of the courts of South Africa. In the
+            event of any conflict between these terms and the provisions of the
+            CPA or the ECT Act, the relevant statutory provisions shall prevail.
           </Body>
         </Section>
 
-        <Section title="11. Changes to These Terms">
+        <Section title="12. Changes to These Terms">
           <Body>
             We may update these terms from time to time. We will notify you of
-            material changes via the app or email. Your continued use of
-            MyExpense after changes are posted constitutes your acceptance of
-            the updated terms.
+            material changes via the app or email at least 20 business days
+            before the changes take effect, as required by the ECT Act. Your
+            continued use of MyExpense after changes are posted constitutes your
+            acceptance of the updated terms.
           </Body>
         </Section>
 
-        <Section title="12. Contact Us">
+        <Section title="13. Contact Us">
           <Body>
             If you have questions about these Terms of Service, please contact
             us:{"\n\n"}

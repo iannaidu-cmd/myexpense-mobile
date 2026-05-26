@@ -1,4 +1,5 @@
 import { BiometricToggle } from "@/components/BiometricToggle";
+import { ConfirmModal } from "@/components/ConfirmModal";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { profileService } from "@/services/profileService";
 import { useAuthStore } from "@/stores/authStore";
@@ -25,6 +26,7 @@ const BASE_SECTIONS: {
       { icon: "person.fill",    label: "My profile",      sub: "Name, email, business details",  route: "/profile"                },
       { icon: "creditcard.fill",label: "Subscription",    sub: "Free plan · Upgrade to Pro",     route: "/paywall-upgrade"        },
       { icon: "folder.fill",    label: "Bank accounts",   sub: "Manage your banking details",    route: "/bank-accounts"          },
+      { icon: "tray.and.arrow.up.fill", label: "Import transactions", sub: "Import from a bank statement (CSV / OFX)", route: "/bank-import" },
     ],
   },
   {
@@ -37,7 +39,7 @@ const BASE_SECTIONS: {
     title: "Security & privacy",
     items: [
       { icon: "lock.fill",      label: "Security",        sub: "Password, biometrics, sessions", route: "/security-settings"      },
-      { icon: "lock.fill",      label: "Data & privacy",  sub: "POPIA · Data export & deletion", route: "/privacy"                },
+      { icon: "lock.fill",      label: "Data & privacy",  sub: "POPIA compliance · Privacy policy", route: "/privacy"                },
     ],
   },
   {
@@ -54,6 +56,7 @@ export default function SettingsTabScreen() {
   const { user, signOut, isPremium, isDevUser } = useAuthStore();
   const [fullName, setFullName] = useState("");
   const [subscription, setSubscription] = useState<"free" | "pro" | "business">("free");
+  const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -88,18 +91,12 @@ export default function SettingsTabScreen() {
     }),
   }));
 
-  const handleSignOut = () => {
-    Alert.alert("Sign out", "Are you sure you want to sign out?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Sign out",
-        style: "destructive",
-        onPress: async () => {
-          await signOut();
-          router.replace("/onboarding-step-1");
-        },
-      },
-    ]);
+  const handleSignOut = () => setShowSignOutConfirm(true);
+
+  const confirmSignOut = async () => {
+    setShowSignOutConfirm(false);
+    await signOut();
+    router.replace("/onboarding-step-1");
   };
 
   return (
@@ -248,6 +245,16 @@ export default function SettingsTabScreen() {
           MyExpense (PTY) Ltd · Cape Town, South Africa
         </Text>
       </ScrollView>
+      <ConfirmModal
+        visible={showSignOutConfirm}
+        title="Sign out"
+        message="Are you sure you want to sign out of your account?"
+        confirmLabel="Sign out"
+        cancelLabel="Stay signed in"
+        onConfirm={confirmSignOut}
+        onCancel={() => setShowSignOutConfirm(false)}
+        icon="arrow.right.square.fill"
+      />
     </SafeAreaView>
   );
 }

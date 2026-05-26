@@ -1,3 +1,4 @@
+import { ConfirmModal } from "@/components/ConfirmModal";
 import { MXBackHeader } from "@/components/MXBackHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -182,6 +183,8 @@ export default function SecuritySettingsScreen() {
   const [biometricAvailable, setBiometricAvailable] = useState(false);
   const [biometricEnabled, setBiometricEnabledState] = useState(false);
   const [biometricLabel, setBiometricLabel] = useState("Biometrics");
+  const [showDisableBiometricConfirm, setShowDisableBiometricConfirm] = useState(false);
+  const [showSignOutAllConfirm, setShowSignOutAllConfirm] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -229,50 +232,32 @@ export default function SecuritySettingsScreen() {
         Alert.alert("Error", e?.message ?? "Something went wrong.");
       }
     } else {
-      Alert.alert(
-        `Disable ${biometricLabel}?`,
-        "You will need to use your password to sign in.",
-        [
-          { text: "Cancel", style: "cancel" },
-          {
-            text: "Disable",
-            style: "destructive",
-            onPress: async () => {
-              await clearBiometricSession();
-              await setBiometricEnabled(false);
-              setBiometricEnabledState(false);
-            },
-          },
-        ],
-      );
+      setShowDisableBiometricConfirm(true);
     }
+  };
+
+  const confirmDisableBiometric = async () => {
+    setShowDisableBiometricConfirm(false);
+    await clearBiometricSession();
+    await setBiometricEnabled(false);
+    setBiometricEnabledState(false);
   };
 
   const handleChangePassword = () => {
     router.push("/forgot-password");
   };
 
-  const handleSignOutAllDevices = () => {
-    Alert.alert(
-      "Sign out of all devices?",
-      "This will revoke all active sessions. You will need to sign in again on this device.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Sign out all",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              const { supabase } = await import("@/lib/supabase");
-              await supabase.auth.signOut({ scope: "global" });
-              router.replace("/sign-in");
-            } catch (e: any) {
-              Alert.alert("Error", e?.message ?? "Could not sign out.");
-            }
-          },
-        },
-      ],
-    );
+  const handleSignOutAllDevices = () => setShowSignOutAllConfirm(true);
+
+  const confirmSignOutAllDevices = async () => {
+    setShowSignOutAllConfirm(false);
+    try {
+      const { supabase } = await import("@/lib/supabase");
+      await supabase.auth.signOut({ scope: "global" });
+      router.replace("/sign-in");
+    } catch (e: any) {
+      Alert.alert("Error", e?.message ?? "Could not sign out.");
+    }
   };
 
   return (
@@ -392,6 +377,26 @@ export default function SecuritySettingsScreen() {
           />
         </View>
       </ScrollView>
+      <ConfirmModal
+        visible={showDisableBiometricConfirm}
+        title={`Disable ${biometricLabel}?`}
+        message="You will need to use your password to sign in."
+        confirmLabel="Disable"
+        cancelLabel="Keep enabled"
+        onConfirm={confirmDisableBiometric}
+        onCancel={() => setShowDisableBiometricConfirm(false)}
+        icon="faceid"
+      />
+      <ConfirmModal
+        visible={showSignOutAllConfirm}
+        title="Sign out of all devices?"
+        message="This will revoke all active sessions. You will need to sign in again on this device."
+        confirmLabel="Sign out all"
+        cancelLabel="Cancel"
+        onConfirm={confirmSignOutAllDevices}
+        onCancel={() => setShowSignOutAllConfirm(false)}
+        icon="arrow.right.square.fill"
+      />
       <MXTabBar />
     </SafeAreaView>
   );

@@ -14,6 +14,7 @@ export interface Profile {
   subscription: "free" | "pro" | "business";
   is_dev_user: boolean;
   push_token: string | null;
+  terms_accepted_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -85,24 +86,31 @@ export interface UpdateExpense extends Partial<NewExpense> {
 }
 
 // ─── ITR12 Categories (SARS-aligned) ─────────────────────────────────────────
+// field: the exact label used in the eFiling Local Business Income section (Pg 11-12).
+// code:  only set where SARS assigns a standalone source code outside that section.
+// For sole proprietors all expenditure goes into the Local Business schedule;
+// individual line items are named fields, not coded. Only the net taxable
+// profit/loss carries a code (4222/4223, calculated by SARS).
 
 export const ITR12_CATEGORIES: Record<
   string,
-  { code: string; section: string }
+  { field: string; code: string; section: string }
 > = {
-  "Travel & Transport": { code: "4011", section: "S11(a)" },
-  "Home Office": { code: "4018", section: "S11(a)" },
-  "Equipment & Tools": { code: "4022", section: "S11(e)" },
-  "Software & Subscriptions": { code: "4011", section: "S11(a)" },
-  "Professional Fees": { code: "4011", section: "S11(a)" },
-  "Telephone & Internet": { code: "4011", section: "S11(a)" },
-  "Marketing & Advertising": { code: "4011", section: "S11(a)" },
-  "Bank Charges": { code: "4011", section: "S11(a)" },
-  Utilities: { code: "4011", section: "S11(a)" },
-  Entertainment: { code: "4011", section: "S11(a)" },
-  Insurance: { code: "4011", section: "S11(a)" },
-  "Other Deductible": { code: "4011", section: "S11(a)" },
-  "Non-deductible": { code: "", section: "" },
+  "Travel & Transport":       { field: "Travel Costs – Local",           code: "",     section: "S11(a) – Pg 11-12" },
+  "Home Office":              { field: "Rental Paid",                    code: "",     section: "S11(a) – Pg 11-12" },
+  "Equipment & Tools":        { field: "Depreciation",                   code: "",     section: "S11(e) – Pg 11-12" },
+  "Software & Subscriptions": { field: "Other",                          code: "",     section: "S11(a) – Pg 11-12" },
+  "Professional Fees":        { field: "Consulting Fees Paid",           code: "",     section: "S11(a) – Pg 11-12" },
+  "Telephone & Internet":     { field: "Telephone",                      code: "",     section: "S11(a) – Pg 11-12" },
+  "Marketing & Advertising":  { field: "Other",                          code: "",     section: "S11(a) – Pg 11-12" },
+  "Bank Charges":             { field: "Bank Charges",                   code: "",     section: "S11(a) – Pg 11-12" },
+  Utilities:                  { field: "Electricity / Rates and Taxes",  code: "",     section: "S11(a) – Pg 11-12" },
+  Entertainment:              { field: "Entertainment",                  code: "",     section: "S23(o) 80% – Pg 11-12" },
+  Insurance:                  { field: "Insurance",                      code: "",     section: "S11(a) – Pg 11-12" },
+  "Meals & Entertainment":    { field: "Entertainment",                  code: "",     section: "S23(o) 80% – Pg 11-12" },
+  "Retirement Annuity":       { field: "Total contributions",            code: "4006", section: "RA – Pg 23" },
+  "Other Deductible":         { field: "Other",                          code: "",     section: "S11(a) – Pg 11-12" },
+  "Non-deductible":           { field: "",                               code: "",     section: "" },
 };
 
 export const CATEGORY_LIST = Object.keys(ITR12_CATEGORIES);

@@ -3,6 +3,7 @@ import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { expenseService } from "@/services/expenseService";
 import { incomeService } from "@/services/incomeService";
+import { getMarginalRate } from "@/lib/taxRules";
 import { taxService } from "@/services/taxService";
 import { useAuthStore } from "@/stores/authStore";
 import { useExpenseStore } from "@/stores/expenseStore";
@@ -111,16 +112,6 @@ const fmt = (n: number) =>
 
 const fmtPct = (n: number) => `${Math.round(n)}%`;
 
-// SARS 2024/25 individual tax brackets (income year ending 28 Feb 2025)
-function getMarginalRate(income: number): number {
-  if (income <= 237100) return 0.18;
-  if (income <= 370500) return 0.26;
-  if (income <= 512800) return 0.31;
-  if (income <= 673000) return 0.36;
-  if (income <= 857900) return 0.39;
-  if (income <= 1817000) return 0.41;
-  return 0.45;
-}
 
 export default function TaxSummaryScreen() {
   const router = useRouter();
@@ -138,7 +129,7 @@ export default function TaxSummaryScreen() {
   const [medDependants, setMedDependants] = useState(0);
 
   const loadData = useCallback(async () => {
-    if (!user) return;
+    if (!user) { setLoading(false); return; }
     setLoading(true);
     try {
       const [expenseTotals, incomeTotals, breakdown, summary] =

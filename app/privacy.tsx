@@ -134,14 +134,18 @@ export default function PrivacyScreen() {
 
         <Section title="4. Data Storage & Security">
           <Body>
-            Your data is stored on secure servers hosted by Supabase, with infrastructure located in the European Union (AWS eu-west-1) and subject to GDPR-equivalent protections. We implement the following security measures:
+            Your data is stored on secure servers hosted by Supabase, with infrastructure located in the European Union (AWS eu-west-1) and subject to appropriate cross-border transfer safeguards in line with Section 72 of POPIA. We implement the following security measures:
           </Body>
           <View style={{ marginTop: space.sm }}>
             <Bullet>End-to-end encryption for data in transit (TLS 1.3)</Bullet>
             <Bullet>Encryption at rest for all stored data</Bullet>
             <Bullet>Biometric authentication support for device-level security</Bullet>
-            <Bullet>Regular security audits and penetration testing</Bullet>
-            <Bullet>Role-based access controls for all staff</Bullet>
+            <Bullet>Role-based access controls limiting data access to authorised personnel only</Bullet>
+          </View>
+          <View style={{ marginTop: space.md }}>
+            <Body>
+              While we take every reasonable precaution to protect your information, no method of electronic transmission or storage is entirely secure. We are committed to notifying you and the Information Regulator of any data breach in accordance with POPIA.
+            </Body>
           </View>
         </Section>
 
@@ -153,12 +157,17 @@ export default function PrivacyScreen() {
         </Section>
 
         <Section title="6. Sharing Your Information">
-          <Body>We share your information only with:</Body>
+          <Body>We share your information only with the following trusted service providers, who are contractually obligated to protect your data:</Body>
           <View style={{ marginTop: space.sm }}>
-            <Bullet>PayFast: to process subscription payments (they are PCI-DSS compliant)</Bullet>
+            <Bullet>PayFast: to process subscription payments (PCI-DSS compliant)</Bullet>
             <Bullet>Supabase: our database and authentication provider</Bullet>
             <Bullet>Google: if you use Google Sign-In (subject to Google's privacy policy)</Bullet>
             <Bullet>Law enforcement: only when required by a valid court order or legal obligation</Bullet>
+          </View>
+          <View style={{ marginTop: space.md }}>
+            <Body>
+              Where any service provider processes your data outside of South Africa, we ensure appropriate safeguards are in place in accordance with Section 72 of POPIA.
+            </Body>
           </View>
         </Section>
 
@@ -168,6 +177,7 @@ export default function PrivacyScreen() {
             <Bullet>Access the personal information we hold about you</Bullet>
             <Bullet>Request correction of inaccurate information</Bullet>
             <Bullet>Request deletion of your information (subject to legal retention obligations)</Bullet>
+            <Bullet>Export your data at any time from within the app</Bullet>
             <Bullet>Object to the processing of your information</Bullet>
             <Bullet>Lodge a complaint with the Information Regulator of South Africa</Bullet>
           </View>
@@ -180,7 +190,7 @@ export default function PrivacyScreen() {
 
         <Section title="8. Cookies & Tracking">
           <Body>
-            The MyExpense mobile app does not use browser cookies. We use anonymous analytics to understand how the app is used, which cannot be linked back to you personally. You can opt out of analytics in Settings → Privacy.
+            The MyExpense mobile app does not use browser cookies. We use anonymous analytics to understand how the app is used. This data cannot be linked back to you personally and is used solely to improve app performance and stability.
           </Body>
         </Section>
 
@@ -199,8 +209,8 @@ export default function PrivacyScreen() {
         <Section title="11. Information Regulator">
           <Body>
             If you are unhappy with how we handle your personal information, you may lodge a complaint with the Information Regulator of South Africa:{'\n\n'}
-            Website: www.justice.gov.za/inforeg{'\n'}
-            Email: inforeg@justice.gov.za{'\n'}
+            Website: inforegulator.org.za{'\n'}
+            Email: enquiries@inforegulator.org.za{'\n'}
             Tel: +27 (0)12 406 4818
           </Body>
         </Section>

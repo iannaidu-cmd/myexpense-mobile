@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "co.za.myexpense",
+      "sha256_cert_fingerprints": [
+        "A0:A0:AF:0B:63:FF:7A:4D:EF:42:82:E4:67:E9:28:A8:C0:12:D2:AF:B3:9B:32:85:CB:27:A2:E0:28:F6:16:C8"
+      ]
+    }
+  }
+]

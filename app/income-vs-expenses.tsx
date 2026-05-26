@@ -260,7 +260,7 @@ export default function IncomeVsExpensesScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      if (!user) return;
+      if (!user) { setLoading(false); return; }
       setLoading(true);
       setError(null);
 

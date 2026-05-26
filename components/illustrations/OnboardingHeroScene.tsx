@@ -12,7 +12,7 @@ function ReceiptPanel() {
   const LINE = { height: 7, borderRadius: 3.5, backgroundColor: "#DDDDE8", marginBottom: 7 };
   return (
     <View style={{
-      position: "absolute", right: 10, top: 22,
+      position: "absolute", right: 30, top: 22,
       width: 108, height: 148,
       backgroundColor: "#EAEAF2", borderRadius: 16, overflow: "hidden",
     }}>
@@ -73,6 +73,7 @@ export function OnboardingHeroScene() {
         width: 280, height: 280, borderRadius: 140,
         backgroundColor: "#E8E7FA", opacity: 0.45,
         top: 8, alignSelf: "center",
+        transform: [{ translateX: -47 }],
       }} />
 
       {/* Wireframe panels */}
@@ -94,6 +95,7 @@ export function OnboardingHeroScene() {
         alignSelf: "center",
         top: 10,
         width: 260, height: 260,
+        transform: [{ translateX: -47 }],
       }}>
         <SvgXml xml={deepWorkSvg} width={260} height={260} />
       </View>
@@ -112,7 +114,7 @@ export function OnboardingHeroScene() {
 
       {/* Check badge */}
       <View style={{
-        position: "absolute", top: 122, right: 14,
+        position: "absolute", top: 122, right: 34,
         width: 52, height: 52, borderRadius: 26,
         backgroundColor: colour.success,
         alignItems: "center", justifyContent: "center",
@@ -123,8 +125,8 @@ export function OnboardingHeroScene() {
       </View>
 
       {/* Sparkle dots */}
-      <View style={{ position: "absolute", width: 11, height: 11, borderRadius: 5.5, backgroundColor: "#D8D7F5", top: 148, right: 12 }} />
-      <View style={{ position: "absolute", width: 7, height: 7, borderRadius: 3.5, backgroundColor: colour.warning, opacity: 0.55, top: 174, right: 8 }} />
+      <View style={{ position: "absolute", width: 11, height: 11, borderRadius: 5.5, backgroundColor: "#D8D7F5", top: 148, right: 32 }} />
+      <View style={{ position: "absolute", width: 7, height: 7, borderRadius: 3.5, backgroundColor: colour.warning, opacity: 0.55, top: 174, right: 28 }} />
       <View style={{ position: "absolute", width: 9, height: 9, borderRadius: 4.5, backgroundColor: "#D8D7F5", top: 182, left: 50 }} />
     </View>
   );

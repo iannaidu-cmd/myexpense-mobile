@@ -99,7 +99,7 @@ export default function CategoryBreakdownScreen() {
   }, [selected, user, activeTaxYear]);
 
   const loadData = useCallback(async () => {
-    if (!user) return;
+    if (!user) { setLoading(false); return; }
     setLoading(true);
     try {
       const [byCategory, totals] = await Promise.all([

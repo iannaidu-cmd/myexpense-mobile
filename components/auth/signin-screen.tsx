@@ -149,7 +149,13 @@ export function SigninScreen() {
       setBiometricAvailable(available);
       setBiometricEnabledState(enabled);
       setBiometricLabel(label);
-      if (available && enabled) handleBiometricLogin(true);
+      if (available && enabled) {
+        // Only auto-prompt if there is actually a stored session to restore.
+        // Without this check, the prompt fires and silently does nothing when
+        // the session has been cleared (e.g. token expiry, fresh install).
+        const stored = await getBiometricSession();
+        if (stored) handleBiometricLogin(true);
+      }
     })();
   }, []);
 
@@ -301,14 +307,14 @@ export function SigninScreen() {
     setFbLoading(true);
     try {
       const result = await signInWithFacebook();
-      if (result.success) {
-        router.replace("/(tabs)");
-      } else if (result.error !== "cancelled") {
+      if (!result.success && result.error !== "cancelled") {
         Alert.alert(
           "Facebook Sign-In failed",
           result.error ?? "Please try again.",
         );
       }
+      // No manual navigation — OAuthHandler exchanges the code and
+      // AuthGate redirects to /(tabs) once the session is confirmed.
     } finally {
       setFbLoading(false);
     }
