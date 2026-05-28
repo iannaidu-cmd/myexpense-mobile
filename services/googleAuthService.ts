@@ -5,7 +5,7 @@ import { Linking } from "react-native";
 
 WebBrowser.maybeCompleteAuthSession();
 
-const REDIRECT_URL = "https://www.myexpense.co.za/auth/callback";
+const REDIRECT_URL = "myexpense://auth/callback";
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL!;
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
