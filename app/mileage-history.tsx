@@ -5,8 +5,8 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { mileageService, type MileageTrip } from "@/services/mileageService";
 import { SARS_RATE_PER_KM } from "@/lib/taxRules";
 import { useAuthStore } from "@/stores/authStore";
+import { useExpenseStore } from "@/stores/expenseStore";
 import { colour, radius, space, typography } from "@/tokens";
-import { ACTIVE_TAX_YEAR } from "@/types/database";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
 import {
@@ -59,6 +59,7 @@ function formatDate(dateStr: string): string {
 export default function MileageHistoryScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
+  const { activeTaxYear } = useExpenseStore();
 
   const [loading, setLoading] = useState(true);
   const [trips, setTrips] = useState<MileageTrip[]>([]);
@@ -69,7 +70,7 @@ export default function MileageHistoryScreen() {
     if (!user) { setLoading(false); return; }
     setLoading(true);
     try {
-      const data = await mileageService.getTrips(user.id, ACTIVE_TAX_YEAR);
+      const data = await mileageService.getTrips(user.id, activeTaxYear);
       setTrips(data);
     } catch (e: any) {
       console.error("MileageHistory load error:", e);
@@ -116,19 +117,19 @@ export default function MileageHistoryScreen() {
 
       <MXHeader
         title="Trip Logbook"
-        subtitle={`Tax Year ${ACTIVE_TAX_YEAR}`}
+        subtitle={`Tax Year ${activeTaxYear}`}
         showBack
         right={
           <TouchableOpacity
             onPress={() => router.push("/mileage-tracker")}
             style={{
-              backgroundColor: "rgba(255,255,255,0.18)",
+              backgroundColor: colour.primary50,
               borderRadius: radius.pill,
               paddingHorizontal: space.md,
               paddingVertical: space.xs,
             }}
           >
-            <Text style={{ ...typography.actionS, color: colour.onPrimary }}>
+            <Text style={{ ...typography.actionS, color: colour.accentDeep }}>
               + New Trip
             </Text>
           </TouchableOpacity>

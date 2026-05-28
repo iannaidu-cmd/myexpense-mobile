@@ -56,7 +56,7 @@ const config = {
         data: [
           {
             scheme: "https",
-            host: "myexpense.co.za",
+            host: "www.myexpense.co.za",
             pathPrefix: "/auth/callback",
           },
         ],

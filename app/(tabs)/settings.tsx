@@ -7,7 +7,6 @@ import { colour, radius, space, typography } from "@/tokens";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  Alert,
   ScrollView,
   StatusBar,
   Text,
@@ -84,7 +83,7 @@ export default function SettingsTabScreen() {
         return {
           ...item,
           sub: isDevUser ? "Developer access · All features unlocked" : "Pro plan · Active",
-          route: "",
+          route: "/subscription-manage",
         };
       }
       return item;

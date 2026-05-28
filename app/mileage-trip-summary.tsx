@@ -2,8 +2,8 @@ import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { SARS_RATE_PER_KM } from "@/lib/taxRules";
+import { useExpenseStore } from "@/stores/expenseStore";
 import { colour, radius, space, typography } from "@/tokens";
-import { ACTIVE_TAX_YEAR } from "@/types/database";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React from "react";
 import {
@@ -46,6 +46,7 @@ const platformShadow =
 
 export default function MileageTripSummaryScreen() {
   const router = useRouter();
+  const { activeTaxYear } = useExpenseStore();
   const params = useLocalSearchParams<{
     tripId: string;
     distanceKm: string;
@@ -292,7 +293,7 @@ export default function MileageTripSummaryScreen() {
           </Text>
           <DetailRow icon="tag.fill" label="Purpose" value={purpose} />
           <DetailRow icon="doc.text.fill" label="SARS reference" value={itr12} />
-          <DetailRow icon="calendar" label="Tax year" value={ACTIVE_TAX_YEAR} />
+          <DetailRow icon="calendar" label="Tax year" value={activeTaxYear} />
           <DetailRow
             icon="dollarsign.circle.fill"
             label="SARS rate"

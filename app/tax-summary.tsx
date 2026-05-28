@@ -15,47 +15,10 @@ import {
     ScrollView,
     StatusBar,
     Text,
-    TextInput,
     TouchableOpacity,
     View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-
-function StatCard({
-  label,
-  value,
-  sub,
-  color = colour.primary,
-}: {
-  label: string;
-  value: string;
-  sub?: string;
-  color?: string;
-}) {
-  return (
-    <View
-      style={{
-        flex: 1,
-        backgroundColor: colour.white,
-        borderRadius: radius.md,
-        padding: 14,
-        borderWidth: 1,
-        borderColor: colour.borderLight,
-        margin: 5,
-      }}
-    >
-      <Text style={{ fontSize: 11, color: colour.textHint, marginBottom: 4 }}>
-        {label}
-      </Text>
-      <Text style={{ fontSize: 20, fontWeight: "800", color }}>{value}</Text>
-      {sub ? (
-        <Text style={{ fontSize: 10, color: colour.textHint, marginTop: 3 }}>
-          {sub}
-        </Text>
-      ) : null}
-    </View>
-  );
-}
 
 function NavRow({
   icon,
@@ -178,6 +141,21 @@ export default function TaxSummaryScreen() {
     .slice(0, 8);
   const maxCatAmount = Math.max(...categoryRows.map(([, v]) => v), 1);
 
+  // Days to SARS non-provisional filing deadline, derived from the active tax year
+  const deadlineYear = parseInt(activeTaxYear.split("/")[0]) + 1;
+  const deadlineDate = new Date(deadlineYear, 9, 21); // Oct 21 of the second year
+  const today = new Date();
+  const daysToDeadline = Math.max(
+    0,
+    Math.ceil((deadlineDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)),
+  );
+
+  // Format the large hero amount with space separator
+  const heroAmount = estTaxSaving.toLocaleString("en-ZA", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  });
+
   return (
     <SafeAreaView
       edges={["top"]}
@@ -187,9 +165,7 @@ export default function TaxSummaryScreen() {
 
       <MXHeader
         title="Tax summary"
-        subtitle="Your ITR12 deduction overview"
         showBack
-        backLabel="Tax & ITR12"
         right={
           <View
             style={{
@@ -228,57 +204,266 @@ export default function TaxSummaryScreen() {
             </View>
           ) : (
             <>
-              {/* Key Stats */}
-              <View
-                style={{
-                  flexDirection: "row",
-                  flexWrap: "wrap",
-                  paddingHorizontal: 11,
-                  paddingTop: 16,
-                  marginBottom: 8,
-                }}
-              >
-                <StatCard
-                  label="Total Deductions"
-                  value={fmt(totalDeductions)}
-                  sub="Deductible expenses"
-                  color={colour.success}
-                />
-                <StatCard
-                  label="Est. Tax Saving"
-                  value={fmt(estTaxSaving)}
-                  sub={`At ${Math.round(marginalRate * 100)}% marginal rate`}
-                  color={colour.accent}
-                />
-                <StatCard
-                  label="Total Expenses"
-                  value={fmt(totalExpenses)}
-                  sub="All categories"
-                  color={colour.primary}
-                />
-                <StatCard
-                  label="Total Income"
-                  value={fmt(totalIncome)}
-                  sub="All sources"
-                  color={colour.teal}
-                />
-              </View>
-
-              {/* eFiling disclaimer */}
+              {/* ── Hero card (periwinkle gradient) ─────────────────────── */}
               <View
                 style={{
                   marginHorizontal: space.md,
-                  backgroundColor: colour.warningBg,
-                  borderRadius: radius.md,
-                  padding: 12,
+                  marginTop: space.lg,
+                  borderRadius: radius.lg,
+                  overflow: "hidden",
                   marginBottom: space.md,
-                  borderWidth: 1,
-                  borderColor: colour.warningMid,
                 }}
               >
-                <Text style={{ fontSize: 12, color: colour.warning, lineHeight: 18 }}>
-                  MyExpense prepares your ITR12 data. You must file via SARS eFiling or a registered tax practitioner — MyExpense does not submit to SARS on your behalf.
-                </Text>
+                {/* Gradient background */}
+                <View
+                  style={{
+                    backgroundColor: colour.primary,
+                    padding: space.xl,
+                    paddingBottom: 0,
+                  }}
+                >
+                  {/* Decorative orbs */}
+                  <View
+                    style={{
+                      position: "absolute",
+                      width: 180,
+                      height: 180,
+                      borderRadius: 90,
+                      backgroundColor: "rgba(255,255,255,0.12)",
+                      top: -60,
+                      right: -40,
+                    }}
+                  />
+                  <View
+                    style={{
+                      position: "absolute",
+                      width: 100,
+                      height: 100,
+                      borderRadius: 50,
+                      backgroundColor: "rgba(255,255,255,0.06)",
+                      bottom: 20,
+                      left: -20,
+                    }}
+                  />
+
+                  {/* Top row: label + deadline badge */}
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      marginBottom: space.sm,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontSize: 11,
+                        fontFamily: "Inter_600SemiBold",
+                        color: "rgba(255,255,255,0.7)",
+                        letterSpacing: 0.8,
+                      }}
+                    >
+                      ESTIMATED TAX SAVING
+                    </Text>
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 5,
+                      }}
+                    >
+                      <View
+                        style={{
+                          width: 6,
+                          height: 6,
+                          borderRadius: 3,
+                          backgroundColor: colour.success,
+                        }}
+                      />
+                      <Text
+                        style={{
+                          fontSize: 11,
+                          fontFamily: "Inter_600SemiBold",
+                          color: "rgba(255,255,255,0.8)",
+                        }}
+                      >
+                        {daysToDeadline} d to deadline
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* Big amount */}
+                  <Text
+                    style={{
+                      fontSize: 52,
+                      fontFamily: "Inter_800ExtraBold",
+                      color: colour.onPrimary,
+                      letterSpacing: -2,
+                      lineHeight: 56,
+                      marginBottom: 6,
+                    }}
+                  >
+                    <Text style={{ fontSize: 32, fontFamily: "Inter_700Bold" }}>R</Text>
+                    {heroAmount}
+                  </Text>
+
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      fontFamily: "Inter_400Regular",
+                      color: "rgba(255,255,255,0.6)",
+                      marginBottom: space.xl,
+                    }}
+                  >
+                    Based on logged income, expenses and mileage - {activeTaxYear}
+                  </Text>
+
+                  {/* Stat pills */}
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      gap: space.sm,
+                      marginBottom: space.xl,
+                    }}
+                  >
+                    <View
+                      style={{
+                        flex: 1,
+                        backgroundColor: "rgba(255,255,255,0.12)",
+                        borderRadius: radius.md,
+                        padding: space.sm,
+                      }}
+                    >
+                      <Text
+                        style={{
+                          fontSize: 9,
+                          fontFamily: "Inter_600SemiBold",
+                          color: "rgba(255,255,255,0.55)",
+                          letterSpacing: 0.5,
+                          marginBottom: 4,
+                        }}
+                      >
+                        DEDUCTIONS
+                      </Text>
+                      <Text
+                        style={{
+                          fontSize: 14,
+                          fontFamily: "Inter_800ExtraBold",
+                          color: colour.onPrimary,
+                        }}
+                      >
+                        {fmt(totalDeductions)}
+                      </Text>
+                    </View>
+                    <View
+                      style={{
+                        flex: 1,
+                        backgroundColor: "rgba(255,255,255,0.12)",
+                        borderRadius: radius.md,
+                        padding: space.sm,
+                      }}
+                    >
+                      <Text
+                        style={{
+                          fontSize: 9,
+                          fontFamily: "Inter_600SemiBold",
+                          color: "rgba(255,255,255,0.55)",
+                          letterSpacing: 0.5,
+                          marginBottom: 4,
+                        }}
+                      >
+                        EXPENSES
+                      </Text>
+                      <Text
+                        style={{
+                          fontSize: 14,
+                          fontFamily: "Inter_800ExtraBold",
+                          color: colour.onPrimary,
+                        }}
+                      >
+                        {fmt(totalExpenses)}
+                      </Text>
+                    </View>
+                    <View
+                      style={{
+                        flex: 1,
+                        backgroundColor: "rgba(255,255,255,0.12)",
+                        borderRadius: radius.md,
+                        padding: space.sm,
+                      }}
+                    >
+                      <Text
+                        style={{
+                          fontSize: 9,
+                          fontFamily: "Inter_600SemiBold",
+                          color: "rgba(255,255,255,0.55)",
+                          letterSpacing: 0.5,
+                          marginBottom: 4,
+                        }}
+                      >
+                        INCOME
+                      </Text>
+                      <Text
+                        style={{
+                          fontSize: 14,
+                          fontFamily: "Inter_800ExtraBold",
+                          color: colour.onPrimary,
+                        }}
+                      >
+                        {fmt(totalIncome)}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              </View>
+
+              {/* ── eFiling disclaimer (noir banner) ────────────────────── */}
+              <View
+                style={{
+                  marginHorizontal: space.md,
+                  backgroundColor: colour.noir,
+                  borderRadius: radius.md,
+                  padding: space.md,
+                  marginBottom: space.md,
+                  flexDirection: "row",
+                  gap: space.md,
+                  alignItems: "flex-start",
+                }}
+              >
+                <View
+                  style={{
+                    backgroundColor: colour.primary,
+                    borderRadius: radius.sm,
+                    width: 32,
+                    height: 32,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <IconSymbol name="info.circle" size={16} color={colour.onPrimary} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      fontFamily: "Inter_600SemiBold",
+                      color: colour.onNoir,
+                      marginBottom: 2,
+                    }}
+                  >
+                    eFiling reminder
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      fontFamily: "Inter_400Regular",
+                      color: colour.onNoir2,
+                      lineHeight: 18,
+                    }}
+                  >
+                    MyExpense prepares your ITR12 data. You must file via SARS eFiling or a registered tax practitioner.
+                  </Text>
+                </View>
               </View>
 
               {/* Deduction rate bar */}
@@ -373,7 +558,7 @@ export default function TaxSummaryScreen() {
                     style={{
                       fontSize: 13,
                       fontWeight: "700",
-                      color: colour.accent,
+                      color: colour.success,
                     }}
                   >
                     {fmtPct(itr12Readiness)}
@@ -391,7 +576,7 @@ export default function TaxSummaryScreen() {
                     style={{
                       width: `${itr12Readiness}%`,
                       height: 8,
-                      backgroundColor: colour.accent,
+                      backgroundColor: colour.success,
                       borderRadius: 4,
                     }}
                   />
@@ -399,23 +584,27 @@ export default function TaxSummaryScreen() {
                 <Text style={{ fontSize: 11, color: colour.textSub }}>
                   {itr12Readiness < 100
                     ? `${100 - Math.round(itr12Readiness)}% of expenses still need receipts attached`
-                    : "All expenses have receipts — ready to export!"}
+                    : "All expenses have receipts - ready to export!"}
                 </Text>
                 <TouchableOpacity
                   onPress={() => router.push("/itr12-export-setup")}
                   style={{
                     marginTop: 12,
-                    backgroundColor: colour.noir,
-                    borderRadius: 10,
-                    padding: 12,
+                    backgroundColor: colour.primary,
+                    borderRadius: radius.pill,
+                    padding: 14,
                     alignItems: "center",
+                    flexDirection: "row",
+                    justifyContent: "center",
+                    gap: space.sm,
                   }}
                 >
+                  <IconSymbol name="square.and.arrow.up" size={16} color={colour.onPrimary} />
                   <Text
                     style={{
-                      color: colour.onNoir,
-                      fontSize: 13,
-                      fontWeight: "700",
+                      color: colour.onPrimary,
+                      fontSize: 14,
+                      fontFamily: "Inter_600SemiBold",
                     }}
                   >
                     Prepare ITR12 export
@@ -428,7 +617,7 @@ export default function TaxSummaryScreen() {
                 style={{
                   marginHorizontal: space.md,
                   backgroundColor: colour.noir,
-                  borderRadius: radius.md,
+                  borderRadius: radius.lg,
                   padding: space.md,
                   marginBottom: space.md,
                   overflow: "hidden",
@@ -441,7 +630,7 @@ export default function TaxSummaryScreen() {
                     height: 120,
                     borderRadius: 60,
                     backgroundColor: colour.primary,
-                    opacity: 0.3,
+                    opacity: 0.2,
                     top: -40,
                     right: -30,
                   }}
@@ -462,7 +651,7 @@ export default function TaxSummaryScreen() {
                       fontWeight: "700",
                     }}
                   >
-                    SARS Key Dates — 2024/25
+                    SARS Key Dates - {activeTaxYear}
                   </Text>
                 </View>
                 {[
@@ -600,7 +789,7 @@ export default function TaxSummaryScreen() {
                     </View>
                   ))}
                   <Text style={{ fontSize: 11, color: colour.textHint, marginTop: 6 }}>
-                    Enter this amount on your ITR12 under "Medical tax credits" — do not include it in expense deductions.
+                    Enter this amount on your ITR12 under "Medical tax credits" - do not include it in expense deductions.
                   </Text>
                 </View>
               )}
@@ -673,7 +862,7 @@ export default function TaxSummaryScreen() {
                       </View>
                       <View
                         style={{
-                          height: 5,
+                          height: 6,
                           backgroundColor: colour.surface2,
                           borderRadius: 3,
                         }}
@@ -681,9 +870,10 @@ export default function TaxSummaryScreen() {
                         <View
                           style={{
                             width: `${(amount / maxCatAmount) * 100}%`,
-                            height: 5,
-                            backgroundColor: colour.accent,
+                            height: 6,
+                            backgroundColor: colour.primary,
                             borderRadius: 3,
+                            opacity: 1 - i * 0.12,
                           }}
                         />
                       </View>

@@ -6,8 +6,8 @@ import { MXTabBar } from "@/components/MXTabBar";
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from "@/components/maps";
 import { SARS_RATE_PER_KM } from "@/lib/taxRules";
 import { useAuthStore } from "@/stores/authStore";
+import { useExpenseStore } from "@/stores/expenseStore";
 import { colour, radius, space, typography } from "@/tokens";
-import { ACTIVE_TAX_YEAR } from "@/types/database";
 import * as Location from "expo-location";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -102,6 +102,7 @@ interface Coord {
 export default function MileageTrackerScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
+  const { activeTaxYear } = useExpenseStore();
 
   const [status, setStatus] = useState<TripStatus>("idle");
   const [coords, setCoords] = useState<Coord[]>([]);
@@ -349,7 +350,7 @@ export default function MileageTrackerScreen() {
           start_lng: startPos?.longitude ?? null,
           end_lat: currentPos?.latitude ?? null,
           end_lng: currentPos?.longitude ?? null,
-          tax_year: ACTIVE_TAX_YEAR,
+          tax_year: activeTaxYear,
           is_deductible: true,
           notes: tripNote || null,
           trip_date: tripDate,
@@ -419,11 +420,13 @@ export default function MileageTrackerScreen() {
   const deductionEstimate = distanceKm * SARS_RATE_PER_KM;
   const elapsedStr = formatElapsed(elapsed);
 
+  // ── Split distance into whole and decimal parts ───────────────────────────
+  const [wholeKm, decimalKm] = distanceKm.toFixed(2).split(".");
+
   return (
     <View style={{ flex: 1, backgroundColor: colour.background }}>
       <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
 
-      {/* Primary-blue header area */}
       <SafeAreaView edges={["top"]} style={{ backgroundColor: colour.background }}>
         <MXHeader
           title="Mileage Tracker"
@@ -451,14 +454,14 @@ export default function MileageTrackerScreen() {
         contentContainerStyle={{ paddingBottom: space["3xl"] }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Map */}
+        {/* Map - larger at 280px */}
         <View
           style={{
             marginTop: -space.lg,
             marginHorizontal: space.md,
             borderRadius: radius.lg,
             overflow: "hidden",
-            height: 240,
+            height: 280,
             ...platformShadow,
           }}
         >
@@ -536,65 +539,143 @@ export default function MileageTrackerScreen() {
                 }}
               />
               <Text style={{ ...typography.captionM, color: colour.onPrimary }}>
-                {status === "running" ? "LIVE" : "PAUSED"}
+                {status === "running" ? "TRACKING" : "PAUSED"}
               </Text>
             </View>
           )}
         </View>
 
-        {/* Odometer card */}
+        {/* ── Distance card (redesigned) ─────────────────────────────────── */}
         <View
           style={{
             marginHorizontal: space.md,
             marginTop: space.md,
             backgroundColor: colour.white,
             borderRadius: radius.lg,
-            padding: space.lg,
+            padding: space.xl,
             ...platformShadow,
           }}
         >
-          <Text
-            style={{
-              ...typography.captionM,
-              color: colour.textSub,
-              marginBottom: space.xs,
-            }}
-          >
-            Distance travelled
-          </Text>
-          <OdometerDisplay km={distanceKm} />
-          <Text
-            style={{
-              ...typography.bodyXS,
-              color: colour.textHint,
-              textAlign: "center",
-              marginTop: 2,
-            }}
-          >
-            kilometres
-          </Text>
           <View
             style={{
               flexDirection: "row",
-              marginTop: space.md,
-              paddingTop: space.md,
-              borderTopWidth: 1,
-              borderTopColor: colour.borderLight,
-              gap: space.sm,
+              alignItems: "center",
+              justifyContent: "space-between",
             }}
           >
-            <StatPill label="Duration" value={elapsedStr} icon="clock.fill" />
-            <StatPill
-              label="SARS Rate"
-              value={`R${SARS_RATE_PER_KM}/km`}
-              icon="tag.fill"
-            />
-            <StatPill
-              label="Est. Deduction"
-              value={`R${deductionEstimate.toFixed(2)}`}
-              icon="dollarsign.circle"
-              highlight
-            />
+            {/* Left: big number */}
+            <View style={{ flexDirection: "row", alignItems: "baseline" }}>
+              <Text
+                style={{
+                  fontSize: 44,
+                  fontFamily: "Inter_800ExtraBold",
+                  color: colour.text,
+                  letterSpacing: -2,
+                  lineHeight: 48,
+                  fontVariant: ["tabular-nums"],
+                }}
+              >
+                {wholeKm}
+              </Text>
+              <Text
+                style={{
+                  fontSize: 36,
+                  fontFamily: "Inter_300Light",
+                  color: colour.borderLight,
+                  lineHeight: 48,
+                }}
+              >
+                .
+              </Text>
+              <Text
+                style={{
+                  fontSize: 28,
+                  fontFamily: "Inter_700Bold",
+                  color: colour.primary,
+                  letterSpacing: -1,
+                  lineHeight: 48,
+                  fontVariant: ["tabular-nums"],
+                }}
+              >
+                {decimalKm}
+              </Text>
+              <Text
+                style={{
+                  fontSize: 11,
+                  fontFamily: "Inter_600SemiBold",
+                  color: colour.textHint,
+                  letterSpacing: 0.3,
+                  marginLeft: 6,
+                  marginBottom: 4,
+                }}
+              >
+                km
+              </Text>
+            </View>
+
+            {/* Right: noir stat pills */}
+            <View style={{ alignItems: "flex-end", gap: 6 }}>
+              <View
+                style={{
+                  backgroundColor: colour.noir,
+                  borderRadius: radius.sm,
+                  paddingHorizontal: space.md,
+                  paddingVertical: 6,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 6,
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 13,
+                    fontFamily: "Inter_700Bold",
+                    color: colour.onNoir,
+                  }}
+                >
+                  {elapsedStr}
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 9,
+                    fontFamily: "Inter_600SemiBold",
+                    color: colour.onNoir2,
+                  }}
+                >
+                  DURATION
+                </Text>
+              </View>
+              <View
+                style={{
+                  backgroundColor: colour.primary,
+                  borderRadius: radius.sm,
+                  paddingHorizontal: space.md,
+                  paddingVertical: 6,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 6,
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 13,
+                    fontFamily: "Inter_700Bold",
+                    color: colour.onPrimary,
+                  }}
+                >
+                  R{deductionEstimate.toFixed(2)}
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 9,
+                    fontFamily: "Inter_600SemiBold",
+                    color: colour.primary100,
+                  }}
+                >
+                  DEDUCTION
+                </Text>
+              </View>
+            </View>
           </View>
         </View>
 
@@ -682,28 +763,52 @@ export default function MileageTrackerScreen() {
                 </Text>
               </TouchableOpacity>
 
-              {/* SARS compliance note */}
+              {/* SARS compliance note - redesigned noir banner */}
               <View
                 style={{
                   marginTop: space.md,
-                  backgroundColor: colour.primary50,
+                  backgroundColor: colour.noir,
                   borderRadius: radius.md,
                   padding: space.md,
                   flexDirection: "row",
-                  gap: space.sm,
+                  gap: space.md,
+                  alignItems: "flex-start",
                 }}
               >
-                <IconSymbol name="info.circle" size={16} color={colour.primary} />
-                <Text
+                <View
                   style={{
-                    ...typography.bodyXS,
-                    color: colour.primary,
-                    flex: 1,
+                    backgroundColor: colour.primary,
+                    borderRadius: radius.sm,
+                    width: 32,
+                    height: 32,
+                    alignItems: "center",
+                    justifyContent: "center",
                   }}
                 >
-                  SARS deemed rate for 2024/25: R4.84/km. Only business travel
-                  is deductible under S11(a).
-                </Text>
+                  <IconSymbol name="info.circle" size={16} color={colour.onPrimary} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      fontFamily: "Inter_600SemiBold",
+                      color: colour.onNoir,
+                      marginBottom: 2,
+                    }}
+                  >
+                    SARS deemed rate 2024/25: R4.84/km
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      fontFamily: "Inter_400Regular",
+                      color: colour.onNoir2,
+                      lineHeight: 18,
+                    }}
+                  >
+                    Only business travel is deductible under S11(a). Personal trips are excluded.
+                  </Text>
+                </View>
               </View>
             </>
           )}
@@ -966,137 +1071,6 @@ export default function MileageTrackerScreen() {
       </Modal>
 
       <MXTabBar />
-    </View>
-  );
-}
-
-// ─── Sub-components ───────────────────────────────────────────────────────────
-
-function OdometerDisplay({ km }: { km: number }) {
-  const [whole, decimal] = km.toFixed(2).split(".");
-  const paddedWhole = whole.padStart(5, "0");
-  return (
-    <View
-      style={{
-        flexDirection: "row",
-        justifyContent: "center",
-        alignItems: "flex-end",
-        gap: 2,
-      }}
-    >
-      {paddedWhole.split("").map((d, i) => (
-        <OdoDigit
-          key={`w-${i}`}
-          digit={d}
-          dim={i < paddedWhole.length - Math.max(1, whole.length)}
-        />
-      ))}
-      <Text
-        style={{
-          fontSize: 28,
-          fontWeight: "700",
-          color: colour.textSub,
-          marginBottom: 4,
-          lineHeight: 36,
-        }}
-      >
-        .
-      </Text>
-      {decimal.split("").map((d, i) => (
-        <OdoDigit key={`d-${i}`} digit={d} small />
-      ))}
-    </View>
-  );
-}
-
-function OdoDigit({
-  digit,
-  dim,
-  small,
-}: {
-  digit: string;
-  dim?: boolean;
-  small?: boolean;
-}) {
-  return (
-    <View
-      style={{
-        backgroundColor: dim ? colour.surface1 : colour.background,
-        borderRadius: radius.sm,
-        minWidth: small ? 28 : 36,
-        height: small ? 44 : 56,
-        alignItems: "center",
-        justifyContent: "center",
-        borderWidth: 1,
-        borderColor: colour.borderLight,
-        ...Platform.select({
-          ios: {
-            shadowColor: "#000",
-            shadowOffset: { width: 0, height: 1 },
-            shadowOpacity: 0.08,
-            shadowRadius: 2,
-          },
-          android: { elevation: 1 },
-        }),
-      }}
-    >
-      <Text
-        style={{
-          fontSize: small ? 22 : 32,
-          fontWeight: "700",
-          color: dim ? colour.textHint : colour.primary,
-          fontVariant: ["tabular-nums"],
-          lineHeight: small ? 28 : 40,
-        }}
-      >
-        {digit}
-      </Text>
-    </View>
-  );
-}
-
-function StatPill({
-  label,
-  value,
-  icon,
-  highlight,
-}: {
-  label: string;
-  value: string;
-  icon: "clock.fill" | "tag.fill" | "dollarsign.circle";
-  highlight?: boolean;
-}) {
-  return (
-    <View
-      style={{
-        flex: 1,
-        backgroundColor: highlight ? colour.primary50 : colour.surface1,
-        borderRadius: radius.md,
-        padding: space.sm,
-        alignItems: "center",
-      }}
-    >
-      <IconSymbol name={icon} size={14} color={highlight ? colour.primary : colour.textSub} style={{ marginBottom: 2 } as any} />
-      <Text
-        style={{
-          ...typography.bodyXS,
-          color: highlight ? colour.primary : colour.textSub,
-          textAlign: "center",
-          fontWeight: highlight ? "700" : "400",
-        }}
-      >
-        {value}
-      </Text>
-      <Text
-        style={{
-          ...typography.captionM,
-          color: colour.textHint,
-          textAlign: "center",
-          fontSize: 9,
-        }}
-      >
-        {label}
-      </Text>
     </View>
   );
 }

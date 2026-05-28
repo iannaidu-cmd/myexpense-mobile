@@ -1,7 +1,7 @@
 import "./crypto-polyfill";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createClient } from "@supabase/supabase-js";
-import { Platform } from "react-native";
+import { AppState, Platform } from "react-native";
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
@@ -38,3 +38,18 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   },
   global: { fetch: fetchWithTimeout },
 });
+
+// When the app is backgrounded the JS thread pauses, stopping Supabase's
+// internal token-refresh timer. Without this listener, the first query after
+// a long idle triggers an inline refresh that can stall screens for up to
+// 60 s. Calling startAutoRefresh() on foreground immediately re-arms the
+// timer so the token is fresh before any screen loads data.
+if (Platform.OS !== "web") {
+  AppState.addEventListener("change", (state) => {
+    if (state === "active") {
+      supabase.auth.startAutoRefresh();
+    } else {
+      supabase.auth.stopAutoRefresh();
+    }
+  });
+}
