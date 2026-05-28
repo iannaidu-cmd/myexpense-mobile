@@ -1,4 +1,5 @@
 import { MXHeader } from '@/components/MXHeader';
+import { IconSymbol } from '@/components/ui/icon-symbol';
 import { colour, radius, space, typography } from '@/tokens';
 import { useRouter } from 'expo-router';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
@@ -66,17 +67,32 @@ export default function PrivacyScreen() {
       >
         {/* Intro banner */}
         <View style={{
-          backgroundColor: colour.primary50,
-          borderRadius: radius.md,
+          backgroundColor: colour.noir,
+          borderRadius: radius.lg,
           padding: space.md,
           marginBottom: space.xl,
+          flexDirection: 'row',
+          gap: space.sm,
+          alignItems: 'flex-start',
         }}>
-          <Text style={{ fontSize: 13, color: colour.primary, fontWeight: '600', marginBottom: 4 }}>
-            Last updated: {LAST_UPDATED}
-          </Text>
-          <Text style={{ fontSize: 13, color: colour.textSub, lineHeight: 20 }}>
-            MyExpense is committed to protecting your personal information in accordance with the Protection of Personal Information Act (POPIA) 4 of 2013.
-          </Text>
+          <View style={{
+            backgroundColor: colour.primary,
+            borderRadius: radius.sm,
+            width: 32,
+            height: 32,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
+            <IconSymbol name="lock.fill" size={16} color={colour.onPrimary} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 12, fontWeight: '600', color: colour.onNoir, marginBottom: 2 }}>
+              Last updated: {LAST_UPDATED}
+            </Text>
+            <Text style={{ fontSize: 12, color: colour.onNoir2, lineHeight: 18 }}>
+              MyExpense is committed to protecting your personal information in accordance with the Protection of Personal Information Act (POPIA) 4 of 2013.
+            </Text>
+          </View>
         </View>
 
         {/* Responsible party card */}

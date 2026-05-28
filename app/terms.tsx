@@ -1,4 +1,5 @@
 import { MXHeader } from "@/components/MXHeader";
+import { IconSymbol } from "@/components/ui/icon-symbol";
 import { colour, radius, space } from "@/tokens";
 import { useRouter } from "expo-router";
 import { ScrollView, Text, TouchableOpacity, View } from "react-native";
@@ -71,27 +72,36 @@ export default function TermsScreen() {
         {/* Intro */}
         <View
           style={{
-            backgroundColor: colour.primary50,
-            borderRadius: radius.md,
+            backgroundColor: colour.noir,
+            borderRadius: radius.lg,
             padding: space.md,
             marginBottom: space.xl,
+            flexDirection: "row",
+            gap: space.sm,
+            alignItems: "flex-start",
           }}
         >
-          <Text
+          <View
             style={{
-              fontSize: 13,
-              color: colour.primary,
-              fontWeight: "600",
-              marginBottom: 4,
+              backgroundColor: colour.primary,
+              borderRadius: radius.sm,
+              width: 32,
+              height: 32,
+              alignItems: "center",
+              justifyContent: "center",
             }}
           >
-            Last updated: {LAST_UPDATED}
-          </Text>
-          <Text style={{ fontSize: 13, color: colour.textSub, lineHeight: 20 }}>
-            Please read these Terms of Service carefully before using MyExpense.
-            By creating an account or using the app, you agree to be bound by
-            these terms.
-          </Text>
+            <IconSymbol name="doc.text.fill" size={16} color={colour.onPrimary} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 12, fontWeight: "600", color: colour.onNoir, marginBottom: 2 }}>
+              Last updated: {LAST_UPDATED}
+            </Text>
+            <Text style={{ fontSize: 12, color: colour.onNoir2, lineHeight: 18 }}>
+              Please read these Terms of Service carefully before using MyExpense.
+              By creating an account or using the app, you agree to be bound by these terms.
+            </Text>
+          </View>
         </View>
 
         <Section title="1. About MyExpense">
