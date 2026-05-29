@@ -420,7 +420,7 @@ export default function HomeScreen() {
               marginTop: space.md,
             }}>
               <Text style={{ fontSize: 15, fontWeight: "700", color: colour.primary, marginBottom: 6 }}>
-                ITR12 Filing Season
+                ITR12 filing season
               </Text>
               <Text style={{ fontSize: 13, color: colour.textSub, marginBottom: 14, lineHeight: 19 }}>
                 Your {ACTIVE_TAX_YEAR} deductions are ready to export. Generate your SARS-ready report now.

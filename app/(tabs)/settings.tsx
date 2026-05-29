@@ -3,6 +3,7 @@ import { ConfirmModal } from "@/components/ConfirmModal";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { profileService } from "@/services/profileService";
 import { useAuthStore } from "@/stores/authStore";
+import { floorRatio, useHomeOfficeStore } from "@/stores/homeOfficeStore";
 import { colour, radius, space, typography } from "@/tokens";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -26,6 +27,12 @@ const BASE_SECTIONS: {
       { icon: "creditcard.fill",label: "Subscription",    sub: "Free plan · Upgrade to Pro",     route: "/paywall-upgrade"        },
       { icon: "folder.fill",    label: "Bank accounts",   sub: "Manage your banking details",    route: "/bank-accounts"          },
       { icon: "tray.and.arrow.up.fill", label: "Import transactions", sub: "Import from a bank statement (CSV / OFX)", route: "/bank-import" },
+    ],
+  },
+  {
+    title: "Tax setup",
+    items: [
+      { icon: "house.fill", label: "Home office", sub: "Configure your home office deduction", route: "/home-office-setup" },
     ],
   },
   {
@@ -53,11 +60,13 @@ const BASE_SECTIONS: {
 export default function SettingsTabScreen() {
   const router = useRouter();
   const { user, signOut, isPremium, isDevUser } = useAuthStore();
+  const { setting: homeOfficeSetting, load: loadHomeOffice } = useHomeOfficeStore();
   const [fullName, setFullName] = useState("");
   const [subscription, setSubscription] = useState<"free" | "pro" | "business">("free");
   const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
 
   useEffect(() => {
+    loadHomeOffice();
     if (!user) return;
     profileService.getProfile(user.id).then((p) => {
       if (p) {
@@ -79,11 +88,24 @@ export default function SettingsTabScreen() {
   const SECTIONS = BASE_SECTIONS.map((section) => ({
     ...section,
     items: section.items.map((item) => {
-      if (item.route === "/paywall-upgrade" && isPremium) {
+      if (item.route === "/paywall-upgrade") {
         return {
           ...item,
-          sub: isDevUser ? "Developer access · All features unlocked" : "Pro plan · Active",
-          route: "/subscription-manage",
+          sub: isDevUser
+            ? "Developer access · All features unlocked"
+            : isPremium
+            ? "Pro plan · Active"
+            : "Free plan · Upgrade to Pro",
+          route: isPremium ? "/subscription-manage" : "/paywall-upgrade",
+        };
+      }
+      if (item.route === "/home-office-setup") {
+        const ratio = floorRatio(homeOfficeSetting);
+        return {
+          ...item,
+          sub: homeOfficeSetting
+            ? `Floor ratio: ${(ratio * 100).toFixed(1)}% · ${homeOfficeSetting.officeM2}m² of ${homeOfficeSetting.totalM2}m²`
+            : "Configure your home office deduction",
         };
       }
       return item;

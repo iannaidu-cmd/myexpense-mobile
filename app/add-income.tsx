@@ -1,3 +1,4 @@
+import { IconSymbol } from "@/components/ui/icon-symbol";
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { SuccessModal } from "@/components/SuccessModal";
@@ -222,11 +223,51 @@ export default function AddIncomeScreen() {
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ paddingBottom: space.xxxl }}
       >
+        {/* IRP5 / employment income shortcut */}
+        {!isEditing && (
+          <TouchableOpacity
+            onPress={() => router.push("/add-irp5-income" as any)}
+            style={{
+              marginHorizontal: space.lg,
+              marginTop: space.lg,
+              marginBottom: space.md,
+              backgroundColor: colour.noir,
+              borderRadius: radius.lg,
+              padding: space.md,
+              flexDirection: "row",
+              alignItems: "center",
+              gap: space.md,
+            }}
+          >
+            <View
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 10,
+                backgroundColor: colour.primary,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <IconSymbol name="doc.text.fill" size={16} color={colour.white} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 13, fontWeight: "700", color: colour.onNoir }}>
+                Adding IRP5 / employment income?
+              </Text>
+              <Text style={{ fontSize: 11, color: colour.onNoir2, marginTop: 1 }}>
+                Use the IRP5 form to capture source codes, PAYE and ITR12 data
+              </Text>
+            </View>
+            <IconSymbol name="chevron.right" size={13} color={colour.onNoir2} />
+          </TouchableOpacity>
+        )}
+
         {/* Quick pick */}
         <View
           style={{
             paddingHorizontal: space.lg,
-            paddingTop: space.lg,
+            paddingTop: isEditing ? space.lg : 0,
             marginBottom: space.md,
           }}
         >

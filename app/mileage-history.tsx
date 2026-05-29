@@ -1,4 +1,5 @@
 import { ConfirmModal } from "@/components/ConfirmModal";
+import { InfoBanner } from "@/components/InfoBanner";
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -116,7 +117,7 @@ export default function MileageHistoryScreen() {
       <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
 
       <MXHeader
-        title="Trip Logbook"
+        title="Trip logbook"
         subtitle={`Tax Year ${activeTaxYear}`}
         showBack
         right={
@@ -471,36 +472,12 @@ export default function MileageHistoryScreen() {
               </View>
             ))}
 
-            {/* SARS note */}
-            <View
-              style={{
-                backgroundColor: colour.infoLight,
-                borderRadius: radius.md,
-                padding: space.md,
-                marginTop: space.sm,
-              }}
-            >
-              <Text
-                style={{
-                  ...typography.labelS,
-                  color: colour.info,
-                  marginBottom: space.xs,
-                }}
-              >
-                SARS Logbook Requirement
-              </Text>
-              <Text
-                style={{
-                  ...typography.bodyXS,
-                  color: colour.info,
-                  lineHeight: 18,
-                }}
-              >
-                SARS requires a travel logbook for vehicle expense claims. This
-                logbook records each business trip with date, distance, purpose
-                and calculated deduction at the SARS deemed rate of R{SARS_RATE_PER_KM}/km.
-              </Text>
-            </View>
+            <InfoBanner
+              icon="car.fill"
+              title="SARS Logbook Requirement"
+              body={`SARS requires a travel logbook for vehicle expense claims. This logbook records each business trip with date, distance, purpose and calculated deduction at the SARS deemed rate of R${SARS_RATE_PER_KM}/km.`}
+              style={{ marginTop: space.sm }}
+            />
           </>
         )}
       </ScrollView>

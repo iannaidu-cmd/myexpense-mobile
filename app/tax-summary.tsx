@@ -7,9 +7,10 @@ import { getMarginalRate } from "@/lib/taxRules";
 import { taxService } from "@/services/taxService";
 import { useAuthStore } from "@/stores/authStore";
 import { useExpenseStore } from "@/stores/expenseStore";
+import { medicalTaxCredit, useTaxProfileStore } from "@/stores/taxProfileStore";
 import { colour, radius, space } from "@/tokens";
 import { useFocusEffect, useRouter } from "expo-router";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
     ActivityIndicator,
     ScrollView,
@@ -89,7 +90,9 @@ export default function TaxSummaryScreen() {
     Record<string, number>
   >({});
   const [itr12Readiness, setItr12Readiness] = useState(0);
-  const [medDependants, setMedDependants] = useState(0);
+
+  const { profile: taxProfile, load: loadTaxProfile } = useTaxProfileStore();
+  useEffect(() => { loadTaxProfile(); }, []);
 
   const loadData = useCallback(async () => {
     if (!user) { setLoading(false); return; }
@@ -124,9 +127,9 @@ export default function TaxSummaryScreen() {
   const marginalRate = getMarginalRate(totalIncome);
   const estTaxSaving = Math.round(totalDeductions * marginalRate);
 
-  // Medical Aid Tax Credit (MTC): R364/month main member + R246/month per dependant
+  // Medical Aid Tax Credit (MTC) — SARS S6A, persisted from tax profile
   const medAidInExpenses = categoryBreakdown["Medical Aid"] ?? 0;
-  const annualMTC = Math.round((364 + medDependants * 246) * 12);
+  const annualMTC = medicalTaxCredit(taxProfile.numMedDependants);
 
   // RA: total RA contributions from expenses, cap = 27.5% of income, max R350,000
   const raContributions = categoryBreakdown["Retirement Annuity"] ?? 0;
@@ -744,7 +747,7 @@ export default function TaxSummaryScreen() {
               )}
 
               {/* Medical Aid Tax Credits */}
-              {medAidInExpenses > 0 && (
+              {(medAidInExpenses > 0 || taxProfile.medicalAidAnnualContrib > 0 || taxProfile.numMedDependants > 0) && (
                 <View
                   style={{
                     marginHorizontal: space.md,
@@ -762,35 +765,24 @@ export default function TaxSummaryScreen() {
                   <Text style={{ fontSize: 11, color: colour.success, marginBottom: 12, backgroundColor: colour.successBg, borderRadius: 6, padding: 8 }}>
                     Medical Aid is a tax credit (reduces your tax bill directly), not a deduction from income. It is NOT included in your total deductions above.
                   </Text>
-                  <Text style={{ fontSize: 12, color: colour.textSub, marginBottom: 8 }}>
-                    Number of dependants (excluding yourself)
-                  </Text>
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 12 }}>
-                    <TouchableOpacity
-                      onPress={() => setMedDependants((v) => Math.max(0, v - 1))}
-                      style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: colour.surface2, alignItems: "center", justifyContent: "center" }}
-                    >
-                      <Text style={{ fontSize: 18, color: colour.text }}>−</Text>
-                    </TouchableOpacity>
-                    <Text style={{ fontSize: 18, fontWeight: "700", color: colour.text, minWidth: 24, textAlign: "center" }}>{medDependants}</Text>
-                    <TouchableOpacity
-                      onPress={() => setMedDependants((v) => v + 1)}
-                      style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: colour.surface2, alignItems: "center", justifyContent: "center" }}
-                    >
-                      <Text style={{ fontSize: 18, color: colour.text }}>+</Text>
-                    </TouchableOpacity>
+                  <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 6 }}>
+                    <Text style={{ fontSize: 12, color: colour.textSub, flex: 1, marginRight: 8 }} numberOfLines={2}>
+                      Annual MTC · {taxProfile.numMedDependants === 0 ? "main member only" : `${taxProfile.numMedDependants} dependant${taxProfile.numMedDependants > 1 ? "s" : ""}`}
+                    </Text>
+                    <Text style={{ fontSize: 14, fontWeight: "800", color: colour.success }}>{fmt(annualMTC)}</Text>
                   </View>
-                  {[
-                    { label: "Annual MTC (R364 + dependants × R246) × 12", value: fmt(annualMTC) },
-                  ].map((row, i) => (
-                    <View key={i} style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                      <Text style={{ fontSize: 12, color: colour.textSub, flex: 1, marginRight: 8 }} numberOfLines={2}>{row.label}</Text>
-                      <Text style={{ fontSize: 14, fontWeight: "800", color: "#2E7D32" }}>{row.value}</Text>
+                  {taxProfile.hasDisability && (
+                    <View style={{ backgroundColor: colour.primary50, borderRadius: 6, padding: 8, marginBottom: 6 }}>
+                      <Text style={{ fontSize: 11, color: colour.accentDeep, fontWeight: "600" }}>
+                        Disability: out-of-pocket medical expenses fully deductible (no 7.5% floor). Attach ITR-DD.
+                      </Text>
                     </View>
-                  ))}
-                  <Text style={{ fontSize: 11, color: colour.textHint, marginTop: 6 }}>
-                    Enter this amount on your ITR12 under "Medical tax credits" - do not include it in expense deductions.
-                  </Text>
+                  )}
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4 }}>
+                    <Text style={{ fontSize: 11, color: colour.textHint, flex: 1 }}>
+                      Enter this on your ITR12 under "Medical tax credits". Update dependants in My Profile → Tax profile.
+                    </Text>
+                  </View>
                 </View>
               )}
 
@@ -920,6 +912,12 @@ export default function TaxSummaryScreen() {
                   label="Deductibility guide"
                   sub="Which expenses qualify under SARS"
                   onPress={() => router.push("/deductibility-guide")}
+                />
+                <NavRow
+                  icon="crown.fill"
+                  label="Government concessions"
+                  sub="S12C · SBC · S10(1)(o) · TFSA"
+                  onPress={() => router.push("/government-concessions" as any)}
                 />
                 <NavRow
                   icon="calendar"

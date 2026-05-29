@@ -153,10 +153,10 @@ export default function ITR12ExportPreviewScreen() {
     >
       <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
       <MXHeader
-        title="Export Preview"
-        subtitle={`Tax Year ${ACTIVE_TAX_YEAR} · ITR12 Format`}
+        title="Export preview"
+        subtitle={`Tax year ${ACTIVE_TAX_YEAR} · ITR12 format`}
         showBack
-        backLabel="Export Setup"
+        backLabel="Export setup"
       />
 
       <ScrollView

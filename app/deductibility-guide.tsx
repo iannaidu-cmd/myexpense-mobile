@@ -1,3 +1,4 @@
+import { InfoBanner } from "@/components/InfoBanner";
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -185,6 +186,12 @@ const GUIDE: GuideEntry[] = [
   },
 ];
 
+function getDeductBadge(pct: string) {
+  if (pct === "0%") return { bg: colour.dangerBg, text: colour.danger };
+  if (pct === "100%") return { bg: colour.successBg, text: colour.success };
+  return { bg: colour.warningBg, text: colour.warning };
+}
+
 function GuideCard({
   entry,
   expanded,
@@ -194,7 +201,7 @@ function GuideCard({
   expanded: boolean;
   onToggle: () => void;
 }) {
-  const isDeductible = entry.deductPct !== "0%";
+  const badge = getDeductBadge(entry.deductPct);
   return (
     <TouchableOpacity
       onPress={onToggle}
@@ -237,8 +244,8 @@ function GuideCard({
         </View>
         <View
           style={{
-            backgroundColor: isDeductible ? colour.successBg : colour.surface2,
-            borderRadius: radius.sm,
+            backgroundColor: badge.bg,
+            borderRadius: radius.pill,
             paddingHorizontal: 8,
             paddingVertical: 3,
             marginRight: space.sm,
@@ -248,7 +255,7 @@ function GuideCard({
             style={{
               fontSize: 11,
               fontWeight: "700",
-              color: isDeductible ? colour.success : colour.textSub,
+              color: badge.text,
             }}
           >
             {entry.deductPct}
@@ -277,6 +284,7 @@ function GuideCard({
                 ...typography.labelS,
                 color: colour.textSub,
                 letterSpacing: 0.5,
+                fontWeight: "700",
                 marginBottom: 4,
               }}
             >
@@ -292,6 +300,7 @@ function GuideCard({
                 ...typography.labelS,
                 color: colour.textSub,
                 letterSpacing: 0.5,
+                fontWeight: "700",
                 marginBottom: 4,
               }}
             >
@@ -332,7 +341,7 @@ export default function DeductibilityGuideScreen() {
     <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colour.background }}>
       <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
 
-      <MXHeader title="Deductibility Guide" showBack />
+      <MXHeader title="Deductibility guide" showBack />
 
       {/* Search bar */}
       <View
@@ -400,24 +409,11 @@ export default function DeductibilityGuideScreen() {
 
       <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
         {/* SARS disclaimer */}
-        <View
-          style={{
-            marginHorizontal: space.lg,
-            marginVertical: space.sm,
-            backgroundColor: colour.primary50,
-            borderRadius: radius.md,
-            padding: space.md,
-            flexDirection: "row",
-            alignItems: "flex-start",
-            gap: space.sm,
-          }}
-        >
-          <IconSymbol name="info.circle.fill" size={16} color={colour.primary} style={{ marginTop: 1 } as any} />
-          <Text style={{ flex: 1, fontSize: 12, color: colour.textSub, lineHeight: 18 }}>
-            Based on SARS Income Tax Act provisions. Always confirm
-            deductibility with a registered tax practitioner. Rules may change annually.
-          </Text>
-        </View>
+        <InfoBanner
+          icon="info.circle.fill"
+          body="Based on SARS Income Tax Act provisions. Always confirm deductibility with a registered tax practitioner. Rules may change annually."
+          style={{ marginHorizontal: space.lg, marginVertical: space.sm }}
+        />
 
         {/* Guide list */}
         <View

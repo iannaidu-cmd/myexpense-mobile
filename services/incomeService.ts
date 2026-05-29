@@ -99,6 +99,7 @@ export const incomeService = {
         amount: income.amount,
         source: income.source,
         description: income.description ?? null,
+        category: income.category ?? null,
         date: income.date,
       })
       .select()

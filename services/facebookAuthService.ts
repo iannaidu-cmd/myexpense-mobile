@@ -1,7 +1,6 @@
 import * as WebBrowser from "expo-web-browser";
 import { generateAndStorePkce } from "@/lib/pkce";
 import { useAuthStore } from "@/stores/authStore";
-import { Linking } from "react-native";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -25,46 +24,29 @@ export async function signInWithFacebook(): Promise<{
     });
     const oauthUrl = `${SUPABASE_URL}/auth/v1/authorize?${params.toString()}`;
 
-    // Listen for the deep-link callback BEFORE opening the browser so we never
-    // miss the event. When myexpense://auth/callback fires, dismiss the tab and
-    // let Expo Router deliver the code to auth/callback.tsx.
-    let timeoutId: ReturnType<typeof setTimeout>;
-    let subscription: ReturnType<typeof Linking.addEventListener>;
-
-    const callbackReceived = new Promise<void>((resolve, reject) => {
-      timeoutId = setTimeout(() => {
-        subscription.remove();
-        reject(new Error("Sign-in timed out. Please try again."));
-      }, 60_000);
-
-      subscription = Linking.addEventListener("url", ({ url }) => {
-        if (url.includes("myexpense://auth/callback")) {
-          clearTimeout(timeoutId);
-          subscription.remove();
-          WebBrowser.dismissBrowser();
-          resolve();
-        }
-      });
+    // openAuthSessionAsync monitors for REDIRECT_URL and auto-closes the browser
+    // tab the moment the redirect fires — no manual dismissBrowser() needed.
+    const result = await WebBrowser.openAuthSessionAsync(oauthUrl, REDIRECT_URL, {
+      dismissButtonStyle: "close",
+      createTask: false, // Android: keep Custom Tab in the same task as the app
     });
 
-    // Open the browser without awaiting — it stays open until dismissBrowser()
-    // is called from the Linking listener above.
-    WebBrowser.openBrowserAsync(oauthUrl, { dismissButtonStyle: "close" }).catch(() => {});
-
-    try {
-      await callbackReceived;
-    } catch (e: any) {
-      return { success: false, error: e.message ?? "Sign-in failed. Please try again." };
+    if (result.type === "cancel" || result.type === "dismiss") {
+      return { success: false, error: "Sign-in was cancelled." };
     }
 
-    // auth/callback.tsx is opened by Expo Router when the deep link fires and
-    // handles the PKCE exchange. Poll until it marks the session as active.
+    if (result.type !== "success") {
+      return { success: false, error: "Sign-in failed. Please try again." };
+    }
+
+    // Browser is already closed. Expo Router routes auth/callback.tsx via the
+    // deep link that openAuthSessionAsync detected. Poll until it completes.
     for (let i = 0; i < 120; i++) {
       await sleep(500);
       if (useAuthStore.getState().isAuthenticated) return { success: true };
     }
 
-    return { success: false, error: "Sign-in failed. Please try again." };
+    return { success: false, error: "Sign-in timed out. Please try again." };
   } catch (e: any) {
     console.error("Facebook Sign-In error:", e);
     return {

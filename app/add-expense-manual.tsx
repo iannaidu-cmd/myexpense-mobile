@@ -1,3 +1,4 @@
+import { InfoBanner } from "@/components/InfoBanner";
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { SuccessModal } from "@/components/SuccessModal";
@@ -5,6 +6,7 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { CATEGORIES } from "@/constants/categories";
 import { expenseService } from "@/services/expenseService";
 import { useAuthStore } from "@/stores/authStore";
+import { floorRatio, useHomeOfficeStore } from "@/stores/homeOfficeStore";
 import { colour } from "@/tokens";
 import { ACTIVE_TAX_YEAR } from "@/types/database";
 import { useRouter } from "expo-router";
@@ -102,6 +104,8 @@ const ITR12_CATEGORIES = CATEGORIES.map((c) => ({
 export default function AddExpenseScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
+  const { setting: homeOfficeSetting, load: loadHomeOffice } = useHomeOfficeStore();
+  React.useEffect(() => { loadHomeOffice(); }, []);
   const [amount, setAmount] = useState("");
   const [vendor, setVendor] = useState("");
   const [date, setDate] = useState(
@@ -140,7 +144,9 @@ export default function AddExpenseScreen() {
     setSaving(true);
     try {
       const rawAmount = parseFloat(amount);
-      const pct = category === "Telephone & Cell" ? Math.min(Math.max(parseFloat(businessUsePct) || 100, 0), 100) / 100 : 1;
+      const pct = (category === "Telephone & Cell" || category === "Telephone & Internet" || category === "Insurance")
+        ? Math.min(Math.max(parseFloat(businessUsePct) || 100, 0), 100) / 100
+        : 1;
       const savedAmount = parseFloat((rawAmount * pct).toFixed(2));
 
       await expenseService.addExpense(user.id, {
@@ -394,12 +400,21 @@ export default function AddExpenseScreen() {
               />
             </View>
           )}
-          {(category === "Home Office" || category === "Utilities") && (
-            <View style={{ backgroundColor: colour.primary50, borderRadius: 8, padding: 10, marginBottom: 10 }}>
-              <Text style={{ fontSize: 12, color: colour.primary, lineHeight: 18 }}>
-                Only the office portion is deductible. Formula: office m² ÷ total property m² × total cost. Enter the proportional amount only (e.g. 15m² ÷ 120m² = 12.5%).
-              </Text>
-            </View>
+          {(category === "Home Office" || category === "Utilities" || category === "Repairs & Maintenance") && (
+            <InfoBanner
+              icon="house.fill"
+              title={
+                homeOfficeSetting
+                  ? `Floor ratio: ${(floorRatio(homeOfficeSetting) * 100).toFixed(1)}% (${homeOfficeSetting.officeM2}m² ÷ ${homeOfficeSetting.totalM2}m²)`
+                  : "Home office ratio not set"
+              }
+              body={
+                homeOfficeSetting
+                  ? `Only ${(floorRatio(homeOfficeSetting) * 100).toFixed(1)}% of this expense is deductible under S11(a).${amount && parseFloat(amount) > 0 ? ` Claimable: R ${Math.round(parseFloat(amount) * floorRatio(homeOfficeSetting)).toLocaleString("en-ZA")}` : ""}`
+                  : "Set up your floor area ratio in Settings → Tax setup → Home office to automatically calculate the deductible portion."
+              }
+              style={{ marginBottom: 10 }}
+            />
           )}
           {category === "Equipment & Tools" && !!amount && parseFloat(amount) > 7000 && (
             <View style={{ backgroundColor: colour.warningBg, borderRadius: 8, padding: 10, marginBottom: 10 }}>
@@ -409,11 +424,11 @@ export default function AddExpenseScreen() {
             </View>
           )}
           {category === "Vehicle Expenses" && (
-            <View style={{ backgroundColor: colour.infoLight, borderRadius: 8, padding: 10, marginBottom: 10 }}>
-              <Text style={{ fontSize: 12, color: colour.info, lineHeight: 18 }}>
-                Actual cost method: only the business proportion is deductible (business km ÷ total annual km × total vehicle costs). Check your mileage logbook for this ratio. The deemed cost method (R4.84/km) is tracked separately under Mileage.
-              </Text>
-            </View>
+            <InfoBanner
+              icon="car.fill"
+              body="Actual cost method: only the business proportion is deductible (business km ÷ total annual km × total vehicle costs). Check your mileage logbook for this ratio. The deemed cost method (R4.84/km) is tracked separately under Mileage."
+              style={{ marginBottom: 10 }}
+            />
           )}
           {category === "Retirement Annuity" && (
             <View style={{ backgroundColor: colour.primaryLight, borderRadius: 8, padding: 10, marginBottom: 10 }}>
@@ -428,6 +443,23 @@ export default function AddExpenseScreen() {
                 Only 80% of meals & entertainment is deductible under S23(o). MyExpense applies this cap automatically.
               </Text>
             </View>
+          )}
+          {category === "Insurance" && (
+            <>
+              <InfoBanner
+                icon="shield.fill"
+                title="Split business vs personal insurance"
+                body="Only the business portion is deductible under S11(a). If your policy covers both personal and business assets, enter the business-use percentage below. Pure business policies (professional indemnity, business equipment) are 100% deductible. Home office contents insurance: use your floor ratio percentage."
+                style={{ marginBottom: 10 }}
+              />
+              <FieldLabel label="Business use %" />
+              <UnderlineInput
+                value={businessUsePct}
+                onChangeText={setBusinessUsePct}
+                placeholder="e.g. 60"
+                keyboardType="decimal-pad"
+              />
+            </>
           )}
 
           {showCatPicker && (

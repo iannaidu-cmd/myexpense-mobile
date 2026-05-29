@@ -114,7 +114,7 @@ export default function IncomeHistoryScreen() {
       <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
 
       <MXHeader
-        title="Income History"
+        title="Income history"
         showBack
         right={
           <TouchableOpacity
@@ -140,7 +140,7 @@ export default function IncomeHistoryScreen() {
             <Text
               style={{ ...typography.caption, color: colour.textSub }}
             >
-              Total Income
+              Total income
             </Text>
             <Text style={{ ...typography.amountM, color: colour.text }}>
               {fmt(totalIncome)}
@@ -258,7 +258,7 @@ export default function IncomeHistoryScreen() {
                     <Text
                       style={{ ...typography.btnL, color: colour.text }}
                     >
-                      Add Income
+                      Add income
                     </Text>
                   </TouchableOpacity>
                 )}

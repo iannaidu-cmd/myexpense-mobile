@@ -668,7 +668,7 @@ export default function BankImportScreen() {
   return (
     <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colour.background }}>
       <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
-      <MXHeader title="Import Transactions" showBack />
+      <MXHeader title="Import transactions" showBack />
 
       {!hasTransactions ? (
         <IdleState onPick={handlePick} loading={pickerLoading} />

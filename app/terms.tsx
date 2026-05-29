@@ -1,8 +1,7 @@
-import { MXHeader } from "@/components/MXHeader";
+import { MXBackHeader } from "@/components/MXBackHeader";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { colour, radius, space } from "@/tokens";
-import { useRouter } from "expo-router";
-import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const LAST_UPDATED = "1 March 2025";
@@ -56,11 +55,9 @@ function Bullet({ children }: { children: React.ReactNode }) {
 }
 
 export default function TermsScreen() {
-  const router = useRouter();
-
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colour.white }}>
-      <MXHeader title="Terms of Service" showBack />
+      <MXBackHeader />
 
       <ScrollView
         contentContainerStyle={{
@@ -69,6 +66,33 @@ export default function TermsScreen() {
         }}
         showsVerticalScrollIndicator={false}
       >
+        {/* Display title */}
+        <Text style={{
+          fontSize: 34, fontWeight: "800", letterSpacing: -1.2,
+          color: colour.text, marginBottom: 6, lineHeight: 40,
+        }}>
+          Terms of{"\n"}<Text style={{ color: colour.primary }}>service</Text>
+        </Text>
+        <Text style={{
+          fontSize: 13, color: colour.textSub, marginBottom: space.md, lineHeight: 20,
+        }}>
+          App terms & conditions · South African law
+        </Text>
+
+        {/* Trust chips */}
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.xs, marginBottom: space.xl }}>
+          {["South African Law", "CPA Compliant", "ECT Act"].map((chip) => (
+            <View key={chip} style={{
+              backgroundColor: colour.primary50,
+              borderRadius: radius.pill,
+              paddingHorizontal: 10,
+              paddingVertical: 4,
+            }}>
+              <Text style={{ fontSize: 11, fontWeight: "600", color: colour.accentDeep }}>{chip}</Text>
+            </View>
+          ))}
+        </View>
+
         {/* Intro */}
         <View
           style={{

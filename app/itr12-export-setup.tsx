@@ -1,3 +1,4 @@
+import { InfoBanner } from "@/components/InfoBanner";
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -194,7 +195,7 @@ export default function ITR12ExportSetupScreen() {
     >
       <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
       <MXHeader
-        title="Export Setup"
+        title="Export setup"
         subtitle="Configure your ITR12 export"
         showBack
       />
@@ -477,29 +478,12 @@ export default function ITR12ExportSetupScreen() {
             </TouchableOpacity>
 
             {/* ── SARS disclaimer ── */}
-            <View
-              style={{
-                marginHorizontal: space.md,
-                backgroundColor: colour.warningBg,
-                borderRadius: radius.md,
-                padding: 12,
-                borderWidth: 1,
-                borderColor: colour.warningMid,
-              }}
-            >
-              <Text
-                style={{
-                  fontSize: 12,
-                  color: colour.warning,
-                  lineHeight: 18,
-                  textAlign: "center",
-                }}
-              >
-                MyExpense prepares your ITR12 data. You must file via SARS eFiling
-                or a registered tax practitioner - MyExpense does not submit to
-                SARS on your behalf.
-              </Text>
-            </View>
+            <InfoBanner
+              icon="info.circle.fill"
+              title="Important notice"
+              body="MyExpense prepares your ITR12 data. You must file via SARS eFiling or a registered tax practitioner — MyExpense does not submit to SARS on your behalf."
+              style={{ marginHorizontal: space.md }}
+            />
           </>
         )}
       </ScrollView>

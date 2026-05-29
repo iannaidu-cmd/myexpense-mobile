@@ -62,7 +62,7 @@ export default function SubscriptionManageScreen() {
         {/* Plan status card */}
         <View
           style={{
-            backgroundColor: colour.surface,
+            backgroundColor: colour.white,
             borderRadius: radius.lg,
             padding: space.lg,
             gap: space.sm,

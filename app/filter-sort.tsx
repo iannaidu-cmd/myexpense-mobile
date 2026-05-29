@@ -161,7 +161,7 @@ export default function FilterSortScreen() {
       <StatusBar barStyle="dark-content" backgroundColor={colour.bgPage} />
 
       <MXHeader
-        title="Filter & Sort"
+        title="Filter & sort"
         showBack
         right={
           <TouchableOpacity onPress={handleReset} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>

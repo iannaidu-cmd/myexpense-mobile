@@ -283,6 +283,8 @@ function RootLayout() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         {/* ── Income ── */}
         <Stack.Screen name="add-income" options={{ headerShown: false }} />
+        <Stack.Screen name="add-irp5-income" options={{ headerShown: false }} />
+        <Stack.Screen name="provisional-tax" options={{ headerShown: false }} />
         <Stack.Screen name="income-history" options={{ headerShown: false }} />
         <Stack.Screen name="income-detail" options={{ headerShown: false }} />
         <Stack.Screen
@@ -328,6 +330,7 @@ function RootLayout() {
         />
         {/* ── Tax & ITR12 ── */}
         <Stack.Screen name="tax-summary" options={{ headerShown: false }} />
+        <Stack.Screen name="government-concessions" options={{ headerShown: false }} />
         <Stack.Screen
           name="itr12-export-setup"
           options={{ headerShown: false }}
@@ -369,6 +372,7 @@ function RootLayout() {
           options={{ headerShown: false }}
         />
         {/* ── Settings ── */}
+        <Stack.Screen name="home-office-setup" options={{ headerShown: false }} />
         <Stack.Screen name="bank-accounts" options={{ headerShown: false }} />
         <Stack.Screen name="bank-import" options={{ headerShown: false }} />
         <Stack.Screen name="profile" options={{ headerShown: false }} />
@@ -388,6 +392,10 @@ function RootLayout() {
             headerShown: false,
             presentation: "modal",
           }}
+        />
+        <Stack.Screen
+          name="subscription-manage"
+          options={{ headerShown: false }}
         />
         {/* ── Utility ── */}
         <Stack.Screen

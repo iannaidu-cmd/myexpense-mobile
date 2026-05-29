@@ -1,8 +1,7 @@
-import { MXHeader } from '@/components/MXHeader';
+import { MXBackHeader } from '@/components/MXBackHeader';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { colour, radius, space, typography } from '@/tokens';
-import { useRouter } from 'expo-router';
-import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const LAST_UPDATED = '1 March 2025';
@@ -55,16 +54,41 @@ function InfoRow({ label, value }: { label: string; value: string }) {
 }
 
 export default function PrivacyScreen() {
-  const router = useRouter();
-
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colour.white }}>
-      <MXHeader title="Privacy Policy" showBack />
+      <MXBackHeader />
 
       <ScrollView
         contentContainerStyle={{ padding: space.lg, paddingBottom: space['3xl'] }}
         showsVerticalScrollIndicator={false}
       >
+        {/* Display title */}
+        <Text style={{
+          fontSize: 34, fontWeight: '800', letterSpacing: -1.2,
+          color: colour.text, marginBottom: 6, lineHeight: 40,
+        }}>
+          Data &{'\n'}<Text style={{ color: colour.primary }}>privacy</Text>
+        </Text>
+        <Text style={{
+          fontSize: 13, color: colour.textSub, marginBottom: space.md, lineHeight: 20,
+        }}>
+          How we collect, use and protect your information
+        </Text>
+
+        {/* Trust chips */}
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.xs, marginBottom: space.xl }}>
+          {['POPIA Compliant', 'TLS 1.3 Encrypted', 'No data sold'].map((chip) => (
+            <View key={chip} style={{
+              backgroundColor: colour.primary50,
+              borderRadius: radius.pill,
+              paddingHorizontal: 10,
+              paddingVertical: 4,
+            }}>
+              <Text style={{ fontSize: 11, fontWeight: '600', color: colour.accentDeep }}>{chip}</Text>
+            </View>
+          ))}
+        </View>
+
         {/* Intro banner */}
         <View style={{
           backgroundColor: colour.noir,

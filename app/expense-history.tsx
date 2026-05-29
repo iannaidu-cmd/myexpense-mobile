@@ -201,7 +201,7 @@ export default function ExpenseHistoryScreen() {
       <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
 
       <MXHeader
-        title="Expense History"
+        title="Expense history"
         showBack
         right={
           editMode ? (

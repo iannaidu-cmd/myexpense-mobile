@@ -1,4 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { InfoBanner } from "@/components/InfoBanner";
 import { useKeepAwake } from "expo-keep-awake";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { MXHeader } from "@/components/MXHeader";
@@ -429,7 +430,7 @@ export default function MileageTrackerScreen() {
 
       <SafeAreaView edges={["top"]} style={{ backgroundColor: colour.background }}>
         <MXHeader
-          title="Mileage Tracker"
+          title="Mileage tracker"
           showBack
           right={
             <TouchableOpacity
@@ -759,57 +760,15 @@ export default function MileageTrackerScreen() {
               >
                 <IconSymbol name="play.fill" size={20} color={colour.onPrimary} />
                 <Text style={{ ...typography.actionL, color: colour.onPrimary }}>
-                  Start Trip
+                  Start trip
                 </Text>
               </TouchableOpacity>
 
-              {/* SARS compliance note - redesigned noir banner */}
-              <View
-                style={{
-                  marginTop: space.md,
-                  backgroundColor: colour.noir,
-                  borderRadius: radius.md,
-                  padding: space.md,
-                  flexDirection: "row",
-                  gap: space.md,
-                  alignItems: "flex-start",
-                }}
-              >
-                <View
-                  style={{
-                    backgroundColor: colour.primary,
-                    borderRadius: radius.sm,
-                    width: 32,
-                    height: 32,
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <IconSymbol name="info.circle" size={16} color={colour.onPrimary} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text
-                    style={{
-                      fontSize: 12,
-                      fontFamily: "Inter_600SemiBold",
-                      color: colour.onNoir,
-                      marginBottom: 2,
-                    }}
-                  >
-                    SARS deemed rate 2024/25: R4.84/km
-                  </Text>
-                  <Text
-                    style={{
-                      fontSize: 12,
-                      fontFamily: "Inter_400Regular",
-                      color: colour.onNoir2,
-                      lineHeight: 18,
-                    }}
-                  >
-                    Only business travel is deductible under S11(a). Personal trips are excluded.
-                  </Text>
-                </View>
-              </View>
+              <InfoBanner
+                title={`SARS deemed rate 2024/25: R${SARS_RATE_PER_KM}/km`}
+                body="Only business travel is deductible under S11(a). Personal trips are excluded."
+                style={{ marginTop: space.md }}
+              />
             </>
           )}
 
@@ -880,7 +839,7 @@ export default function MileageTrackerScreen() {
               >
                 <IconSymbol name="play.fill" size={18} color={colour.onPrimary} />
                 <Text style={{ ...typography.actionL, color: colour.onPrimary }}>
-                  Resume Trip
+                  Resume trip
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -956,7 +915,7 @@ export default function MileageTrackerScreen() {
                 marginBottom: space.xs,
               }}
             >
-              Trip Purpose
+              Trip purpose
             </Text>
             <Text
               style={{
@@ -1063,7 +1022,7 @@ export default function MileageTrackerScreen() {
             >
               <IconSymbol name="play.fill" size={18} color={colour.onPrimary} />
               <Text style={{ ...typography.actionL, color: colour.onPrimary }}>
-                Start Tracking
+                Start tracking
               </Text>
             </TouchableOpacity>
           </View>

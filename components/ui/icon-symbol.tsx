@@ -88,6 +88,16 @@ const MAPPING = {
   "briefcase.fill": "work",
   "calendar": "calendar-today",
   "mappin": "location-on",
+  "arrow.up": "arrow-upward",
+  "arrow.down": "arrow-downward",
+  "exclamationmark.triangle": "warning",
+  "percent": "percent",
+  "laptopcomputer": "laptop",
+  "graduationcap.fill": "school",
+  "chevron.down": "keyboard-arrow-down",
+  "chevron.up": "keyboard-arrow-up",
+  "crown.fill": "workspace-premium",
+  "book.fill": "menu-book",
 } as unknown as IconMapping;
 
 /**

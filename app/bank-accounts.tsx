@@ -1,4 +1,5 @@
 import { ConfirmModal } from "@/components/ConfirmModal";
+import { InfoBanner } from "@/components/InfoBanner";
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -167,7 +168,7 @@ export default function BankAccountsScreen() {
       <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
 
       <MXHeader
-        title="Bank Accounts"
+        title="Bank accounts"
         subtitle="Manage your banking details"
         showBack
         backLabel="Settings"
@@ -228,7 +229,7 @@ export default function BankAccountsScreen() {
               }}
             >
               <Text style={{ ...typography.btnL, color: colour.onPrimary }}>
-                Add Bank Account
+                Add bank account
               </Text>
             </TouchableOpacity>
           </View>
@@ -369,7 +370,7 @@ export default function BankAccountsScreen() {
                       <Text
                         style={{ ...typography.labelS, color: colour.primary }}
                       >
-                        Set Primary
+                        Set primary
                       </Text>
                     </TouchableOpacity>
                   )}
@@ -398,34 +399,11 @@ export default function BankAccountsScreen() {
                 </View>
               </View>
             ))}
-            <View
-              style={{
-                backgroundColor: colour.infoLight,
-                borderRadius: radius.md,
-                padding: space.md,
-              }}
-            >
-              <Text
-                style={{
-                  ...typography.labelS,
-                  color: colour.info,
-                  marginBottom: space.xs,
-                }}
-              >
-                POPIA & Security
-              </Text>
-              <Text
-                style={{
-                  ...typography.bodyXS,
-                  color: colour.info,
-                  lineHeight: 18,
-                }}
-              >
-                Your banking details are stored securely and encrypted. Account
-                numbers are masked in all exports. MyExpense never initiates
-                transfers from your accounts.
-              </Text>
-            </View>
+            <InfoBanner
+              icon="lock.fill"
+              title="POPIA & Security"
+              body="Your banking details are stored securely and encrypted. Account numbers are masked in all exports. MyExpense never initiates transfers from your accounts."
+            />
           </>
         )}
       </ScrollView>
@@ -447,7 +425,7 @@ export default function BankAccountsScreen() {
             }}
           >
             <Text style={{ ...typography.h4, color: colour.textPrimary }}>
-              Add Bank Account
+              Add bank account
             </Text>
             <TouchableOpacity
               onPress={() => {
@@ -700,7 +678,7 @@ export default function BankAccountsScreen() {
                 <ActivityIndicator color={colour.onPrimary} />
               ) : (
                 <Text style={{ ...typography.btnL, color: colour.onPrimary }}>
-                  Save Bank Account
+                  Save bank account
                 </Text>
               )}
             </TouchableOpacity>

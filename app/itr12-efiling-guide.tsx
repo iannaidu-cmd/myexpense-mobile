@@ -101,10 +101,10 @@ export default function ITR12EFilingGuideScreen() {
       <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
 
       <MXHeader
-        title="eFiling Guide"
+        title="eFiling guide"
         subtitle="Step-by-step ITR12 submission · SARS 2024/25"
         showBack
-        backLabel="Export Preview"
+        backLabel="Export preview"
       />
 
       {/* Progress bar — rendered outside MXHeader so colours match the light background */}

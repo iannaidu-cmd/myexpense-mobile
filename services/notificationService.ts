@@ -34,8 +34,11 @@ export async function savePushToken(userId: string, token: string): Promise<void
 }
 
 export async function scheduleWeeklyExpenseReminder(): Promise<void> {
-  await Notifications.cancelAllScheduledNotificationsAsync();
+  // Cancel only this specific notification — never cancelAll, which would nuke
+  // per-expense receipt reminders set elsewhere in the app.
+  await Notifications.cancelScheduledNotificationAsync("weekly-expense-reminder").catch(() => {});
   await Notifications.scheduleNotificationAsync({
+    identifier: "weekly-expense-reminder",
     content: {
       title: "Don't forget your expenses",
       body: "Track this week's business expenses to keep your ITR12 ready.",
@@ -43,7 +46,7 @@ export async function scheduleWeeklyExpenseReminder(): Promise<void> {
     },
     trigger: {
       type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
-      weekday: 2, // Monday
+      weekday: 2, // Monday (1 = Sunday)
       hour: 9,
       minute: 0,
     },
@@ -51,7 +54,10 @@ export async function scheduleWeeklyExpenseReminder(): Promise<void> {
 }
 
 export async function scheduleMonthlyReportReminder(): Promise<void> {
+  // Cancel before rescheduling to avoid duplicates on each app launch.
+  await Notifications.cancelScheduledNotificationAsync("monthly-report-reminder").catch(() => {});
   await Notifications.scheduleNotificationAsync({
+    identifier: "monthly-report-reminder",
     content: {
       title: "Your monthly expense report is ready",
       body: "Review last month's deductions and tax savings.",
@@ -69,15 +75,31 @@ export async function scheduleMonthlyReportReminder(): Promise<void> {
 export async function scheduleSARSDeadlineReminders(): Promise<void> {
   const year = new Date().getFullYear();
   const deadlines = [
-    { date: new Date(year, 6, 1),  body: "SARS eFiling opens today. Start preparing your ITR12." },
-    { date: new Date(year, 9, 23), body: "SARS non-provisional taxpayer deadline is approaching (23 Oct)." },
-    { date: new Date(year, 0, 31), body: "SARS provisional taxpayer deadline is approaching (31 Jan)." },
+    {
+      id: "sars-efiling-open",
+      date: new Date(year, 6, 1),
+      body: "SARS eFiling opens today. Start preparing your ITR12.",
+    },
+    {
+      id: "sars-nonprovisional-deadline",
+      date: new Date(year, 9, 23),
+      body: "SARS non-provisional taxpayer deadline is approaching (23 Oct).",
+    },
+    {
+      // Provisional deadline is always 31 Jan of the NEXT calendar year
+      // (e.g. for the 2025/26 tax year the deadline is 31 Jan 2027).
+      id: "sars-provisional-deadline",
+      date: new Date(year + 1, 0, 31),
+      body: "SARS provisional taxpayer deadline is approaching (31 Jan).",
+    },
   ];
 
-  for (const { date, body } of deadlines) {
+  for (const { id, date, body } of deadlines) {
     const reminderDate = new Date(date.getTime() - 7 * 24 * 60 * 60 * 1000); // 1 week before
     if (reminderDate > new Date()) {
+      await Notifications.cancelScheduledNotificationAsync(id).catch(() => {});
       await Notifications.scheduleNotificationAsync({
+        identifier: id,
         content: {
           title: "SARS Deadline Reminder",
           body,
@@ -90,6 +112,22 @@ export async function scheduleSARSDeadlineReminders(): Promise<void> {
       });
     }
   }
+}
+
+export async function cancelWeeklyExpenseReminder(): Promise<void> {
+  await Notifications.cancelScheduledNotificationAsync("weekly-expense-reminder").catch(() => {});
+}
+
+export async function cancelMonthlyReportReminder(): Promise<void> {
+  await Notifications.cancelScheduledNotificationAsync("monthly-report-reminder").catch(() => {});
+}
+
+export async function cancelSARSDeadlineReminders(): Promise<void> {
+  await Promise.all([
+    Notifications.cancelScheduledNotificationAsync("sars-efiling-open"),
+    Notifications.cancelScheduledNotificationAsync("sars-nonprovisional-deadline"),
+    Notifications.cancelScheduledNotificationAsync("sars-provisional-deadline"),
+  ]).catch(() => {});
 }
 
 export async function scheduleReceiptReminder(

@@ -141,7 +141,7 @@ export default function UploadFromGalleryScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: colour.background }}>
       <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
 
-      <MXHeader title="Upload Receipt" showBack />
+      <MXHeader title="Upload receipt" showBack />
 
       {/* Card */}
       <View
@@ -228,7 +228,7 @@ export default function UploadFromGalleryScreen() {
             <ActivityIndicator color={colour.textOnPrimary} />
           ) : (
             <Text style={[typography.btnL, { color: colour.textOnPrimary }]}>
-              Upload Receipt
+              Upload receipt
             </Text>
           )}
         </TouchableOpacity>

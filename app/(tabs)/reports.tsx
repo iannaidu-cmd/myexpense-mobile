@@ -6,7 +6,7 @@ import { incomeService } from "@/services/incomeService";
 import { mileageService } from "@/services/mileageService";
 import { useAuthStore } from "@/stores/authStore";
 import { useExpenseStore } from "@/stores/expenseStore";
-import { colour, radius } from "@/tokens";
+import { colour, radius, space } from "@/tokens";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useRef, useState } from "react";
 import {
@@ -18,16 +18,18 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import Svg, { G, Path, Rect, Text as SvgText } from "react-native-svg";
+import Svg, { G, Rect, Text as SvgText } from "react-native-svg";
 
 type Period = "1M" | "3M" | "6M" | "YTD" | "FY";
 const PERIODS: Period[] = ["1M", "3M", "6M", "YTD", "FY"];
 
 const REPORT_LINKS: { icon: string; label: string; sub: string; route: string }[] = [
-  { icon: "chart.bar.fill", label: "Income vs Expenses", sub: "Monthly comparison",    route: "/income-vs-expenses" },
-  { icon: "checkmark",      label: "Tax Savings",        sub: "Year-to-date breakdown", route: "/tax-summary"        },
-  { icon: "list.bullet",    label: "Category Breakdown", sub: "Where your money goes",  route: "/category-breakdown" },
-  { icon: "doc.text.fill",  label: "VAT Summary",        sub: "Input vs output VAT",    route: "/vat-summary"        },
+  { icon: "chart.bar.fill",  label: "Income vs expenses",  sub: "Monthly comparison",       route: "/income-vs-expenses" },
+  { icon: "checkmark",       label: "Tax savings",          sub: "Year-to-date breakdown",   route: "/tax-summary"        },
+  { icon: "list.bullet",     label: "Category breakdown",   sub: "Where your money goes",    route: "/category-breakdown" },
+  { icon: "doc.text.fill",   label: "VAT summary",          sub: "Input vs output VAT",      route: "/vat-summary"        },
+  { icon: "calendar",        label: "Provisional tax",        sub: "IRP6 deadlines & estimate",    route: "/provisional-tax"          },
+  { icon: "crown.fill",     label: "Government concessions", sub: "S12C · SBC · S10(1)(o) · TFSA", route: "/government-concessions" },
 ];
 
 const fmtAmount = (n: number) =>
@@ -48,42 +50,7 @@ function getDaysToDeadline(activeTaxYear: string): number {
   return Math.ceil((deadline.getTime() - today.getTime()) / 86400000);
 }
 
-function Sparkline({
-  data,
-  color,
-  width = 100,
-  height = 28,
-}: {
-  data: number[];
-  color: string;
-  width?: number;
-  height?: number;
-}) {
-  if (data.length < 2) return <View style={{ width, height }} />;
-  const max = Math.max(...data, 0.01);
-  const min = Math.min(...data, 0);
-  const range = max - min || 0.01;
-  const stepX = width / (data.length - 1);
-  const pts = data.map((v, i) => ({
-    x: i * stepX,
-    y: height - 2 - ((v - min) / range) * (height - 4),
-  }));
-  const d = pts
-    .map((p, i) => `${i === 0 ? "M" : "L"} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`)
-    .join(" ");
-  return (
-    <Svg width={width} height={height} style={{ overflow: "visible" }}>
-      <Path
-        d={d}
-        stroke={color}
-        strokeWidth={1.5}
-        fill="none"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
-  );
-}
+// ── Stacked bar chart ─────────────────────────────────────────────────────────
 
 function StackedBarChart({
   data,
@@ -91,10 +58,10 @@ function StackedBarChart({
   data: { label: string; income: number; expense: number; highlight: boolean }[];
 }) {
   const CHART_W = 300;
-  const BAR_H = 100;
-  const LABEL_H = 16;
-  const TOOLTIP_H = 22;
-  const TOTAL_H = BAR_H + LABEL_H + TOOLTIP_H;
+  const BAR_H = 120;
+  const LABEL_H = 18;
+  const TOOLTIP_H = 24;
+  const TOTAL_H = BAR_H + LABEL_H + TOOLTIP_H; // 162
   const GAP = 5;
   const n = data.length;
   if (n === 0) return null;
@@ -102,82 +69,82 @@ function StackedBarChart({
   const maxVal = Math.max(...data.map((d) => d.income + d.expense), 1);
   const hlIdx = data.findIndex((d) => d.highlight);
 
+  // Wrap in a View with aspectRatio so the SVG gets an explicit height on
+  // Android — without this the SVG collapses to 0px and no bars are visible.
   return (
-    <Svg
-      width="100%"
-      viewBox={`0 0 ${CHART_W} ${TOTAL_H}`}
-      style={{ overflow: "visible" }}
-    >
-      {data.map((d, i) => {
-        const x = i * (barW + GAP);
-        const incH = Math.max((d.income / maxVal) * BAR_H, d.income > 0 ? 3 : 0);
-        const expH = Math.max((d.expense / maxVal) * BAR_H, d.expense > 0 ? 3 : 0);
-        const totalH = incH + expH;
-        const isHl = i === hlIdx;
-        const barTop = TOOLTIP_H + BAR_H - totalH;
+    <View style={{ width: "100%", aspectRatio: CHART_W / TOTAL_H }}>
+      <Svg
+        width="100%"
+        height="100%"
+        viewBox={`0 0 ${CHART_W} ${TOTAL_H}`}
+      >
+        {data.map((d, i) => {
+          const x = i * (barW + GAP);
+          const incH = Math.max((d.income / maxVal) * BAR_H, d.income > 0 ? 3 : 0);
+          const expH = Math.max((d.expense / maxVal) * BAR_H, d.expense > 0 ? 3 : 0);
+          const totalH = incH + expH;
+          const isHl = i === hlIdx;
+          const barTop = TOOLTIP_H + BAR_H - totalH;
 
-        return (
-          <G key={i}>
-            {/* Tooltip */}
-            {isHl && d.income > 0 && (
-              <>
+          return (
+            <G key={i}>
+              {isHl && d.income > 0 && (
+                <>
+                  <Rect
+                    x={x + barW / 2 - 24}
+                    y={TOOLTIP_H - 20}
+                    width={48}
+                    height={16}
+                    rx={4}
+                    fill={colour.text}
+                  />
+                  <SvgText
+                    x={x + barW / 2}
+                    y={TOOLTIP_H - 8}
+                    textAnchor="middle"
+                    fontSize={7}
+                    fontWeight="700"
+                    fill={colour.white}
+                  >
+                    {fmtShort(d.income)}
+                  </SvgText>
+                </>
+              )}
+              {expH > 0 && (
                 <Rect
-                  x={x + barW / 2 - 24}
-                  y={TOOLTIP_H - 18}
-                  width={48}
-                  height={15}
-                  rx={4}
-                  fill={colour.text}
+                  x={x}
+                  y={barTop}
+                  width={barW}
+                  height={expH}
+                  rx={3}
+                  fill={colour.danger}
+                  opacity={0.85}
                 />
-                <SvgText
-                  x={x + barW / 2}
-                  y={TOOLTIP_H - 7}
-                  textAnchor="middle"
-                  fontSize={7}
-                  fontWeight="700"
-                  fill={colour.white}
-                >
-                  {fmtShort(d.income)}
-                </SvgText>
-              </>
-            )}
-            {/* Expense cap (red, sits on top) */}
-            {expH > 0 && (
+              )}
               <Rect
                 x={x}
-                y={barTop}
+                y={barTop + expH}
                 width={barW}
-                height={expH}
+                height={incH}
                 rx={3}
-                fill={colour.danger}
-                opacity={0.85}
+                fill={colour.primary}
+                opacity={isHl ? 1 : 0.65}
               />
-            )}
-            {/* Income bar (purple, below expense) */}
-            <Rect
-              x={x}
-              y={barTop + expH}
-              width={barW}
-              height={incH}
-              rx={3}
-              fill={colour.primary}
-              opacity={isHl ? 1 : 0.6}
-            />
-            {/* Month label */}
-            <SvgText
-              x={x + barW / 2}
-              y={TOOLTIP_H + BAR_H + 13}
-              textAnchor="middle"
-              fontSize={9}
-              fill={isHl ? colour.onNoir : colour.onNoir2}
-              fontWeight={isHl ? "700" : "400"}
-            >
-              {d.label}
-            </SvgText>
-          </G>
-        );
-      })}
-    </Svg>
+              <SvgText
+                x={x + barW / 2}
+                y={TOOLTIP_H + BAR_H + 14}
+                textAnchor="middle"
+                fontSize={9}
+                fill={isHl ? colour.text : colour.textSub}
+                fontWeight={isHl ? "700" : "400"}
+              >
+                {d.label}
+              </SvgText>
+            </G>
+          );
+        })}
+      </Svg>
+    </View>
   );
 }
 
@@ -286,10 +253,12 @@ export default function ReportsTabScreen() {
       : [];
   const prevIncome = prevMonths.reduce((s, m) => s + m.income, 0);
   const prevExpenses = prevMonths.reduce((s, m) => s + m.expense, 0);
+  const prevNet = prevIncome - prevExpenses;
   const incomeTrend = prevIncome > 0 ? Math.round(((periodIncome - prevIncome) / prevIncome) * 100) : null;
   const expenseTrend = prevExpenses > 0 ? Math.round(((periodExpenses - prevExpenses) / prevExpenses) * 100) : null;
+  const netTrend = prevNet !== 0 ? Math.round(((periodNet - prevNet) / Math.abs(prevNet)) * 100) : null;
 
-  // Chart highlight: month with highest income (fallback: last)
+  // Chart highlight: month with highest income
   const hlIdx =
     periodMonths.length > 0
       ? periodMonths.reduce(
@@ -303,16 +272,16 @@ export default function ReportsTabScreen() {
     if (periodMonths.length === 0) return "";
     const first = periodMonths[0].label;
     const last = periodMonths[periodMonths.length - 1].label;
-    return periodMonths.length === 1 ? first : `${first} → ${last}`;
+    return periodMonths.length === 1 ? first : `${first} \u2192 ${last}`;
   })();
 
   const chartTitle = (() => {
     switch (selectedPeriod) {
-      case "1M": return "1-MONTH OVERVIEW";
-      case "3M": return "3-MONTH OVERVIEW";
-      case "6M": return "6-MONTH OVERVIEW";
-      case "YTD": return "YEAR TO DATE";
-      case "FY": return "FULL YEAR";
+      case "1M": return "1-month overview";
+      case "3M": return "3-month overview";
+      case "6M": return "6-month overview";
+      case "YTD": return "Year to date";
+      case "FY": return "Full year";
     }
   })();
 
@@ -356,76 +325,46 @@ export default function ReportsTabScreen() {
           </View>
         ) : (
           <>
-            {/* ── Hero card ──────────────────────────────────────────────── */}
-            <View style={{
-              backgroundColor: colour.primary,
-              borderRadius: radius.xl,
-              padding: 18,
-              marginTop: 12,
-              marginBottom: 14,
-              overflow: "hidden",
-            }}>
+            {/* ── 1. Overview chart card (white) ─────────────────────────── */}
+            {hasChartData && (
               <View style={{
-                position: "absolute", width: 180, height: 180, borderRadius: 90,
-                backgroundColor: "rgba(255,255,255,0.1)", top: -60, right: -50,
-              }} />
-              <View style={{
-                position: "absolute", width: 80, height: 80, borderRadius: 40,
-                backgroundColor: "rgba(255,255,255,0.07)", bottom: 12, left: -20,
-              }} />
+                backgroundColor: colour.white,
+                borderRadius: radius.xl,
+                padding: 18,
+                marginTop: 12,
+                marginBottom: 14,
+                borderWidth: 1,
+                borderColor: colour.borderLight,
+              }}>
+                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                  <Text style={{ fontSize: 10, fontWeight: "700", color: colour.textSub, letterSpacing: 1, textTransform: "uppercase" }}>
+                    {chartTitle}
+                  </Text>
+                  <View style={{ flexDirection: "row", gap: 12 }}>
+                    {[
+                      { c: colour.primary, l: "Income" },
+                      { c: colour.danger,  l: "Expenses" },
+                    ].map((item) => (
+                      <View key={item.l} style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                        <View style={{ width: 8, height: 8, borderRadius: 2, backgroundColor: item.c }} />
+                        <Text style={{ fontSize: 9.5, color: colour.textSub, fontWeight: "500" }}>{item.l}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
 
-              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                <Text style={{ fontSize: 10, fontWeight: "700", color: "rgba(255,255,255,0.65)", letterSpacing: 1, textTransform: "uppercase" }}>
-                  Estimated Refund
+                <Text style={{ fontSize: 28, fontWeight: "800", color: colour.text, letterSpacing: -1, marginBottom: 2 }}>
+                  {fmtAmount(periodNet)}
                 </Text>
-                {daysToDeadline > 0 && (
-                  <View style={{
-                    flexDirection: "row", alignItems: "center", gap: 5,
-                    backgroundColor: "rgba(255,255,255,0.18)",
-                    paddingHorizontal: 9, paddingVertical: 4, borderRadius: 20,
-                  }}>
-                    <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: colour.white }} />
-                    <Text style={{ fontSize: 10, fontWeight: "600", color: colour.white }}>
-                      {daysToDeadline} d to deadline
-                    </Text>
-                  </View>
-                )}
+                <Text style={{ fontSize: 11, color: colour.textSub, marginBottom: 18 }}>
+                  Net · {periodRangeLabel}
+                </Text>
+
+                <StackedBarChart data={chartData} />
               </View>
+            )}
 
-              <Text style={{ fontSize: 46, fontWeight: "800", color: colour.white, letterSpacing: -2, lineHeight: 54, marginBottom: 4 }}>
-                {fmtAmount(estRefund)}
-              </Text>
-              <Text style={{ fontSize: 11, color: "rgba(255,255,255,0.6)", marginBottom: 16, lineHeight: 16 }}>
-                Based on logged income, expenses and mileage · {activeTaxYear}
-              </Text>
-
-              <View style={{ flexDirection: "row", gap: 8 }}>
-                {[
-                  { label: "RECEIPTS",   value: `${receiptCount}`,  sub: "scanned"       },
-                  { label: "MILEAGE",    value: `${totalKm} km`,    sub: `${tripCount} trips` },
-                  { label: "CATEGORIES", value: `${categoryCount}`, sub: "SARS sections"  },
-                ].map((chip) => (
-                  <View key={chip.label} style={{
-                    flex: 1,
-                    backgroundColor: "rgba(255,255,255,0.14)",
-                    borderRadius: 10,
-                    padding: 10,
-                  }}>
-                    <Text style={{ fontSize: 7.5, fontWeight: "700", color: "rgba(255,255,255,0.55)", letterSpacing: 0.8, textTransform: "uppercase", marginBottom: 3 }}>
-                      {chip.label}
-                    </Text>
-                    <Text style={{ fontSize: 14, fontWeight: "700", color: colour.white, letterSpacing: -0.3 }}>
-                      {chip.value}
-                    </Text>
-                    <Text style={{ fontSize: 9, color: "rgba(255,255,255,0.55)", marginTop: 1 }}>
-                      {chip.sub}
-                    </Text>
-                  </View>
-                ))}
-              </View>
-            </View>
-
-            {/* ── Period tabs ────────────────────────────────────────────── */}
+            {/* ── 2. Period tabs ──────────────────────────────────────────── */}
             <View style={{
               flexDirection: "row",
               backgroundColor: colour.white,
@@ -455,29 +394,30 @@ export default function ReportsTabScreen() {
               ))}
             </View>
 
-            {/* ── Mini income + expenses cards ───────────────────────────── */}
-            <View style={{ flexDirection: "row", gap: 10, marginBottom: 14 }}>
+            {/* ── 3. Snapshot row (Income / Expenses / Net) ──────────────── */}
+            <View style={{ flexDirection: "row", gap: 8, marginBottom: 14 }}>
               {[
                 {
-                  key: "income",
                   label: "Income",
                   amount: periodIncome,
                   trend: incomeTrend,
-                  data: periodMonths.map((m) => m.income),
-                  lineColor: colour.primary,
                   trendGood: (t: number) => t >= 0,
                 },
                 {
-                  key: "expenses",
                   label: "Expenses",
                   amount: periodExpenses,
                   trend: expenseTrend,
-                  data: periodMonths.map((m) => m.expense),
-                  lineColor: colour.danger,
                   trendGood: (t: number) => t <= 0,
                 },
+                {
+                  label: "Net",
+                  amount: periodNet,
+                  trend: netTrend,
+                  amountColour: periodNet >= 0 ? colour.success : colour.danger,
+                  trendGood: (t: number) => t >= 0,
+                },
               ].map((card) => (
-                <View key={card.key} style={{
+                <View key={card.label} style={{
                   flex: 1,
                   backgroundColor: colour.white,
                   borderRadius: radius.md,
@@ -485,77 +425,85 @@ export default function ReportsTabScreen() {
                   borderWidth: 1,
                   borderColor: colour.borderLight,
                 }}>
-                  <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }}>
-                    <Text style={{ fontSize: 10, fontWeight: "700", color: colour.textSub, textTransform: "uppercase", letterSpacing: 0.8 }}>
-                      {card.label}
-                    </Text>
-                    {card.trend !== null && (
-                      <View style={{
-                        flexDirection: "row", alignItems: "center", gap: 2,
-                        backgroundColor: card.trendGood(card.trend!) ? colour.successBg : colour.dangerBg,
-                        paddingHorizontal: 5, paddingVertical: 2, borderRadius: 6,
-                      }}>
-                        <Text style={{ fontSize: 9, fontWeight: "700", color: card.trendGood(card.trend!) ? colour.success : colour.danger }}>
-                          {card.trend! >= 0 ? "▲" : "▼"} {Math.abs(card.trend!)}%
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-                  <Text style={{ fontSize: 19, fontWeight: "700", color: colour.text, letterSpacing: -0.5, marginTop: 4 }}>
-                    {fmtAmount(card.amount)}
+                  <Text style={{
+                    fontSize: 9, fontWeight: "600", color: colour.textSub,
+                    letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 6,
+                  }}>
+                    {card.label}
                   </Text>
-                  <View style={{ marginTop: 10 }}>
-                    <Sparkline data={card.data} color={card.lineColor} width={110} height={28} />
-                  </View>
+                  <Text style={{
+                    fontSize: 17, fontWeight: "800", letterSpacing: -0.5,
+                    color: (card as any).amountColour ?? colour.text,
+                    marginBottom: 2,
+                  }}>
+                    {fmtShort(Math.abs(card.amount))}
+                  </Text>
+                  {card.trend !== null && (
+                    <View style={{
+                      flexDirection: "row", alignItems: "center",
+                      backgroundColor: card.trendGood(card.trend!) ? colour.successBg : colour.dangerBg,
+                      paddingHorizontal: 5, paddingVertical: 2, borderRadius: 6,
+                      alignSelf: "flex-start",
+                    }}>
+                      <Text style={{
+                        fontSize: 9, fontWeight: "700",
+                        color: card.trendGood(card.trend!) ? colour.success : colour.danger,
+                      }}>
+                        {card.trend! >= 0 ? "\u25B2" : "\u25BC"} {Math.abs(card.trend!)}%
+                      </Text>
+                    </View>
+                  )}
                 </View>
               ))}
             </View>
 
-            {/* ── Overview bar chart ─────────────────────────────────────── */}
-            {hasChartData && (
+            {/* ── 4. Est. tax refund strip (periwinkle) ──────────────────── */}
+            <View style={{
+              backgroundColor: colour.primary,
+              borderRadius: radius.md,
+              padding: 16,
+              paddingHorizontal: 18,
+              marginBottom: 14,
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              overflow: "hidden",
+            }}>
               <View style={{
-                backgroundColor: colour.noir,
-                borderRadius: radius.xl,
-                padding: 18,
-                marginBottom: 14,
-                overflow: "hidden",
-              }}>
-                <View style={{
-                  position: "absolute", width: 150, height: 150, borderRadius: 75,
-                  backgroundColor: colour.primary, opacity: 0.18, top: -55, right: -45,
-                }} />
-                <Text style={{ fontSize: 10, fontWeight: "700", color: colour.onNoir2, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>
-                  {chartTitle}
+                position: "absolute", width: 100, height: 100, borderRadius: 50,
+                backgroundColor: "rgba(255,255,255,0.12)", top: -30, right: -20,
+              }} />
+              <View>
+                <Text style={{ fontSize: 10, fontWeight: "600", color: "rgba(255,255,255,0.6)", letterSpacing: 0.5, marginBottom: 4 }}>
+                  EST. TAX REFUND
                 </Text>
-                <Text style={{ fontSize: 28, fontWeight: "800", color: colour.onNoir, letterSpacing: -1, marginBottom: 2 }}>
-                  {fmtAmount(periodNet)}
+                <Text style={{ fontSize: 24, fontWeight: "800", color: colour.white, letterSpacing: -1 }}>
+                  {fmtAmount(estRefund)}
                 </Text>
-                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
-                  <Text style={{ fontSize: 11, color: colour.onNoir2 }}>
-                    Net · {periodRangeLabel}
+                {daysToDeadline > 0 && (
+                  <Text style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", marginTop: 2 }}>
+                    {daysToDeadline} days to deadline
                   </Text>
-                  <View style={{ flexDirection: "row", gap: 12 }}>
-                    {[
-                      { c: colour.primary, l: "Income"   },
-                      { c: colour.danger,  l: "Expenses" },
-                    ].map((item) => (
-                      <View key={item.l} style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                        <View style={{ width: 8, height: 8, borderRadius: 2, backgroundColor: item.c }} />
-                        <Text style={{ fontSize: 9.5, color: colour.onNoir2, fontWeight: "500" }}>{item.l}</Text>
-                      </View>
-                    ))}
-                  </View>
-                </View>
-                <StackedBarChart data={chartData} />
+                )}
               </View>
-            )}
+              <View style={{ alignItems: "flex-end", gap: 4 }}>
+                <View style={{ backgroundColor: "rgba(255,255,255,0.15)", borderRadius: 8, padding: 6, paddingHorizontal: 10 }}>
+                  <Text style={{ fontSize: 11, fontWeight: "700", color: colour.white }}>{receiptCount}</Text>
+                  <Text style={{ fontSize: 8, color: "rgba(255,255,255,0.55)", marginTop: 1 }}>RECEIPTS</Text>
+                </View>
+                <View style={{ backgroundColor: "rgba(255,255,255,0.15)", borderRadius: 8, padding: 6, paddingHorizontal: 10 }}>
+                  <Text style={{ fontSize: 11, fontWeight: "700", color: colour.white }}>{totalKm} km</Text>
+                  <Text style={{ fontSize: 8, color: "rgba(255,255,255,0.55)", marginTop: 1 }}>MILEAGE</Text>
+                </View>
+              </View>
+            </View>
 
-            {/* ── Quick links ────────────────────────────────────────────── */}
+            {/* ── 5. Quick links ──────────────────────────────────────────── */}
             <Text style={{
-              fontSize: 11, textTransform: "uppercase", color: colour.textSub,
+              fontSize: 11, color: colour.textSub,
               letterSpacing: 0.8, marginBottom: 10, marginLeft: 2, fontWeight: "600",
             }}>
-              Quick Links
+              Quick links
             </Text>
             <View style={{
               backgroundColor: colour.white,
@@ -593,7 +541,7 @@ export default function ReportsTabScreen() {
               ))}
             </View>
 
-            {/* ── Export ITR12 CTA ───────────────────────────────────────── */}
+            {/* ── 6. Export ITR12 CTA ─────────────────────────────────────── */}
             <TouchableOpacity
               onPress={() => router.push("/itr12-export-setup" as any)}
               activeOpacity={0.85}

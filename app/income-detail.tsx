@@ -125,7 +125,7 @@ export default function IncomeDetailScreen() {
       <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
 
       <MXHeader
-        title="Income Details"
+        title="Income details"
         showBack
         right={
           income ? (

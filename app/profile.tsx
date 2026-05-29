@@ -1,8 +1,10 @@
-﻿import { MXHeader } from "@/components/MXHeader";
+﻿import { InfoBanner } from "@/components/InfoBanner";
+import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { SuccessModal } from "@/components/SuccessModal";
 import { profileService } from "@/services/profileService";
 import { useAuthStore } from "@/stores/authStore";
+import { medicalTaxCredit, useTaxProfileStore } from "@/stores/taxProfileStore";
 import { colour, radius, space, typography } from "@/tokens";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -39,6 +41,23 @@ export default function ProfileScreen() {
   const [taxNumber, setTaxNumber] = useState("");
   const [subscription, setSubscription] = useState("free");
 
+  // Tax profile (persisted to AsyncStorage)
+  const { profile: taxProfile, isLoaded: taxProfileLoaded, load: loadTaxProfile, save: saveTaxProfile } = useTaxProfileStore();
+  const [taxAge, setTaxAge] = useState("");
+  const [taxDependants, setTaxDependants] = useState(0);
+  const [taxDisability, setTaxDisability] = useState(false);
+  const [taxMedContrib, setTaxMedContrib] = useState("");
+
+  useEffect(() => { loadTaxProfile(); }, []);
+
+  useEffect(() => {
+    if (!taxProfileLoaded) return;
+    setTaxAge(taxProfile.age > 0 ? String(taxProfile.age) : "");
+    setTaxDependants(taxProfile.numMedDependants);
+    setTaxDisability(taxProfile.hasDisability);
+    setTaxMedContrib(taxProfile.medicalAidAnnualContrib > 0 ? String(taxProfile.medicalAidAnnualContrib) : "");
+  }, [taxProfileLoaded]);
+
   useEffect(() => {
     if (!user) { setLoading(false); return; }
     setEmail(user.email ?? "");
@@ -61,12 +80,20 @@ export default function ProfileScreen() {
     if (!user) return;
     setSaving(true);
     try {
-      await profileService.updateProfile(user.id, {
-        full_name: fullName.trim(),
-        business_name: businessName.trim(),
-        phone: phone.trim(),
-        tax_number: taxNumber.trim(),
-      });
+      await Promise.all([
+        profileService.updateProfile(user.id, {
+          full_name: fullName.trim(),
+          business_name: businessName.trim(),
+          phone: phone.trim(),
+          tax_number: taxNumber.trim(),
+        }),
+        saveTaxProfile({
+          age: parseInt(taxAge) || 0,
+          numMedDependants: taxDependants,
+          hasDisability: taxDisability,
+          medicalAidAnnualContrib: parseFloat(taxMedContrib) || 0,
+        }),
+      ]);
       setSuccessVisible(true);
     } catch (e: any) {
       Alert.alert("Error", e.message ?? "Could not save profile.");
@@ -282,6 +309,204 @@ export default function ProfileScreen() {
                   </View>
                 ))}
               </View>
+
+              {/* ── Tax profile section ────────────────────────────────── */}
+              <Text
+                style={{
+                  fontSize: 11,
+                  fontWeight: "700",
+                  color: colour.textSub,
+                  letterSpacing: 0.8,
+                  marginBottom: space.sm,
+                  marginTop: space.lg,
+                }}
+              >
+                TAX PROFILE
+              </Text>
+              <View
+                style={{
+                  backgroundColor: colour.white,
+                  borderRadius: radius.lg,
+                  borderWidth: 1,
+                  borderColor: colour.borderLight,
+                  overflow: "hidden",
+                  marginBottom: space.md,
+                }}
+              >
+                {/* Age */}
+                <View
+                  style={{
+                    padding: space.md,
+                    borderBottomWidth: 1,
+                    borderBottomColor: colour.borderLight,
+                  }}
+                >
+                  <Text style={{ ...typography.captionM, color: colour.textHint, letterSpacing: 0.5, marginBottom: 4 }}>
+                    Age
+                  </Text>
+                  <TextInput
+                    value={taxAge}
+                    onChangeText={setTaxAge}
+                    placeholder="e.g. 34"
+                    placeholderTextColor={colour.textHint}
+                    keyboardType="number-pad"
+                    style={{ ...typography.bodyM, color: colour.text, paddingVertical: 4 }}
+                  />
+                </View>
+
+                {/* Medical aid dependants */}
+                <View
+                  style={{
+                    padding: space.md,
+                    borderBottomWidth: 1,
+                    borderBottomColor: colour.borderLight,
+                  }}
+                >
+                  <Text style={{ ...typography.captionM, color: colour.textHint, letterSpacing: 0.5, marginBottom: space.sm }}>
+                    Medical aid dependants (excluding yourself)
+                  </Text>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: space.md }}>
+                    <TouchableOpacity
+                      onPress={() => setTaxDependants((v) => Math.max(0, v - 1))}
+                      style={{
+                        width: 36, height: 36, borderRadius: 18,
+                        backgroundColor: colour.surface2,
+                        alignItems: "center", justifyContent: "center",
+                      }}
+                    >
+                      <Text style={{ fontSize: 20, color: colour.text, lineHeight: 24 }}>−</Text>
+                    </TouchableOpacity>
+                    <Text style={{ fontSize: 20, fontWeight: "700", color: colour.text, minWidth: 28, textAlign: "center" }}>
+                      {taxDependants}
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() => setTaxDependants((v) => Math.min(10, v + 1))}
+                      style={{
+                        width: 36, height: 36, borderRadius: 18,
+                        backgroundColor: colour.surface2,
+                        alignItems: "center", justifyContent: "center",
+                      }}
+                    >
+                      <Text style={{ fontSize: 20, color: colour.text, lineHeight: 24 }}>+</Text>
+                    </TouchableOpacity>
+                    <Text style={{ fontSize: 12, color: colour.textSub, flex: 1 }}>
+                      {taxDependants === 0 ? "just yourself" : taxDependants === 1 ? "1 dependant" : `${taxDependants} dependants`}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Disability */}
+                <View
+                  style={{
+                    padding: space.md,
+                    borderBottomWidth: 1,
+                    borderBottomColor: colour.borderLight,
+                  }}
+                >
+                  <Text style={{ ...typography.captionM, color: colour.textHint, letterSpacing: 0.5, marginBottom: space.sm }}>
+                    Disability (you or a dependant)
+                  </Text>
+                  <View style={{ flexDirection: "row", gap: space.sm }}>
+                    {[
+                      { label: "No disability", value: false },
+                      { label: "Yes — disability", value: true },
+                    ].map((opt) => (
+                      <TouchableOpacity
+                        key={String(opt.value)}
+                        onPress={() => setTaxDisability(opt.value)}
+                        style={{
+                          flex: 1,
+                          paddingVertical: 10,
+                          borderRadius: radius.md,
+                          borderWidth: 1.5,
+                          borderColor: taxDisability === opt.value ? colour.primary : colour.borderLight,
+                          backgroundColor: taxDisability === opt.value ? colour.primary50 : colour.white,
+                          alignItems: "center",
+                        }}
+                      >
+                        <Text
+                          style={{
+                            fontSize: 12,
+                            fontWeight: "600",
+                            color: taxDisability === opt.value ? colour.accentDeep : colour.textSub,
+                          }}
+                        >
+                          {opt.label}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+
+                {/* Medical aid annual contributions */}
+                <View style={{ padding: space.md }}>
+                  <Text style={{ ...typography.captionM, color: colour.textHint, letterSpacing: 0.5, marginBottom: 4 }}>
+                    Annual medical aid contributions (R)
+                  </Text>
+                  <TextInput
+                    value={taxMedContrib}
+                    onChangeText={setTaxMedContrib}
+                    placeholder="0"
+                    placeholderTextColor={colour.textHint}
+                    keyboardType="decimal-pad"
+                    style={{ ...typography.bodyM, color: colour.text, paddingVertical: 4 }}
+                  />
+                  <Text style={{ fontSize: 11, color: colour.textSub, marginTop: 4 }}>
+                    Total contributions you pay to your medical aid per year
+                  </Text>
+                </View>
+              </View>
+
+              {/* Live credit preview */}
+              {(() => {
+                const credit = medicalTaxCredit(taxDependants);
+                const age = parseInt(taxAge) || 0;
+                return (
+                  <View
+                    style={{
+                      backgroundColor: colour.noir,
+                      borderRadius: radius.md,
+                      padding: space.md,
+                      marginBottom: space.md,
+                    }}
+                  >
+                    <Text style={{ fontSize: 11, color: colour.onNoir2, marginBottom: space.sm }}>
+                      ESTIMATED MEDICAL TAX CREDIT (S6A)
+                    </Text>
+                    <Text style={{ fontSize: 26, fontWeight: "800", color: colour.onNoir, letterSpacing: -0.5, marginBottom: 2 }}>
+                      {`R ${credit.toLocaleString("en-ZA")}`}
+                      <Text style={{ fontSize: 13, fontWeight: "400", color: colour.onNoir2 }}> /year</Text>
+                    </Text>
+                    <Text style={{ fontSize: 11, color: colour.onNoir2, marginBottom: 6 }}>
+                      {taxDependants === 0
+                        ? "Main member: R4,368"
+                        : taxDependants === 1
+                          ? "Main member + 1 dependant: R4,368 + R4,368"
+                          : `Main member + ${taxDependants} dependants`}
+                    </Text>
+                    {taxDisability && (
+                      <View style={{ backgroundColor: colour.primary, borderRadius: radius.sm, padding: space.sm, marginTop: 4 }}>
+                        <Text style={{ fontSize: 11, fontWeight: "600", color: colour.white }}>
+                          Disability: qualifying out-of-pocket medical expenses are fully deductible (no 7.5% floor). Attach ITR-DD from SARS.
+                        </Text>
+                      </View>
+                    )}
+                    {age >= 65 && (
+                      <View style={{ backgroundColor: "rgba(255,255,255,0.08)", borderRadius: radius.sm, padding: space.sm, marginTop: 4 }}>
+                        <Text style={{ fontSize: 11, color: colour.onNoir2 }}>
+                          Age 65+: excess medical expenses are fully deductible without the 7.5% threshold.
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                );
+              })()}
+
+              <InfoBanner
+                icon="info.circle.fill"
+                body="These details are used to compute your medical tax credit in the tax summary screen. They are stored locally on your device only."
+                style={{ marginBottom: space.md }}
+              />
 
               <Text
                 style={{

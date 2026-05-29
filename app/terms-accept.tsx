@@ -61,7 +61,7 @@ export default function TermsAcceptScreen() {
             ...typography.bodyM, color: colour.textSub,
             textAlign: "center", lineHeight: 22, marginBottom: space["3xl"],
           }}>
-            Please review and accept our Terms of Service and Privacy Policy to use MyExpense.
+            Please review and accept our terms of service and privacy policy to use MyExpense.
           </Text>
 
           {/* Links */}
@@ -86,7 +86,7 @@ export default function TermsAcceptScreen() {
                 <IconSymbol name="doc.text.fill" size={16} color={colour.primary} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={{ ...typography.labelM, color: colour.text }}>Terms of Service</Text>
+                <Text style={{ ...typography.labelM, color: colour.text }}>Terms of service</Text>
                 <Text style={{ ...typography.caption, color: colour.textSub, marginTop: 2 }}>
                   How you may use MyExpense
                 </Text>
@@ -109,7 +109,7 @@ export default function TermsAcceptScreen() {
                 <IconSymbol name="lock.shield.fill" size={16} color={colour.primary} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={{ ...typography.labelM, color: colour.text }}>Privacy Policy</Text>
+                <Text style={{ ...typography.labelM, color: colour.text }}>Privacy policy</Text>
                 <Text style={{ ...typography.caption, color: colour.textSub, marginTop: 2 }}>
                   How we handle your data (POPIA)
                 </Text>
@@ -143,14 +143,14 @@ export default function TermsAcceptScreen() {
                 style={{ color: colour.primary, fontWeight: "600" }}
                 onPress={() => router.push("/terms" as any)}
               >
-                Terms of Service
+                terms of service
               </Text>
               {" "}and{" "}
               <Text
                 style={{ color: colour.primary, fontWeight: "600" }}
                 onPress={() => router.push("/privacy" as any)}
               >
-                Privacy Policy
+                privacy policy
               </Text>
             </Text>
           </TouchableOpacity>

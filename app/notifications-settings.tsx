@@ -1,3 +1,4 @@
+import { InfoBanner } from "@/components/InfoBanner";
 import { MXBackHeader } from "@/components/MXBackHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -7,6 +8,9 @@ import React, { useEffect, useState } from "react";
 import { ScrollView, StatusBar, Switch, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
+  cancelMonthlyReportReminder,
+  cancelSARSDeadlineReminders,
+  cancelWeeklyExpenseReminder,
   scheduleMonthlyReportReminder,
   scheduleSARSDeadlineReminders,
   scheduleWeeklyExpenseReminder,
@@ -56,24 +60,22 @@ function PreferenceRow({
     >
       <View
         style={{
-          width: 40,
-          height: 40,
-          borderRadius: radius.sm,
+          width: 32,
+          height: 32,
+          borderRadius: radius.pill,
           backgroundColor: colour.primary50,
           alignItems: "center",
           justifyContent: "center",
           marginRight: space.md,
         }}
       >
-        <IconSymbol name={icon as any} size={20} color={colour.primary} />
+        <IconSymbol name={icon as any} size={15} color={colour.accentDeep} />
       </View>
       <View style={{ flex: 1, marginRight: space.sm }}>
-        <Text style={{ ...typography.labelM, color: colour.text }}>
+        <Text style={{ fontSize: 13, fontWeight: "600", color: colour.text }}>
           {label}
         </Text>
-        <Text
-          style={{ ...typography.bodyXS, color: colour.textSub, marginTop: 2 }}
-        >
+        <Text style={{ fontSize: 11, color: colour.textSub, marginTop: 2 }}>
           {sub}
         </Text>
       </View>
@@ -125,9 +127,17 @@ export default function NotificationsSettingsScreen() {
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next));
 
     try {
-      if (key === "weeklyReminder") await scheduleWeeklyExpenseReminder();
-      if (key === "monthlyReport") await scheduleMonthlyReportReminder();
-      if (key === "sarsDeadlines") await scheduleSARSDeadlineReminders();
+      if (key === "weeklyReminder") {
+        value ? await scheduleWeeklyExpenseReminder() : await cancelWeeklyExpenseReminder();
+      }
+      if (key === "monthlyReport") {
+        value ? await scheduleMonthlyReportReminder() : await cancelMonthlyReportReminder();
+      }
+      if (key === "sarsDeadlines") {
+        value ? await scheduleSARSDeadlineReminders() : await cancelSARSDeadlineReminders();
+      }
+      // receiptReminders: per-expense notifications are checked at creation time
+      // in add-expense.tsx — there is no global set to cancel here.
     } catch {
       // Scheduling errors are non-fatal — works only in EAS builds
     }
@@ -146,23 +156,10 @@ export default function NotificationsSettingsScreen() {
         contentContainerStyle={{ paddingBottom: space["5xl"] }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Info banner */}
-        <View
-          style={{
-            margin: space.lg,
-            backgroundColor: colour.infoLight,
-            borderRadius: radius.md,
-            padding: space.md,
-            flexDirection: "row",
-            gap: space.sm,
-          }}
-        >
-          <IconSymbol name="info.circle" size={16} color={colour.info} />
-          <Text style={{ ...typography.bodyS, color: colour.info, flex: 1 }}>
-            Push notifications activate in the production build. Your
-            preferences are saved and will apply automatically.
-          </Text>
-        </View>
+        <InfoBanner
+          body="Push notifications activate in the production build. Your preferences are saved and will apply automatically."
+          style={{ margin: space.lg }}
+        />
 
         {/* Reminders */}
         <SectionHeader title="Reminders" />

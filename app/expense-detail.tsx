@@ -361,7 +361,7 @@ export default function ExpenseDetailScreen() {
       />
 
       <MXHeader
-        title="Expense Detail"
+        title="Expense detail"
         showBack
         right={
           <TouchableOpacity
@@ -425,7 +425,7 @@ export default function ExpenseDetailScreen() {
           >
             <View>
               <Text style={{ ...typography.labelM, color: colour.success }}>
-                Tax Claimable Amount
+                Tax claimable amount
               </Text>
               <Text style={{ ...typography.caption, color: colour.success }}>
                 ITR12 · {itr12Code}
