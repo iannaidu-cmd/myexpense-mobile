@@ -216,7 +216,7 @@ function InlineSplash({ opacity }: { opacity: Animated.Value }) {
   return (
     <Animated.View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: colour.background, alignItems: "center", justifyContent: "center", opacity }}>
       <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
-        <Image source={require("@/assets/images/sm_logo.gif")} style={{ width: 162, height: 162, resizeMode: "contain" }} />
+        <Image source={require("@/assets/images/sm_logo.gif")} style={{ width: 211, height: 211, resizeMode: "contain" }} />
       </Animated.View>
     </Animated.View>
   );
