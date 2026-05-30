@@ -508,10 +508,10 @@ export default function ExpenseDetailScreen() {
             }
           }}
           style={{
-            backgroundColor: hasReceipt ? colour.primaryLight : colour.bgPage,
+            backgroundColor: hasReceipt ? colour.noir : colour.bgPage,
             borderRadius: radius.md,
             borderWidth: 1,
-            borderColor: hasReceipt ? colour.primary : colour.border,
+            borderColor: hasReceipt ? colour.noir : colour.border,
             padding: space.lg,
             flexDirection: "row",
             alignItems: "center",
@@ -520,44 +520,44 @@ export default function ExpenseDetailScreen() {
           }}
         >
           <View style={{ flexDirection: "row", alignItems: "center" }}>
-            <View style={{ width: 36, height: 36, borderRadius: radius.md, backgroundColor: hasReceipt ? colour.primary50 : colour.surface2, alignItems: "center", justifyContent: "center", marginRight: space.sm }}>
-              <IconSymbol name={hasReceipt ? "doc.fill" : "paperclip"} size={16} color={hasReceipt ? colour.primary : colour.textSub} />
+            <View style={{ width: 36, height: 36, borderRadius: radius.md, backgroundColor: hasReceipt ? "rgba(255,255,255,0.15)" : colour.surface2, alignItems: "center", justifyContent: "center", marginRight: space.sm }}>
+              <IconSymbol name={hasReceipt ? "doc.fill" : "paperclip"} size={16} color={hasReceipt ? colour.white : colour.textSub} />
             </View>
             <View>
               <Text
                 style={{
                   ...typography.labelM,
-                  color: hasReceipt ? colour.primary : colour.textSecondary,
+                  color: hasReceipt ? colour.onNoir : colour.textSecondary,
                 }}
               >
                 {hasReceipt ? "Receipt attached" : "No receipt uploaded"}
               </Text>
               <Text
-                style={{ ...typography.caption, color: colour.textSecondary }}
+                style={{ ...typography.caption, color: hasReceipt ? colour.onNoir2 : colour.textSecondary }}
               >
                 {hasReceipt ? "Tap to view full screen" : "Tap to add receipt"}
               </Text>
             </View>
           </View>
-          <Text style={{ color: colour.textSecondary, fontSize: 18 }}>›</Text>
+          <Text style={{ color: hasReceipt ? colour.onNoir2 : colour.textSecondary, fontSize: 18 }}>›</Text>
         </TouchableOpacity>
 
         {/* SARS compliance note */}
         <View
           style={{
-            backgroundColor: colour.infoLight,
+            backgroundColor: colour.noir,
             borderRadius: radius.md,
             padding: space.md,
             marginBottom: space.xl,
           }}
         >
           <View style={{ flexDirection: "row", alignItems: "center", gap: space.xs, marginBottom: space.xs }}>
-            <IconSymbol name="checkmark.seal.fill" size={14} color={colour.info} />
-            <Text style={{ ...typography.labelS, color: colour.info }}>
-              SARS Compliance
+            <IconSymbol name="checkmark.seal.fill" size={14} color={colour.primary} />
+            <Text style={{ ...typography.labelS, color: colour.onNoir }}>
+              SARS compliance
             </Text>
           </View>
-          <Text style={{ ...typography.bodyS, color: colour.info }}>
+          <Text style={{ ...typography.bodyS, color: colour.onNoir2 }}>
             Keep this receipt for 5 years from the date of assessment. Required
             for {itr12Code} deduction claims on your ITR12.
           </Text>
