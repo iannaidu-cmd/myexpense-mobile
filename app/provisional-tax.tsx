@@ -51,34 +51,34 @@ function buildDeadlines(): Deadline[] {
     // 2025/26 top-up (previous tax year)
     {
       key: "2526-topup",
-      label: "2025/26 top-up payment",
+      label: "Pay any leftover tax — 2025/26",
       dateStr: "30 Sep 2026",
       isoDate: "2026-09-30",
-      desc: "Pay remaining 2025/26 balance to avoid 20% penalty",
+      desc: "Settle any remaining tax from last year to avoid a penalty",
     },
     // 2026/27 first provisional
     {
       key: "2627-irp6-1",
-      label: "2026/27 · 1st provisional (IRP6-1)",
+      label: "1st payment — 2026/27",
       dateStr: "31 Aug 2026",
       isoDate: "2026-08-31",
-      desc: "At least 50% of estimated annual tax for 2026/27",
+      desc: "Pay at least half your estimated tax for the year",
     },
     // 2026/27 second provisional
     {
       key: "2627-irp6-2",
-      label: "2026/27 · 2nd provisional (IRP6-2)",
+      label: "2nd payment — 2026/27",
       dateStr: "28 Feb 2027",
       isoDate: "2027-02-28",
-      desc: "Remaining balance (full estimated tax less IRP6-1)",
+      desc: "Pay the rest of your estimated tax for the year",
     },
     // 2026/27 top-up
     {
       key: "2627-topup",
-      label: "2026/27 top-up payment",
+      label: "Pay any leftover tax — 2026/27",
       dateStr: "30 Sep 2027",
       isoDate: "2027-09-30",
-      desc: "Optional top-up to avoid penalty interest on shortfall",
+      desc: "Optional — top up if you underpaid to avoid interest charges",
     },
   ];
   // Sort chronologically
@@ -255,7 +255,7 @@ export default function ProvisionalTaxScreen() {
       <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
       <MXHeader
         title="Provisional tax"
-        subtitle="IRP6 guidance for self-employed income"
+        subtitle="How much you owe and when to pay"
         showBack
       />
 
@@ -280,7 +280,7 @@ export default function ProvisionalTaxScreen() {
                 marginBottom: space.sm,
               }}
             >
-              DO I NEED TO SUBMIT?
+              DO I NEED TO REGISTER?
             </Text>
             <View
               style={{
@@ -293,13 +293,13 @@ export default function ProvisionalTaxScreen() {
               }}
             >
               <CheckRow
-                label="Non-employment income > R30,000"
+                label="Freelance / non-salary income over R30,000"
                 value={nonEmploymentIncome > 0 ? fmt(nonEmploymentIncome) : "—"}
                 pass={needsProvisional}
               />
               <CheckRow
-                label="Not solely PAYE taxpayer"
-                value={irp5Gross > 0 && nonEmploymentIncome > 0 ? "Mixed" : irp5Gross === 0 ? "No IRP5" : "IRP5 only"}
+                label="You earn income outside a salary"
+                value={irp5Gross > 0 && nonEmploymentIncome > 0 ? "Salary + freelance" : irp5Gross === 0 ? "Freelance only" : "Salary only"}
                 pass={nonEmploymentIncome > 0}
               />
               <View style={{ paddingTop: space.md }}>
@@ -327,10 +327,10 @@ export default function ProvisionalTaxScreen() {
                     }}
                   >
                     {needsProvisional
-                      ? "You likely need to register as a provisional taxpayer with SARS."
+                      ? "You likely need to register as a provisional taxpayer. You can do this on SARS eFiling or speak to your accountant."
                       : totalIncome === 0
-                        ? "Add income entries to check your eligibility."
-                        : "Based on current data, provisional tax may not apply to you."}
+                        ? "Add your income first and we'll check whether you need to register."
+                        : "Based on what you've recorded, you probably don't need to register as a provisional taxpayer."}
                   </Text>
                 </View>
               </View>
@@ -361,15 +361,15 @@ export default function ProvisionalTaxScreen() {
                   <Text
                     style={{ fontSize: 11, color: colour.onNoir2, marginBottom: space.md }}
                   >
-                    Based on your recorded income, deductions and IRP5 PAYE.
+                    Estimated from your recorded income, expenses and salary tax (PAYE).
                   </Text>
 
                   {[
                     { label: "Total income", value: fmt(totalIncome), colour: colour.onNoir },
-                    { label: "Deductions", value: estimatedDeductions > 0 ? `−${fmt(estimatedDeductions)}` : "—", colour: colour.onNoir2 },
+                    { label: "Deductions (your expenses)", value: estimatedDeductions > 0 ? `−${fmt(estimatedDeductions)}` : "—", colour: colour.onNoir2 },
                     { label: "Taxable income", value: fmt(taxableIncome), colour: colour.onNoir },
-                    { label: "Gross tax (SARS table)", value: fmt(grossTax), colour: colour.onNoir },
-                    { label: "PAYE already paid", value: payeAlreadyPaid > 0 ? `−${fmt(payeAlreadyPaid)}` : "—", colour: colour.onNoir2 },
+                    { label: "Tax calculated by SARS", value: fmt(grossTax), colour: colour.onNoir },
+                    { label: "Tax already paid (PAYE)", value: payeAlreadyPaid > 0 ? `−${fmt(payeAlreadyPaid)}` : "—", colour: colour.onNoir2 },
                   ].map((row) => (
                     <View
                       key={row.label}
@@ -412,14 +412,14 @@ export default function ProvisionalTaxScreen() {
                       }}
                     >
                       <Text style={{ fontSize: 11, color: colour.onNoir2, marginBottom: 4 }}>
-                        Payment split:
+                        Split into 2 payments:
                       </Text>
                       <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                        <Text style={{ fontSize: 12, color: colour.onNoir2 }}>IRP6-1 (50%)</Text>
+                        <Text style={{ fontSize: 12, color: colour.onNoir2 }}>1st payment (Aug 2026)</Text>
                         <Text style={{ fontSize: 12, fontWeight: "700", color: colour.onNoir }}>{fmt(irp61)}</Text>
                       </View>
                       <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                        <Text style={{ fontSize: 12, color: colour.onNoir2 }}>IRP6-2 (50%)</Text>
+                        <Text style={{ fontSize: 12, color: colour.onNoir2 }}>2nd payment (Feb 2027)</Text>
                         <Text style={{ fontSize: 12, fontWeight: "700", color: colour.onNoir }}>{fmt(irp62)}</Text>
                       </View>
                     </View>
@@ -438,7 +438,7 @@ export default function ProvisionalTaxScreen() {
                 marginBottom: space.sm,
               }}
             >
-              UPCOMING DEADLINES
+              PAYMENT DATES
             </Text>
             <View
               style={{
@@ -465,8 +465,8 @@ export default function ProvisionalTaxScreen() {
             {/* ── Penalty warning ───────────────────────────────────────── */}
             <InfoBanner
               icon="exclamationmark.triangle.fill"
-              title="Underestimation penalty"
-              body="If your 2nd provisional payment is less than 80% of your actual tax liability, SARS imposes a 20% penalty on the shortfall. Interest also accrues at the official rate."
+              title="Underpay and SARS will charge you extra"
+              body="If your 2nd payment is less than 80% of what you actually owe, SARS adds a 20% penalty on the shortfall — plus interest. It's safer to slightly overpay."
               style={{ marginBottom: space.xl }}
             />
 
@@ -480,7 +480,7 @@ export default function ProvisionalTaxScreen() {
                 marginBottom: space.sm,
               }}
             >
-              HOW TO PAY VIA SARS eFILING
+              HOW TO PAY
             </Text>
             <View
               style={{
@@ -495,7 +495,7 @@ export default function ProvisionalTaxScreen() {
               {[
                 {
                   step: "1",
-                  text: "Log in to SARS eFiling at efiling.sars.gov.za",
+                  text: "Log in to SARS eFiling (efiling.sars.gov.za)",
                 },
                 {
                   step: "2",
@@ -503,15 +503,15 @@ export default function ProvisionalTaxScreen() {
                 },
                 {
                   step: "3",
-                  text: "Complete your estimated taxable income for the period",
+                  text: "Enter your estimated income for the period",
                 },
                 {
                   step: "4",
-                  text: "Submit and pay via EFT using the SARS payment reference on your IRP6",
+                  text: "Submit and pay by EFT — use the reference number shown on your IRP6",
                 },
                 {
                   step: "5",
-                  text: "Keep proof of payment — penalties apply if not received by SARS by the deadline",
+                  text: "Save your proof of payment — late payments attract penalties",
                 },
               ].map((item, idx, arr) => (
                 <View
@@ -556,7 +556,7 @@ export default function ProvisionalTaxScreen() {
 
             <InfoBanner
               icon="info.circle.fill"
-              body="This estimate is a guide only. Your actual provisional tax must be calculated on your full taxable income including allowances and deductions. Consult a registered tax practitioner if unsure."
+              body="These numbers are a rough guide based on what you've recorded. Your actual tax depends on your full financial picture. If you're unsure, speak to a tax practitioner."
               style={{ marginBottom: space.xl }}
             />
 
@@ -591,7 +591,7 @@ export default function ProvisionalTaxScreen() {
                     Add IRP5 income
                   </Text>
                   <Text style={{ fontSize: 11, color: colour.onNoir2, marginTop: 2 }}>
-                    Record your employment income and PAYE for a more accurate estimate
+                    Add your salary income to get a more accurate estimate
                   </Text>
                 </View>
                 <IconSymbol name="chevron.right" size={14} color={colour.onNoir2} />

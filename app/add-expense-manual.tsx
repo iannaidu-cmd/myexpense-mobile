@@ -408,7 +408,7 @@ export default function AddExpenseScreen() {
             <View>
               <View style={{ backgroundColor: colour.infoLight, borderRadius: 8, padding: 10, marginBottom: 10 }}>
                 <Text style={{ fontSize: 12, color: colour.info, lineHeight: 18 }}>
-                  SARS requires a stated business-use percentage. Enter the % of this device used for business. The deductible amount will be adjusted accordingly.
+                  What percentage of your phone is used for work? Enter that number below — we'll only claim that portion as a deduction.
                 </Text>
               </View>
               <FieldLabel label="Business use %" />
@@ -425,13 +425,13 @@ export default function AddExpenseScreen() {
               icon="house.fill"
               title={
                 homeOfficeSetting
-                  ? `Floor ratio: ${(floorRatio(homeOfficeSetting) * 100).toFixed(1)}% (${homeOfficeSetting.officeM2}m² ÷ ${homeOfficeSetting.totalM2}m²)`
-                  : "Home office ratio not set"
+                  ? `Your home office takes up ${(floorRatio(homeOfficeSetting) * 100).toFixed(1)}% of your home`
+                  : "Home office size not set up yet"
               }
               body={
                 homeOfficeSetting
-                  ? `Only ${(floorRatio(homeOfficeSetting) * 100).toFixed(1)}% of this expense is deductible under S11(a).${amount && parseFloat(amount) > 0 ? ` Claimable: R ${Math.round(parseFloat(amount) * floorRatio(homeOfficeSetting)).toLocaleString("en-ZA")}` : ""}`
-                  : "Set up your floor area ratio in Settings → Tax setup → Home office to automatically calculate the deductible portion."
+                  ? `Only ${(floorRatio(homeOfficeSetting) * 100).toFixed(1)}% of this expense can be claimed (${homeOfficeSetting.officeM2}m² ÷ ${homeOfficeSetting.totalM2}m²).${amount && parseFloat(amount) > 0 ? ` Claimable amount: R ${Math.round(parseFloat(amount) * floorRatio(homeOfficeSetting)).toLocaleString("en-ZA")}` : ""}`
+                  : "Go to Settings → Tax setup → Home office to enter your room sizes. We'll automatically work out the claimable portion."
               }
               style={{ marginBottom: 10 }}
             />
@@ -439,28 +439,28 @@ export default function AddExpenseScreen() {
           {category === "Equipment & Tools" && !!amount && parseFloat(amount) > 7000 && (
             <View style={{ backgroundColor: colour.infoLight, borderRadius: 8, padding: 10, marginBottom: 10 }}>
               <Text style={{ fontSize: 12, color: colour.info, lineHeight: 18 }}>
-                Items over R7,000 may be subject to SARS wear & tear schedules (e.g. computers 3 years, furniture 6 years) rather than being expensed in full. Consult your tax practitioner.
+                Big-ticket items like this may need to be claimed over a few years instead of all at once (e.g. 3 years for computers, 6 years for furniture). Check with your tax practitioner.
               </Text>
             </View>
           )}
           {category === "Vehicle Expenses" && (
             <InfoBanner
               icon="car.fill"
-              body="Actual cost method: only the business proportion is deductible (business km ÷ total annual km × total vehicle costs). Check your mileage logbook for this ratio. The deemed cost method (R4.84/km) is tracked separately under Mileage."
+              body="Only the work portion counts. Divide your work km by your total km for the year to find the claimable percentage — your mileage logbook tracks this. A flat rate of R4.84/km is tracked separately under Mileage."
               style={{ marginBottom: 10 }}
             />
           )}
           {category === "Retirement Annuity" && (
             <View style={{ backgroundColor: colour.noir, borderRadius: 8, padding: 10, marginBottom: 10 }}>
               <Text style={{ fontSize: 12, color: colour.onNoir2, lineHeight: 18 }}>
-                RA deductions are capped at the greater of 27.5% of taxable income or remuneration, up to R350,000/year. SARS requires an IT3(a) certificate from your RA provider.
+                You can claim up to 27.5% of your income (max R350,000/year) for RA contributions. You'll need a certificate (IT3a) from your RA provider to submit with your tax return.
               </Text>
             </View>
           )}
           {category === "Meals & Entertainment" && (
             <View style={{ backgroundColor: colour.infoLight, borderRadius: 8, padding: 10, marginBottom: 10 }}>
               <Text style={{ fontSize: 12, color: colour.info, lineHeight: 18 }}>
-                Only 80% of meals & entertainment is deductible under S23(o). MyExpense applies this cap automatically.
+                SARS only allows 80% of meals and entertainment to be claimed. We apply this limit automatically when you save.
               </Text>
             </View>
           )}
@@ -489,7 +489,7 @@ export default function AddExpenseScreen() {
                 <>
                   <InfoBanner
                     icon="shield.fill"
-                    body="Pure business policies (professional indemnity, business equipment) enter 100%. Mixed-use policies: enter the % used for business."
+                    body="If the policy is purely for your business (e.g. professional indemnity), enter 100%. If it covers both personal and business use, enter just the work percentage."
                     style={{ marginBottom: 10 }}
                   />
                   <FieldLabel label="Business use %" />
@@ -503,10 +503,10 @@ export default function AddExpenseScreen() {
               ) : (
                 <InfoBanner
                   icon="house.fill"
-                  title={homeOfficeSetting ? `Floor ratio applied: ${(floorRatio(homeOfficeSetting) * 100).toFixed(1)}%` : "Home office ratio not set"}
+                  title={homeOfficeSetting ? `We'll claim ${(floorRatio(homeOfficeSetting) * 100).toFixed(1)}% based on your home office size` : "Home office size not set up yet"}
                   body={homeOfficeSetting
-                    ? `Home/contents insurance is deductible at your floor ratio (${homeOfficeSetting.officeM2}m² ÷ ${homeOfficeSetting.totalM2}m²) under S11(a).${amount && parseFloat(amount) > 0 ? ` Claimable: R ${Math.round(parseFloat(amount) * floorRatio(homeOfficeSetting)).toLocaleString("en-ZA")}` : ""}`
-                    : "Set your floor area in Settings → Tax setup → Home office."}
+                    ? `Your home office takes up ${(floorRatio(homeOfficeSetting) * 100).toFixed(1)}% of your home (${homeOfficeSetting.officeM2}m² ÷ ${homeOfficeSetting.totalM2}m²), so we'll claim that portion of this insurance.${amount && parseFloat(amount) > 0 ? ` Claimable amount: R ${Math.round(parseFloat(amount) * floorRatio(homeOfficeSetting)).toLocaleString("en-ZA")}` : ""}`
+                    : "Go to Settings → Tax setup → Home office to enter your room sizes."}
                   style={{ marginBottom: 10 }}
                 />
               )}
@@ -535,24 +535,24 @@ export default function AddExpenseScreen() {
               {interestSubType === "business_loan" && (
                 <InfoBanner
                   icon="creditcard.fill"
-                  body="Interest on a business loan is fully deductible under S11(a), provided the loan was used to generate business income."
+                  body="All the interest on a business loan can be claimed, as long as the loan was used to run your business."
                   style={{ marginBottom: 10 }}
                 />
               )}
               {interestSubType === "bond" && (
                 <InfoBanner
                   icon="house.fill"
-                  title={homeOfficeSetting ? `Floor ratio applied: ${(floorRatio(homeOfficeSetting) * 100).toFixed(1)}%` : "Home office ratio not set"}
+                  title={homeOfficeSetting ? `We'll claim ${(floorRatio(homeOfficeSetting) * 100).toFixed(1)}% based on your home office size` : "Home office size not set up yet"}
                   body={homeOfficeSetting
-                    ? `Bond interest is deductible at your home office floor ratio (${homeOfficeSetting.officeM2}m² ÷ ${homeOfficeSetting.totalM2}m²) under S11(a).${amount && parseFloat(amount) > 0 ? ` Claimable: R ${Math.round(parseFloat(amount) * floorRatio(homeOfficeSetting)).toLocaleString("en-ZA")}` : ""}`
-                    : "Set your floor area in Settings → Tax setup → Home office."}
+                    ? `Only the home office portion of your bond interest can be claimed. Your office takes up ${(floorRatio(homeOfficeSetting) * 100).toFixed(1)}% of your home (${homeOfficeSetting.officeM2}m² ÷ ${homeOfficeSetting.totalM2}m²).${amount && parseFloat(amount) > 0 ? ` Claimable amount: R ${Math.round(parseFloat(amount) * floorRatio(homeOfficeSetting)).toLocaleString("en-ZA")}` : ""}`
+                    : "Go to Settings → Tax setup → Home office to enter your room sizes."}
                   style={{ marginBottom: 10 }}
                 />
               )}
               {interestSubType === "personal" && (
                 <InfoBanner
                   icon="xmark.circle.fill"
-                  body="Personal interest (credit cards, personal loans) is not deductible under SARS rules. This expense will be marked as non-deductible."
+                  body="Personal interest like credit cards or personal loans can't be claimed as a tax deduction. This expense will be saved as non-deductible."
                   style={{ marginBottom: 10 }}
                 />
               )}
