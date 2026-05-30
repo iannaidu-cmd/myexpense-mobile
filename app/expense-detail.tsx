@@ -383,17 +383,17 @@ export default function ExpenseDetailScreen() {
         <View style={{ flexDirection: "row", gap: space.sm, marginTop: space.md }}>
           {itr12Code ? (
             <View style={{
-              backgroundColor: colour.primary50, borderRadius: radius.full,
+              backgroundColor: colour.noir, borderRadius: radius.full,
               paddingVertical: 4, paddingHorizontal: space.sm,
             }}>
-              <Text style={{ ...typography.labelS, color: colour.accentDeep }}>{itr12Code}</Text>
+              <Text style={{ ...typography.labelS, color: colour.onNoir2 }}>{itr12Code}</Text>
             </View>
           ) : null}
           <View style={{
-            backgroundColor: expense.is_deductible ? colour.successBg : colour.dangerBg,
+            backgroundColor: expense.is_deductible ? colour.success : colour.danger,
             borderRadius: radius.full, paddingVertical: 4, paddingHorizontal: space.sm,
           }}>
-            <Text style={{ ...typography.labelS, color: expense.is_deductible ? colour.success : colour.danger }}>
+            <Text style={{ ...typography.labelS, color: colour.white }}>
               {expense.is_deductible ? "Deductible" : "Non-deductible"}
             </Text>
           </View>
@@ -414,7 +414,7 @@ export default function ExpenseDetailScreen() {
         {expense.is_deductible ? (
           <View
             style={{
-              backgroundColor: colour.successLight,
+              backgroundColor: colour.noir,
               borderRadius: radius.md,
               padding: space.md,
               flexDirection: "row",
@@ -424,21 +424,21 @@ export default function ExpenseDetailScreen() {
             }}
           >
             <View>
-              <Text style={{ ...typography.labelM, color: colour.success }}>
+              <Text style={{ ...typography.labelM, color: colour.onNoir }}>
                 Tax claimable amount
               </Text>
-              <Text style={{ ...typography.caption, color: colour.success }}>
+              <Text style={{ ...typography.caption, color: colour.onNoir2 }}>
                 ITR12 · {itr12Code}
               </Text>
             </View>
-            <Text style={{ ...typography.amountM, color: colour.success }}>
+            <Text style={{ ...typography.amountM, color: colour.primary }}>
               {fmt(claimable)}
             </Text>
           </View>
         ) : (
           <View
             style={{
-              backgroundColor: colour.dangerBg,
+              backgroundColor: colour.noir,
               borderRadius: radius.md,
               padding: space.md,
               marginBottom: space.xl,
@@ -447,7 +447,7 @@ export default function ExpenseDetailScreen() {
             <Text style={{ ...typography.labelM, color: colour.danger }}>
               Non-deductible expense
             </Text>
-            <Text style={{ ...typography.caption, color: colour.danger }}>
+            <Text style={{ ...typography.caption, color: colour.onNoir2 }}>
               This expense cannot be claimed on your ITR12
             </Text>
           </View>
