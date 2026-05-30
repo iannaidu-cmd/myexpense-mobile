@@ -305,7 +305,7 @@ export default function ProvisionalTaxScreen() {
               <View style={{ paddingTop: space.md }}>
                 <View
                   style={{
-                    backgroundColor: needsProvisional ? colour.warningBg : colour.successBg,
+                    backgroundColor: needsProvisional ? colour.infoLight : colour.successBg,
                     borderRadius: radius.sm,
                     padding: space.md,
                     flexDirection: "row",
@@ -316,14 +316,14 @@ export default function ProvisionalTaxScreen() {
                   <IconSymbol
                     name={needsProvisional ? "exclamationmark.triangle.fill" : "checkmark.circle.fill"}
                     size={16}
-                    color={needsProvisional ? colour.warning : colour.success}
+                    color={needsProvisional ? colour.info : colour.success}
                   />
                   <Text
                     style={{
                       flex: 1,
                       fontSize: 12,
                       fontWeight: "600",
-                      color: needsProvisional ? colour.warning : colour.success,
+                      color: needsProvisional ? colour.info : colour.success,
                     }}
                   >
                     {needsProvisional

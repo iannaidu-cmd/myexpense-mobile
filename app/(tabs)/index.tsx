@@ -414,29 +414,43 @@ export default function HomeScreen() {
             )}
 
             {/* ── ITR12 Filing Season ── */}
-            <View style={{
-              backgroundColor: colour.primary50, borderRadius: radius.lg,
-              padding: space.lg, borderWidth: 1, borderColor: colour.primary100,
-              marginTop: space.md,
-            }}>
-              <Text style={{ fontSize: 15, fontWeight: "700", color: colour.primary, marginBottom: 6 }}>
-                ITR12 filing season
-              </Text>
-              <Text style={{ fontSize: 13, color: colour.textSub, marginBottom: 14, lineHeight: 19 }}>
-                Your {ACTIVE_TAX_YEAR} deductions are ready to export. Generate your SARS-ready report now.
-              </Text>
-              <TouchableOpacity
-                onPress={() => router.push("/itr12-export-setup")}
-                style={{
-                  backgroundColor: colour.primary, borderRadius: radius.pill,
-                  paddingVertical: 11, paddingHorizontal: 20, alignSelf: "flex-start",
-                }}
-              >
-                <Text style={{ fontSize: 13, fontWeight: "700", color: colour.onPrimary }}>
-                  Prepare ITR12 export
+            <TouchableOpacity
+              onPress={() => router.push("/itr12-export-setup")}
+              activeOpacity={0.85}
+              style={{
+                backgroundColor: colour.noir, borderRadius: radius.lg,
+                padding: 16, paddingHorizontal: 18,
+                flexDirection: "row", alignItems: "center", gap: 14,
+                marginTop: space.md, overflow: "hidden",
+              }}
+            >
+              <View style={{
+                position: "absolute", width: 120, height: 120, borderRadius: 60,
+                backgroundColor: colour.primary, opacity: 0.35, top: -40, right: -30,
+              }} />
+              <View style={{
+                width: 42, height: 42, borderRadius: 12,
+                backgroundColor: "rgba(255,255,255,0.15)",
+                alignItems: "center", justifyContent: "center",
+              }}>
+                <IconSymbol name="doc.text.fill" size={20} color={colour.white} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 15, fontWeight: "700", color: colour.onNoir, letterSpacing: -0.3 }}>
+                  ITR12 filing season
                 </Text>
-              </TouchableOpacity>
-            </View>
+                <Text style={{ fontSize: 11, color: colour.onNoir2, marginTop: 2 }}>
+                  {ACTIVE_TAX_YEAR} · Prepare your SARS-ready export
+                </Text>
+              </View>
+              <View style={{
+                width: 32, height: 32, borderRadius: 16,
+                backgroundColor: "rgba(255,255,255,0.15)",
+                alignItems: "center", justifyContent: "center",
+              }}>
+                <IconSymbol name="chevron.right" size={14} color={colour.white} />
+              </View>
+            </TouchableOpacity>
           </>
         )}
       </ScrollView>
