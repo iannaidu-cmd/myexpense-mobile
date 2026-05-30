@@ -585,7 +585,7 @@ export default function ExpenseDetailScreen() {
           style={{
             borderRadius: radius.pill,
             borderWidth: 1.5,
-            borderColor: colour.success,
+            borderColor: colour.primary,
             height: 52,
             alignItems: "center",
             justifyContent: "center",
@@ -595,11 +595,11 @@ export default function ExpenseDetailScreen() {
           }}
         >
           {converting ? (
-            <ActivityIndicator color={colour.success} />
+            <ActivityIndicator color={colour.primary} />
           ) : (
             <>
-              <IconSymbol name="arrow.left.arrow.right" size={16} color={colour.success} />
-              <Text style={{ ...typography.btnL, color: colour.success }}>
+              <IconSymbol name="arrow.left.arrow.right" size={16} color={colour.primary} />
+              <Text style={{ ...typography.btnL, color: colour.primary }}>
                 Reclassify as income
               </Text>
             </>
