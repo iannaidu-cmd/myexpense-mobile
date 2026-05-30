@@ -22,6 +22,7 @@ export const CATEGORIES: Category[] = [
   { label: "Utilities",                icon: "bolt.fill",             code: "S11(a)",    deductible: true  },
   { label: "Marketing & Advertising",  icon: "megaphone.fill",        code: "S11(a)",    deductible: true  },
   { label: "Bank Charges",             icon: "building.columns.fill", code: "S11(a)",    deductible: true  },
+  { label: "Interest & Finance Charges", icon: "percent",             code: "S11(a)",    deductible: true  },
   { label: "Insurance",                icon: "shield.fill",           code: "S11(a)",    deductible: true  },
   { label: "Rent",                     icon: "building.2.fill",       code: "S11(a)",    deductible: true  },
   { label: "Repairs & Maintenance",    icon: "wrench.fill",           code: "S11(a)",    deductible: true  },
