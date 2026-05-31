@@ -419,8 +419,6 @@ function RootLayout() {
           name="error-no-internet"
           options={{ headerShown: false }}
         />
-        {/* ── Modal ── */}
-        <Stack.Screen name="modal" options={{ presentation: "modal" }} />
       </Stack>
       <StatusBar style="auto" />
     </ThemeProvider>

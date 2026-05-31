@@ -1,11 +1,8 @@
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { useAuthStore } from "@/stores/authStore";
-import { useExpenseStore } from "@/stores/expenseStore";
-import { useTaxStore } from "@/stores/taxStore";
 import { colour } from "@/tokens";
 import { Tabs, useRouter } from "expo-router";
-import React, { useEffect, useRef, useState } from "react";
-import { AppState, Modal, Platform, Text, TouchableOpacity, View } from "react-native";
+import React, { useState } from "react";
+import { Modal, Platform, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const TAB_CONFIG: {
@@ -258,20 +255,6 @@ function CustomTabBar({
 }
 
 export default function TabLayout() {
-  const { user } = useAuthStore();
-  const appState = useRef(AppState.currentState);
-
-  useEffect(() => {
-    const subscription = AppState.addEventListener('change', (nextState) => {
-      if (appState.current.match(/inactive|background/) && nextState === 'active' && user) {
-        useExpenseStore.getState().loadExpenses(user.id);
-        useTaxStore.getState().loadSummary(user.id);
-      }
-      appState.current = nextState;
-    });
-    return () => subscription.remove();
-  }, [user]);
-
   return (
     <Tabs
       tabBar={(props) => <CustomTabBar {...props} />}
