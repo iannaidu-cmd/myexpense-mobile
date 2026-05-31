@@ -60,13 +60,17 @@ async function fetchPremiumStatus(userId: string): Promise<{
 }> {
   const { data } = await supabase
     .from("profiles")
-    .select("is_dev_user, subscription, terms_accepted_at")
+    .select("is_dev_user, subscription, terms_accepted_at, promo_expires_at")
     .eq("id", userId)
     .single();
 
   const isDevUser = data?.is_dev_user === true;
+  const promoActive = data?.promo_expires_at
+    ? new Date(data.promo_expires_at) > new Date()
+    : false;
   const isPremium =
     isDevUser ||
+    promoActive ||
     data?.subscription === "pro" ||
     data?.subscription === "business";
   const termsAccepted = !!data?.terms_accepted_at;

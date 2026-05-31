@@ -6,6 +6,7 @@ import { incomeService } from "@/services/incomeService";
 import { useAuthStore } from "@/stores/authStore";
 import { colour, radius, space, typography } from "@/tokens";
 import { useFocusEffect, useRouter } from "expo-router";
+import { useAppForeground } from "@/hooks/use-app-foreground";
 import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
@@ -222,62 +223,61 @@ export default function IncomeVsExpensesScreen() {
   const [allMonths, setAllMonths] = useState<MonthData[]>([]);
   const [topCategory, setTopCategory] = useState<{ name: string; amount: number } | null>(null);
 
-  useFocusEffect(
-    useCallback(() => {
-      if (!user) { setLoading(false); return; }
-      setLoading(true);
-      setError(null);
+  const loadData = useCallback(() => {
+    if (!user) { setLoading(false); return; }
+    setLoading(true);
+    setError(null);
 
-      const months = buildRecentMonths(6);
-      const validKeys = new Set(months.map((m) => m.key));
+    const months = buildRecentMonths(6);
+    const validKeys = new Set(months.map((m) => m.key));
 
-      Promise.all([
-        incomeService.getIncome(user.id),
-        expenseService.getAllExpenses(user.id),
-      ])
-        .then(([incomeEntries, expenseEntries]) => {
-          const incomeByMonth: Record<string, number> = {};
-          const expenseByMonth: Record<string, number> = {};
-          const categoryTotals: Record<string, number> = {};
+    Promise.all([
+      incomeService.getIncome(user.id),
+      expenseService.getAllExpenses(user.id),
+    ])
+      .then(([incomeEntries, expenseEntries]) => {
+        const incomeByMonth: Record<string, number> = {};
+        const expenseByMonth: Record<string, number> = {};
+        const categoryTotals: Record<string, number> = {};
 
-          for (const { key } of months) {
-            incomeByMonth[key] = 0;
-            expenseByMonth[key] = 0;
+        for (const { key } of months) {
+          incomeByMonth[key] = 0;
+          expenseByMonth[key] = 0;
+        }
+        for (const e of incomeEntries) {
+          const k = monthKey(e.date);
+          if (validKeys.has(k)) incomeByMonth[k] += Number(e.amount);
+        }
+        for (const e of expenseEntries) {
+          const k = monthKey(e.expense_date);
+          if (validKeys.has(k)) expenseByMonth[k] += Number(e.amount);
+          if (validKeys.has(k) && e.category) {
+            categoryTotals[e.category] = (categoryTotals[e.category] ?? 0) + Number(e.amount);
           }
-          for (const e of incomeEntries) {
-            const k = monthKey(e.date);
-            if (validKeys.has(k)) incomeByMonth[k] += Number(e.amount);
-          }
-          for (const e of expenseEntries) {
-            const k = monthKey(e.expense_date);
-            if (validKeys.has(k)) expenseByMonth[k] += Number(e.amount);
-            // Category totals for insights (last 6 months)
-            if (validKeys.has(k) && e.category) {
-              categoryTotals[e.category] = (categoryTotals[e.category] ?? 0) + Number(e.amount);
-            }
-          }
+        }
 
-          const monthData: MonthData[] = months.map((m) => ({
-            key: m.key,
-            label: m.label,
-            income: incomeByMonth[m.key],
-            expenses: expenseByMonth[m.key],
-            net: incomeByMonth[m.key] - expenseByMonth[m.key],
-          }));
+        const monthData: MonthData[] = months.map((m) => ({
+          key: m.key,
+          label: m.label,
+          income: incomeByMonth[m.key],
+          expenses: expenseByMonth[m.key],
+          net: incomeByMonth[m.key] - expenseByMonth[m.key],
+        }));
 
-          setAllMonths(monthData);
-          setCurrentMonth(monthData[monthData.length - 1]);
+        setAllMonths(monthData);
+        setCurrentMonth(monthData[monthData.length - 1]);
 
-          // Find top expense category
-          const sorted = Object.entries(categoryTotals).sort(([, a], [, b]) => b - a);
-          if (sorted.length > 0) {
-            setTopCategory({ name: sorted[0][0], amount: sorted[0][1] });
-          }
-        })
-        .catch((e) => setError(e?.message ?? "Could not load data"))
-        .finally(() => setLoading(false));
-    }, [user?.id]),
-  );
+        const sorted = Object.entries(categoryTotals).sort(([, a], [, b]) => b - a);
+        if (sorted.length > 0) {
+          setTopCategory({ name: sorted[0][0], amount: sorted[0][1] });
+        }
+      })
+      .catch((e) => setError(e?.message ?? "Could not load data"))
+      .finally(() => setLoading(false));
+  }, [user?.id]);
+
+  useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
+  useAppForeground(loadData);
 
   // Derived data
   const totalIncome = allMonths.reduce((s, m) => s + m.income, 0);

@@ -11,7 +11,9 @@ import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  AppState,
   Platform,
+  RefreshControl,
   ScrollView,
   StatusBar,
   Text,
@@ -46,8 +48,11 @@ export default function HomeScreen() {
   const [recentExpenses, setRecentExpenses] = useState<Expense[]>([]);
   const [recentIncome, setRecentIncome] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [showRefreshHint, setShowRefreshHint] = useState(false);
   const isFetching = useRef(false);
   const hasLoaded = useRef(false);
+  const appStateRef = useRef(AppState.currentState);
 
   const now = new Date();
   const hour = now.getHours();
@@ -56,7 +61,7 @@ export default function HomeScreen() {
   const estimatedSaving = Math.round(totalDeductions * SA_MARGINAL_TAX_RATE);
 
   const loadData = useCallback(async (silent = false) => {
-    if (!user) { setLoading(false); return; }
+    if (!user) { setLoading(false); setRefreshing(false); return; }
     if (isFetching.current) return;
     isFetching.current = true;
     if (!silent) setLoading(true);
@@ -81,10 +86,12 @@ export default function HomeScreen() {
       setRecentExpenses(recent);
       setRecentIncome(recentInc);
       hasLoaded.current = true;
+      setShowRefreshHint(false);
     } catch (e) {
       console.warn("HomeScreen load error:", e);
     } finally {
       setLoading(false);
+      setRefreshing(false);
       isFetching.current = false;
     }
   }, [user?.id]);
@@ -96,6 +103,24 @@ export default function HomeScreen() {
   useFocusEffect(
     useCallback(() => { loadData(hasLoaded.current); }, [loadData])
   );
+
+  // Show refresh hint + attempt auto-reload when app returns from background
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (next) => {
+      if (appStateRef.current.match(/inactive|background/) && next === 'active') {
+        setShowRefreshHint(true);
+        loadData(true);
+      }
+      appStateRef.current = next;
+    });
+    return () => sub.remove();
+  }, [loadData]);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    setShowRefreshHint(false);
+    loadData(true);
+  }, [loadData]);
 
   const recentActivity = useMemo(() => {
     const expenses = recentExpenses.map(e => ({
@@ -133,6 +158,14 @@ export default function HomeScreen() {
       <ScrollView
         contentContainerStyle={{ paddingHorizontal: 18, paddingTop: 8, paddingBottom: space.xxxl }}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colour.primary}
+            colors={[colour.primary]}
+          />
+        }
       >
         {/* ── Header row ── */}
         <View style={{
@@ -169,6 +202,24 @@ export default function HomeScreen() {
             </View>
           </TouchableOpacity>
         </View>
+
+        {showRefreshHint && !loading && (
+          <TouchableOpacity
+            onPress={() => { setShowRefreshHint(false); loadData(false); }}
+            activeOpacity={0.8}
+            style={{
+              flexDirection: "row", alignItems: "center", justifyContent: "center",
+              gap: 6, backgroundColor: colour.primary, borderRadius: 20,
+              paddingHorizontal: 16, paddingVertical: 8,
+              alignSelf: "center", marginBottom: 12,
+            }}
+          >
+            <IconSymbol name="arrow.clockwise" size={13} color={colour.white} />
+            <Text style={{ color: colour.white, fontSize: 13, fontWeight: "600" }}>
+              Tap to refresh
+            </Text>
+          </TouchableOpacity>
+        )}
 
         {loading ? (
           <View style={{ alignItems: "center", paddingTop: space["5xl"] }}>

@@ -6,6 +6,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { useExpenseStore } from "@/stores/expenseStore";
 import { colour, radius, space } from "@/tokens";
 import { useFocusEffect, useRouter } from "expo-router";
+import { useAppForeground } from "@/hooks/use-app-foreground";
 import React, { useCallback, useState } from "react";
 import {
   ScrollView,
@@ -111,6 +112,7 @@ export default function TaxYearSelectorScreen() {
       loadTotals();
     }, [loadTotals]),
   );
+  useAppForeground(loadTotals);
 
   const handleSelect = (year: TaxYear) => {
     setSelected(year.id);

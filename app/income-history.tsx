@@ -5,6 +5,7 @@ import { incomeService } from "@/services/incomeService";
 import { useAuthStore } from "@/stores/authStore";
 import { colour, radius, space, typography } from "@/tokens";
 import { useFocusEffect, useRouter } from "expo-router";
+import { useAppForeground } from "@/hooks/use-app-foreground";
 import React, { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -90,6 +91,7 @@ export default function IncomeHistoryScreen() {
       loadData();
     }, [loadData]),
   );
+  useAppForeground(loadData);
 
 
   const filtered = useMemo(() => {

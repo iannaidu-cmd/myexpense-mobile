@@ -6,6 +6,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { useExpenseStore } from "@/stores/expenseStore";
 import { colour, radius, space, typography } from "@/tokens";
 import { useFocusEffect, useRouter } from "expo-router";
+import { useAppForeground } from "@/hooks/use-app-foreground";
 import React, { useCallback, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -154,6 +155,7 @@ export default function ExpenseHistoryScreen() {
       loadData(hasLoaded.current);
     }, [loadData]),
   );
+  useAppForeground(() => loadData(true));
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();

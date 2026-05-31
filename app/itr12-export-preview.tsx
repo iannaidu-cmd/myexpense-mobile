@@ -10,6 +10,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { colour, radius, space } from "@/tokens";
 import { ACTIVE_TAX_YEAR } from "@/types/database";
 import { useFocusEffect, useRouter } from "expo-router";
+import { useAppForeground } from "@/hooks/use-app-foreground";
 import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
@@ -93,6 +94,7 @@ export default function ITR12ExportPreviewScreen() {
       loadData();
     }, [loadData]),
   );
+  useAppForeground(loadData);
 
   const deductionRows = Object.entries(breakdown).sort(([, a], [, b]) => b - a);
   const marginalRate = getMarginalRate(totalIncome);

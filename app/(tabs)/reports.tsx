@@ -8,9 +8,11 @@ import { useAuthStore } from "@/stores/authStore";
 import { useExpenseStore } from "@/stores/expenseStore";
 import { colour, radius, space } from "@/tokens";
 import { useFocusEffect, useRouter } from "expo-router";
-import React, { useCallback, useRef, useState } from "react";
+import { useAppForeground } from "@/hooks/use-app-foreground";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  RefreshControl,
   ScrollView,
   StatusBar,
   Text,
@@ -156,6 +158,7 @@ export default function ReportsTabScreen() {
   const { activeTaxYear } = useExpenseStore();
 
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState<Period>("6M");
   const [monthlyData, setMonthlyData] = useState<MonthRow[]>([]);
   const [fyDeductions, setFyDeductions] = useState(0);
@@ -210,15 +213,26 @@ export default function ReportsTabScreen() {
         console.warn("Reports load error:", e);
       } finally {
         setLoading(false);
+        setRefreshing(false);
         isFetching.current = false;
       }
     },
     [user?.id, activeTaxYear],
   );
 
+  // Fire when user becomes available while screen is already focused
+  useEffect(() => { loadData(hasLoaded.current); }, [loadData]);
+
   useFocusEffect(
     useCallback(() => { loadData(hasLoaded.current); }, [loadData]),
   );
+
+  useAppForeground(() => loadData(true));
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    loadData(true);
+  }, [loadData]);
 
   // Period slice
   const periodMonths = (() => {
@@ -318,6 +332,14 @@ export default function ReportsTabScreen() {
         style={{ flex: 1 }}
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colour.primary}
+            colors={[colour.primary]}
+          />
+        }
       >
         {loading ? (
           <View style={{ alignItems: "center", paddingTop: 80 }}>

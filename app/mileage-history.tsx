@@ -9,6 +9,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { useExpenseStore } from "@/stores/expenseStore";
 import { colour, radius, space, typography } from "@/tokens";
 import { useFocusEffect, useRouter } from "expo-router";
+import { useAppForeground } from "@/hooks/use-app-foreground";
 import React, { useCallback, useState } from "react";
 import {
     ActivityIndicator,
@@ -86,6 +87,7 @@ export default function MileageHistoryScreen() {
       loadTrips();
     }, [loadTrips]),
   );
+  useAppForeground(loadTrips);
 
   const handleDelete = (id: string) => setConfirmDeleteId(id);
 

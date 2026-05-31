@@ -11,6 +11,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { useExpenseStore } from "@/stores/expenseStore";
 import { colour, radius, space } from "@/tokens";
 import { useFocusEffect, useRouter } from "expo-router";
+import { useAppForeground } from "@/hooks/use-app-foreground";
 import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -152,6 +153,7 @@ export default function ITR12ExportSetupScreen() {
       loadData();
     }, [loadData]),
   );
+  useAppForeground(loadData);
 
   const handleExport = async () => {
     if (!user) return;

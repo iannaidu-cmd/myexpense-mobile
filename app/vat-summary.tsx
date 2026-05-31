@@ -9,6 +9,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { useExpenseStore } from "@/stores/expenseStore";
 import { colour, radius, space, typography } from "@/tokens";
 import { useFocusEffect, useRouter } from "expo-router";
+import { useAppForeground } from "@/hooks/use-app-foreground";
 import React, { useCallback, useState } from "react";
 import {
     ActivityIndicator,
@@ -82,6 +83,7 @@ export default function VATSummaryScreen() {
       loadData();
     }, [loadData]),
   );
+  useAppForeground(loadData);
 
   const now = new Date();
   const filtered = expenses.filter((e) => {

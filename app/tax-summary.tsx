@@ -10,6 +10,7 @@ import { useExpenseStore } from "@/stores/expenseStore";
 import { medicalTaxCredit, useTaxProfileStore } from "@/stores/taxProfileStore";
 import { colour, radius, space } from "@/tokens";
 import { useFocusEffect, useRouter } from "expo-router";
+import { useAppForeground } from "@/hooks/use-app-foreground";
 import React, { useCallback, useEffect, useState } from "react";
 import {
     ActivityIndicator,
@@ -123,6 +124,7 @@ export default function TaxSummaryScreen() {
       loadData();
     }, [loadData]),
   );
+  useAppForeground(loadData);
 
   const marginalRate = getMarginalRate(totalIncome);
   const estTaxSaving = Math.round(totalDeductions * marginalRate);
