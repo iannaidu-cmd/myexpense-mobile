@@ -158,7 +158,12 @@ export default function OnboardingScreen() {
         </View>
 
         {/* ── Page 2: Features ── */}
-        <View style={{ width: SW, paddingHorizontal: space.lg, paddingTop: space.md }}>
+        <ScrollView
+          style={{ width: SW }}
+          contentContainerStyle={{ paddingHorizontal: space.lg, paddingTop: space.md, paddingBottom: space.md }}
+          showsVerticalScrollIndicator={false}
+          nestedScrollEnabled
+        >
           <OnboardingFeatureScene />
           <View
             style={{
@@ -196,7 +201,7 @@ export default function OnboardingScreen() {
               <Text style={{ fontSize: 12, color: colour.textSub, lineHeight: 17 }}>GPS logbook at SARS deemed rate R4.84/km for 2024/25</Text>
             </View>
           </View>
-        </View>
+        </ScrollView>
 
         {/* ── Page 3: Type selection ── */}
         <View style={{ width: SW, paddingHorizontal: space.lg, paddingTop: space.md }}>
