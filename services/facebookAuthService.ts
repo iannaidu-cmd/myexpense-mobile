@@ -1,6 +1,7 @@
 import * as WebBrowser from "expo-web-browser";
 import { generateAndStorePkce } from "@/lib/pkce";
 import { useAuthStore } from "@/stores/authStore";
+import { Linking } from "react-native";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -24,12 +25,13 @@ export async function signInWithFacebook(): Promise<{
     });
     const oauthUrl = `${SUPABASE_URL}/auth/v1/authorize?${params.toString()}`;
 
-    // openAuthSessionAsync monitors for REDIRECT_URL and auto-closes the browser
-    // tab the moment the redirect fires — no manual dismissBrowser() needed.
     const result = await WebBrowser.openAuthSessionAsync(oauthUrl, REDIRECT_URL, {
       dismissButtonStyle: "close",
       createTask: false, // Android: keep Custom Tab in the same task as the app
     });
+
+    // Always dismiss — on Android the Custom Tab can linger after the redirect.
+    WebBrowser.dismissBrowser();
 
     if (result.type === "cancel" || result.type === "dismiss") {
       return { success: false, error: "Sign-in was cancelled." };
@@ -39,8 +41,16 @@ export async function signInWithFacebook(): Promise<{
       return { success: false, error: "Sign-in failed. Please try again." };
     }
 
-    // Browser is already closed. Expo Router routes auth/callback.tsx via the
-    // deep link that openAuthSessionAsync detected. Poll until it completes.
+    // openAuthSessionAsync intercepts the custom-scheme redirect and returns it
+    // as result.url, which means the system deep-link event may not fire.
+    // Manually re-fire it so auth/callback.tsx receives the code param.
+    if (result.url) {
+      const codeMatch = result.url.match(/[?&]code=([^&#]+)/);
+      if (codeMatch) {
+        await Linking.openURL(`myexpense://auth/callback?code=${codeMatch[1]}`);
+      }
+    }
+
     for (let i = 0; i < 120; i++) {
       await sleep(500);
       if (useAuthStore.getState().isAuthenticated) return { success: true };

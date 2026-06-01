@@ -184,7 +184,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const { user } = get();
     if (!user) return;
     const now = new Date().toISOString();
-    await profileService.updateProfile(user.id, { terms_accepted_at: now });
+    // Plain update without .select().single() — avoids PGRST116 when the profile
+    // row doesn't exist yet (new OAuth users whose trigger hasn't run).
+    // 0 rows affected = no error; the in-memory flag is enough to ungate the UI.
+    const { error } = await supabase
+      .from("profiles")
+      .update({ terms_accepted_at: now })
+      .eq("id", user.id);
+    if (error) throw new Error(error.message);
     set({ termsAccepted: true });
   },
 

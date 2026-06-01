@@ -44,7 +44,8 @@ export const profileService = {
   ): Promise<Profile> => {
     const { data, error } = await supabase
       .from("profiles")
-      .upsert({ id: userId, ...updates })
+      .update(updates)
+      .eq("id", userId)
       .select()
       .single();
 
