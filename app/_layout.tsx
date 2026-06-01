@@ -56,7 +56,7 @@ SplashScreen.preventAutoHideAsync();
 function AuthGate() {
   const router = useRouter();
   const segments = useSegments();
-  const { user, isInitialised, termsAccepted } = useAuthStore();
+  const { user, isInitialised } = useAuthStore();
 
   useEffect(() => {
     if (!isInitialised) return;
@@ -67,30 +67,17 @@ function AuthGate() {
       segments[0] === "sign-up" ||
       segments[0] === "forgot-password" ||
       segments[0] === "email-verification";
-    // reset-password is intentionally excluded: the Supabase recovery code
-    // creates a temporary session, and we must not redirect the user away
-    // from the form while they still need to submit their new password.
 
-    // profile-setup is NOT in inAuthGroup so authenticated users can access it
     const inProfileSetup = segments[0] === "profile-setup";
-
     const inOnboarding = segments[0] === "onboarding-step-1";
-
-    // Legal screens are always accessible regardless of auth state
     const inLegal = segments[0] === "terms" || segments[0] === "privacy";
-
-    const inTermsAccept = (segments[0] as string) === "terms-accept";
 
     if (!user && !inAuthGroup && !inOnboarding && !inLegal && !inProfileSetup) {
       router.replace("/onboarding-step-1");
     } else if (user && (inAuthGroup || inOnboarding)) {
       router.replace("/(tabs)");
-    } else if (user && !termsAccepted && !inTermsAccept && !inLegal) {
-      // Gate: authenticated but hasn't accepted terms yet.
-      // Catches email sign-ups, social sign-ins, and existing users alike.
-      router.replace("/terms-accept" as any);
     }
-  }, [user, isInitialised, termsAccepted, segments]);
+  }, [user, isInitialised, segments]);
 
   return null;
 }
