@@ -321,8 +321,8 @@ export function SignupScreen() {
 
             {/* Social buttons */}
             <View style={{ flexDirection: "row", justifyContent: "center", gap: 16 }}>
-              <SocialButton label="Google" icon={<GoogleLogo />} onPress={handleGoogleSignIn} loading={googleLoading} disabled={socialDisabled} />
-              <SocialButton label="Facebook" icon={<FacebookLogo />} onPress={handleFacebookSignIn} loading={fbLoading} disabled={socialDisabled} />
+              <SocialButton label="Google" icon={<GoogleLogo />} onPress={handleGoogleSignIn} loading={googleLoading} disabled={!agreed || socialDisabled} />
+              <SocialButton label="Facebook" icon={<FacebookLogo />} onPress={handleFacebookSignIn} loading={fbLoading} disabled={!agreed || socialDisabled} />
             </View>
 
             {/* Spacer + footer */}

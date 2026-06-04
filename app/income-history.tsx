@@ -57,17 +57,20 @@ export default function IncomeHistoryScreen() {
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [income, setIncome] = useState<any[]>([]);
   const [search, setSearch] = useState("");
 
   const loadData = useCallback(async () => {
     if (!user) { setLoading(false); return; }
     setLoading(true);
+    setError(null);
     try {
       const data = await incomeService.getIncome(user.id);
       setIncome(data);
     } catch (e) {
       console.error("IncomeHistory load error:", e);
+      setError("Failed to load income. Pull down to retry.");
     } finally {
       setLoading(false);
     }
@@ -76,11 +79,13 @@ export default function IncomeHistoryScreen() {
   const handleRefresh = useCallback(async () => {
     if (!user) return;
     setRefreshing(true);
+    setError(null);
     try {
       const data = await incomeService.getIncome(user.id);
       setIncome(data);
     } catch (e) {
       console.error("IncomeHistory refresh error:", e);
+      setError("Failed to load income. Pull down to retry.");
     } finally {
       setRefreshing(false);
     }
@@ -201,7 +206,15 @@ export default function IncomeHistoryScreen() {
 
         {loading ? (
           <View style={{ alignItems: "center", paddingTop: space["4xl"] }}>
-            <ActivityIndicator color={colour.success} size="large" />
+            <ActivityIndicator color={colour.primary} size="large" />
+          </View>
+        ) : error ? (
+          <View style={{ alignItems: "center", paddingTop: space["4xl"], paddingHorizontal: space.lg }}>
+            <IconSymbol name="exclamationmark.triangle.fill" size={40} color={colour.danger} style={{ marginBottom: space.md } as any} />
+            <Text style={{ ...typography.h4, color: colour.text, marginBottom: space.sm, textAlign: "center" }}>{error}</Text>
+            <TouchableOpacity onPress={loadData}>
+              <Text style={{ ...typography.bodyM, color: colour.primary, fontWeight: "600" }}>Retry</Text>
+            </TouchableOpacity>
           </View>
         ) : (
           <FlatList

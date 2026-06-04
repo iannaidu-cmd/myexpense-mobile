@@ -30,9 +30,17 @@ export async function signInWithGoogle(): Promise<{
     const result = await WebBrowser.openAuthSessionAsync(oauthUrl, REDIRECT_URL);
     WebBrowser.dismissBrowser();
 
+    if (result.type === "cancel" || result.type === "dismiss") {
+      return { success: false, error: "cancelled" };
+    }
+
+    if (result.type !== "success") {
+      return { success: false, error: "Sign-in failed. Please try again." };
+    }
+
     // Extract code from the captured HTTPS callback URL and re-route via the
     // custom scheme so auth/callback.tsx receives the code param correctly.
-    if (result.type === "success" && result.url) {
+    if (result.url) {
       const codeMatch = result.url.match(/[?&]code=([^&#]+)/);
       if (codeMatch) {
         await Linking.openURL(`myexpense://auth/callback?code=${codeMatch[1]}`);
@@ -44,13 +52,7 @@ export async function signInWithGoogle(): Promise<{
       if (useAuthStore.getState().isAuthenticated) return { success: true };
     }
 
-    return {
-      success: false,
-      error:
-        result.type !== "success"
-          ? "cancelled"
-          : "Sign-in failed. Please try again.",
-    };
+    return { success: false, error: "Sign-in failed. Please try again." };
   } catch (e: any) {
     console.error("Google Sign-In error:", e);
     return {

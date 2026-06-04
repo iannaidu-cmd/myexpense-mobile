@@ -33,8 +33,8 @@ const LOW_CONFIDENCE_THRESHOLD = 0.7;
 
 function fieldBorderColour(isOcr: boolean, isLowConf: boolean): string {
   if (!isOcr) return colour.border;
-  if (isLowConf) return colour.warning;
-  return colour.teal;
+  if (isLowConf) return colour.danger;
+  return colour.primary;
 }
 
 function FieldLabel({
@@ -67,14 +67,14 @@ function FieldLabel({
         <View
           style={{
             marginLeft: space.xs,
-            backgroundColor: colour.tealLight,
+            backgroundColor: colour.primary50,
             borderRadius: 4,
             paddingHorizontal: 5,
             paddingVertical: 1,
           }}
         >
-          <Text style={{ fontSize: 9, fontWeight: "700", color: colour.teal }}>
-            AI
+          <Text style={{ fontSize: 9, fontWeight: "700", color: colour.primary }}>
+            Auto
           </Text>
         </View>
       )}
@@ -82,14 +82,14 @@ function FieldLabel({
         <View
           style={{
             marginLeft: space.xs,
-            backgroundColor: colour.warningBg,
+            backgroundColor: colour.dangerBg,
             borderRadius: 4,
             paddingHorizontal: 5,
             paddingVertical: 1,
           }}
         >
           <Text
-            style={{ fontSize: 9, fontWeight: "700", color: colour.warning }}
+            style={{ fontSize: 9, fontWeight: "700", color: colour.danger }}
           >
             Check
           </Text>
@@ -229,8 +229,8 @@ export default function ReceiptReviewScreen() {
         subtitle={
           anyOcr
             ? anyLowConf
-              ? "Some fields need your attention — highlighted in amber"
-              : "AI extracted these details — please verify before saving"
+              ? "Some fields need your attention — please review carefully"
+              : "Details extracted — please verify before saving"
             : hasReceipt
               ? "Receipt uploaded · Fill in the expense details"
               : "No receipt · Enter details manually"
@@ -268,24 +268,24 @@ export default function ReceiptReviewScreen() {
             />
             <View
               style={{
-                backgroundColor: colour.successBg,
+                backgroundColor: colour.primary50,
                 padding: space.sm,
                 flexDirection: "row",
                 alignItems: "center",
                 gap: space.xs,
               }}
             >
-              <IconSymbol name="doc.text.fill" size={14} color={colour.success} />
+              <IconSymbol name="doc.text.fill" size={14} color={colour.primary} />
               <Text
                 style={{
                   ...typography.bodyXS,
-                  color: colour.success,
+                  color: colour.primary,
                   fontWeight: "600",
                 }}
               >
                 Receipt uploaded ·{" "}
                 {anyOcr
-                  ? "AI auto-filled fields below"
+                  ? "Details auto-filled below"
                   : "Fill in details manually"}
               </Text>
             </View>
@@ -296,7 +296,7 @@ export default function ReceiptReviewScreen() {
         {anyLowConf && (
           <View
             style={{
-              backgroundColor: colour.warningBg,
+              backgroundColor: colour.dangerBg,
               borderRadius: radius.md,
               padding: space.md,
               marginBottom: space.md,
@@ -304,11 +304,11 @@ export default function ReceiptReviewScreen() {
               gap: space.sm,
             }}
           >
-            <IconSymbol name="exclamationmark.triangle.fill" size={16} color={colour.warning} />
+            <IconSymbol name="exclamationmark.triangle.fill" size={16} color={colour.danger} />
             <Text
               style={{
                 ...typography.bodyXS,
-                color: colour.warning,
+                color: colour.danger,
                 flex: 1,
                 lineHeight: 18,
               }}
@@ -391,13 +391,13 @@ export default function ReceiptReviewScreen() {
           {expenseType === "personal" && (
             <View
               style={{
-                backgroundColor: colour.warningBg,
+                backgroundColor: colour.infoLight,
                 borderRadius: radius.sm,
                 padding: space.sm,
                 marginBottom: space.lg,
               }}
             >
-              <Text style={{ ...typography.bodyXS, color: colour.warning }}>
+              <Text style={{ ...typography.bodyXS, color: colour.primary }}>
                 Personal expenses are not deductible and will not be included in
                 your ITR12 calculations.
               </Text>
@@ -421,7 +421,7 @@ export default function ReceiptReviewScreen() {
               ),
               marginBottom: space.lg,
               backgroundColor: lowConf.amount
-                ? colour.warningBg
+                ? colour.dangerBg
                 : "transparent",
               borderRadius: lowConf.amount ? 4 : 0,
               paddingHorizontal: lowConf.amount ? space.xs : 0,
@@ -473,7 +473,7 @@ export default function ReceiptReviewScreen() {
               paddingVertical: space.sm,
               marginBottom: space.lg,
               backgroundColor: lowConf.vendor
-                ? colour.warningBg
+                ? colour.dangerBg
                 : "transparent",
               borderRadius: lowConf.vendor ? 4 : 0,
               paddingHorizontal: lowConf.vendor ? space.xs : 0,
@@ -501,7 +501,7 @@ export default function ReceiptReviewScreen() {
               ),
               paddingVertical: space.sm,
               marginBottom: space.lg,
-              backgroundColor: lowConf.date ? colour.warningBg : "transparent",
+              backgroundColor: lowConf.date ? colour.dangerBg : "transparent",
               borderRadius: lowConf.date ? 4 : 0,
               paddingHorizontal: lowConf.date ? space.xs : 0,
             }}
@@ -550,7 +550,7 @@ export default function ReceiptReviewScreen() {
               flexDirection: "row",
               justifyContent: "space-between",
               backgroundColor: lowConf.category
-                ? colour.warningBg
+                ? colour.dangerBg
                 : "transparent",
               borderRadius: lowConf.category ? 4 : 0,
               paddingHorizontal: lowConf.category ? space.xs : 0,
@@ -642,18 +642,18 @@ export default function ReceiptReviewScreen() {
               ...typography.bodyM,
               color: colour.text,
               borderBottomWidth: 1.5,
-              borderBottomColor: ocrFields.notes ? colour.teal : colour.border,
+              borderBottomColor: ocrFields.notes ? colour.primary : colour.border,
               paddingVertical: space.sm,
               minHeight: 60,
             }}
           />
         </View>
 
-        {/* AI legend */}
+        {/* OCR legend */}
         {anyOcr && (
           <View
             style={{
-              backgroundColor: colour.tealLight,
+              backgroundColor: colour.primary50,
               borderRadius: radius.md,
               padding: space.md,
               marginBottom: space.md,
@@ -661,18 +661,18 @@ export default function ReceiptReviewScreen() {
               gap: space.sm,
             }}
           >
-            <IconSymbol name="star.fill" size={16} color={colour.teal} />
+            <IconSymbol name="star.fill" size={16} color={colour.primary} />
             <Text
               style={{
                 ...typography.bodyXS,
-                color: colour.teal,
+                color: colour.primary,
                 flex: 1,
                 lineHeight: 18,
               }}
             >
-              Fields marked <Text style={{ fontWeight: "700" }}>AI</Text> were
-              auto-filled by Claude with high confidence. Fields marked{" "}
-              <Text style={{ fontWeight: "700", color: colour.warning }}>
+              Fields marked <Text style={{ fontWeight: "700" }}>Auto</Text> were
+              filled automatically with high confidence. Fields marked{" "}
+              <Text style={{ fontWeight: "700", color: colour.danger }}>
                 Check
               </Text>{" "}
               had lower confidence — please verify carefully.

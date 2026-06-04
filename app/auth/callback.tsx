@@ -11,7 +11,7 @@ WebBrowser.maybeCompleteAuthSession();
 
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL!;
 const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
-const PROJECT_REF = new URL(process.env.EXPO_PUBLIC_SUPABASE_URL!).hostname.split(".")[0];
+const PROJECT_REF = process.env.EXPO_PUBLIC_SUPABASE_PROJECT_REF!;
 const CV_KEY = `sb-${PROJECT_REF}-auth-token-code-verifier`;
 const SESSION_KEY = `sb-${PROJECT_REF}-auth-token`;
 

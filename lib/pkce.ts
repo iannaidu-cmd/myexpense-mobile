@@ -1,7 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import "./crypto-polyfill";
 
-const _projectRef = new URL(process.env.EXPO_PUBLIC_SUPABASE_URL!).hostname.split(".")[0];
+const _projectRef = process.env.EXPO_PUBLIC_SUPABASE_PROJECT_REF!;
 export const PKCE_CV_KEY = `sb-${_projectRef}-auth-token-code-verifier`;
 
 // Mirror gotrue-js dec2hex exactly (only the last byte of each uint32)

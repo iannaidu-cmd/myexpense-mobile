@@ -279,33 +279,15 @@ function RootLayout() {
           options={{ headerShown: false }}
         />
         {/* ── Expense Management ── */}
-        <Stack.Screen
-          name="add-expense-manual"
-          options={{ title: "Add Expense", headerBackTitle: "Back" }}
-        />
-        <Stack.Screen
-          name="quick-add-expense"
-          options={{ title: "Quick Add", headerBackTitle: "Back" }}
-        />
+        <Stack.Screen name="add-expense-manual" options={{ headerShown: false }} />
+        <Stack.Screen name="quick-add-expense" options={{ headerShown: false }} />
         <Stack.Screen name="expense-detail" options={{ headerShown: false }} />
         <Stack.Screen name="expense-history" options={{ headerShown: false }} />
         <Stack.Screen name="edit-expense" options={{ headerShown: false }} />
-        <Stack.Screen
-          name="receipt-review"
-          options={{ title: "Review Receipt", headerBackTitle: "Back" }}
-        />
-        <Stack.Screen
-          name="scan-receipt-camera"
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="scan-receipt-processing"
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="recent-activity-feed"
-          options={{ title: "Recent Activity", headerBackTitle: "Back" }}
-        />
+        <Stack.Screen name="receipt-review" options={{ headerShown: false }} />
+        <Stack.Screen name="scan-receipt-camera" options={{ headerShown: false }} />
+        <Stack.Screen name="scan-receipt-processing" options={{ headerShown: false }} />
+        <Stack.Screen name="recent-activity-feed" options={{ headerShown: false }} />
         <Stack.Screen
           name="upload-from-gallery"
           options={{ headerShown: false }}

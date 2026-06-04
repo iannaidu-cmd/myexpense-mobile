@@ -3,7 +3,6 @@ import { MXTabBar } from "@/components/MXTabBar";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { expenseService } from "@/services/expenseService";
 import { useAuthStore } from "@/stores/authStore";
-import { useExpenseStore } from "@/stores/expenseStore";
 import { colour, radius, space, typography } from "@/tokens";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useAppForeground } from "@/hooks/use-app-foreground";
@@ -47,10 +46,10 @@ const FILTERS: { key: Filter; label: string }[] = [
 export default function ExpenseHistoryScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
-  const { activeTaxYear } = useExpenseStore();
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const hasLoaded = useRef(false);
   const [expenses, setExpenses] = useState<any[]>([]);
   const [search, setSearch] = useState("");
@@ -126,29 +125,33 @@ export default function ExpenseHistoryScreen() {
   const loadData = useCallback(async (silent = false) => {
     if (!user) { setLoading(false); return; }
     if (!silent) setLoading(true);
+    setError(null);
     try {
-      const data = await expenseService.getExpenses(user.id, activeTaxYear);
+      const data = await expenseService.getAllExpenses(user.id);
       setExpenses(data);
       hasLoaded.current = true;
     } catch (e) {
       console.error("ExpenseHistory load error:", e);
+      setError("Failed to load expenses. Pull down to retry.");
     } finally {
       setLoading(false);
     }
-  }, [user, activeTaxYear]);
+  }, [user]);
 
   const handleRefresh = useCallback(async () => {
     if (!user) return;
     setRefreshing(true);
+    setError(null);
     try {
-      const data = await expenseService.getExpenses(user.id, activeTaxYear);
+      const data = await expenseService.getAllExpenses(user.id);
       setExpenses(data);
     } catch (e) {
       console.error("ExpenseHistory refresh error:", e);
+      setError("Failed to load expenses. Pull down to retry.");
     } finally {
       setRefreshing(false);
     }
-  }, [user, activeTaxYear]);
+  }, [user]);
 
   useFocusEffect(
     useCallback(() => {
@@ -406,6 +409,14 @@ export default function ExpenseHistoryScreen() {
         {loading ? (
           <View style={{ alignItems: "center", paddingTop: space["4xl"] }}>
             <ActivityIndicator color={colour.primary} size="large" />
+          </View>
+        ) : error ? (
+          <View style={{ alignItems: "center", paddingTop: space["4xl"], paddingHorizontal: space.lg }}>
+            <IconSymbol name="exclamationmark.triangle.fill" size={40} color={colour.danger} style={{ marginBottom: space.md } as any} />
+            <Text style={{ ...typography.h4, color: colour.text, marginBottom: space.sm }}>{error}</Text>
+            <TouchableOpacity onPress={() => loadData(false)}>
+              <Text style={{ ...typography.bodyM, color: colour.primary, fontWeight: "600" }}>Retry</Text>
+            </TouchableOpacity>
           </View>
         ) : (
           <FlatList
