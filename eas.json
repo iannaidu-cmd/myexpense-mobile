@@ -20,7 +20,8 @@
         "buildType": "apk"
       },
       "env": {
-        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://hhfbbbxgmovfpaziebsw.supabase.co"
       }
     },
     "production": {
@@ -28,6 +29,9 @@
       "ios": {
         "simulator": false,
         "resourceClass": "m-medium"
+      },
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://hhfbbbxgmovfpaziebsw.supabase.co"
       }
     }
   },
