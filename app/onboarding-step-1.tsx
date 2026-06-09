@@ -130,7 +130,12 @@ export default function OnboardingScreen() {
       >
 
         {/* ── Page 1: Hero ── */}
-        <View style={{ width: SW, paddingHorizontal: space.lg, paddingTop: space.md }}>
+        <ScrollView
+          style={{ width: SW }}
+          contentContainerStyle={{ paddingHorizontal: space.lg, paddingTop: space.md, paddingBottom: space.md }}
+          showsVerticalScrollIndicator={false}
+          nestedScrollEnabled
+        >
           <OnboardingHeroScene />
           <View style={{ marginBottom: space.xl }}>
             <View
@@ -155,7 +160,7 @@ export default function OnboardingScreen() {
             South Africa's 3.8 million self-employed lose thousands in unclaimed
             deductions every year. MyExpense fixes that — automatically.
           </Text>
-        </View>
+        </ScrollView>
 
         {/* ── Page 2: Features ── */}
         <ScrollView
@@ -204,7 +209,12 @@ export default function OnboardingScreen() {
         </ScrollView>
 
         {/* ── Page 3: Type selection ── */}
-        <View style={{ width: SW, paddingHorizontal: space.lg, paddingTop: space.md }}>
+        <ScrollView
+          style={{ width: SW }}
+          contentContainerStyle={{ paddingHorizontal: space.lg, paddingTop: space.md, paddingBottom: space.md }}
+          showsVerticalScrollIndicator={false}
+          nestedScrollEnabled
+        >
           <Text style={{ fontSize: 28, fontWeight: '800', color: colour.text, lineHeight: 34, marginBottom: space.sm }}>
             Tell us about{'\n'}
             <Text style={{ color: colour.primary }}>yourself.</Text>
@@ -223,7 +233,7 @@ export default function OnboardingScreen() {
               onPress={() => setSelected(opt.id)}
             />
           ))}
-        </View>
+        </ScrollView>
 
       </ScrollView>
 
