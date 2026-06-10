@@ -200,7 +200,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: fullName ? { data: { full_name: fullName } } : undefined,
+      options: {
+        ...(fullName ? { data: { full_name: fullName } } : {}),
+        emailRedirectTo: "myexpense://",
+      },
     });
     if (error) throw new Error(error.message);
 
