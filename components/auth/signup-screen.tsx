@@ -174,7 +174,7 @@ export function SignupScreen() {
     setLoading(true);
     try {
       await signUp(email, password, name.trim());
-      router.replace({ pathname: "/email-verification", params: { email } });
+      router.replace("/(tabs)");
     } catch (err: any) {
       setErrors({ email: err.message ?? "Could not create account. Please try again." });
     } finally {
