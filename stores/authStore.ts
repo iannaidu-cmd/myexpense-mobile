@@ -40,12 +40,14 @@ interface AuthState {
   isDevUser: boolean;
   isPremium: boolean;
   termsAccepted: boolean;
+  pendingEmailVerification: string | null;
 
   initialise: () => Promise<void>;
   completeOnboarding: () => void;
   refreshPremiumStatus: () => Promise<void>;
   acceptTerms: () => Promise<void>;
   signUp: (email: string, password: string, fullName?: string) => Promise<void>;
+  clearPendingEmailVerification: () => void;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
@@ -85,6 +87,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   isDevUser: false,
   isPremium: false,
   termsAccepted: false,
+  pendingEmailVerification: null,
 
   // ── Initialise: restore session on app launch ─────────────────────────────
   initialise: async () => {
@@ -143,17 +146,32 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         // getSession() call above — skip it to avoid a double state update.
         if (event === 'INITIAL_SESSION') return;
         if (session?.user) {
-          prefetchUserData(session.user.id);
-          const { isDevUser, isPremium, termsAccepted } = await fetchPremiumStatus(
-            session.user.id
-          );
-          set({
-            user: { id: session.user.id, email: session.user.email ?? "" },
-            isAuthenticated: true,
-            isDevUser,
-            isPremium,
-            termsAccepted,
-          });
+          // Guard: only authenticate if the email is confirmed (or there is no
+          // email — e.g. anonymous / OAuth without email). When email
+          // confirmation is required, Supabase fires SIGNED_IN with a
+          // temporary session before the user confirms, then fires SIGNED_OUT
+          // moments later. Without this check that cycle sends the user to
+          // /(tabs) then immediately back to onboarding.
+          const emailConfirmed =
+            !session.user.email || !!session.user.email_confirmed_at;
+
+          if (emailConfirmed) {
+            prefetchUserData(session.user.id);
+            const { isDevUser, isPremium, termsAccepted } = await fetchPremiumStatus(
+              session.user.id
+            );
+            set({
+              user: { id: session.user.id, email: session.user.email ?? "" },
+              isAuthenticated: true,
+              isDevUser,
+              isPremium,
+              termsAccepted,
+              pendingEmailVerification: null,
+            });
+          } else {
+            // Email not yet confirmed — keep as pending, don't authenticate.
+            set({ pendingEmailVerification: session.user.email ?? null });
+          }
         } else {
           set({
             user: null,
@@ -202,7 +220,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       password,
       options: {
         ...(fullName ? { data: { full_name: fullName } } : {}),
-        emailRedirectTo: "myexpense://",
+        emailRedirectTo: "myexpense://auth/callback",
       },
     });
     if (error) throw new Error(error.message);
@@ -214,9 +232,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         .eq("id", data.user.id);
     }
 
-    // Only mark as authenticated if Supabase returned a live session.
-    // When email confirmation is required, session is null — the user must
-    // verify their email before they can access the app.
+    // When email confirmation is required, session is null. Set
+    // pendingEmailVerification so AuthGate routes to the verification screen.
     if (data.user && data.session) {
       const { isDevUser, isPremium, termsAccepted } = await fetchPremiumStatus(data.user.id);
       set({
@@ -225,9 +242,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         isDevUser,
         isPremium,
         termsAccepted,
+        pendingEmailVerification: null,
       });
+    } else if (data.user) {
+      set({ pendingEmailVerification: email });
     }
   },
+
+  clearPendingEmailVerification: () => set({ pendingEmailVerification: null }),
 
   // ── Sign In ───────────────────────────────────────────────────────────────
   signIn: async (email, password) => {

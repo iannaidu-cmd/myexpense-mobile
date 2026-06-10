@@ -56,10 +56,25 @@ SplashScreen.preventAutoHideAsync();
 function AuthGate() {
   const router = useRouter();
   const segments = useSegments();
-  const { user, isInitialised } = useAuthStore();
+  const { user, isInitialised, pendingEmailVerification } = useAuthStore();
 
   useEffect(() => {
     if (!isInitialised) return;
+
+    // Email confirmation pending — route to verification screen. This runs
+    // inside AuthGate so there is no race between a screen's router.replace
+    // call and segments updating.
+    if (
+      pendingEmailVerification &&
+      !user &&
+      segments[0] !== "email-verification" &&
+      segments[0] !== "auth"
+    ) {
+      router.replace(
+        `/email-verification?email=${encodeURIComponent(pendingEmailVerification)}` as any
+      );
+      return;
+    }
 
     const inAuthGroup =
       segments[0] === "auth" ||
@@ -77,7 +92,7 @@ function AuthGate() {
     } else if (user && (inAuthGroup || inOnboarding)) {
       router.replace("/(tabs)");
     }
-  }, [user, isInitialised, segments]);
+  }, [user, isInitialised, segments, pendingEmailVerification]);
 
   return null;
 }

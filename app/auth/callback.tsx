@@ -92,7 +92,7 @@ async function directPkceExchange(authCode: string): Promise<{ error: string | n
   await AsyncStorage.setItem(SESSION_KEY, JSON.stringify(session)).catch(() => {});
 
   // Update authStore directly — no lock needed, navigation happens immediately
-  useAuthStore.setState({ user: { id: userId, email: userEmail }, isAuthenticated: true });
+  useAuthStore.setState({ user: { id: userId, email: userEmail }, isAuthenticated: true, pendingEmailVerification: null });
 
   return { error: null };
 }
@@ -128,6 +128,7 @@ export default function AuthCallbackScreen() {
               useAuthStore.setState({
                 user: { id: session.user.id, email: session.user.email ?? "" },
                 isAuthenticated: true,
+                pendingEmailVerification: null,
               });
             } else if (pollCount > 10) {
               clearInterval(interval);

@@ -174,7 +174,8 @@ export function SignupScreen() {
     setLoading(true);
     try {
       await signUp(email, password, name.trim());
-      router.replace("/(tabs)");
+      // AuthGate handles routing: pendingEmailVerification → email-verification,
+      // or isAuthenticated → tabs (when email confirmation is disabled).
     } catch (err: any) {
       setErrors({ email: err.message ?? "Could not create account. Please try again." });
     } finally {

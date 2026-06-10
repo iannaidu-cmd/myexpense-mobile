@@ -22,14 +22,11 @@ export function VerifyEmailScreen({
   email = "your@email.com",
 }: VerifyEmailScreenProps) {
   const router = useRouter();
-  const { initialise } = useAuthStore();
+  const { initialise, clearPendingEmailVerification } = useAuthStore();
   const [resendLoading, setResendLoading] = useState(false);
   const [resendSent, setResendSent] = useState(false);
-  const [helpExpanded, setHelpExpanded] = useState(false);
   const appState = useRef(AppState.currentState);
 
-  // When user returns to the app after tapping the confirmation link,
-  // check if their session is now active and redirect them in.
   useEffect(() => {
     const subscription = AppState.addEventListener(
       "change",
@@ -56,7 +53,7 @@ export function VerifyEmailScreen({
       await supabase.auth.resend({
         type: "signup",
         email: email ?? "",
-        options: { emailRedirectTo: "myexpense://" },
+        options: { emailRedirectTo: "myexpense://auth/callback" },
       });
       setResendSent(true);
     } finally {
@@ -65,341 +62,210 @@ export function VerifyEmailScreen({
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colour.primary }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colour.background }}>
       <ScrollView
-        contentContainerStyle={{ flexGrow: 1 }}
+        contentContainerStyle={{
+          flexGrow: 1,
+          paddingHorizontal: space.lg,
+        }}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Header */}
-        <View
-          style={{
-            paddingHorizontal: space.lg,
-            paddingTop: space.xl,
-            paddingBottom: space["3xl"],
-          }}
-        >
-          <Text
-            style={{
-              ...typography.h1,
-              fontWeight: "800",
-              color: colour.onPrimary,
-              marginBottom: space.xs,
-            }}
-          >
-            Check your email
-          </Text>
-          <Text style={{ ...typography.bodyM, color: "rgba(255,255,255,0.80)" }}>
-            One quick step to activate your MyExpense account.
-          </Text>
-        </View>
+        {/* Top flex spacer */}
+        <View style={{ flex: 1, minHeight: 48 }} />
 
-        {/* Body */}
-        <View
-          style={{
-            flex: 1,
-            backgroundColor: colour.background,
-            borderTopLeftRadius: radius.xl,
-            borderTopRightRadius: radius.xl,
-            marginTop: -20,
-            padding: space.lg,
-            paddingTop: space["2xl"],
-          }}
-        >
-          {/* Envelope icon with checkmark badge */}
-          <View style={{ alignItems: "center", marginBottom: space.xl }}>
+        {/* Icon */}
+        <View style={{ alignItems: "center", marginBottom: space.xxl }}>
+          <View style={{ position: "relative" }}>
             <View
               style={{
-                width: 80,
-                height: 80,
-                borderRadius: 40,
+                width: 88,
+                height: 88,
+                borderRadius: 24,
                 backgroundColor: colour.primary,
                 alignItems: "center",
                 justifyContent: "center",
               }}
             >
-              <IconSymbol name="envelope.fill" size={36} color={colour.onPrimary} />
+              <IconSymbol name="envelope.fill" size={40} color={colour.onPrimary} />
             </View>
             <View
               style={{
                 position: "absolute",
-                bottom: 0,
-                right: "33%",
-                width: 26,
-                height: 26,
-                borderRadius: 13,
-                backgroundColor: colour.success,
+                bottom: -6,
+                right: -6,
+                width: 30,
+                height: 30,
+                borderRadius: 15,
+                backgroundColor: colour.primary300,
                 alignItems: "center",
                 justifyContent: "center",
-                borderWidth: 2.5,
+                borderWidth: 3,
                 borderColor: colour.background,
               }}
             >
-              <IconSymbol name="checkmark" size={12} color={colour.onPrimary} />
+              <IconSymbol name="checkmark" size={13} color={colour.onPrimary} />
             </View>
           </View>
+        </View>
 
-          {/* Sent to */}
+        {/* Title */}
+        <Text
+          style={{
+            ...typography.h1,
+            fontWeight: "800",
+            color: colour.text,
+            textAlign: "center",
+            marginBottom: space.sm,
+          }}
+        >
+          Check your email
+        </Text>
+
+        {/* Subtitle */}
+        <Text
+          style={{
+            ...typography.bodyM,
+            color: colour.textSub,
+            textAlign: "center",
+            marginBottom: space.lg,
+          }}
+        >
+          We sent a confirmation link to
+        </Text>
+
+        {/* Email pill */}
+        <View
+          style={{
+            backgroundColor: colour.white,
+            borderRadius: radius.pill,
+            paddingVertical: space.md,
+            paddingHorizontal: space.lg,
+            flexDirection: "row",
+            alignItems: "center",
+            gap: space.sm,
+            alignSelf: "center",
+            marginBottom: space.xl,
+          }}
+        >
+          <IconSymbol name="envelope.fill" size={15} color={colour.primary} />
+          <Text
+            style={{
+              ...typography.bodyM,
+              fontWeight: "600",
+              color: colour.text,
+            }}
+            numberOfLines={1}
+          >
+            {email}
+          </Text>
+        </View>
+
+        {/* Instruction */}
+        <Text
+          style={{
+            ...typography.bodyM,
+            color: colour.text,
+            textAlign: "center",
+            marginBottom: space.xl,
+          }}
+        >
+          Open it and tap{" "}
+          <Text style={{ fontWeight: "700" }}>"Confirm my email"</Text>. We'll{"\n"}
+          sign you in here automatically.
+        </Text>
+
+        {/* Waiting indicator */}
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: space.sm,
+          }}
+        >
           <View
             style={{
-              backgroundColor: colour.white,
-              borderRadius: radius.lg,
-              paddingVertical: space.md,
-              paddingHorizontal: space.md,
-              marginBottom: space.xl,
-              flexDirection: "row",
-              alignItems: "center",
-              gap: space.md,
+              width: 10,
+              height: 10,
+              borderRadius: 5,
+              backgroundColor: colour.primary200,
+            }}
+          />
+          <Text
+            style={{
+              ...typography.bodyS,
+              color: colour.textSub,
+              fontWeight: "600",
             }}
           >
-            <View
-              style={{
-                width: 40,
-                height: 40,
-                borderRadius: radius.md,
-                backgroundColor: colour.primary50,
-                alignItems: "center",
-                justifyContent: "center",
-                flexShrink: 0,
-              }}
-            >
-              <IconSymbol name="envelope.fill" size={18} color={colour.primary} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text
-                style={{
-                  ...typography.bodyXS,
-                  color: colour.textSub,
-                  fontWeight: "700",
-                  letterSpacing: 0.5,
-                  marginBottom: 2,
-                }}
-              >
-                SENT TO
-              </Text>
-              <Text
-                style={{
-                  ...typography.bodyM,
-                  fontWeight: "600",
-                  color: colour.text,
-                }}
-                numberOfLines={1}
-              >
-                {email}
-              </Text>
-            </View>
-          </View>
+            Waiting for you to confirm
+          </Text>
+        </View>
 
-          {/* Steps */}
-          <View style={{ marginBottom: space.xl }}>
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "flex-start",
-                gap: space.md,
-                marginBottom: space.lg,
-              }}
-            >
-              <View
-                style={{
-                  width: 28,
-                  height: 28,
-                  borderRadius: 14,
-                  backgroundColor: colour.primary50,
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                  marginTop: 1,
-                }}
-              >
-                <Text style={{ ...typography.labelS, fontWeight: "700", color: colour.primary }}>
-                  1
-                </Text>
-              </View>
-              <Text style={{ ...typography.bodyM, color: colour.text, flex: 1, lineHeight: 22, marginTop: 3 }}>
-                Open the email and tap{" "}
-                <Text style={{ fontWeight: "700" }}>"Confirm my email"</Text>.
-              </Text>
-            </View>
+        {/* Bottom flex spacer */}
+        <View style={{ flex: 2, minHeight: 48 }} />
 
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "flex-start",
-                gap: space.md,
-              }}
-            >
-              <View
-                style={{
-                  width: 28,
-                  height: 28,
-                  borderRadius: 14,
-                  backgroundColor: colour.primary50,
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                  marginTop: 1,
-                }}
-              >
-                <Text style={{ ...typography.labelS, fontWeight: "700", color: colour.primary }}>
-                  2
-                </Text>
-              </View>
-              <Text style={{ ...typography.bodyM, color: colour.text, flex: 1, lineHeight: 22, marginTop: 3 }}>
-                Come back here. We'll sign you in the moment it's confirmed.
-              </Text>
-            </View>
-          </View>
-
-          {/* Waiting status */}
+        {/* Resend button */}
+        {resendSent ? (
           <View
             style={{
-              backgroundColor: colour.successBg,
+              backgroundColor: colour.primary50,
               borderRadius: radius.md,
-              paddingVertical: space.sm,
-              paddingHorizontal: space.md,
-              flexDirection: "row",
+              padding: space.md,
+              marginBottom: space.md,
               alignItems: "center",
-              gap: space.sm,
-              marginBottom: space.xl,
             }}
           >
-            <View
-              style={{
-                width: 10,
-                height: 10,
-                borderRadius: 5,
-                backgroundColor: colour.success,
-                flexShrink: 0,
-              }}
-            />
-            <Text
-              style={{
-                ...typography.bodyS,
-                color: colour.success,
-                fontWeight: "600",
-                flex: 1,
-              }}
-            >
-              Waiting for you to confirm, this updates automatically
+            <Text style={{ ...typography.bodyS, color: colour.primary, fontWeight: "600" }}>
+              Confirmation email resent — check your inbox.
             </Text>
           </View>
-
-          {/* Can't find the email — collapsible */}
+        ) : (
           <TouchableOpacity
-            onPress={() => setHelpExpanded(!helpExpanded)}
-            activeOpacity={0.8}
+            onPress={handleResend}
+            disabled={resendLoading}
             style={{
-              backgroundColor: colour.white,
-              borderTopLeftRadius: radius.md,
-              borderTopRightRadius: radius.md,
-              borderBottomLeftRadius: helpExpanded ? 0 : radius.md,
-              borderBottomRightRadius: helpExpanded ? 0 : radius.md,
-              paddingVertical: space.md,
-              paddingHorizontal: space.md,
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-              marginBottom: helpExpanded ? 0 : space.xl,
-            }}
-          >
-            <View style={{ flexDirection: "row", alignItems: "center", gap: space.sm }}>
-              <View
-                style={{
-                  width: 22,
-                  height: 22,
-                  borderRadius: 11,
-                  borderWidth: 1.5,
-                  borderColor: colour.textSub,
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Text style={{ fontSize: 12, fontWeight: "700", color: colour.textSub }}>?</Text>
-              </View>
-              <Text style={{ ...typography.bodyM, fontWeight: "600", color: colour.text }}>
-                Can't find the email?
-              </Text>
-            </View>
-            <IconSymbol
-              name={helpExpanded ? "chevron.up" : "chevron.down"}
-              size={16}
-              color={colour.textSub}
-            />
-          </TouchableOpacity>
-
-          {helpExpanded && (
-            <View
-              style={{
-                backgroundColor: colour.white,
-                borderBottomLeftRadius: radius.md,
-                borderBottomRightRadius: radius.md,
-                paddingHorizontal: space.md,
-                paddingBottom: space.md,
-                marginBottom: space.xl,
-              }}
-            >
-              <View style={{ height: 1, backgroundColor: colour.borderLight, marginBottom: space.sm }} />
-              <Text style={{ ...typography.bodyS, color: colour.textSub, marginBottom: 4 }}>
-                • Check your spam or junk folder
-              </Text>
-              <Text style={{ ...typography.bodyS, color: colour.textSub }}>
-                • Sent from noreply@myexpense.co.za
-              </Text>
-            </View>
-          )}
-
-          {/* Resend */}
-          {resendSent ? (
-            <View
-              style={{
-                backgroundColor: colour.primary50,
-                borderRadius: radius.md,
-                padding: space.md,
-                marginBottom: space.md,
-                alignItems: "center",
-              }}
-            >
-              <Text style={{ ...typography.bodyS, color: colour.primary, fontWeight: "600" }}>
-                Confirmation email resent — check your inbox.
-              </Text>
-            </View>
-          ) : (
-            <TouchableOpacity
-              onPress={handleResend}
-              disabled={resendLoading}
-              style={{
-                backgroundColor: colour.primary,
-                borderRadius: radius.pill,
-                height: 56,
-                alignItems: "center",
-                justifyContent: "center",
-                marginBottom: space.md,
-                opacity: resendLoading ? 0.6 : 1,
-              }}
-            >
-              <Text style={{ ...typography.btnL, color: colour.onPrimary }}>
-                {resendLoading ? "Sending…" : "Resend confirmation email"}
-              </Text>
-            </TouchableOpacity>
-          )}
-
-          {/* Use different email */}
-          <TouchableOpacity
-            onPress={() => router.replace("/sign-up")}
-            style={{
+              backgroundColor: colour.primary,
               borderRadius: radius.pill,
               height: 56,
               alignItems: "center",
               justifyContent: "center",
-              borderWidth: 1.5,
-              borderColor: colour.border,
+              marginBottom: space.md,
+              opacity: resendLoading ? 0.6 : 1,
             }}
           >
-            <Text style={{ ...typography.btnL, color: colour.text }}>
-              Use a different email
+            <Text style={{ ...typography.btnL, color: colour.onPrimary }}>
+              {resendLoading ? "Sending…" : "Resend confirmation email"}
             </Text>
           </TouchableOpacity>
-        </View>
+        )}
+
+        {/* Use a different email */}
+        <TouchableOpacity
+          onPress={() => { clearPendingEmailVerification(); router.replace("/sign-up"); }}
+          style={{
+            height: 44,
+            alignItems: "center",
+            justifyContent: "center",
+            marginBottom: space.md,
+          }}
+        >
+          <Text style={{ ...typography.btnL, color: colour.primary }}>
+            Use a different email
+          </Text>
+        </TouchableOpacity>
+
+        {/* Footer hint */}
+        <Text
+          style={{
+            ...typography.bodyXS,
+            color: colour.textSub,
+            textAlign: "center",
+            marginBottom: space.xxl,
+          }}
+        >
+          Can't find it? Check your spam folder, or look for noreply@myexpense.co.za.
+        </Text>
       </ScrollView>
     </SafeAreaView>
   );
