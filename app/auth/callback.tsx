@@ -1,6 +1,11 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { supabase } from "@/lib/supabase";
-import { useAuthStore, SUPABASE_CV_BACKUP_KEY } from "@/stores/authStore";
+import {
+  useAuthStore,
+  SUPABASE_CV_BACKUP_KEY,
+  getMemPkceVerifier,
+  clearMemPkceVerifier,
+} from "@/stores/authStore";
 import { colour } from "@/tokens";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
@@ -24,22 +29,29 @@ const SESSION_KEY = `sb-${PROJECT_REF}-auth-token`;
 async function directPkceExchange(authCode: string): Promise<{ error: string | null }> {
   if (useAuthStore.getState().isAuthenticated) return { error: null };
 
-  // Restore verifier from backup if _removeSession() deleted it.
-  // auth-js v2.105+ _removeSession() removes the verifier key alongside the
-  // session key when the temporary unconfirmed session expires.
-  const existing = await AsyncStorage.getItem(CV_KEY).catch(() => null);
-  if (!existing) {
+  // Source of truth priority (highest → lowest):
+  //   1. In-memory module variable — set in authStore.signUp(), immune to
+  //      _removeSession() and to initialise() re-populating CV_KEY with stale
+  //      verifiers from earlier sessions.
+  //   2. AsyncStorage backup — survives app restart mid-flow.
+  //   3. CV_KEY — last resort; may hold a stale value restored by initialise().
+  let codeVerifier: string | null = getMemPkceVerifier();
+
+  if (!codeVerifier) {
     const backup = await AsyncStorage.getItem(SUPABASE_CV_BACKUP_KEY).catch(() => null);
-    if (backup) {
-      await AsyncStorage.setItem(CV_KEY, backup).catch(() => {});
-    }
+    codeVerifier = backup ?? null;
   }
 
-  const stored = await AsyncStorage.getItem(CV_KEY).catch(() => null);
-  // Stored format: `{codeVerifier}` or `{codeVerifier}/recovery` (for password reset).
-  const codeVerifier = stored?.split("/")[0] ?? null;
+  if (!codeVerifier) {
+    const stored = await AsyncStorage.getItem(CV_KEY).catch(() => null);
+    codeVerifier = stored ?? null;
+  }
 
-  // Clean up backup now — used or not, it's one-shot
+  // Strip the /recovery suffix (password-reset flow) if present
+  codeVerifier = codeVerifier?.split("/")[0] ?? null;
+
+  // Clean up backup and memory copy — one-shot
+  clearMemPkceVerifier();
   await AsyncStorage.removeItem(SUPABASE_CV_BACKUP_KEY).catch(() => {});
 
   if (!codeVerifier) {

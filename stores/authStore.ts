@@ -15,6 +15,13 @@ const SUPABASE_CV_KEY = `sb-${_projectRef}-auth-token-code-verifier`;
 // a copy here so auth/callback can restore it before the PKCE exchange.
 export const SUPABASE_CV_BACKUP_KEY = `myexpense-pkce-verifier-backup`;
 
+// In-memory verifier — survives _removeSession() and initialise() restoring
+// stale values from previous sessions into SUPABASE_CV_KEY.
+// Cleared after a successful exchange or sign-out.
+let _memPkceVerifier: string | null = null;
+export function getMemPkceVerifier() { return _memPkceVerifier; }
+export function clearMemPkceVerifier() { _memPkceVerifier = null; }
+
 // Fire-and-forget: populate the query cache in parallel with auth so screens
 // load instantly once the splash fades.
 function prefetchUserData(userId: string): void {
@@ -236,12 +243,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         .eq("id", data.user.id);
     }
 
-    // Back up the PKCE verifier immediately. auth-js v2.105+ calls
-    // _removeSession() when the temporary unconfirmed session expires, which
-    // also deletes the verifier. The backup is restored by auth/callback before
-    // the exchange so the code challenge still matches.
+    // Capture the PKCE verifier immediately after signUp() returns — before
+    // auth-js v2.105+ _removeSession() can delete it when the temporary
+    // unconfirmed session expires. Stored in both memory (survives
+    // _removeSession and initialise() stale-restore) and AsyncStorage (survives
+    // app restart). auth/callback prefers the memory copy.
     const _verifier = await AsyncStorage.getItem(SUPABASE_CV_KEY).catch(() => null);
     if (_verifier) {
+      _memPkceVerifier = _verifier;
       await AsyncStorage.setItem(SUPABASE_CV_BACKUP_KEY, _verifier).catch(() => {});
     }
 
@@ -285,6 +294,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   // ── Sign Out ──────────────────────────────────────────────────────────────
   signOut: async () => {
+    _memPkceVerifier = null;
     await supabase.auth.signOut();
     set({
       user: null,
