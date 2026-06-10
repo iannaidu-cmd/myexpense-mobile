@@ -211,7 +211,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         .eq("id", data.user.id);
     }
 
-    if (data.user) {
+    // Only mark as authenticated if Supabase returned a live session.
+    // When email confirmation is required, session is null — the user must
+    // verify their email before they can access the app.
+    if (data.user && data.session) {
       const { isDevUser, isPremium, termsAccepted } = await fetchPremiumStatus(data.user.id);
       set({
         user: { id: data.user.id, email: data.user.email ?? "" },
