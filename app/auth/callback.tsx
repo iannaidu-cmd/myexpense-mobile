@@ -11,7 +11,7 @@ WebBrowser.maybeCompleteAuthSession();
 
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL!;
 const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
-const PROJECT_REF = process.env.EXPO_PUBLIC_SUPABASE_PROJECT_REF!;
+const PROJECT_REF = new URL(process.env.EXPO_PUBLIC_SUPABASE_URL!).hostname.split(".")[0];
 const CV_KEY = `sb-${PROJECT_REF}-auth-token-code-verifier`;
 const SESSION_KEY = `sb-${PROJECT_REF}-auth-token`;
 
@@ -24,6 +24,7 @@ const SESSION_KEY = `sb-${PROJECT_REF}-auth-token`;
 //      the next call without any lock interaction.
 //   3. Update authStore directly so navigation happens immediately.
 async function directPkceExchange(authCode: string): Promise<{ error: string | null }> {
+  if (useAuthStore.getState().isAuthenticated) return { error: null };
   const stored = await AsyncStorage.getItem(CV_KEY).catch(() => null);
   const codeVerifier = stored?.split("/")[0] ?? null;
 

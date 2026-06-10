@@ -109,11 +109,20 @@ function OAuthHandler() {
     const handle = async (url: string | null) => {
       if (!url) return;
 
-      // PKCE code in HTTPS App Link (custom scheme handled by Expo Router natively)
+      // Custom scheme: email confirmation and OAuth callbacks
+      if (url.startsWith("myexpense://auth/callback")) {
+        const codeMatch = url.match(/[?&]code=([^&#]+)/);
+        if (codeMatch) {
+          router.replace(`/auth/callback?code=${codeMatch[1]}` as any);
+          return;
+        }
+      }
+
+      // HTTPS App Link fallback (when OS routes the intent separately)
       if (url.includes("myexpense.co.za/auth/callback")) {
         const codeMatch = url.match(/[?&]code=([^&#]+)/);
         if (codeMatch) {
-          router.push(`/auth/callback?code=${codeMatch[1]}` as any);
+          router.replace(`/auth/callback?code=${codeMatch[1]}` as any);
           return;
         }
       }
