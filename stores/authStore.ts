@@ -10,6 +10,10 @@ import { create } from "zustand";
 // sb-{project-ref}-auth-token  →  sb-{project-ref}-auth-token-code-verifier
 const _projectRef = new URL(process.env.EXPO_PUBLIC_SUPABASE_URL!).hostname.split(".")[0];
 const SUPABASE_CV_KEY = `sb-${_projectRef}-auth-token-code-verifier`;
+// Backup key outside Supabase's namespace. In auth-js v2.105+, _removeSession()
+// deletes the verifier when the temporary unconfirmed session expires. We save
+// a copy here so auth/callback can restore it before the PKCE exchange.
+export const SUPABASE_CV_BACKUP_KEY = `myexpense-pkce-verifier-backup`;
 
 // Fire-and-forget: populate the query cache in parallel with auth so screens
 // load instantly once the splash fades.
@@ -230,6 +234,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         .from("profiles")
         .upsert({ id: data.user.id, full_name: fullName })
         .eq("id", data.user.id);
+    }
+
+    // Back up the PKCE verifier immediately. auth-js v2.105+ calls
+    // _removeSession() when the temporary unconfirmed session expires, which
+    // also deletes the verifier. The backup is restored by auth/callback before
+    // the exchange so the code challenge still matches.
+    const _verifier = await AsyncStorage.getItem(SUPABASE_CV_KEY).catch(() => null);
+    if (_verifier) {
+      await AsyncStorage.setItem(SUPABASE_CV_BACKUP_KEY, _verifier).catch(() => {});
     }
 
     // When email confirmation is required, session is null. Set
