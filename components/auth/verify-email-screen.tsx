@@ -1,13 +1,13 @@
 import { supabase } from "@/lib/supabase";
-import { profileService } from "@/services/profileService";
+import { useAuthStore } from "@/stores/authStore";
 import { colour, radius, space, typography } from "@/tokens";
 import { useRouter } from "expo-router";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
-    ActivityIndicator,
+    AppState,
+    AppStateStatus,
     ScrollView,
     Text,
-    TextInput,
     TouchableOpacity,
     View,
 } from "react-native";
@@ -21,65 +21,40 @@ export function VerifyEmailScreen({
   email = "your@email.com",
 }: VerifyEmailScreenProps) {
   const router = useRouter();
+  const { initialise } = useAuthStore();
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendSent, setResendSent] = useState(false);
+  const appState = useRef(AppState.currentState);
 
-  const [code, setCode] = useState("");
-  const [focusedIdx, setFocusedIdx] = useState(-1);
-  const [loading, setLoading] = useState(false);
-  const [codeError, setCodeError] = useState("");
-  const codeInputs = useRef<(TextInput | null)[]>([]);
-
-  const handleCodeChange = (text: string, idx: number) => {
-    const cleaned = text.replace(/[^0-9]/g, "").slice(0, 1);
-    const chars = code.split("");
-    chars[idx] = cleaned;
-    const full = chars.join("").slice(0, 6);
-    setCode(full);
-    if (cleaned && idx < 5) {
-      setTimeout(() => codeInputs.current[idx + 1]?.focus(), 0);
-    }
-  };
-
-  const handleBackspace = (idx: number) => {
-    if (idx > 0 && !code[idx]) {
-      setTimeout(() => codeInputs.current[idx - 1]?.focus(), 0);
-    }
-  };
-
-  const handleSubmit = async () => {
-    if (code.length !== 6) {
-      setCodeError("Verification code must be 6 digits");
-      return;
-    }
-    setCodeError("");
-    setLoading(true);
-    try {
-      const { data, error } = await supabase.auth.verifyOtp({
-        email: email ?? "",
-        token: code,
-        type: "signup",
-      });
-      if (error) {
-        setCodeError(
-          error.message ?? "Invalid or expired code. Please try again.",
-        );
-        return;
-      }
-      const userId = data.session?.user?.id;
-      if (userId) {
-        try {
-          const profile = await profileService.getProfile(userId);
-          router.replace(
-            profile?.tax_number ? "/(tabs)" : ("/profile-setup" as any),
-          );
-        } catch {
-          router.replace("/profile-setup" as any);
+  // When user returns to the app after clicking the confirmation link,
+  // check if their session is now active and redirect them in.
+  useEffect(() => {
+    const subscription = AppState.addEventListener(
+      "change",
+      async (nextState: AppStateStatus) => {
+        if (
+          appState.current.match(/inactive|background/) &&
+          nextState === "active"
+        ) {
+          const { data } = await supabase.auth.getSession();
+          if (data.session?.user) {
+            await initialise();
+            router.replace("/(tabs)");
+          }
         }
-      } else {
-        // Verification succeeded but no session — fall back to sign-in
-        router.replace("/sign-in");
+        appState.current = nextState;
       }
+    );
+    return () => subscription.remove();
+  }, []);
+
+  const handleResend = async () => {
+    setResendLoading(true);
+    try {
+      await supabase.auth.resend({ type: "signup", email: email ?? "" });
+      setResendSent(true);
     } finally {
-      setLoading(false);
+      setResendLoading(false);
     }
   };
 
@@ -106,12 +81,12 @@ export function VerifyEmailScreen({
               marginBottom: space.xs,
             }}
           >
-            Verify your email
+            Check your email
           </Text>
           <Text
             style={{ ...typography.bodyM, color: "rgba(255,255,255,0.75)" }}
           >
-            We've sent a 6-digit code to your email address.
+            One more step to activate your account.
           </Text>
         </View>
 
@@ -159,92 +134,20 @@ export function VerifyEmailScreen({
             </Text>
           </View>
 
-          {/* 6-digit code inputs */}
-          <View
+          {/* Instruction */}
+          <Text
             style={{
-              flexDirection: "row",
-              gap: 10,
-              justifyContent: "center",
-              marginBottom: space.md,
+              ...typography.bodyM,
+              color: colour.text,
+              lineHeight: 24,
+              marginBottom: space.xl,
             }}
           >
-            {[0, 1, 2, 3, 4, 5].map((i) => (
-              <TextInput
-                key={i}
-                ref={(ref) => {
-                  if (ref) codeInputs.current[i] = ref;
-                }}
-                value={code[i] || ""}
-                onChangeText={(t) => handleCodeChange(t, i)}
-                onKeyPress={({ nativeEvent }) => {
-                  if (nativeEvent.key === "Backspace") handleBackspace(i);
-                }}
-                onFocus={() => setFocusedIdx(i)}
-                onBlur={() => setFocusedIdx(-1)}
-                keyboardType="number-pad"
-                maxLength={1}
-                placeholder="0"
-                placeholderTextColor={colour.border}
-                style={{
-                  width: 48,
-                  height: 56,
-                  borderRadius: radius.md,
-                  borderWidth: 1.5,
-                  borderColor:
-                    focusedIdx === i
-                      ? colour.primary
-                      : code[i]
-                        ? colour.primary
-                        : colour.border,
-                  backgroundColor: code[i] ? colour.primary50 : colour.white,
-                  fontSize: 20,
-                  fontWeight: "700",
-                  textAlign: "center",
-                  color: colour.text,
-                }}
-              />
-            ))}
-          </View>
-
-          {codeError ? (
-            <Text
-              style={{
-                ...typography.bodyXS,
-                color: colour.danger,
-                textAlign: "center",
-                marginBottom: space.md,
-              }}
-            >
-              {codeError}
-            </Text>
-          ) : null}
-
-          {/* Resend */}
-          <View
-            style={{
-              backgroundColor: colour.primary50,
-              borderRadius: radius.md,
-              padding: space.md,
-              marginBottom: space.lg,
-              alignItems: "center",
-            }}
-          >
-            <Text
-              style={{
-                ...typography.bodyS,
-                color: colour.textSub,
-                marginBottom: 4,
-              }}
-            >
-              Didn't receive the code?{" "}
-              <Text style={{ color: colour.primary, fontWeight: "600" }}>
-                Resend
-              </Text>
-            </Text>
-            <Text style={{ ...typography.bodyXS, color: colour.textSub }}>
-              Code expires in 10 minutes
-            </Text>
-          </View>
+            We've sent a confirmation email to this address. Open it and tap{" "}
+            <Text style={{ fontWeight: "700" }}>"Confirm My Email"</Text> to
+            activate your account.{"\n\n"}Once confirmed, come back here and
+            you'll be signed in automatically.
+          </Text>
 
           {/* Tips */}
           <View
@@ -263,58 +166,50 @@ export function VerifyEmailScreen({
                 marginBottom: space.sm,
               }}
             >
-              Can't find the code?
+              Can't find the email?
             </Text>
-            <Text
-              style={{
-                ...typography.bodyS,
-                color: colour.textSub,
-                marginBottom: 4,
-              }}
-            >
+            <Text style={{ ...typography.bodyS, color: colour.textSub, marginBottom: 4 }}>
               • Check your spam or junk folder
-            </Text>
-            <Text
-              style={{
-                ...typography.bodyS,
-                color: colour.textSub,
-                marginBottom: 4,
-              }}
-            >
-              • Code expires in 10 minutes
             </Text>
             <Text style={{ ...typography.bodyS, color: colour.textSub }}>
               • Sent from noreply@myexpense.co.za
             </Text>
           </View>
 
-          {/* Verify button */}
-          <TouchableOpacity
-            onPress={handleSubmit}
-            disabled={loading || code.length !== 6}
-            style={{
-              backgroundColor:
-                loading || code.length !== 6 ? colour.border : colour.primary,
-              borderRadius: radius.pill,
-              height: 52,
-              alignItems: "center",
-              justifyContent: "center",
-              marginBottom: space.md,
-            }}
-          >
-            {loading ? (
-              <ActivityIndicator color={colour.onPrimary} />
-            ) : (
-              <Text
-                style={{
-                  ...typography.btnL,
-                  color: code.length !== 6 ? colour.textSub : colour.onPrimary,
-                }}
-              >
-                Verify Email
+          {/* Resend */}
+          {resendSent ? (
+            <View
+              style={{
+                backgroundColor: colour.primary50,
+                borderRadius: radius.md,
+                padding: space.md,
+                marginBottom: space.md,
+                alignItems: "center",
+              }}
+            >
+              <Text style={{ ...typography.bodyS, color: colour.primary, fontWeight: "600" }}>
+                Confirmation email resent — check your inbox.
               </Text>
-            )}
-          </TouchableOpacity>
+            </View>
+          ) : (
+            <TouchableOpacity
+              onPress={handleResend}
+              disabled={resendLoading}
+              style={{
+                backgroundColor: colour.primary50,
+                borderRadius: radius.pill,
+                height: 52,
+                alignItems: "center",
+                justifyContent: "center",
+                marginBottom: space.md,
+                opacity: resendLoading ? 0.6 : 1,
+              }}
+            >
+              <Text style={{ ...typography.btnL, color: colour.primary }}>
+                {resendLoading ? "Sending…" : "Resend confirmation email"}
+              </Text>
+            </TouchableOpacity>
+          )}
 
           {/* Back to sign up */}
           <TouchableOpacity
