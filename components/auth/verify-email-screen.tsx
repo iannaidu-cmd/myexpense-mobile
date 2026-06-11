@@ -254,17 +254,7 @@ export function VerifyEmailScreen({
           </Text>
         </TouchableOpacity>
 
-        {/* Footer hint */}
-        <Text
-          style={{
-            ...typography.bodyXS,
-            color: colour.textSub,
-            textAlign: "center",
-            marginBottom: space.xxl,
-          }}
-        >
-          Can't find it? Check your spam folder, or look for noreply@myexpense.co.za.
-        </Text>
+        <View style={{ marginBottom: space.xxl }} />
       </ScrollView>
     </SafeAreaView>
   );
