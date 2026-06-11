@@ -7,9 +7,10 @@ import {
   clearMemPkceVerifier,
 } from "@/stores/authStore";
 import { colour } from "@/tokens";
+import * as Linking from "expo-linking";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Text, TouchableOpacity, View } from "react-native";
 
 WebBrowser.maybeCompleteAuthSession();
@@ -131,11 +132,39 @@ async function directPkceExchange(authCode: string): Promise<{ error: string | n
 export default function AuthCallbackScreen() {
   const router = useRouter();
   const { user, isInitialised, pendingEmailVerification, resendVerification } = useAuthStore();
-  const params = useLocalSearchParams<{ code?: string }>();
+  const params = useLocalSearchParams<{ code?: string; error?: string; error_code?: string }>();
   const rawCode = Array.isArray(params.code) ? params.code[0] : params.code;
   const code = rawCode?.split("#")[0] || undefined;
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [resending, setResending] = useState(false);
+
+  // Fallback: when the deep link opens the app from the background, Expo Router
+  // can navigate to auth/callback before useLocalSearchParams resolves the code
+  // from the URL. useURL() is reactive and always carries the latest deep-link
+  // URL, so we can parse the code (and any error params) from it directly.
+  const linkingUrl = Linking.useURL();
+  const { codeFromLink, errorFromLink } = useMemo(() => {
+    if (!linkingUrl?.includes("auth/callback")) {
+      return { codeFromLink: undefined, errorFromLink: undefined };
+    }
+    const codeM = linkingUrl.match(/[?&]code=([^&#]+)/);
+    const errM = linkingUrl.match(/[?&](?:error_code|error)=([^&#]+)/);
+    return {
+      codeFromLink: codeM?.[1]?.split("#")[0],
+      errorFromLink: errM?.[1]
+        ? decodeURIComponent(errM[1].replace(/\+/g, " "))
+        : undefined,
+    };
+  }, [linkingUrl]);
+
+  // Combine: prefer route param (fastest), fall back to raw Linking URL
+  const effectiveCode = code || codeFromLink;
+
+  // Collect any error signal from URL params or the raw Linking URL
+  const rawParamsError =
+    (Array.isArray(params.error_code) ? params.error_code[0] : params.error_code) ||
+    (Array.isArray(params.error) ? params.error[0] : params.error);
+  const urlError = rawParamsError || errorFromLink;
 
   // Dismiss the Chrome Custom Tab as soon as the callback screen mounts.
   useEffect(() => {
@@ -145,15 +174,31 @@ export default function AuthCallbackScreen() {
   useEffect(() => {
     if (!isInitialised) return;
 
+    // Supabase returned an error in the redirect URL (e.g. otp_expired, access_denied).
+    // Show it immediately instead of running the polling path for 10 seconds.
+    if (urlError) {
+      const isExpired =
+        urlError === "otp_expired" ||
+        urlError === "access_denied" ||
+        urlError.toLowerCase().includes("expired");
+      setErrorMsg(
+        isExpired
+          ? "This confirmation link has expired or has already been used. Tap below to send a new one."
+          : `Sign-in error: ${urlError}`
+      );
+      return;
+    }
+
     let active = true;
 
     const doExchange = async () => {
       try {
-        if (!code) {
-          // No code — poll for a session (covers implicit-flow OAuth)
+        if (!effectiveCode) {
+          // No code yet — poll briefly in case a session arrives via another path
           let pollCount = 0;
           const interval = setInterval(async () => {
             pollCount++;
+            if (!active) { clearInterval(interval); return; }
             const { data: { session } } = await supabase.auth.getSession();
             const emailConfirmed =
               session?.user && (!session.user.email || !!session.user.email_confirmed_at);
@@ -173,7 +218,7 @@ export default function AuthCallbackScreen() {
           return;
         }
 
-        const { error } = await directPkceExchange(code);
+        const { error } = await directPkceExchange(effectiveCode);
 
         if (!active) return;
         if (error) setErrorMsg(error);
@@ -185,7 +230,7 @@ export default function AuthCallbackScreen() {
 
     doExchange();
     return () => { active = false; };
-  }, [code, isInitialised]);
+  }, [effectiveCode, isInitialised, urlError]);
 
   useEffect(() => {
     if (user) {
@@ -198,9 +243,15 @@ export default function AuthCallbackScreen() {
     const isBadVerifier =
       errorMsg.includes("bad_code_verifier") ||
       errorMsg.includes("code challenge does not match");
-    const displayMsg = isBadVerifier
-      ? "Your confirmation link is outdated. Tap the button below to send a new one and try again."
-      : errorMsg;
+    const isExpiredLink =
+      errorMsg.includes("expired") || errorMsg.includes("access_denied");
+    const showResend = isBadVerifier || isExpiredLink;
+    const displayMsg =
+      isBadVerifier
+        ? "Your confirmation link is outdated. Tap the button below to send a new one and try again."
+        : isExpiredLink
+        ? "This confirmation link has expired or has already been used. Tap below to send a new one."
+        : errorMsg;
 
     const handleResendFromError = async () => {
       if (!pendingEmailVerification) {
@@ -237,7 +288,7 @@ export default function AuthCallbackScreen() {
         >
           {displayMsg}
         </Text>
-        {isBadVerifier && (
+        {showResend && (
           <TouchableOpacity
             onPress={handleResendFromError}
             disabled={resending}
@@ -258,11 +309,11 @@ export default function AuthCallbackScreen() {
         <TouchableOpacity
           onPress={() => router.replace("/sign-in")}
           style={{
-            backgroundColor: isBadVerifier ? "transparent" : colour.onPrimary,
+            backgroundColor: showResend ? "transparent" : colour.onPrimary,
             paddingVertical: 12,
             paddingHorizontal: 24,
             borderRadius: 8,
-            borderWidth: isBadVerifier ? 1 : 0,
+            borderWidth: showResend ? 1 : 0,
             borderColor: colour.onPrimary,
           }}
         >
