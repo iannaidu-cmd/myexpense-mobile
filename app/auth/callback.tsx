@@ -154,10 +154,12 @@ export default function AuthCallbackScreen() {
           const interval = setInterval(async () => {
             pollCount++;
             const { data: { session } } = await supabase.auth.getSession();
-            if (session?.user && active) {
+            const emailConfirmed =
+              session?.user && (!session.user.email || !!session.user.email_confirmed_at);
+            if (emailConfirmed && active) {
               clearInterval(interval);
               useAuthStore.setState({
-                user: { id: session.user.id, email: session.user.email ?? "" },
+                user: { id: session!.user.id, email: session!.user.email ?? "" },
                 isAuthenticated: true,
                 pendingEmailVerification: null,
               });

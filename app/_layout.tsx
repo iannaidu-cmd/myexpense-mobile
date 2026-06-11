@@ -136,8 +136,10 @@ function OAuthHandler() {
       const rt = p.get("refresh_token");
       if (at && rt) {
         try {
-          const { data: { session: existing } } = await supabase.auth.getSession();
-          if (existing) return;
+          // Guard against overwriting an already-authenticated session (e.g. a
+          // duplicate deep-link event). But DO allow overwriting an unconfirmed
+          // temporary session — that's exactly the email-confirmation case.
+          if (useAuthStore.getState().isAuthenticated) return;
           await supabase.auth.setSession({ access_token: at, refresh_token: rt });
         } catch {
           // Silent

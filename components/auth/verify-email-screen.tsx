@@ -36,7 +36,10 @@ export function VerifyEmailScreen({
           nextState === "active"
         ) {
           const { data } = await supabase.auth.getSession();
-          if (data.session?.user) {
+          const emailConfirmed =
+            data.session?.user &&
+            (!data.session.user.email || !!data.session.user.email_confirmed_at);
+          if (emailConfirmed) {
             await initialise();
             router.replace("/(tabs)");
           }
