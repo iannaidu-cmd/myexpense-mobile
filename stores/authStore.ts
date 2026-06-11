@@ -232,7 +232,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       password,
       options: {
         ...(fullName ? { data: { full_name: fullName } } : {}),
-        emailRedirectTo: "myexpense://auth/callback",
+        emailRedirectTo: "https://www.myexpense.co.za/auth/callback",
       },
     });
     if (error) throw new Error(error.message);
@@ -279,7 +279,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     await supabase.auth.resend({
       type: "signup",
       email,
-      options: { emailRedirectTo: "myexpense://auth/callback" },
+      options: { emailRedirectTo: "https://www.myexpense.co.za/auth/callback" },
     });
     // resend() generates a NEW PKCE verifier and stores it in CV_KEY.
     // Capture it into memory + backup immediately so directPkceExchange
