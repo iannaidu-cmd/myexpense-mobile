@@ -2,7 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { expenseService } from "@/services/expenseService";
 import { incomeService } from "@/services/incomeService";
 import { profileService } from "@/services/profileService";
-import { supabase } from "@/lib/supabase";
+import { supabase, setVerifierWriteHook } from "@/lib/supabase";
 import { ACTIVE_TAX_YEAR } from "@/types/database";
 import { create } from "zustand";
 
@@ -21,6 +21,14 @@ export const SUPABASE_CV_BACKUP_KEY = `myexpense-pkce-verifier-backup`;
 let _memPkceVerifier: string | null = null;
 export function getMemPkceVerifier() { return _memPkceVerifier; }
 export function clearMemPkceVerifier() { _memPkceVerifier = null; }
+
+// Register a storage-level hook so we capture the verifier the instant auth-js
+// writes it — covers signUp(), resend(), and any future PKCE flow. More
+// reliable than reading CV_KEY after-the-fact (no timing or ordering concerns).
+setVerifierWriteHook((verifier) => {
+  _memPkceVerifier = verifier;
+  AsyncStorage.setItem(SUPABASE_CV_BACKUP_KEY, verifier).catch(() => {});
+});
 
 // Fire-and-forget: populate the query cache in parallel with auth so screens
 // load instantly once the splash fades.

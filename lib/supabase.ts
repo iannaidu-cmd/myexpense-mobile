@@ -3,6 +3,28 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createClient } from "@supabase/supabase-js";
 import { AppState, Platform } from "react-native";
 
+// Called by authStore to intercept PKCE verifier writes at the storage level.
+// This is more reliable than reading CV_KEY after-the-fact because it fires
+// at the exact moment auth-js writes the verifier — covering signUp(), resend(),
+// and any other flow that generates a PKCE pair.
+let _onVerifierWrite: ((verifier: string) => void) | null = null;
+export function setVerifierWriteHook(fn: (verifier: string) => void) {
+  _onVerifierWrite = fn;
+}
+
+// Thin proxy around AsyncStorage that calls the hook whenever auth-js writes
+// the code-verifier key (sb-{ref}-auth-token-code-verifier).
+const proxiedStorage = {
+  getItem: (key: string) => AsyncStorage.getItem(key),
+  setItem: (key: string, value: string) => {
+    if (key.endsWith("-code-verifier") && value) {
+      _onVerifierWrite?.(value);
+    }
+    return AsyncStorage.setItem(key, value);
+  },
+  removeItem: (key: string) => AsyncStorage.removeItem(key),
+};
+
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
 
@@ -30,7 +52,7 @@ const fetchWithTimeout: typeof fetch = (url, options) => {
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    storage: Platform.OS !== "web" ? AsyncStorage : undefined,
+    storage: Platform.OS !== "web" ? proxiedStorage : undefined,
     autoRefreshToken: true,
     persistSession: Platform.OS !== "web",
     detectSessionInUrl: Platform.OS === "web",
