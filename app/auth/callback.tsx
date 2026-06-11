@@ -130,11 +130,12 @@ async function directPkceExchange(authCode: string): Promise<{ error: string | n
 
 export default function AuthCallbackScreen() {
   const router = useRouter();
-  const { user, isInitialised } = useAuthStore();
+  const { user, isInitialised, pendingEmailVerification, resendVerification } = useAuthStore();
   const params = useLocalSearchParams<{ code?: string }>();
   const rawCode = Array.isArray(params.code) ? params.code[0] : params.code;
   const code = rawCode?.split("#")[0] || undefined;
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [resending, setResending] = useState(false);
 
   // Dismiss the Chrome Custom Tab as soon as the callback screen mounts.
   useEffect(() => {
@@ -194,6 +195,27 @@ export default function AuthCallbackScreen() {
   }, [user]);
 
   if (errorMsg) {
+    const isBadVerifier =
+      errorMsg.includes("bad_code_verifier") ||
+      errorMsg.includes("code challenge does not match");
+    const displayMsg = isBadVerifier
+      ? "Your confirmation link is outdated. Tap the button below to send a new one and try again."
+      : errorMsg;
+
+    const handleResendFromError = async () => {
+      if (!pendingEmailVerification) {
+        router.replace("/sign-up");
+        return;
+      }
+      setResending(true);
+      try {
+        await resendVerification(pendingEmailVerification);
+        router.replace("/email-verification");
+      } finally {
+        setResending(false);
+      }
+    };
+
     return (
       <View
         style={{
@@ -213,19 +235,38 @@ export default function AuthCallbackScreen() {
             textAlign: "center",
           }}
         >
-          {errorMsg}
+          {displayMsg}
         </Text>
+        {isBadVerifier && (
+          <TouchableOpacity
+            onPress={handleResendFromError}
+            disabled={resending}
+            style={{
+              backgroundColor: colour.onPrimary,
+              paddingVertical: 12,
+              paddingHorizontal: 24,
+              borderRadius: 8,
+              marginTop: 8,
+              opacity: resending ? 0.6 : 1,
+            }}
+          >
+            <Text style={{ color: colour.primary, fontWeight: "700", fontSize: 15 }}>
+              {resending ? "Sending…" : "Send new confirmation email"}
+            </Text>
+          </TouchableOpacity>
+        )}
         <TouchableOpacity
           onPress={() => router.replace("/sign-in")}
           style={{
-            backgroundColor: colour.onPrimary,
+            backgroundColor: isBadVerifier ? "transparent" : colour.onPrimary,
             paddingVertical: 12,
             paddingHorizontal: 24,
             borderRadius: 8,
-            marginTop: 8,
+            borderWidth: isBadVerifier ? 1 : 0,
+            borderColor: colour.onPrimary,
           }}
         >
-          <Text style={{ color: colour.primary, fontWeight: "700", fontSize: 15 }}>
+          <Text style={{ color: colour.onPrimary, fontWeight: "700", fontSize: 15 }}>
             Back to Sign In
           </Text>
         </TouchableOpacity>

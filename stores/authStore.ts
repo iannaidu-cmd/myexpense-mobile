@@ -59,6 +59,7 @@ interface AuthState {
   acceptTerms: () => Promise<void>;
   signUp: (email: string, password: string, fullName?: string) => Promise<void>;
   clearPendingEmailVerification: () => void;
+  resendVerification: (email: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
@@ -272,6 +273,23 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   clearPendingEmailVerification: () => set({ pendingEmailVerification: null }),
+
+  // ── Resend verification email ─────────────────────────────────────────────
+  resendVerification: async (email) => {
+    await supabase.auth.resend({
+      type: "signup",
+      email,
+      options: { emailRedirectTo: "myexpense://auth/callback" },
+    });
+    // resend() generates a NEW PKCE verifier and stores it in CV_KEY.
+    // Capture it into memory + backup immediately so directPkceExchange
+    // uses the new verifier instead of the stale one from the original signUp.
+    const _verifier = await AsyncStorage.getItem(SUPABASE_CV_KEY).catch(() => null);
+    if (_verifier) {
+      _memPkceVerifier = _verifier;
+      await AsyncStorage.setItem(SUPABASE_CV_BACKUP_KEY, _verifier).catch(() => {});
+    }
+  },
 
   // ── Sign In ───────────────────────────────────────────────────────────────
   signIn: async (email, password) => {

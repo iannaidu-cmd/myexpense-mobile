@@ -22,7 +22,7 @@ export function VerifyEmailScreen({
   email = "your@email.com",
 }: VerifyEmailScreenProps) {
   const router = useRouter();
-  const { initialise, clearPendingEmailVerification } = useAuthStore();
+  const { initialise, clearPendingEmailVerification, resendVerification } = useAuthStore();
   const [resendLoading, setResendLoading] = useState(false);
   const [resendSent, setResendSent] = useState(false);
   const appState = useRef(AppState.currentState);
@@ -53,11 +53,7 @@ export function VerifyEmailScreen({
   const handleResend = async () => {
     setResendLoading(true);
     try {
-      await supabase.auth.resend({
-        type: "signup",
-        email: email ?? "",
-        options: { emailRedirectTo: "myexpense://auth/callback" },
-      });
+      await resendVerification(email ?? "");
       setResendSent(true);
     } finally {
       setResendLoading(false);
