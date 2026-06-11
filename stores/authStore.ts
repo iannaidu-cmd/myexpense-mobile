@@ -22,11 +22,28 @@ let _memPkceVerifier: string | null = null;
 export function getMemPkceVerifier() { return _memPkceVerifier; }
 export function clearMemPkceVerifier() { _memPkceVerifier = null; }
 
+// auth-js's setItemAsync wraps values in JSON.stringify before calling
+// storage.setItem, so the raw bytes in AsyncStorage are '"verifierXxx"' (with
+// surrounding double-quotes). We must JSON.parse to get the actual verifier
+// string. Without this, every code_verifier sent to Supabase included extra
+// quotes and never matched the stored challenge → permanent bad_code_verifier.
+function parseStoredVerifier(raw: string): string {
+  try {
+    const parsed = JSON.parse(raw);
+    return typeof parsed === "string" ? parsed : raw;
+  } catch {
+    return raw;
+  }
+}
+
 // Register a storage-level hook so we capture the verifier the instant auth-js
 // writes it — covers signUp(), resend(), and any future PKCE flow. More
 // reliable than reading CV_KEY after-the-fact (no timing or ordering concerns).
-setVerifierWriteHook((verifier) => {
+setVerifierWriteHook((rawValue) => {
+  const verifier = parseStoredVerifier(rawValue);
   _memPkceVerifier = verifier;
+  // Store the already-parsed value so AsyncStorage.getItem reads it back cleanly
+  // (no extra JSON layer).
   AsyncStorage.setItem(SUPABASE_CV_BACKUP_KEY, verifier).catch(() => {});
 });
 
@@ -252,13 +269,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         .eq("id", data.user.id);
     }
 
-    // Capture the PKCE verifier immediately after signUp() returns — before
-    // auth-js v2.105+ _removeSession() can delete it when the temporary
-    // unconfirmed session expires. Stored in both memory (survives
-    // _removeSession and initialise() stale-restore) and AsyncStorage (survives
-    // app restart). auth/callback prefers the memory copy.
-    const _verifier = await AsyncStorage.getItem(SUPABASE_CV_KEY).catch(() => null);
-    if (_verifier) {
+    // Belt-and-suspenders: the storage proxy hook already captured the verifier
+    // the instant auth-js wrote it, but we also read it here in case the hook
+    // fired for a different key or timing edge-case.
+    const _rawVerifier = await AsyncStorage.getItem(SUPABASE_CV_KEY).catch(() => null);
+    if (_rawVerifier) {
+      const _verifier = parseStoredVerifier(_rawVerifier);
       _memPkceVerifier = _verifier;
       await AsyncStorage.setItem(SUPABASE_CV_BACKUP_KEY, _verifier).catch(() => {});
     }
@@ -290,10 +306,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       options: { emailRedirectTo: "https://www.myexpense.co.za/auth/callback" },
     });
     // resend() generates a NEW PKCE verifier and stores it in CV_KEY.
-    // Capture it into memory + backup immediately so directPkceExchange
-    // uses the new verifier instead of the stale one from the original signUp.
-    const _verifier = await AsyncStorage.getItem(SUPABASE_CV_KEY).catch(() => null);
-    if (_verifier) {
+    // The storage proxy hook captures it immediately, but also read manually
+    // here as a belt-and-suspenders fallback (must JSON.parse the raw value).
+    const _rawVerifier = await AsyncStorage.getItem(SUPABASE_CV_KEY).catch(() => null);
+    if (_rawVerifier) {
+      const _verifier = parseStoredVerifier(_rawVerifier);
       _memPkceVerifier = _verifier;
       await AsyncStorage.setItem(SUPABASE_CV_BACKUP_KEY, _verifier).catch(() => {});
     }

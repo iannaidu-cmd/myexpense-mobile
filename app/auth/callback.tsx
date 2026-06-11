@@ -39,13 +39,19 @@ async function directPkceExchange(authCode: string): Promise<{ error: string | n
   let codeVerifier: string | null = getMemPkceVerifier();
 
   if (!codeVerifier) {
+    // Backup was stored by our hook/manual-capture WITHOUT JSON wrapping, so
+    // a plain AsyncStorage.getItem is correct here.
     const backup = await AsyncStorage.getItem(SUPABASE_CV_BACKUP_KEY).catch(() => null);
     codeVerifier = backup ?? null;
   }
 
   if (!codeVerifier) {
-    const stored = await AsyncStorage.getItem(CV_KEY).catch(() => null);
-    codeVerifier = stored ?? null;
+    // CV_KEY is written by auth-js via setItemAsync which JSON.stringifies the
+    // value. We must JSON.parse to get the actual verifier string.
+    const rawStored = await AsyncStorage.getItem(CV_KEY).catch(() => null);
+    if (rawStored) {
+      try { codeVerifier = JSON.parse(rawStored); } catch { codeVerifier = rawStored; }
+    }
   }
 
   // Strip the /recovery suffix (password-reset flow) if present
