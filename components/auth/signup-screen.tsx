@@ -1,3 +1,4 @@
+import { signInWithApple } from "@/services/appleAuthService";
 import { signInWithFacebook } from "@/services/facebookAuthService";
 import { signInWithGoogle } from "@/services/googleAuthService";
 import { useAuthStore } from "@/stores/authStore";
@@ -51,6 +52,15 @@ function GoogleLogo() {
         <Path d="M6.27 13.72A6.02 6.02 0 0 1 6 12c0-.6.1-1.18.27-1.72V7.64H2.87A10 10 0 0 0 2 12c0 1.61.38 3.13 1.05 4.48l3.22-2.76z" fill="#FBBC05" />
         <Path d="M12 5.8c1.5 0 2.85.52 3.9 1.53l2.93-2.93C17.07 2.72 14.76 1.8 12 1.8a10 10 0 0 0-9.13 5.84l3.4 2.64C7.07 7.6 9.33 5.8 12 5.8z" fill="#EA4335" />
       </G>
+    </Svg>
+  );
+}
+
+// ── Apple logo ────────────────────────────────────────────────────────────────
+function AppleLogo() {
+  return (
+    <Svg width={22} height={22} viewBox="0 0 24 24" fill="#000">
+      <Path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.7 9.05 7.4c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.39-1.32 2.76-2.54 3.99zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
     </Svg>
   );
 }
@@ -162,6 +172,7 @@ export function SignupScreen() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [fbLoading, setFbLoading] = useState(false);
+  const [appleLoading, setAppleLoading] = useState(false);
   const [errors, setErrors] = useState<{ name?: string; email?: string; password?: string }>({});
 
   const handleSubmit = async () => {
@@ -200,7 +211,15 @@ export function SignupScreen() {
     } finally { setFbLoading(false); }
   };
 
-  const socialDisabled = loading || googleLoading || fbLoading;
+  const handleAppleSignIn = async () => {
+    setAppleLoading(true);
+    try {
+      const result = await signInWithApple();
+      if (!result.success && result.error !== "cancelled") Alert.alert("Apple Sign-In failed", result.error ?? "Please try again.");
+    } finally { setAppleLoading(false); }
+  };
+
+  const socialDisabled = loading || googleLoading || fbLoading || appleLoading;
   const ctaDisabled = !agreed || loading || socialDisabled;
 
   return (
@@ -322,6 +341,9 @@ export function SignupScreen() {
 
             {/* Social buttons */}
             <View style={{ flexDirection: "row", justifyContent: "center", gap: 16 }}>
+              {Platform.OS === "ios" && (
+                <SocialButton label="Apple" icon={<AppleLogo />} onPress={handleAppleSignIn} loading={appleLoading} disabled={!agreed || socialDisabled} />
+              )}
               <SocialButton label="Google" icon={<GoogleLogo />} onPress={handleGoogleSignIn} loading={googleLoading} disabled={!agreed || socialDisabled} />
               <SocialButton label="Facebook" icon={<FacebookLogo />} onPress={handleFacebookSignIn} loading={fbLoading} disabled={!agreed || socialDisabled} />
             </View>

@@ -21,7 +21,8 @@
       },
       "env": {
         "SENTRY_DISABLE_AUTO_UPLOAD": "true",
-        "EXPO_PUBLIC_SUPABASE_URL": "https://hhfbbbxgmovfpaziebsw.supabase.co"
+        "EXPO_PUBLIC_SUPABASE_URL": "https://hhfbbbxgmovfpaziebsw.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_HsDSnjnT6i1DOlx7wo8lwA_56GTdNu9"
       }
     },
     "production": {
@@ -31,14 +32,16 @@
         "resourceClass": "m-medium"
       },
       "env": {
-        "EXPO_PUBLIC_SUPABASE_URL": "https://hhfbbbxgmovfpaziebsw.supabase.co"
+        "EXPO_PUBLIC_SUPABASE_URL": "https://hhfbbbxgmovfpaziebsw.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_HsDSnjnT6i1DOlx7wo8lwA_56GTdNu9"
       }
     }
   },
   "submit": {
     "production": {
       "ios": {
-        "appleId": "ian.naidu@gmail.com"
+        "appleId": "ian.naidu@gmail.com",
+        "ascAppId": "6781178596"
       },
       "android": {
         "serviceAccountKeyPath": "./pc-api-key.json",

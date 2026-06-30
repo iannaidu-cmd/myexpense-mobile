@@ -80,6 +80,7 @@
         }
       ],
       "expo-web-browser",
+      "expo-apple-authentication",
       [
         "@sentry/react-native/expo",
         {
