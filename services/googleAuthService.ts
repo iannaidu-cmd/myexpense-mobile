@@ -28,7 +28,7 @@ export async function signInWithGoogle(): Promise<{
     const oauthUrl = `${SUPABASE_URL}/auth/v1/authorize?${params.toString()}`;
 
     const result = await WebBrowser.openAuthSessionAsync(oauthUrl, REDIRECT_URL);
-    WebBrowser.dismissBrowser();
+    try { WebBrowser.dismissBrowser(); } catch {}
 
     if (result.type === "cancel" || result.type === "dismiss") {
       return { success: false, error: "cancelled" };

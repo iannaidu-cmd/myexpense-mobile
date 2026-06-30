@@ -117,5 +117,5 @@ export const CATEGORY_LIST = Object.keys(ITR12_CATEGORIES);
 
 // ─── Tax years ────────────────────────────────────────────────────────────────
 
-export const TAX_YEARS = ["2024/25", "2023/24", "2022/23", "2021/22"];
-export const ACTIVE_TAX_YEAR = "2024/25";
+export const TAX_YEARS = ["2026/27", "2025/26", "2024/25", "2023/24", "2022/23", "2021/22"];
+export const ACTIVE_TAX_YEAR = "2026/27";

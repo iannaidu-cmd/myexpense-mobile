@@ -31,7 +31,7 @@ export async function signInWithFacebook(): Promise<{
     });
 
     // Always dismiss — on Android the Custom Tab can linger after the redirect.
-    WebBrowser.dismissBrowser();
+    try { WebBrowser.dismissBrowser(); } catch {}
 
     if (result.type === "cancel" || result.type === "dismiss") {
       return { success: false, error: "Sign-in was cancelled." };

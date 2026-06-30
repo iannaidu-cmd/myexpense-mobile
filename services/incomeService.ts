@@ -19,8 +19,8 @@ export interface IncomeEntry {
 export interface NewIncome {
   amount: number;
   source: string;
-  description?: string;
   category?: string;
+  description?: string;
   date: string;
 }
 
@@ -98,8 +98,8 @@ export const incomeService = {
         user_id: userId,
         amount: income.amount,
         source: income.source,
-        description: income.description ?? null,
         category: income.category ?? null,
+        description: income.description ?? null,
         date: income.date,
       })
       .select()

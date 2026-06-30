@@ -114,6 +114,7 @@ export default function AddIncomeScreen() {
 
   const [amount, setAmount] = useState("");
   const [source, setSource] = useState("");
+  const [category, setCategory] = useState("");
   const [description, setDescription] = useState("");
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [showFullList, setShowFullList] = useState(false);
@@ -128,6 +129,7 @@ export default function AddIncomeScreen() {
     incomeService.getIncomeById(id).then((entry) => {
       setAmount(String(entry.amount));
       setSource(entry.source);
+      setCategory(entry.category ?? "");
       setDescription(entry.description ?? "");
       setDate(entry.date);
     }).catch(console.error).finally(() => setLoadingExisting(false));
@@ -135,8 +137,9 @@ export default function AddIncomeScreen() {
 
   const canSave = !!amount && parseFloat(amount) > 0 && !!source;
 
-  const selectSource = (s: string) => {
+  const selectSource = (s: string, label?: string) => {
     setSource(s);
+    setCategory(label ?? s);
     setShowFullList(false);
   };
 
@@ -175,11 +178,13 @@ export default function AddIncomeScreen() {
         await incomeService.addIncome(user.id, {
           amount: parseFloat(amount),
           source: source.trim(),
+          category: category.trim() || undefined,
           description: description.trim() || undefined,
           date: incomeDate,
         });
         setAmount("");
         setSource("");
+        setCategory("");
         setDescription("");
         setDate(new Date().toISOString().split("T")[0]);
         setSuccessMessage(`R ${parseFloat(amount).toLocaleString("en-ZA", { minimumFractionDigits: 2 })} from ${source} has been saved.`);
@@ -285,7 +290,7 @@ export default function AddIncomeScreen() {
               {QUICK_PICKS.map((q) => (
                 <TouchableOpacity
                   key={q.label}
-                  onPress={() => selectSource(q.source)}
+                  onPress={() => selectSource(q.source, q.label)}
                   style={{
                     paddingHorizontal: space.md,
                     paddingVertical: space.sm,

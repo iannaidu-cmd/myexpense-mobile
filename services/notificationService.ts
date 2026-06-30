@@ -74,30 +74,46 @@ export async function scheduleMonthlyReportReminder(): Promise<void> {
 
 export async function scheduleSARSDeadlineReminders(): Promise<void> {
   const year = new Date().getFullYear();
+  const now = new Date();
+
+  // eFiling open fires ON the day (1 Jul) — not early, since the message says "opens today".
+  const efilingOpenDate = new Date(year, 6, 1, 8, 0, 0);
+  await Notifications.cancelScheduledNotificationAsync("sars-efiling-open").catch(() => {});
+  if (efilingOpenDate > now) {
+    await Notifications.scheduleNotificationAsync({
+      identifier: "sars-efiling-open",
+      content: {
+        title: "SARS Deadline Reminder",
+        body: "SARS eFiling opens today. Start preparing your ITR12.",
+        data: { route: "/itr12-export-setup" },
+      },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DATE,
+        date: efilingOpenDate,
+      },
+    });
+  }
+
+  // Deadline reminders fire 1 week before the actual deadline at 08:00.
   const deadlines = [
     {
-      id: "sars-efiling-open",
-      date: new Date(year, 6, 1),
-      body: "SARS eFiling opens today. Start preparing your ITR12.",
-    },
-    {
       id: "sars-nonprovisional-deadline",
-      date: new Date(year, 9, 23),
+      date: new Date(year, 9, 23, 8, 0, 0),
       body: "SARS non-provisional taxpayer deadline is approaching (23 Oct).",
     },
     {
       // Provisional deadline is always 31 Jan of the NEXT calendar year
       // (e.g. for the 2025/26 tax year the deadline is 31 Jan 2027).
       id: "sars-provisional-deadline",
-      date: new Date(year + 1, 0, 31),
+      date: new Date(year + 1, 0, 31, 8, 0, 0),
       body: "SARS provisional taxpayer deadline is approaching (31 Jan).",
     },
   ];
 
   for (const { id, date, body } of deadlines) {
-    const reminderDate = new Date(date.getTime() - 7 * 24 * 60 * 60 * 1000); // 1 week before
-    if (reminderDate > new Date()) {
-      await Notifications.cancelScheduledNotificationAsync(id).catch(() => {});
+    const reminderDate = new Date(date.getTime() - 7 * 24 * 60 * 60 * 1000);
+    await Notifications.cancelScheduledNotificationAsync(id).catch(() => {});
+    if (reminderDate > now) {
       await Notifications.scheduleNotificationAsync({
         identifier: id,
         content: {

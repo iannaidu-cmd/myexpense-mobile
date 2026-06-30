@@ -66,7 +66,7 @@ export default function HomeScreen() {
     isFetching.current = true;
     if (!silent) setLoading(true);
     const timeout = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error("timeout")), 10_000),
+      setTimeout(() => reject(new Error("timeout")), 25_000),
     );
     try {
       const [profile, totals, incomeTotals, recent, recentInc] = await Promise.race([

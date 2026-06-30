@@ -178,7 +178,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       const {
         data: { subscription },
-      } = supabase.auth.onAuthStateChange(async (event, session) => {
+      } = supabase.auth.onAuthStateChange((event, session) => {
         // INITIAL_SESSION fires immediately on registration and duplicates the
         // getSession() call above — skip it to avoid a double state update.
         if (event === 'INITIAL_SESSION') return;
@@ -194,17 +194,21 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
           if (emailConfirmed) {
             prefetchUserData(session.user.id);
-            const { isDevUser, isPremium, termsAccepted } = await fetchPremiumStatus(
-              session.user.id
-            );
+            // Set auth state immediately so auth-js isn't blocked waiting for
+            // a DB round-trip. fetchPremiumStatus runs in the background and
+            // updates isDevUser/isPremium/termsAccepted once it resolves.
+            // (auth-js v2 awaits every onAuthStateChange callback, so any
+            //  await here delays signInWithPassword returning to the caller.)
             set({
               user: { id: session.user.id, email: session.user.email ?? "" },
               isAuthenticated: true,
-              isDevUser,
-              isPremium,
-              termsAccepted,
               pendingEmailVerification: null,
             });
+            fetchPremiumStatus(session.user.id)
+              .then(({ isDevUser, isPremium, termsAccepted }) => {
+                set({ isDevUser, isPremium, termsAccepted });
+              })
+              .catch(() => {});
           } else {
             // Email not yet confirmed — keep as pending, don't authenticate.
             set({ pendingEmailVerification: session.user.email ?? null });
@@ -323,16 +327,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       password,
     });
     if (error) throw new Error(error.message);
-    if (data.user) {
-      const { isDevUser, isPremium, termsAccepted } = await fetchPremiumStatus(data.user.id);
-      set({
-        user: { id: data.user.id, email: data.user.email ?? "" },
-        isAuthenticated: true,
-        isDevUser,
-        isPremium,
-        termsAccepted,
-      });
-    }
+    // Auth state (isAuthenticated, user, premium flags) is set by the
+    // onAuthStateChange callback which auth-js fires — and awaits — inside
+    // signInWithPassword before this line is reached. No second DB round-trip
+    // needed here.
   },
 
   // ── Sign Out ──────────────────────────────────────────────────────────────

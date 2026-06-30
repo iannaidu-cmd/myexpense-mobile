@@ -32,11 +32,11 @@ const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
 // Android devices, so Promise.race is used as a reliable fallback that
 // rejects regardless of the underlying fetch state.
 // Auth token exchange (Facebook/Google OAuth) routes through the provider's
-// token endpoint server-side and can legitimately take 30-60 s, so it gets
-// a longer budget than ordinary database/storage requests.
+// token endpoint server-side and can legitimately take longer than ordinary
+// database/storage requests.
 const fetchWithTimeout: typeof fetch = (url, options) => {
   const isAuthToken = String(url).includes("/auth/v1/token");
-  const timeoutMs = isAuthToken ? 60_000 : 30_000;
+  const timeoutMs = isAuthToken ? 20_000 : 15_000;
   const controller = new AbortController();
   const abortTimer = setTimeout(() => controller.abort(), timeoutMs);
   const raceTimer = new Promise<never>((_, reject) =>

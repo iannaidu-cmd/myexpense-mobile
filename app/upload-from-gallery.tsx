@@ -74,12 +74,22 @@ export default function UploadFromGalleryScreen() {
       const uint8Array = new Uint8Array(arrayBuffer);
 
       const { supabase } = await import("@/lib/supabase");
-      const { error: uploadError } = await supabase.storage
-        .from("receipts")
-        .upload(storagePath, uint8Array, {
+
+      const UPLOAD_TIMEOUT_MS = 60_000;
+      const uploadTimeout = new Promise<never>((_, reject) =>
+        setTimeout(
+          () => reject(new Error("Upload timed out. Please check your connection and try again.")),
+          UPLOAD_TIMEOUT_MS,
+        ),
+      );
+
+      const { error: uploadError } = await Promise.race([
+        supabase.storage.from("receipts").upload(storagePath, uint8Array, {
           upsert: true,
           contentType: "image/jpeg",
-        });
+        }),
+        uploadTimeout,
+      ]);
       if (uploadError) throw new Error(uploadError.message);
 
       await supabase.from("receipts").insert({

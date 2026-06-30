@@ -27,14 +27,15 @@ const FAB_ACTIONS = [
 function CustomTabBar({
   state,
   navigation,
+  onFabPress,
 }: {
   state: any;
   navigation: any;
+  onFabPress: () => void;
 }) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const bp = Platform.OS === "ios" ? insets.bottom : Math.max(insets.bottom, 8);
-  const [fabOpen, setFabOpen] = useState(false);
 
   const fabShadow =
     Platform.OS === "ios"
@@ -46,113 +47,8 @@ function CustomTabBar({
         }
       : { elevation: 10 };
 
-  const handleFabAction = (route: string) => {
-    setFabOpen(false);
-    router.push(route as any);
-  };
-
   return (
     <>
-      <Modal
-        visible={fabOpen}
-        transparent
-        animationType="fade"
-        statusBarTranslucent
-        onRequestClose={() => setFabOpen(false)}
-      >
-        <View style={{ flex: 1 }}>
-          {/* Backdrop */}
-          <TouchableOpacity
-            style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.45)" }}
-            activeOpacity={1}
-            onPress={() => setFabOpen(false)}
-          />
-
-          {/* Speed dial actions */}
-          <View
-            style={{
-              position: "absolute",
-              bottom: 86 + bp,
-              left: 16,
-              right: 16,
-              backgroundColor: colour.white,
-              borderRadius: 20,
-              overflow: "hidden",
-              shadowColor: "#000",
-              shadowOffset: { width: 0, height: 8 },
-              shadowOpacity: 0.12,
-              shadowRadius: 24,
-              elevation: 12,
-            }}
-          >
-            {FAB_ACTIONS.map((action, index) => (
-              <TouchableOpacity
-                key={action.route}
-                onPress={() => handleFabAction(action.route)}
-                activeOpacity={0.7}
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  paddingHorizontal: 16,
-                  paddingVertical: 14,
-                  gap: 14,
-                  borderTopWidth: index > 0 ? 1 : 0,
-                  borderTopColor: colour.borderLight,
-                }}
-              >
-                <View
-                  style={{
-                    width: 44,
-                    height: 44,
-                    borderRadius: 10,
-                    backgroundColor: colour.primary,
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <IconSymbol name={action.icon} size={20} color={colour.white} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ fontFamily: "Inter_500Medium", fontSize: 15, color: colour.text }}>
-                    {action.label}
-                  </Text>
-                  <Text style={{ fontFamily: "Inter_500Medium", fontSize: 12, color: colour.navInactive, marginTop: 2 }}>
-                    {action.subtitle}
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          {/* Close button overlaid on the FAB position */}
-          <View
-            style={{
-              position: "absolute",
-              bottom: 22 + bp,
-              alignSelf: "center",
-            }}
-          >
-            <TouchableOpacity
-              onPress={() => setFabOpen(false)}
-              activeOpacity={0.85}
-              style={{
-                width: 52,
-                height: 52,
-                borderRadius: 26,
-                backgroundColor: colour.primary,
-                alignItems: "center",
-                justifyContent: "center",
-                borderWidth: 4,
-                borderColor: colour.white,
-                ...fabShadow,
-              }}
-            >
-              <IconSymbol name="xmark" size={22} color={colour.white} />
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-
       <View
         style={{
           backgroundColor: colour.white,
@@ -161,7 +57,7 @@ function CustomTabBar({
           flexDirection: "row",
           paddingBottom: bp,
           height: 56 + bp,
-          overflow: "visible",
+          overflow: Platform.OS === "ios" ? "visible" : undefined,
         }}
       >
         {(state.routes as any[]).map((route: any, index: number) => {
@@ -171,7 +67,7 @@ function CustomTabBar({
 
           const onPress = () => {
             if (tab.isFab) {
-              setFabOpen(true);
+              onFabPress();
               return;
             }
             if (tab.name === "add-expense") {
@@ -192,7 +88,7 @@ function CustomTabBar({
             return (
               <View
                 key={route.key}
-                style={{ flex: 1, alignItems: "center", overflow: "visible" }}
+                style={{ flex: 1, alignItems: "center", overflow: Platform.OS === "ios" ? "visible" : undefined }}
               >
                 <TouchableOpacity
                   onPress={onPress}
@@ -255,16 +151,139 @@ function CustomTabBar({
 }
 
 export default function TabLayout() {
+  const insets = useSafeAreaInsets();
+  const router = useRouter();
+  const [fabOpen, setFabOpen] = useState(false);
+  const bp = Platform.OS === "ios" ? insets.bottom : Math.max(insets.bottom, 8);
+
+  const fabShadow =
+    Platform.OS === "ios"
+      ? {
+          shadowColor: colour.primary,
+          shadowOffset: { width: 0, height: 8 },
+          shadowOpacity: 0.45,
+          shadowRadius: 16,
+        }
+      : { elevation: 10 };
+
+  const handleFabAction = (route: string) => {
+    setFabOpen(false);
+    router.push(route as any);
+  };
+
   return (
-    <Tabs
-      tabBar={(props) => <CustomTabBar {...props} />}
-      screenOptions={{ headerShown: false }}
-    >
-      <Tabs.Screen name="index" />
-      <Tabs.Screen name="add-expense" />
-      <Tabs.Screen name="scan" />
-      <Tabs.Screen name="reports" />
-      <Tabs.Screen name="settings" />
-    </Tabs>
+    <>
+      <Tabs
+        tabBar={(props) => (
+          <CustomTabBar {...props} onFabPress={() => setFabOpen(true)} />
+        )}
+        screenOptions={{ headerShown: false }}
+      >
+        <Tabs.Screen name="index" />
+        <Tabs.Screen name="add-expense" />
+        <Tabs.Screen name="scan" />
+        <Tabs.Screen name="reports" />
+        <Tabs.Screen name="settings" />
+      </Tabs>
+
+      {/* Modal lives outside the tab bar view hierarchy to avoid Android
+          getChildDrawingOrder crash (Fabric / New Architecture) */}
+      <Modal
+        visible={fabOpen}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        onRequestClose={() => setFabOpen(false)}
+      >
+        <View style={{ flex: 1 }}>
+          <TouchableOpacity
+            style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.45)" }}
+            activeOpacity={1}
+            onPress={() => setFabOpen(false)}
+          />
+
+          <View
+            style={{
+              position: "absolute",
+              bottom: 86 + bp,
+              left: 16,
+              right: 16,
+              backgroundColor: colour.white,
+              borderRadius: 20,
+              overflow: "hidden",
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 8 },
+              shadowOpacity: 0.12,
+              shadowRadius: 24,
+              elevation: 12,
+            }}
+          >
+            {FAB_ACTIONS.map((action, index) => (
+              <TouchableOpacity
+                key={action.route}
+                onPress={() => handleFabAction(action.route)}
+                activeOpacity={0.7}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  paddingHorizontal: 16,
+                  paddingVertical: 14,
+                  gap: 14,
+                  borderTopWidth: index > 0 ? 1 : 0,
+                  borderTopColor: colour.borderLight,
+                }}
+              >
+                <View
+                  style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: 10,
+                    backgroundColor: colour.primary,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <IconSymbol name={action.icon} size={20} color={colour.white} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontFamily: "Inter_500Medium", fontSize: 15, color: colour.text }}>
+                    {action.label}
+                  </Text>
+                  <Text style={{ fontFamily: "Inter_500Medium", fontSize: 12, color: colour.navInactive, marginTop: 2 }}>
+                    {action.subtitle}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <View
+            style={{
+              position: "absolute",
+              bottom: 22 + bp,
+              alignSelf: "center",
+            }}
+          >
+            <TouchableOpacity
+              onPress={() => setFabOpen(false)}
+              activeOpacity={0.85}
+              style={{
+                width: 52,
+                height: 52,
+                borderRadius: 26,
+                backgroundColor: colour.primary,
+                alignItems: "center",
+                justifyContent: "center",
+                borderWidth: 4,
+                borderColor: colour.white,
+                ...fabShadow,
+              }}
+            >
+              <IconSymbol name="xmark" size={22} color={colour.white} />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+    </>
   );
 }

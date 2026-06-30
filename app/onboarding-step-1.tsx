@@ -1,6 +1,7 @@
 import { OnboardingFeatureScene } from '@/components/illustrations/OnboardingFeatureScene';
 import { OnboardingHeroScene } from '@/components/illustrations/OnboardingHeroScene';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { SARS_RATE_PER_KM, TAX_YEAR } from '@/lib/taxRules';
 import { colour, radius, space } from '@/tokens';
 import { useRouter } from 'expo-router';
 import React, { useRef, useState } from 'react';
@@ -203,7 +204,7 @@ export default function OnboardingScreen() {
             </View>
             <View style={{ flex: 1 }}>
               <Text style={{ fontSize: 15, fontWeight: '700', color: colour.text, marginBottom: 2 }}>Mileage tracker</Text>
-              <Text style={{ fontSize: 12, color: colour.textSub, lineHeight: 17 }}>GPS logbook at SARS deemed rate R4.84/km for 2024/25</Text>
+              <Text style={{ fontSize: 12, color: colour.textSub, lineHeight: 17 }}>{`GPS logbook at SARS deemed rate R${SARS_RATE_PER_KM}/km for ${TAX_YEAR}`}</Text>
             </View>
           </View>
         </ScrollView>

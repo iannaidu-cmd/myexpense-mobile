@@ -215,7 +215,8 @@ export function SignupScreen() {
     setAppleLoading(true);
     try {
       const result = await signInWithApple();
-      if (!result.success && result.error !== "cancelled") Alert.alert("Apple Sign-In failed", result.error ?? "Please try again.");
+      if (result.success) router.replace("/(tabs)");
+      else if (result.error !== "cancelled") Alert.alert("Apple Sign-In failed", result.error ?? "Please try again.");
     } finally { setAppleLoading(false); }
   };
 

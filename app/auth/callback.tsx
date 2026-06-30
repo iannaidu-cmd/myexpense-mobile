@@ -173,8 +173,9 @@ export default function AuthCallbackScreen() {
   const urlError = rawParamsError || errorFromLink;
 
   // Dismiss the Chrome Custom Tab as soon as the callback screen mounts.
+  // Guard: on iOS the browser is already gone by the time the deep-link fires.
   useEffect(() => {
-    WebBrowser.dismissBrowser();
+    try { WebBrowser.dismissBrowser(); } catch {}
   }, []);
 
   useEffect(() => {
@@ -240,7 +241,7 @@ export default function AuthCallbackScreen() {
 
   useEffect(() => {
     if (user) {
-      WebBrowser.dismissBrowser();
+      try { WebBrowser.dismissBrowser(); } catch {}
       router.replace("/(tabs)");
     }
   }, [user]);
