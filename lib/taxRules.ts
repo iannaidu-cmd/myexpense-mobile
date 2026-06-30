@@ -2,6 +2,16 @@
 
 export const TAX_YEAR = "2026/27";
 
+// Derive the SA tax year string (e.g. "2026/27") from any ISO date string.
+// SA tax year runs 1 March → last day of February the following year.
+export function taxYearForDate(dateStr: string): string {
+  const d = new Date(dateStr);
+  const year = d.getFullYear();
+  const month = d.getMonth() + 1; // 1-indexed
+  const startYear = month >= 3 ? year : year - 1;
+  return `${startYear}/${String(startYear + 1).slice(-2)}`;
+}
+
 // SARS income tax brackets (ZAR) — 2026/27 (1 March 2026 – 28 February 2027)
 // Source: sars.gov.za/tax-rates/income-tax/rates-of-tax-for-individuals/ (updated 25 Feb 2026)
 export const TAX_BRACKETS = [

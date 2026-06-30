@@ -6,7 +6,7 @@ import { expenseService } from "@/services/expenseService";
 import { incomeService } from "@/services/incomeService";
 import { useAuthStore } from "@/stores/authStore";
 import { colour, radius, space, typography } from "@/tokens";
-import { ACTIVE_TAX_YEAR } from "@/types/database";
+import { taxYearForDate } from "@/lib/taxRules";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
@@ -107,7 +107,7 @@ export default function IncomeDetailScreen() {
         vendor: income.source,
         amount: income.amount,
         category: "Non-deductible",
-        tax_year: ACTIVE_TAX_YEAR,
+        tax_year: taxYearForDate(income.date),
         expense_date: income.date,
         is_deductible: false,
         notes: income.description ?? "Converted from income",

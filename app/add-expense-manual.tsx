@@ -8,7 +8,7 @@ import { expenseService } from "@/services/expenseService";
 import { useAuthStore } from "@/stores/authStore";
 import { floorRatio, useHomeOfficeStore } from "@/stores/homeOfficeStore";
 import { colour } from "@/tokens";
-import { ACTIVE_TAX_YEAR } from "@/types/database";
+import { taxYearForDate } from "@/lib/taxRules";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
@@ -174,7 +174,7 @@ export default function AddExpenseScreen() {
         amount: savedAmount,
         category,
         itr12_code: selectedCat?.code ?? null,
-        tax_year: ACTIVE_TAX_YEAR,
+        tax_year: taxYearForDate(expenseDate),
         expense_date: expenseDate,
         is_deductible: overrideDeductible ?? (expType === "business"),
         vat_amount: vatAmount ? parseFloat(vatAmount) : undefined,

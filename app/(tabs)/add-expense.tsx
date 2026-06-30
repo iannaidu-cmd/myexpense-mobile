@@ -12,7 +12,7 @@ import { expenseService } from "@/services/expenseService";
 import { scheduleReceiptReminder } from "@/services/notificationService";
 import { useAuthStore } from "@/stores/authStore";
 import { colour, radius, space, typography } from "@/tokens";
-import { ACTIVE_TAX_YEAR } from "@/types/database";
+import { taxYearForDate } from "@/lib/taxRules";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
@@ -147,7 +147,7 @@ export default function AddExpenseTab() {
         amount: parseFloat(amount),
         category,
         itr12_code: selectedCat?.code ?? null,
-        tax_year: ACTIVE_TAX_YEAR,
+        tax_year: taxYearForDate(expenseDate),
         expense_date: expenseDate,
         is_deductible: selectedCat?.deductible ?? false,
         vat_amount: vatAmount ? parseFloat(vatAmount) : undefined,
