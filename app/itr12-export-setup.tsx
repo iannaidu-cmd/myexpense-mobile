@@ -10,6 +10,7 @@ import { getMarginalRate } from "@/lib/taxRules";
 import { useAuthStore } from "@/stores/authStore";
 import { useExpenseStore } from "@/stores/expenseStore";
 import { colour, radius, space } from "@/tokens";
+import { TAX_YEARS } from "@/types/database";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useAppForeground } from "@/hooks/use-app-foreground";
 import React, { useCallback, useEffect, useState } from "react";
@@ -66,7 +67,7 @@ function ToggleRow({
   );
 }
 
-const YEARS = ["2025/26", "2024/25", "2023/24", "2022/23"];
+const YEARS = TAX_YEARS;
 const FORMATS = [
   { key: "pdf",  label: "PDF report",      icon: "doc.text.fill"         },
   { key: "csv",  label: "CSV spreadsheet", icon: "chart.bar.fill"        },
@@ -125,7 +126,7 @@ export default function ITR12ExportSetupScreen() {
           expenseService.getTotals(user.id, taxYear),
           expenseService.getByCategory(user.id, taxYear),
           expenseService.getExpenses(user.id, taxYear),
-          incomeService.getTotals(user.id),
+          incomeService.getTotals(user.id, taxYear),
         ]),
         timeout,
       ]);

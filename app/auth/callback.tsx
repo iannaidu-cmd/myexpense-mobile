@@ -252,9 +252,17 @@ export default function AuthCallbackScreen() {
       errorMsg.includes("code challenge does not match");
     const isExpiredLink =
       errorMsg.includes("expired") || errorMsg.includes("access_denied");
+    // The verifier only exists on the device/app-install that started sign-up.
+    // Opening the link on a different device (e.g. confirming on a desktop
+    // email client, or a second phone) hits this — but Supabase already marks
+    // the account confirmed server-side the moment the link is opened, so this
+    // isn't a failure: the user just needs to sign in normally with their password.
+    const isCrossDeviceConfirm = errorMsg.includes("PKCE verifier missing");
     const showResend = isBadVerifier || isExpiredLink;
     const displayMsg =
-      isBadVerifier
+      isCrossDeviceConfirm
+        ? "Your email has been confirmed. Please sign in with your email and password."
+        : isBadVerifier
         ? "Your confirmation link is outdated. Tap the button below to send a new one and try again."
         : isExpiredLink
         ? "This confirmation link has expired or has already been used. Tap below to send a new one."
@@ -325,7 +333,7 @@ export default function AuthCallbackScreen() {
           }}
         >
           <Text style={{ color: colour.onPrimary, fontWeight: "700", fontSize: 15 }}>
-            Back to Sign In
+            {isCrossDeviceConfirm ? "Go to Sign In" : "Back to Sign In"}
           </Text>
         </TouchableOpacity>
       </View>

@@ -8,6 +8,7 @@ import {
   validateIncomeSource,
   validateNote,
 } from "@/lib/validation";
+import { taxYearForDate } from "@/lib/taxRules";
 import { incomeService } from "@/services/incomeService";
 import { useAuthStore } from "@/stores/authStore";
 import { colour, radius, space, typography } from "@/tokens";
@@ -45,7 +46,7 @@ const FULL_CATEGORIES = [
   { label: "Income of Employment (Salary / Wage)"            },
   { label: "Bonuses"                                         },
   { label: "Overtime"                                        },
-  { label: "Fridge Benefits"                                 },
+  { label: "Fringe Benefits"                                 },
   { label: "Income or Profits (Beneficiary of a Trust)"     },
   { label: "Cell Phone Allowance"                            },
   { label: "Fees from Companies / CC for Services Rendered" },
@@ -172,6 +173,7 @@ export default function AddIncomeScreen() {
           source: source.trim(),
           description: description.trim() || undefined,
           date: incomeDate,
+          tax_year: taxYearForDate(incomeDate),
         });
         setSuccessMessage(`Income updated successfully.`);
       } else {
@@ -181,6 +183,7 @@ export default function AddIncomeScreen() {
           category: category.trim() || undefined,
           description: description.trim() || undefined,
           date: incomeDate,
+          tax_year: taxYearForDate(incomeDate),
         });
         setAmount("");
         setSource("");

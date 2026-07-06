@@ -116,6 +116,19 @@ export const ITR12_CATEGORIES: Record<
 export const CATEGORY_LIST = Object.keys(ITR12_CATEGORIES);
 
 // ─── Tax years ────────────────────────────────────────────────────────────────
+// ACTIVE_TAX_YEAR is derived from today's date (not hand-set) so it rolls over
+// automatically every 1 March — see lib/taxRules.ts getCurrentTaxYear().
 
-export const TAX_YEARS = ["2026/27", "2025/26", "2024/25", "2023/24", "2022/23", "2021/22"];
-export const ACTIVE_TAX_YEAR = "2026/27";
+import { getCurrentTaxYear } from "@/lib/taxRules";
+
+export const ACTIVE_TAX_YEAR = getCurrentTaxYear();
+
+function recentTaxYears(count = 6): string[] {
+  const startYear = parseInt(ACTIVE_TAX_YEAR.split("/")[0], 10);
+  return Array.from({ length: count }, (_, i) => {
+    const y = startYear - i;
+    return `${y}/${String(y + 1).slice(-2)}`;
+  });
+}
+
+export const TAX_YEARS = recentTaxYears();

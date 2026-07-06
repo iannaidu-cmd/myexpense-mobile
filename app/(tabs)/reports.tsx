@@ -181,7 +181,7 @@ export default function ReportsTabScreen() {
           await Promise.all([
             expenseService.getTotals(user.id, activeTaxYear),
             expenseService.getExpenses(user.id, activeTaxYear),
-            incomeService.getIncome(user.id),
+            incomeService.getIncome(user.id, activeTaxYear),
             mileageService.getTrips(user.id, activeTaxYear),
             expenseService.getByCategory(user.id, activeTaxYear),
           ]);

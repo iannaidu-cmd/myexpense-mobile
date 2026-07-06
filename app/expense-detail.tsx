@@ -2,6 +2,7 @@ import { ConfirmModal } from "@/components/ConfirmModal";
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { taxYearForDate } from "@/lib/taxRules";
 import { expenseService } from "@/services/expenseService";
 import { incomeService } from "@/services/incomeService";
 import { useAuthStore } from "@/stores/authStore";
@@ -276,6 +277,7 @@ export default function ExpenseDetailScreen() {
         source: expense.vendor,
         date: expense.expense_date,
         description: expense.notes ?? "Converted from expense",
+        tax_year: taxYearForDate(expense.expense_date),
       });
       await expenseService.deleteExpense(expense.id);
       router.replace("/income-history" as any);

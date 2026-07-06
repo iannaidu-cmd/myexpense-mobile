@@ -5,7 +5,7 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from "@/components/maps";
-import { SARS_RATE_PER_KM } from "@/lib/taxRules";
+import { SARS_RATE_PER_KM, taxYearForDate } from "@/lib/taxRules";
 import { useAuthStore } from "@/stores/authStore";
 import { useExpenseStore } from "@/stores/expenseStore";
 import { colour, radius, space, typography } from "@/tokens";
@@ -351,7 +351,7 @@ export default function MileageTrackerScreen() {
           start_lng: startPos?.longitude ?? null,
           end_lat: currentPos?.latitude ?? null,
           end_lng: currentPos?.longitude ?? null,
-          tax_year: activeTaxYear,
+          tax_year: taxYearForDate(tripDate),
           is_deductible: true,
           notes: tripNote || null,
           trip_date: tripDate,
@@ -417,6 +417,37 @@ export default function MileageTrackerScreen() {
       ],
     );
   }, [distanceKm, stopTracking, saveTrip]);
+
+  // Discard the trip entirely — no row is ever written to mileage_trips.
+  // Distinct from handleEnd, which always saves. Lets the user bail out of a
+  // trip started by accident (or a test drive) without it landing in their
+  // logbook, so there's nothing to clean up afterwards from Trip History.
+  const handleCancel = useCallback(() => {
+    Alert.alert(
+      "Discard Trip?",
+      `You've travelled ${distanceKm.toFixed(2)} km. This trip will NOT be saved.`,
+      [
+        { text: "Keep Tracking", style: "cancel" },
+        {
+          text: "Discard",
+          style: "destructive",
+          onPress: () => {
+            stopTracking();
+            clearSavedTrip();
+            setStatus("idle");
+            setDistanceKm(0);
+            setCoords([]);
+            setStartTime(null);
+            setElapsed(0);
+            setStartPos(null);
+            setTripNote("");
+            lastCoordRef.current = null;
+            pausedKmRef.current = 0;
+          },
+        },
+      ],
+    );
+  }, [distanceKm, stopTracking, clearSavedTrip]);
 
   const deductionEstimate = distanceKm * SARS_RATE_PER_KM;
   const elapsedStr = formatElapsed(elapsed);
@@ -765,7 +796,7 @@ export default function MileageTrackerScreen() {
               </TouchableOpacity>
 
               <InfoBanner
-                title={`SARS deemed rate 2024/25: R${SARS_RATE_PER_KM}/km`}
+                title={`SARS deemed rate ${activeTaxYear}: R${SARS_RATE_PER_KM}/km`}
                 body="Only business travel is deductible under S11(a). Personal trips are excluded."
                 style={{ marginTop: space.md }}
               />
@@ -819,6 +850,16 @@ export default function MileageTrackerScreen() {
                   </>
                 )}
               </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleCancel}
+                disabled={saving}
+                style={{ alignItems: "center", paddingVertical: space.sm }}
+                activeOpacity={0.6}
+              >
+                <Text style={{ ...typography.actionS, color: colour.textSub }}>
+                  Discard trip (don't save)
+                </Text>
+              </TouchableOpacity>
             </View>
           )}
 
@@ -868,6 +909,16 @@ export default function MileageTrackerScreen() {
                     </Text>
                   </>
                 )}
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleCancel}
+                disabled={saving}
+                style={{ alignItems: "center", paddingVertical: space.sm }}
+                activeOpacity={0.6}
+              >
+                <Text style={{ ...typography.actionS, color: colour.textSub }}>
+                  Discard trip (don't save)
+                </Text>
               </TouchableOpacity>
             </View>
           )}

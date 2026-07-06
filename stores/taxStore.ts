@@ -57,9 +57,13 @@ export const useTaxStore = create<TaxState>()(
     {
       name: 'tax-store',
       storage: mmkvStorage,
+      // activeTaxYear is deliberately NOT persisted: it must always start
+      // from the freshly-computed current tax year on cold start, not a
+      // value frozen from whenever the store was first created. Otherwise a
+      // persisted store silently keeps showing last year's data after the
+      // 1 March SA tax-year rollover.
       partialize: (state) => ({
         summary: state.summary,
-        activeTaxYear: state.activeTaxYear,
       }),
     }
   )

@@ -4,7 +4,7 @@ import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { mileageService, type MileageTrip } from "@/services/mileageService";
-import { SARS_RATE_PER_KM } from "@/lib/taxRules";
+import { mileageRateForTaxYear } from "@/lib/taxRules";
 import { useAuthStore } from "@/stores/authStore";
 import { useExpenseStore } from "@/stores/expenseStore";
 import { colour, radius, space, typography } from "@/tokens";
@@ -106,10 +106,15 @@ export default function MileageHistoryScreen() {
     }
   };
 
-  // Totals
+  // Totals — trips are already scoped to activeTaxYear (see loadTrips), so a
+  // single rate lookup for that year applies to all of them. Using today's
+  // rate here would misvalue trips from a year with a different SARS rate.
+  const mileageRate = mileageRateForTaxYear(activeTaxYear);
   const totalKm = trips.reduce((s, t) => s + Number(t.distance_km), 0);
-  const totalDeductions = totalKm * SARS_RATE_PER_KM;
+  const totalDeductions = mileageRate != null ? totalKm * mileageRate : 0;
   const totalTrips = trips.length;
+  const fmtDeduction = (km: number) =>
+    mileageRate != null ? `R${(km * mileageRate).toFixed(2)}` : "Rate unknown";
 
   return (
     <SafeAreaView
@@ -202,7 +207,7 @@ export default function MileageHistoryScreen() {
                 marginTop: 2,
               }}
             >
-              R{totalDeductions.toFixed(0)}
+              {mileageRate != null ? `R${totalDeductions.toFixed(0)}` : "—"}
             </Text>
           </View>
           <View
@@ -339,8 +344,7 @@ export default function MileageHistoryScreen() {
                     <Text
                       style={{ ...typography.caption, color: colour.success }}
                     >
-                      R
-                      {(Number(trip.distance_km) * SARS_RATE_PER_KM).toFixed(2)}
+                      {fmtDeduction(Number(trip.distance_km))}
                     </Text>
                   </View>
                 </View>
@@ -411,8 +415,7 @@ export default function MileageHistoryScreen() {
                     <Text
                       style={{ ...typography.labelS, color: colour.success }}
                     >
-                      R
-                      {(Number(trip.distance_km) * SARS_RATE_PER_KM).toFixed(2)}
+                      {fmtDeduction(Number(trip.distance_km))}
                     </Text>
                   </View>
                 </View>
@@ -477,7 +480,7 @@ export default function MileageHistoryScreen() {
             <InfoBanner
               icon="car.fill"
               title="SARS Logbook Requirement"
-              body={`SARS requires a travel logbook for vehicle expense claims. This logbook records each business trip with date, distance, purpose and calculated deduction at the SARS deemed rate of R${SARS_RATE_PER_KM}/km.`}
+              body={`SARS requires a travel logbook for vehicle expense claims. This logbook records each business trip with date, distance, purpose and calculated deduction at the SARS deemed rate${mileageRate != null ? ` of R${mileageRate}/km for ${activeTaxYear}` : ` for ${activeTaxYear} (not yet on record)`}.`}
               style={{ marginTop: space.sm }}
             />
           </>

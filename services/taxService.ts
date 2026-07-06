@@ -25,7 +25,7 @@ export const taxService = {
     const [totals, categoryBreakdown, incomeTotals] = await Promise.all([
       expenseService.getTotals(userId, taxYear),
       expenseService.getByCategory(userId, taxYear),
-      incomeService.getTotals(userId),
+      incomeService.getTotals(userId, taxYear),
     ]);
 
     const { totalExpenses, totalDeductions } = totals;

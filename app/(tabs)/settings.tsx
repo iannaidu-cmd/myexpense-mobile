@@ -66,8 +66,8 @@ export default function SettingsTabScreen() {
   const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
 
   useEffect(() => {
-    loadHomeOffice();
     if (!user) return;
+    loadHomeOffice(user.id);
     profileService.getProfile(user.id).then((p) => {
       if (p) {
         setFullName(p.full_name ?? "");

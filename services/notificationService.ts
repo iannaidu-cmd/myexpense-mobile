@@ -33,10 +33,21 @@ export async function savePushToken(userId: string, token: string): Promise<void
   await supabase.from("profiles").update({ push_token: token }).eq("id", userId);
 }
 
+// Cancel-then-reschedule with the same identifier races on Android: this app
+// relaunches its JS often (OEM battery managers kill it), and each relaunch
+// re-runs the scheduling calls in _layout.tsx. If the cancel of a recurring
+// (WEEKLY/MONTHLY) trigger hasn't fully cleared the underlying system alarm
+// before the reschedule lands, both the old and new alarm can end up firing,
+// producing duplicate notifications with identical content. Checking whether
+// the identifier is already scheduled — instead of always cancel+reschedule —
+// sidesteps that race entirely: repeat calls become no-ops once it's set.
+async function isAlreadyScheduled(identifier: string): Promise<boolean> {
+  const existing = await Notifications.getAllScheduledNotificationsAsync();
+  return existing.some((n) => n.identifier === identifier);
+}
+
 export async function scheduleWeeklyExpenseReminder(): Promise<void> {
-  // Cancel only this specific notification — never cancelAll, which would nuke
-  // per-expense receipt reminders set elsewhere in the app.
-  await Notifications.cancelScheduledNotificationAsync("weekly-expense-reminder").catch(() => {});
+  if (await isAlreadyScheduled("weekly-expense-reminder")) return;
   await Notifications.scheduleNotificationAsync({
     identifier: "weekly-expense-reminder",
     content: {
@@ -54,8 +65,7 @@ export async function scheduleWeeklyExpenseReminder(): Promise<void> {
 }
 
 export async function scheduleMonthlyReportReminder(): Promise<void> {
-  // Cancel before rescheduling to avoid duplicates on each app launch.
-  await Notifications.cancelScheduledNotificationAsync("monthly-report-reminder").catch(() => {});
+  if (await isAlreadyScheduled("monthly-report-reminder")) return;
   await Notifications.scheduleNotificationAsync({
     identifier: "monthly-report-reminder",
     content: {
@@ -78,8 +88,7 @@ export async function scheduleSARSDeadlineReminders(): Promise<void> {
 
   // eFiling open fires ON the day (1 Jul) — not early, since the message says "opens today".
   const efilingOpenDate = new Date(year, 6, 1, 8, 0, 0);
-  await Notifications.cancelScheduledNotificationAsync("sars-efiling-open").catch(() => {});
-  if (efilingOpenDate > now) {
+  if (efilingOpenDate > now && !(await isAlreadyScheduled("sars-efiling-open"))) {
     await Notifications.scheduleNotificationAsync({
       identifier: "sars-efiling-open",
       content: {
@@ -112,8 +121,7 @@ export async function scheduleSARSDeadlineReminders(): Promise<void> {
 
   for (const { id, date, body } of deadlines) {
     const reminderDate = new Date(date.getTime() - 7 * 24 * 60 * 60 * 1000);
-    await Notifications.cancelScheduledNotificationAsync(id).catch(() => {});
-    if (reminderDate > now) {
+    if (reminderDate > now && !(await isAlreadyScheduled(id))) {
       await Notifications.scheduleNotificationAsync({
         identifier: id,
         content: {

@@ -147,7 +147,7 @@ const VALID_INCOME_SOURCES = new Set([
   "Car Allowance",
   "Bonuses",
   "Overtime",
-  "Fridge Benefits",
+  "Fringe Benefits",
   "Income or Profits (Beneficiary of a Trust)",
   "Cell Phone Allowance",
   "Investment Income",

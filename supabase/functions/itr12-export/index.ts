@@ -8,7 +8,12 @@ import * as XLSX from "https://esm.sh/xlsx@0.18.5";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const SARS_MILEAGE_RATE = 4.84; // R/km — 2024/25 tax year
+// R/km — 2026/27 tax year (effective 1 March 2026). Was previously R4.84,
+// which was actually the correct 2024/25 figure left stale after the label
+// next to it was bumped forward without updating the number. This function
+// isn't currently invoked from the client (see services/pdfExportService.ts
+// for the live ITR12 export path) but keep it correct in case it's revived.
+const SARS_MILEAGE_RATE = 4.95;
 const ENTERTAINMENT_CAP = 0.8;  // s23(o) — 80% deductible
 const RA_CAP_RATE       = 0.275; // 27.5% of gross income
 const RA_CAP_MAX        = 350000; // R350,000 per annum

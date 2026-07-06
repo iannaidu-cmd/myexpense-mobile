@@ -53,8 +53,8 @@ function prefetchUserData(userId: string): void {
   expenseService.getTotals(userId, ACTIVE_TAX_YEAR).catch(() => {});
   expenseService.getExpenses(userId, ACTIVE_TAX_YEAR).catch(() => {});
   expenseService.getRecentExpenses(userId, 5).catch(() => {});
-  incomeService.getTotals(userId).catch(() => {});
-  incomeService.getIncome(userId).catch(() => {});
+  incomeService.getTotals(userId, ACTIVE_TAX_YEAR).catch(() => {});
+  incomeService.getRecentIncome(userId, 5, ACTIVE_TAX_YEAR).catch(() => {});
   profileService.getProfile(userId).catch(() => {});
 }
 

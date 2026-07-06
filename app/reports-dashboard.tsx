@@ -296,10 +296,10 @@ export default function ReportsDashboardScreen() {
     try {
       const [incomeTotals, expenseTotals, allExpenses, allIncome, byCategory] =
         await Promise.all([
-          incomeService.getTotals(user.id),
+          incomeService.getTotals(user.id, activeTaxYear),
           expenseService.getTotals(user.id, activeTaxYear),
           expenseService.getExpenses(user.id, activeTaxYear),
-          incomeService.getIncome(user.id),
+          incomeService.getIncome(user.id, activeTaxYear),
           expenseService.getByCategory(user.id, activeTaxYear),
         ]);
 

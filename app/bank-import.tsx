@@ -7,10 +7,11 @@ import {
   ParsedTransaction,
   pickAndParseStatement,
 } from "@/services/bankImportService";
+import { taxYearForDate } from "@/lib/taxRules";
 import { expenseService } from "@/services/expenseService";
 import { incomeService } from "@/services/incomeService";
 import { useAuthStore } from "@/stores/authStore";
-import { useTaxStore } from "@/stores/taxStore";
+import { useExpenseStore } from "@/stores/expenseStore";
 import { colour, radius, space, typography } from "@/tokens";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
@@ -498,7 +499,7 @@ type FilterTab = "All" | "Deductible" | "Personal" | "Income";
 export default function BankImportScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
-  const { activeTaxYear } = useTaxStore();
+  const { activeTaxYear } = useExpenseStore();
 
   const [transactions, setTransactions] = useState<ParsedTransaction[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -595,7 +596,7 @@ export default function BankImportScreen() {
 
       // Deduplicate expenses against existing records
       await expenseService.removeDuplicates(user.id, activeTaxYear);
-      const existing = await expenseService.getExpenses(user.id, activeTaxYear);
+      const existing = await expenseService.getAllExpenses(user.id);
       const existingKeys = new Set(
         existing.map((e) => `${e.vendor}|${Number(e.amount).toFixed(2)}|${e.expense_date}`),
       );
@@ -618,7 +619,7 @@ export default function BankImportScreen() {
             vendor: tx.vendor,
             amount: tx.amount,
             category: tx.suggestedCategory,
-            tax_year: activeTaxYear,
+            tax_year: taxYearForDate(tx.date),
             expense_date: tx.date,
             is_deductible: tx.isDeductible,
             notes: `Imported from bank statement`,
@@ -630,6 +631,7 @@ export default function BankImportScreen() {
             source: tx.vendor,
             date: tx.date,
             description: 'Imported from bank statement',
+            tax_year: taxYearForDate(tx.date),
           }),
         ),
       ]);

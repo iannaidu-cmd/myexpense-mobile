@@ -6,6 +6,7 @@ import { incomeService } from "@/services/incomeService";
 import { useAuthStore } from "@/stores/authStore";
 import { irp5TotalGross, useIRP5Store } from "@/stores/irp5Store";
 import { colour, radius, space, typography } from "@/tokens";
+import { ACTIVE_TAX_YEAR, TAX_YEARS } from "@/types/database";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
@@ -21,8 +22,14 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const TAX_YEARS = ["2025/26", "2024/25", "2023/24", "2022/23"];
-const ACTIVE_TAX_YEAR = "2024/25";
+// Last day of February of a SA tax year's end year (e.g. "2026/27" -> 2027-02-28),
+// computed via Date instead of a static lookup so it never goes stale and
+// correctly accounts for leap years.
+function taxYearEndDate(taxYear: string): string {
+  const startYear = parseInt(taxYear.split("/")[0], 10);
+  const lastFeb = new Date(startYear + 1, 2, 0); // day 0 of March = last day of Feb
+  return lastFeb.toISOString().split("T")[0];
+}
 
 const fmt = (n: number) =>
   n > 0
@@ -110,11 +117,7 @@ export default function AddIRP5IncomeScreen() {
     if (!user || !canSave) return;
     setSaving(true);
     try {
-      const taxYearEnd =
-        taxYear === "2024/25" ? "2025-02-28" :
-        taxYear === "2023/24" ? "2024-02-29" :
-        taxYear === "2025/26" ? "2026-02-28" :
-        "2023-02-28";
+      const taxYearEnd = taxYearEndDate(taxYear);
 
       // Save gross income to income table so it appears in totals
       const incomeRecord = await incomeService.addIncome(user.id, {
@@ -123,6 +126,7 @@ export default function AddIRP5IncomeScreen() {
         description: `${employerName.trim()}${certificateRef ? ` · Ref: ${certificateRef}` : ""}`,
         category: "IRP5",
         date: taxYearEnd,
+        tax_year: taxYear,
       });
 
       // Save full breakdown to local store

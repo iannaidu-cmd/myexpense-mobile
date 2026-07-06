@@ -5,8 +5,9 @@ import { expenseService } from "@/services/expenseService";
 import { incomeService } from "@/services/incomeService";
 import { profileService } from "@/services/profileService";
 import { useAuthStore } from "@/stores/authStore";
+import { useExpenseStore } from "@/stores/expenseStore";
 import { colour, radius, space, typography } from "@/tokens";
-import { ACTIVE_TAX_YEAR, Expense } from "@/types/database";
+import { Expense } from "@/types/database";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -40,6 +41,7 @@ const formatDate = (dateStr: string) => {
 export default function HomeScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
+  const { activeTaxYear } = useExpenseStore();
 
   const [firstName, setFirstName] = useState("");
   const [totalExpenses, setTotalExpenses] = useState(0);
@@ -72,10 +74,10 @@ export default function HomeScreen() {
       const [profile, totals, incomeTotals, recent, recentInc] = await Promise.race([
         Promise.all([
           profileService.getProfile(user.id),
-          expenseService.getTotals(user.id, ACTIVE_TAX_YEAR),
-          incomeService.getTotals(user.id),
+          expenseService.getTotals(user.id, activeTaxYear),
+          incomeService.getTotals(user.id, activeTaxYear),
           expenseService.getRecentExpenses(user.id, 5),
-          incomeService.getRecentIncome(user.id, 5),
+          incomeService.getRecentIncome(user.id, 5, activeTaxYear),
         ]),
         timeout,
       ]);
@@ -94,7 +96,7 @@ export default function HomeScreen() {
       setRefreshing(false);
       isFetching.current = false;
     }
-  }, [user?.id]);
+  }, [user?.id, activeTaxYear]);
 
   // Fire when auth initialises (user changes null → User)
   useEffect(() => { loadData(); }, [loadData]);
@@ -256,7 +258,7 @@ export default function HomeScreen() {
               </Text>
 
               <Text style={{ fontSize: 12, color: colour.onNoir2, fontWeight: "400", marginBottom: 20, opacity: 0.7 }}>
-                estimated tax refund · {ACTIVE_TAX_YEAR}
+                estimated tax refund · {activeTaxYear}
               </Text>
 
               <View style={{
@@ -491,7 +493,7 @@ export default function HomeScreen() {
                   ITR12 filing season
                 </Text>
                 <Text style={{ fontSize: 11, color: colour.onNoir2, marginTop: 2 }}>
-                  {ACTIVE_TAX_YEAR} · Prepare your SARS-ready export
+                  {activeTaxYear} · Prepare your SARS-ready export
                 </Text>
               </View>
               <View style={{

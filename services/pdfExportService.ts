@@ -478,7 +478,7 @@ export async function generateITR12PDF(opts: PDFExportOptions): Promise<void> {
     await Promise.all([
       profileService.getProfile(userId),
       expenseService.getExpenses(userId, taxYear),
-      incomeService.getTotals(userId),
+      incomeService.getTotals(userId, taxYear),
       expenseService.getTotals(userId, taxYear),
       expenseService.getByCategory(userId, taxYear),
     ]);

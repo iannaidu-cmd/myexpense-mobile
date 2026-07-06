@@ -1,3 +1,4 @@
+import { InfoBanner } from "@/components/InfoBanner";
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { SuccessModal } from "@/components/SuccessModal";
@@ -5,10 +6,11 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { CATEGORIES } from "@/constants/categories";
 import { expenseService } from "@/services/expenseService";
 import { useAuthStore } from "@/stores/authStore";
+import { floorRatio, useHomeOfficeStore } from "@/stores/homeOfficeStore";
 import { colour, radius, space, typography } from "@/tokens";
 import { taxYearForDate } from "@/lib/taxRules";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
@@ -30,6 +32,11 @@ const CATEGORIES_FOR_PICKER = CATEGORIES.map((c) => ({
 }));
 
 const LOW_CONFIDENCE_THRESHOLD = 0.7;
+
+// Categories where only the home-office floor-area ratio is claimable —
+// mirrors add-expense-manual.tsx so a scanned receipt is deducted the same
+// way as one entered manually, instead of claiming the full receipt total.
+const HOME_OFFICE_CATS = ["Home Office", "Utilities", "Repairs & Maintenance"];
 
 function fieldBorderColour(isOcr: boolean, isLowConf: boolean): string {
   if (!isOcr) return colour.border;
@@ -134,11 +141,17 @@ export default function ReceiptReviewScreen() {
   const [successVisible, setSuccessVisible] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
 
+  const { setting: homeOfficeSetting, load: loadHomeOffice } = useHomeOfficeStore();
+  useEffect(() => { if (user) loadHomeOffice(user.id); }, [user]);
+
   const selectedCat = CATEGORIES_FOR_PICKER.find((c) => c.name === category);
 
   // Personal toggle overrides category deductibility
   const isDeductible =
     expenseType === "business" ? (selectedCat?.deductible ?? false) : false;
+
+  const isHomeOfficeCat = expenseType === "business" && HOME_OFFICE_CATS.includes(category);
+  const homeOfficeRatio = homeOfficeSetting ? floorRatio(homeOfficeSetting) : 1;
 
   const canSave = !!amount && parseFloat(amount) > 0 && !!vendor && !!category;
   const hasReceipt = !!params.storagePath && params.storagePath !== "";
@@ -185,9 +198,14 @@ export default function ReceiptReviewScreen() {
         receiptUrl = signedData?.signedUrl ?? undefined;
       }
 
+      const rawAmount = parseFloat(amount);
+      const savedAmount = isHomeOfficeCat
+        ? parseFloat((rawAmount * homeOfficeRatio).toFixed(2))
+        : rawAmount;
+
       await expenseService.addExpense(user.id, {
         vendor: vendor.trim(),
-        amount: parseFloat(amount),
+        amount: savedAmount,
         category,
         itr12_code:
           expenseType === "personal" ? null : (selectedCat?.code ?? null),
@@ -208,7 +226,7 @@ export default function ReceiptReviewScreen() {
           .eq("storage_path", params.storagePath);
       }
 
-      setSuccessMessage(`${vendor} — R ${parseFloat(amount).toLocaleString("en-ZA", { minimumFractionDigits: 2 })} saved${hasReceipt ? " with receipt" : ""}.`);
+      setSuccessMessage(`${vendor} — R ${savedAmount.toLocaleString("en-ZA", { minimumFractionDigits: 2 })} saved${hasReceipt ? " with receipt" : ""}.`);
       setSuccessVisible(true);
     } catch (e: any) {
       Alert.alert("Error", e.message);
@@ -593,6 +611,22 @@ export default function ReceiptReviewScreen() {
                 {isDeductible ? "Deductible ✓" : "Non-deductible"}
               </Text>
             </View>
+          )}
+
+          {isHomeOfficeCat && (
+            <InfoBanner
+              title={
+                homeOfficeSetting
+                  ? `We'll claim ${(homeOfficeRatio * 100).toFixed(1)}% based on your home office size`
+                  : "Home office size not set up yet"
+              }
+              body={
+                homeOfficeSetting
+                  ? `Only the home office portion of this expense can be claimed (${homeOfficeSetting.officeM2}m² ÷ ${homeOfficeSetting.totalM2}m²).${amount && parseFloat(amount) > 0 ? ` Claimable amount: R ${Math.round(parseFloat(amount) * homeOfficeRatio).toLocaleString("en-ZA")}` : ""}`
+                  : "Set up your home office size in Settings so we can calculate the claimable portion of this expense — until then the full amount will be saved."
+              }
+              style={{ marginBottom: space.md }}
+            />
           )}
 
           {showCatPicker && (

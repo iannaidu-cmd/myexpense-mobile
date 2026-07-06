@@ -10,6 +10,7 @@ import {
   HomeOfficeSetting,
   useHomeOfficeStore,
 } from "@/stores/homeOfficeStore";
+import { useAuthStore } from "@/stores/authStore";
 import { colour, radius, space, typography } from "@/tokens";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -44,6 +45,7 @@ const APPLIES_TO = [
 
 export default function HomeOfficeSetupScreen() {
   const router = useRouter();
+  const { user } = useAuthStore();
   const { setting, load, save, clear } = useHomeOfficeStore();
 
   const [officeM2, setOfficeM2] = useState("");
@@ -53,15 +55,22 @@ export default function HomeOfficeSetupScreen() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    load().then(() => {
-      if (setting) {
-        setOfficeM2(String(setting.officeM2));
-        setTotalM2(String(setting.totalM2));
-        setArrangementType(setting.arrangementType);
-        setAnnualCost(setting.annualCost > 0 ? String(setting.annualCost) : "");
-      }
-    });
-  }, []);
+    if (!user) return;
+    load(user.id);
+  }, [user]);
+
+  // Separate from the load effect above: `load()` updates the store
+  // asynchronously, so prefilling inside its .then() would read `setting`
+  // from a stale render closure (still null) instead of the loaded value.
+  // Reacting to `setting` itself always sees the current value.
+  useEffect(() => {
+    if (setting) {
+      setOfficeM2(String(setting.officeM2));
+      setTotalM2(String(setting.totalM2));
+      setArrangementType(setting.arrangementType);
+      setAnnualCost(setting.annualCost > 0 ? String(setting.annualCost) : "");
+    }
+  }, [setting]);
 
   const office = parseFloat(officeM2) || 0;
   const total = parseFloat(totalM2) || 0;
@@ -86,13 +95,13 @@ export default function HomeOfficeSetupScreen() {
   const canSave = office > 0 && total > 0 && office <= total;
 
   const handleSave = async () => {
-    if (!canSave) {
-      Alert.alert("Check your measurements", "Office area cannot exceed total property area.");
+    if (!canSave || !user) {
+      if (!canSave) Alert.alert("Check your measurements", "Office area cannot exceed total property area.");
       return;
     }
     setSaving(true);
     try {
-      await save({
+      await save(user.id, {
         officeM2: office,
         totalM2: total,
         arrangementType,
@@ -105,6 +114,7 @@ export default function HomeOfficeSetupScreen() {
   };
 
   const handleClear = () => {
+    if (!user) return;
     Alert.alert(
       "Remove home office setup",
       "This will clear your floor area ratio and disable the proportional calculation.",
@@ -114,7 +124,7 @@ export default function HomeOfficeSetupScreen() {
           text: "Remove",
           style: "destructive",
           onPress: async () => {
-            await clear();
+            await clear(user.id);
             router.back();
           },
         },

@@ -8,7 +8,7 @@ import { expenseService } from "@/services/expenseService";
 import { useAuthStore } from "@/stores/authStore";
 import { floorRatio, useHomeOfficeStore } from "@/stores/homeOfficeStore";
 import { colour } from "@/tokens";
-import { taxYearForDate } from "@/lib/taxRules";
+import { SARS_RATE_PER_KM, taxYearForDate } from "@/lib/taxRules";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
@@ -105,7 +105,7 @@ export default function AddExpenseScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
   const { setting: homeOfficeSetting, load: loadHomeOffice } = useHomeOfficeStore();
-  React.useEffect(() => { loadHomeOffice(); }, []);
+  React.useEffect(() => { if (user) loadHomeOffice(user.id); }, [user]);
   const [amount, setAmount] = useState("");
   const [vendor, setVendor] = useState("");
   const [date, setDate] = useState(
@@ -446,7 +446,7 @@ export default function AddExpenseScreen() {
           {category === "Vehicle Expenses" && (
             <InfoBanner
               icon="car.fill"
-              body="Only the work portion counts. Divide your work km by your total km for the year to find the claimable percentage — your mileage logbook tracks this. A flat rate of R4.84/km is tracked separately under Mileage."
+              body={`Only the work portion counts. Divide your work km by your total km for the year to find the claimable percentage — your mileage logbook tracks this. A flat rate of R${SARS_RATE_PER_KM}/km is tracked separately under Mileage.`}
               style={{ marginBottom: 10 }}
             />
           )}

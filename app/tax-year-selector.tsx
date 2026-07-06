@@ -4,9 +4,11 @@ import { SA_MARGINAL_TAX_RATE } from "@/constants/tax";
 import { expenseService } from "@/services/expenseService";
 import { useAuthStore } from "@/stores/authStore";
 import { useExpenseStore } from "@/stores/expenseStore";
+import { useTaxStore } from "@/stores/taxStore";
 import { colour, radius, space } from "@/tokens";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useAppForeground } from "@/hooks/use-app-foreground";
+import { ACTIVE_TAX_YEAR } from "@/types/database";
 import React, { useCallback, useState } from "react";
 import {
   ScrollView,
@@ -24,38 +26,27 @@ type TaxYear = {
   status: "current" | "filing" | "closed";
 };
 
-const TAX_YEARS: TaxYear[] = [
-  {
-    id: "fy2026",
-    label: "2025/26",
-    period: "1 Mar 2025 \u2013 28 Feb 2026",
-    status: "current",
-  },
-  {
-    id: "fy2025",
-    label: "2024/25",
-    period: "1 Mar 2024 \u2013 28 Feb 2025",
-    status: "filing",
-  },
-  {
-    id: "fy2024",
-    label: "2023/24",
-    period: "1 Mar 2023 \u2013 29 Feb 2024",
-    status: "closed",
-  },
-  {
-    id: "fy2023",
-    label: "2022/23",
-    period: "1 Mar 2022 \u2013 28 Feb 2023",
-    status: "closed",
-  },
-  {
-    id: "fy2022",
-    label: "2021/22",
-    period: "1 Mar 2021 \u2013 28 Feb 2022",
-    status: "closed",
-  },
-];
+// Built from ACTIVE_TAX_YEAR (derived from today's date, see lib/taxRules.ts)
+// instead of a static list \u2014 the list, labels, and "current"/"filing" status
+// now all roll forward automatically every 1 March instead of going stale.
+const isLeapYear = (y: number) => (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
+
+function generateTaxYears(count = 5): TaxYear[] {
+  const startYear = parseInt(ACTIVE_TAX_YEAR.split("/")[0], 10);
+  return Array.from({ length: count }, (_, i) => {
+    const y = startYear - i;
+    const endYear = y + 1;
+    const status: TaxYear["status"] = i === 0 ? "current" : i === 1 ? "filing" : "closed";
+    return {
+      id: `fy${endYear}`,
+      label: `${y}/${String(endYear).slice(-2)}`,
+      period: `1 Mar ${y} \u2013 ${isLeapYear(endYear) ? "29" : "28"} Feb ${endYear}`,
+      status,
+    };
+  });
+}
+
+const TAX_YEARS: TaxYear[] = generateTaxYears();
 
 const STATUS_BADGE: Record<
   TaxYear["status"],
@@ -73,9 +64,10 @@ export default function TaxYearSelectorScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
   const { activeTaxYear, setActiveTaxYear } = useExpenseStore();
+  const setTaxSummaryActiveYear = useTaxStore((s) => s.setActiveTaxYear);
 
   const [selected, setSelected] = useState(
-    () => TAX_YEARS.find((y) => y.label === activeTaxYear)?.id ?? "fy2026",
+    () => TAX_YEARS.find((y) => y.label === activeTaxYear)?.id ?? TAX_YEARS[0].id,
   );
   const [loadingTotals, setLoadingTotals] = useState(true);
   const [totals, setTotals] = useState<
@@ -116,7 +108,11 @@ export default function TaxYearSelectorScreen() {
 
   const handleSelect = (year: TaxYear) => {
     setSelected(year.id);
+    // Both stores track "active tax year" independently — keep them in sync
+    // so screens reading from either (Reports uses expenseStore, tax summary
+    // defaults use taxStore) agree on what the user just selected.
     setActiveTaxYear(year.label);
+    setTaxSummaryActiveYear(year.label);
     setTimeout(() => router.back(), 150);
   };
 

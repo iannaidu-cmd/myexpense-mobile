@@ -227,11 +227,11 @@ export default function ProvisionalTaxScreen() {
 
   useEffect(() => {
     if (!user) { setLoading(false); return; }
-    incomeService.getIncome(user.id).then((all) => {
+    incomeService.getIncome(user.id, activeTaxYear).then((all) => {
       const total = all.reduce((s, e) => s + Number(e.amount), 0);
       setTotalIncome(total);
     }).catch(console.warn).finally(() => setLoading(false));
-  }, [user?.id]);
+  }, [user?.id, activeTaxYear]);
 
   const payeAlreadyPaid = irp5TotalPAYE(entries);
   const irp5Gross = entries.reduce((s, e) => s + e.grossIncome, 0);

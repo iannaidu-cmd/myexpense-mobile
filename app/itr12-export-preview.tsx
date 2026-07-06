@@ -76,7 +76,7 @@ export default function ITR12ExportPreviewScreen() {
         profileService.getProfile(user.id),
         expenseService.getByCategory(user.id, ACTIVE_TAX_YEAR),
         expenseService.getTotals(user.id, ACTIVE_TAX_YEAR),
-        incomeService.getTotals(user.id),
+        incomeService.getTotals(user.id, ACTIVE_TAX_YEAR),
       ]);
       setProfile(prof);
       setBreakdown(byCategory);

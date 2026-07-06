@@ -102,7 +102,7 @@ export default function TaxSummaryScreen() {
       const [expenseTotals, incomeTotals, breakdown, summary] =
         await Promise.all([
           expenseService.getTotals(user.id, activeTaxYear),
-          incomeService.getTotals(user.id),
+          incomeService.getTotals(user.id, activeTaxYear),
           expenseService.getByCategory(user.id, activeTaxYear),
           taxService.recalculateSummary(user.id, activeTaxYear),
         ]);
