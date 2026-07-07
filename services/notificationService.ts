@@ -111,11 +111,19 @@ export async function scheduleSARSDeadlineReminders(): Promise<void> {
       body: "SARS non-provisional taxpayer deadline is approaching (23 Oct).",
     },
     {
-      // Provisional deadline is always 31 Jan of the NEXT calendar year
-      // (e.g. for the 2025/26 tax year the deadline is 31 Jan 2027).
+      // Provisional/trust filing deadline is 22 Jan — the *next* occurrence:
+      // if we're still in Jan on/before the 22nd, that's this year; otherwise
+      // it's next year's 22 Jan. (Always using year+1 is wrong for the window
+      // between 1 Jan and the deadline itself, since that miscomputes a full
+      // year ahead of the actual upcoming deadline.)
       id: "sars-provisional-deadline",
-      date: new Date(year + 1, 0, 31, 8, 0, 0),
-      body: "SARS provisional taxpayer deadline is approaching (31 Jan).",
+      date: new Date(
+        now.getMonth() === 0 && now.getDate() <= 22 ? year : year + 1,
+        0,
+        22,
+        8, 0, 0,
+      ),
+      body: "SARS provisional taxpayer deadline is approaching (22 Jan).",
     },
   ];
 

@@ -184,13 +184,17 @@ export default function TermsScreen() {
 
         <Section title="5. Subscription & Billing">
           <Body>
-            MyExpense offers a free tier and a paid subscription plan at R99 per
-            month (inclusive of VAT). Subscriptions are billed monthly in
-            advance at the start of each billing cycle.{"\n\n"}
-            Paid subscriptions automatically renew each month unless cancelled.
-            You may cancel your subscription at any time through the app or by
-            contacting us at support@myexpense.co.za. Cancellation takes effect
-            at the end of the current billing period and no refund will be issued
+            MyExpense offers a free tier and a paid subscription available on a
+            monthly or annual billing cycle, at the prices shown in the app
+            before purchase (inclusive of VAT). The annual plan is billed once
+            per year in advance at a discounted rate compared to paying
+            monthly.{"\n\n"}
+            Paid subscriptions automatically renew at the end of each billing
+            cycle — monthly for the monthly plan, annually for the annual plan
+            — unless cancelled. You may cancel your subscription at any time
+            through the app or by contacting us at support@myexpense.co.za.
+            Cancellation takes effect at the end of the current billing period
+            (month or year, matching your plan) and no refund will be issued
             for the remaining portion of that period.{"\n\n"}
             We reserve the right to change subscription fees with at least 30
             days' prior notice. In accordance with the Consumer Protection Act,

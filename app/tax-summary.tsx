@@ -148,12 +148,27 @@ export default function TaxSummaryScreen() {
 
   // Days to SARS non-provisional filing deadline, derived from the active tax year
   const deadlineYear = parseInt(activeTaxYear.split("/")[0]) + 1;
-  const deadlineDate = new Date(deadlineYear, 9, 21); // Oct 21 of the second year
+  const deadlineDate = new Date(deadlineYear, 9, 23); // Oct 23 of the second year
   const today = new Date();
   const daysToDeadline = Math.max(
     0,
     Math.ceil((deadlineDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)),
   );
+
+  // SARS key dates for the tax year being viewed — derived the same way as
+  // deadlineDate above, so this stays correct as activeTaxYear changes and
+  // never goes stale the way hardcoded literals previously did.
+  const fmtKeyDate = (d: Date) =>
+    d.toLocaleDateString("en-ZA", { day: "numeric", month: "short", year: "numeric" });
+  const taxYearEndDate = new Date(deadlineYear, 1, 28); // 28 Feb
+  const efilingOpensDate = new Date(deadlineYear, 6, 1); // 1 Jul
+  const provisionalDate = new Date(deadlineYear + 1, 0, 22); // 22 Jan, following year
+  const sarsKeyDates = [
+    { label: "Tax year end", date: fmtKeyDate(taxYearEndDate), done: today > taxYearEndDate },
+    { label: "eFiling opens", date: fmtKeyDate(efilingOpensDate), done: today > efilingOpensDate },
+    { label: "Non-provisional filing", date: fmtKeyDate(deadlineDate), done: today > deadlineDate },
+    { label: "Provisional (auto)", date: fmtKeyDate(provisionalDate), done: today > provisionalDate },
+  ];
 
   // Format the large hero amount with space separator
   const heroAmount = estTaxSaving.toLocaleString("en-ZA", {
@@ -659,20 +674,7 @@ export default function TaxSummaryScreen() {
                     SARS Key Dates - {activeTaxYear}
                   </Text>
                 </View>
-                {[
-                  { label: "Tax year end", date: "28 Feb 2025", done: true },
-                  { label: "eFiling opens", date: "1 Jul 2025", done: false },
-                  {
-                    label: "Non-provisional filing",
-                    date: "21 Oct 2025",
-                    done: false,
-                  },
-                  {
-                    label: "Provisional (auto)",
-                    date: "20 Jan 2026",
-                    done: false,
-                  },
-                ].map((d, i) => (
+                {sarsKeyDates.map((d, i) => (
                   <View
                     key={i}
                     style={{

@@ -62,6 +62,9 @@ export default function SettingsTabScreen() {
   const { user, signOut, isPremium, isDevUser } = useAuthStore();
   const { setting: homeOfficeSetting, load: loadHomeOffice } = useHomeOfficeStore();
   const [fullName, setFullName] = useState("");
+  // "business" has no matching RevenueCat product/entitlement yet — intentional
+  // scaffolding for a future business-tier plan, not reachable via any current
+  // purchase flow. Keep the type and label in place until that plan ships.
   const [subscription, setSubscription] = useState<"free" | "pro" | "business">("free");
   const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
 

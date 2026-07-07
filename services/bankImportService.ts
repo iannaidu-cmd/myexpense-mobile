@@ -203,7 +203,14 @@ export function parseCSV(content: string): ParsedTransaction[] {
       }
     }
 
-    if (dataStart < 0) return []; // could not detect structure
+    if (dataStart < 0) {
+      // File has content but no row looked like a date-led transaction row —
+      // distinct from an empty file, so the caller can show an accurate message
+      // instead of the generic "no transactions found".
+      throw new Error(
+        "Could not recognise this file's column layout. Make sure it's an unedited CSV export from your bank statement.",
+      );
+    }
   }
 
   // ── Parse data rows ───────────────────────────────────────────────────────
@@ -280,12 +287,22 @@ export function parseCSV(content: string): ParsedTransaction[] {
 // ─── OFX / QFX parser ────────────────────────────────────────────────────────
 
 export function parseOFX(content: string): ParsedTransaction[] {
+  if (content.trim().length === 0) return [];
+
   const transactions: ParsedTransaction[] = [];
   let seq = 0;
 
   let blocks = [...content.matchAll(/<STMTTRN>([\s\S]*?)<\/STMTTRN>/gi)].map((m) => m[0]);
   if (blocks.length === 0) {
     blocks = content.split(/(?=<STMTTRN>)/i).filter((b) => /<STMTTRN>/i.test(b));
+  }
+
+  if (blocks.length === 0) {
+    // Non-empty content but no <STMTTRN> blocks at all — this isn't a
+    // recognisable OFX/QFX statement, distinct from an empty file.
+    throw new Error(
+      "Could not find any transactions in this OFX/QFX file. Make sure it's an unedited export from your bank.",
+    );
   }
 
   for (const block of blocks) {

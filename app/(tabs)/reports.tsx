@@ -46,7 +46,7 @@ const fmtShort = (n: number) => {
 function getDaysToDeadline(activeTaxYear: string): number {
   const match = activeTaxYear.match(/\d{4}\/(\d{2})/);
   const endYear = match ? 2000 + parseInt(match[1], 10) : new Date().getFullYear();
-  const deadline = new Date(endYear, 10, 23); // Nov 23
+  const deadline = new Date(endYear, 9, 23); // Oct 23 — SARS non-provisional filing deadline
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   return Math.ceil((deadline.getTime() - today.getTime()) / 86400000);

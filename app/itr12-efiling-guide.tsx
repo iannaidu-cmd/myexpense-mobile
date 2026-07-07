@@ -1,6 +1,7 @@
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { useExpenseStore } from "@/stores/expenseStore";
 import { colour, radius, space, typography } from "@/tokens";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
@@ -14,73 +15,94 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const STEPS = [
-  {
-    number: "1",
-    title: "Download your ITR12 export",
-    icon: "doc.text.fill",
-    action: null,
-    tip: "Keep the PDF — SARS may request supporting documents for up to 5 years.",
-    description:
-      "Generate and save your MyExpense ITR12 PDF report. This contains all your deductions, supporting schedules and receipt register.",
-  },
-  {
-    number: "2",
-    title: "Log into SARS eFiling",
-    icon: "lock.fill",
-    action: { label: "Open SARS eFiling", url: "https://efiling.sars.gov.za" },
-    tip: "Use the SARS MobiApp as an alternative to the website.",
-    description:
-      "Visit the SARS eFiling portal and log in with your username and password. If you don't have an account, register at efiling.sars.gov.za.",
-  },
-  {
-    number: "3",
-    title: "Navigate to Income Tax",
-    icon: "folder.fill",
-    action: null,
-    tip: "Select the correct tax year — 2024/25 means 1 March 2024 to 28 February 2025.",
-    description:
-      "From the eFiling dashboard, select Returns → Income Tax → ITR12. SARS will auto-populate some fields from employers and banks.",
-  },
-  {
-    number: "4",
-    title: "Enter your deductions",
-    icon: "pencil",
-    action: null,
-    tip: "Your MyExpense export shows ITR12 line codes per category — match them exactly.",
-    description:
-      "Use the amounts from your MyExpense ITR12 export to complete Section 11 (Other Deductions). Enter each category against its ITR12 code.",
-  },
-  {
-    number: "5",
-    title: "Upload supporting documents",
-    icon: "paperclip",
-    action: null,
-    tip: "SARS accepts PDF, JPG and PNG. Max 5MB per document.",
-    description:
-      "Attach your MyExpense PDF report and receipt register as supporting documents in the eFiling document manager.",
-  },
-  {
-    number: "6",
-    title: "Review and submit",
-    icon: "checkmark.circle.fill",
-    action: null,
-    tip: "Save a copy of your submission acknowledgement number.",
-    description:
-      "Review your return carefully before submission. Once submitted, SARS will issue an assessment. You can request a correction if needed.",
-  },
-];
-
-const KEY_DATES = [
-  { label: "Tax year end", date: "28 Feb 2025", past: true },
-  { label: "eFiling opens", date: "1 Jul 2025", past: false },
-  { label: "Non-provisional filing", date: "21 Oct 2025", past: false },
-  { label: "Provisional (auto)", date: "20 Jan 2026", past: false },
-];
+// Steps 1-2, 4-6 don't reference a specific tax year, so they stay static;
+// step 3's tip is filled in at render time with the tax year being filed for.
+function getSteps(taxYearTip: string) {
+  return [
+    {
+      number: "1",
+      title: "Download your ITR12 export",
+      icon: "doc.text.fill",
+      action: null,
+      tip: "Keep the PDF — SARS may request supporting documents for up to 5 years.",
+      description:
+        "Generate and save your MyExpense ITR12 PDF report. This contains all your deductions, supporting schedules and receipt register.",
+    },
+    {
+      number: "2",
+      title: "Log into SARS eFiling",
+      icon: "lock.fill",
+      action: { label: "Open SARS eFiling", url: "https://efiling.sars.gov.za" },
+      tip: "Use the SARS MobiApp as an alternative to the website.",
+      description:
+        "Visit the SARS eFiling portal and log in with your username and password. If you don't have an account, register at efiling.sars.gov.za.",
+    },
+    {
+      number: "3",
+      title: "Navigate to Income Tax",
+      icon: "folder.fill",
+      action: null,
+      tip: taxYearTip,
+      description:
+        "From the eFiling dashboard, select Returns → Income Tax → ITR12. SARS will auto-populate some fields from employers and banks.",
+    },
+    {
+      number: "4",
+      title: "Enter your deductions",
+      icon: "pencil",
+      action: null,
+      tip: "Your MyExpense export shows ITR12 line codes per category — match them exactly.",
+      description:
+        "Use the amounts from your MyExpense ITR12 export to complete Section 11 (Other Deductions). Enter each category against its ITR12 code.",
+    },
+    {
+      number: "5",
+      title: "Upload supporting documents",
+      icon: "paperclip",
+      action: null,
+      tip: "SARS accepts PDF, JPG and PNG. Max 5MB per document.",
+      description:
+        "Attach your MyExpense PDF report and receipt register as supporting documents in the eFiling document manager.",
+    },
+    {
+      number: "6",
+      title: "Review and submit",
+      icon: "checkmark.circle.fill",
+      action: null,
+      tip: "Save a copy of your submission acknowledgement number.",
+      description:
+        "Review your return carefully before submission. Once submitted, SARS will issue an assessment. You can request a correction if needed.",
+    },
+  ];
+}
 
 export default function ITR12EFilingGuideScreen() {
   const router = useRouter();
+  const { activeTaxYear } = useExpenseStore();
   const [completedSteps, setCompletedSteps] = useState<Set<string>>(new Set());
+
+  // The guide always concerns filing for the tax year that has just ended —
+  // activeTaxYear is the one currently in progress, so the filing year is one
+  // year behind it (e.g. filing in Jul-Oct 2026 concerns the 2025/26 year,
+  // while activeTaxYear at that point reads "2026/27").
+  const filingStartYear = parseInt(activeTaxYear.split("/")[0], 10) - 1;
+  const filingYearLabel = `${filingStartYear}/${String(filingStartYear + 1).slice(-2)}`;
+  const fmtKeyDate = (d: Date) =>
+    d.toLocaleDateString("en-ZA", { day: "numeric", month: "short", year: "numeric" });
+  const taxYearEndDate = new Date(filingStartYear + 1, 1, 28); // 28 Feb
+  const efilingOpensDate = new Date(filingStartYear + 1, 6, 1); // 1 Jul
+  const nonProvisionalDate = new Date(filingStartYear + 1, 9, 23); // 23 Oct
+  const provisionalDate = new Date(filingStartYear + 2, 0, 22); // 22 Jan, following year
+  const now = new Date();
+  const KEY_DATES = [
+    { label: "Tax year end", date: fmtKeyDate(taxYearEndDate), past: now > taxYearEndDate },
+    { label: "eFiling opens", date: fmtKeyDate(efilingOpensDate), past: now > efilingOpensDate },
+    { label: "Non-provisional filing", date: fmtKeyDate(nonProvisionalDate), past: now > nonProvisionalDate },
+    { label: "Provisional (auto)", date: fmtKeyDate(provisionalDate), past: now > provisionalDate },
+  ];
+  const STEPS = getSteps(
+    `Select the correct tax year — ${filingYearLabel} means 1 March ${filingStartYear} to 28 February ${filingStartYear + 1}.`,
+  );
 
   const toggleStep = (num: string) => {
     setCompletedSteps((prev) => {
@@ -102,7 +124,7 @@ export default function ITR12EFilingGuideScreen() {
 
       <MXHeader
         title="eFiling guide"
-        subtitle="Step-by-step ITR12 submission · SARS 2024/25"
+        subtitle={`Step-by-step ITR12 submission · SARS ${filingYearLabel}`}
         showBack
         backLabel="Export preview"
       />
