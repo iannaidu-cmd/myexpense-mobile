@@ -200,7 +200,7 @@ function NotificationSetup() {
 
       try {
         responseSub = setupNotificationResponseHandler((route) => {
-          router.push(route as any);
+          router.navigate(route as any);
         });
       } catch (e) {
         console.warn("Notification tap handler setup failed:", e);

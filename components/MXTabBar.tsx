@@ -191,7 +191,7 @@ export function MXTabBar() {
           return (
             <TouchableOpacity
               key={tab.name}
-              onPress={() => router.push(tab.route as any)}
+              onPress={() => router.navigate(tab.route as any)}
               activeOpacity={0.7}
               style={{
                 flex: 1,

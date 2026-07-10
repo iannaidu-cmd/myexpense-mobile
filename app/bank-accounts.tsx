@@ -73,14 +73,16 @@ export default function BankAccountsScreen() {
     if (!user) { setLoading(false); return; }
     setLoading(true);
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("bank_accounts")
         .select("*")
         .eq("user_id", user.id)
         .order("is_primary", { ascending: false });
+      if (error) throw error;
       setAccounts(data ?? []);
-    } catch (e) {
+    } catch (e: any) {
       console.error("BankAccounts load error:", e);
+      Alert.alert("Error", "Couldn't load your bank accounts. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -106,7 +108,7 @@ export default function BankAccountsScreen() {
     if (!user) return;
     setSaving(true);
     try {
-      await supabase.from("bank_accounts").insert({
+      const { error } = await supabase.from("bank_accounts").insert({
         user_id: user.id,
         bank_name: bankName.trim(),
         account_holder: accountHolder.trim(),
@@ -115,11 +117,12 @@ export default function BankAccountsScreen() {
         account_type: accountType,
         is_primary: accounts.length === 0,
       });
+      if (error) throw error;
       setShowModal(false);
       resetForm();
       await loadAccounts();
     } catch (e: any) {
-      Alert.alert("Error", e.message);
+      Alert.alert("Error", e.message ?? "Couldn't save your bank account. Please try again.");
     } finally {
       setSaving(false);
     }
@@ -128,18 +131,20 @@ export default function BankAccountsScreen() {
   const handleSetPrimary = async (id: string) => {
     if (!user) return;
     try {
-      await supabase
+      const { error: clearError } = await supabase
         .from("bank_accounts")
         .update({ is_primary: false })
         .eq("user_id", user.id);
-      await supabase
+      if (clearError) throw clearError;
+      const { error: setError } = await supabase
         .from("bank_accounts")
         .update({ is_primary: true })
         .eq("id", id)
         .eq("user_id", user.id);
+      if (setError) throw setError;
       await loadAccounts();
     } catch (e: any) {
-      Alert.alert("Error", e.message);
+      Alert.alert("Error", e.message ?? "Couldn't update your primary account. Please try again.");
     }
   };
 
@@ -151,10 +156,11 @@ export default function BankAccountsScreen() {
     setConfirmRemove(null);
     setDeleting(id);
     try {
-      await supabase.from("bank_accounts").delete().eq("id", id).eq("user_id", user!.id);
+      const { error } = await supabase.from("bank_accounts").delete().eq("id", id).eq("user_id", user!.id);
+      if (error) throw error;
       await loadAccounts();
     } catch (e: any) {
-      Alert.alert("Error", e.message);
+      Alert.alert("Error", e.message ?? "Couldn't remove this account. Please try again.");
     } finally {
       setDeleting(null);
     }
