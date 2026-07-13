@@ -14,6 +14,8 @@ import React, { useState } from "react";
 import {
     ActivityIndicator,
     Alert,
+    KeyboardAvoidingView,
+    Platform,
     ScrollView,
     StatusBar,
     Text,
@@ -30,13 +32,18 @@ const NAV = { Home: "⊞", Scan: "⊡", Reports: "◈", Settings: "⚙" };
 function PhoneShell({ children }: { children: React.ReactNode }) {
   return (
     <View style={{ flex: 1, backgroundColor: colour.surface1 }}>
-      <ScrollView
+      <KeyboardAvoidingView
         style={{ flex: 1 }}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-        {children}
-      </ScrollView>
+        <ScrollView
+          style={{ flex: 1 }}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          {children}
+        </ScrollView>
+      </KeyboardAvoidingView>
       <MXTabBar />
     </View>
   );

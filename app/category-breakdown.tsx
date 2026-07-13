@@ -11,6 +11,8 @@ import { useAppForeground } from "@/hooks/use-app-foreground";
 import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
   ScrollView,
   StatusBar,
   Text,
@@ -157,6 +159,10 @@ export default function CategoryBreakdownScreen() {
         backLabel="Tax & ITR12"
       />
 
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
       <ScrollView
         style={{ flex: 1, backgroundColor: C.background }}
         contentContainerStyle={{ paddingBottom: 30 }}
@@ -627,6 +633,7 @@ export default function CategoryBreakdownScreen() {
           </>
         )}
       </ScrollView>
+      </KeyboardAvoidingView>
       <MXTabBar />
     </SafeAreaView>
   );

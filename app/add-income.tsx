@@ -17,6 +17,8 @@ import React, { useEffect, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
+    KeyboardAvoidingView,
+    Platform,
     ScrollView,
     StatusBar,
     Text,
@@ -225,6 +227,10 @@ export default function AddIncomeScreen() {
         showBack
       />
 
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
       <ScrollView
         style={{ flex: 1, backgroundColor: colour.background }}
         showsVerticalScrollIndicator={false}
@@ -497,6 +503,7 @@ export default function AddIncomeScreen() {
           </Text>
         </TouchableOpacity>
       </ScrollView>
+      </KeyboardAvoidingView>
       <MXTabBar />
 
       <SuccessModal

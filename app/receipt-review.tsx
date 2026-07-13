@@ -15,6 +15,8 @@ import {
     ActivityIndicator,
     Alert,
     Image,
+    KeyboardAvoidingView,
+    Platform,
     ScrollView,
     StatusBar,
     Text,
@@ -257,6 +259,10 @@ export default function ReceiptReviewScreen() {
         backLabel="Review receipt"
       />
 
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
       <ScrollView
         style={{
           flex: 1,
@@ -750,6 +756,7 @@ export default function ReceiptReviewScreen() {
           </Text>
         </TouchableOpacity>
       </ScrollView>
+      </KeyboardAvoidingView>
       <MXTabBar />
 
       <SuccessModal

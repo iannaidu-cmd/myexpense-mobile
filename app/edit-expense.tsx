@@ -15,7 +15,9 @@ import {
     ActivityIndicator,
     Alert,
     FlatList,
+    KeyboardAvoidingView,
     Modal,
+    Platform,
     ScrollView,
     StatusBar,
     Text,
@@ -165,6 +167,10 @@ export default function EditExpenseScreen() {
       <MXHeader title="Update details" showBack />
 
       {/* Form */}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
       <ScrollView
         style={{
           flex: 1,
@@ -455,6 +461,7 @@ export default function EditExpenseScreen() {
           )}
         </TouchableOpacity>
       </ScrollView>
+      </KeyboardAvoidingView>
 
       {/* Category Modal */}
       <Modal

@@ -11,7 +11,9 @@ import React, { useEffect, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
+    KeyboardAvoidingView,
     Modal,
+    Platform,
     ScrollView,
     StatusBar,
     Text,
@@ -446,6 +448,10 @@ export default function BankAccountsScreen() {
               </Text>
             </TouchableOpacity>
           </View>
+          <KeyboardAvoidingView
+            style={{ flex: 1 }}
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+          >
           <ScrollView
             contentContainerStyle={{ padding: space.lg }}
             keyboardShouldPersistTaps="handled"
@@ -689,6 +695,7 @@ export default function BankAccountsScreen() {
               )}
             </TouchableOpacity>
           </ScrollView>
+          </KeyboardAvoidingView>
         </SafeAreaView>
       </Modal>
       <ConfirmModal

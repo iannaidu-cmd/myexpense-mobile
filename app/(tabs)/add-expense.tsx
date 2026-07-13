@@ -19,6 +19,8 @@ import React, { useState } from "react";
 import {
     ActivityIndicator,
     Alert,
+    KeyboardAvoidingView,
+    Platform,
     ScrollView,
     StatusBar,
     Text,
@@ -194,6 +196,10 @@ export default function AddExpenseTab() {
 
       <MXHeader title="Add expense" showBack />
 
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
       <ScrollView
         style={{ flex: 1, backgroundColor: colour.background }}
         showsVerticalScrollIndicator={false}
@@ -490,6 +496,7 @@ export default function AddExpenseTab() {
           </Text>
         </TouchableOpacity>
       </ScrollView>
+      </KeyboardAvoidingView>
       <SuccessModal
         visible={successVisible}
         title="Expense saved"

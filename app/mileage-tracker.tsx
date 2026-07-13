@@ -15,6 +15,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
+    KeyboardAvoidingView,
     Modal,
     Platform,
     ScrollView,
@@ -932,6 +933,10 @@ export default function MileageTrackerScreen() {
         animationType="slide"
         onRequestClose={() => setShowPurpose(false)}
       >
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+        >
         <View
           style={{
             flex: 1,
@@ -1078,6 +1083,7 @@ export default function MileageTrackerScreen() {
             </TouchableOpacity>
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       <MXTabBar />
