@@ -68,7 +68,6 @@ const POPUP_CONTENT: Record<PopupKind, {
   subtitle: string;
   rows: { label: string; value: string }[];
   primaryLabel: string;
-  route: string;
 }> = {
   period1: {
     icon: "calendar",
@@ -82,7 +81,6 @@ const POPUP_CONTENT: Record<PopupKind, {
       { label: "Pay your estimate by", value: "31 Aug 2026" },
     ],
     primaryLabel: "Start tracking",
-    route: "/(tabs)/add-expense",
   },
   taxSeasonOpen: {
     icon: "doc.text.fill",
@@ -96,7 +94,6 @@ const POPUP_CONTENT: Record<PopupKind, {
       { label: "Provisional & trusts deadline", value: "22 Jan 2027" },
     ],
     primaryLabel: "Start preparing",
-    route: "/itr12-export-setup",
   },
   period2: {
     icon: "calendar",
@@ -110,7 +107,6 @@ const POPUP_CONTENT: Record<PopupKind, {
       { label: "Pay your estimate by", value: "28 Feb 2027" },
     ],
     primaryLabel: "Continue tracking",
-    route: "/(tabs)/add-expense",
   },
 };
 
@@ -254,8 +250,13 @@ export default function HomeScreen() {
 
   useEffect(() => {
     if (!user) return;
-    checkDuePopup().then((due) => { if (due) setDuePopup(due); });
-  }, [user, checkDuePopup]);
+    checkDuePopup().then((due) => { if (due) setDuePopup((current) => current ?? due); });
+    // authStore recreates the `user` object on every Supabase auth event
+    // (token refresh, INITIAL_SESSION, ...), not just on real login/logout.
+    // Depending on `user` here reran this check — and could re-summon an
+    // already-dismissed popup — on refresh events unrelated to auth state.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, checkDuePopup]);
 
   const markPopupSeen = useCallback(async (kind: PopupKind) => {
     const key =
@@ -278,15 +279,6 @@ export default function HomeScreen() {
       if (next) setTimeout(() => setDuePopup(next), 400);
     })();
   }, [duePopup, markPopupSeen, checkDuePopup]);
-
-  // Primary CTA — mark seen, close, and navigate. Doesn't chain to the next
-  // popup since the user is leaving the dashboard; it'll show next time
-  // this effect re-runs (next app open) if still due.
-  const actOnPopup = useCallback((kind: PopupKind, route: string) => {
-    setDuePopup(null);
-    markPopupSeen(kind);
-    router.push(route as any);
-  }, [markPopupSeen, router]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -687,7 +679,7 @@ export default function HomeScreen() {
           title={POPUP_CONTENT[duePopup].title}
           subtitle={POPUP_CONTENT[duePopup].subtitle}
           primaryLabel={POPUP_CONTENT[duePopup].primaryLabel}
-          onPrimary={() => actOnPopup(duePopup, POPUP_CONTENT[duePopup].route)}
+          onPrimary={dismissPopup}
           secondaryLabel="Remind me later"
           onClose={dismissPopup}
         >
