@@ -41,18 +41,19 @@ const formatDate = (dateStr: string) => {
 };
 
 // ── Once-off dashboard popups ─────────────────────────────────────────────────
-// Three separate notices in chronological order. Dates + keys are specific to
+// Two separate notices in chronological order. Dates + keys are specific to
 // the current cycle and must be hand-updated (with bumped keys) each year:
-// - period1/period2: provisional tax periods for the 2026/27 tax year (see
+// - period2: provisional tax period 2 for the 2026/27 tax year (see
 //   lib/taxRules.ts and app/provisional-tax.tsx for the same figures).
 // - taxSeasonOpen: SARS eFiling opening for the 2025/26 tax year (the one
 //   that just ended) — this is a *different*, already-completed tax year
-//   from the one period1/period2 are tracking, which is why its date (13
-//   Jul 2026) falls in between them rather than after both.
-type PopupKind = "period1" | "taxSeasonOpen" | "period2";
-
-const PERIOD1_TRIGGER_DATE = new Date(2026, 2, 1); // 1 Mar 2026
-const PERIOD1_POPUP_KEY = "@myexpense:seen_period1_popup_v2_2026";
+//   from the one period2 is tracking, which is why its date (13 Jul 2026)
+//   falls before it rather than after.
+// A "period1" notice (tax year started 1 Mar) used to exist here too, but
+// was removed: every new user installing after 1 Mar sees it as already due,
+// so it fired back-to-back with taxSeasonOpen on first launch for anyone
+// who signs up after mid-year — not just a testing artifact.
+type PopupKind = "taxSeasonOpen" | "period2";
 
 const TAX_SEASON_TRIGGER_DATE = new Date(2026, 6, 13); // 13 Jul 2026 — eFiling opens for manual submissions (not 1 Jul, which is only auto-assessment notices)
 const TAX_SEASON_POPUP_KEY = "@myexpense:seen_tax_season_popup_v3_2026";
@@ -69,19 +70,6 @@ const POPUP_CONTENT: Record<PopupKind, {
   rows: { label: string; value: string }[];
   primaryLabel: string;
 }> = {
-  period1: {
-    icon: "calendar",
-    iconColour: colour.primary,
-    eyebrow: "Period 1 of 2",
-    title: "Your new tax year starts today",
-    subtitle: "Keep every slip from now, so your first estimate is easy to file.",
-    rows: [
-      { label: "Track expenses from", value: "1 Mar 2026" },
-      { label: "Track expenses until", value: "31 Aug 2026" },
-      { label: "Pay your estimate by", value: "31 Aug 2026" },
-    ],
-    primaryLabel: "Start tracking",
-  },
   taxSeasonOpen: {
     icon: "doc.text.fill",
     iconColour: colour.primary,
@@ -235,14 +223,12 @@ export default function HomeScreen() {
   // whose content is keyed off `duePopup` makes that class of bug
   // structurally impossible.
   const checkDuePopup = useCallback(async (): Promise<PopupKind | null> => {
-    const [seenP1, seenTaxSeason, seenP2] = await Promise.all([
-      AsyncStorage.getItem(PERIOD1_POPUP_KEY),
+    const [seenTaxSeason, seenP2] = await Promise.all([
       AsyncStorage.getItem(TAX_SEASON_POPUP_KEY),
       AsyncStorage.getItem(PERIOD2_POPUP_KEY),
     ]);
     const now = new Date();
-    // Checked in chronological trigger-date order: 1 Mar → 13 Jul → 1 Sep.
-    if (!seenP1 && now >= PERIOD1_TRIGGER_DATE) return "period1";
+    // Checked in chronological trigger-date order: 13 Jul → 1 Sep.
     if (!seenTaxSeason && now >= TAX_SEASON_TRIGGER_DATE) return "taxSeasonOpen";
     if (!seenP2 && now >= PERIOD2_TRIGGER_DATE) return "period2";
     return null;
@@ -259,10 +245,7 @@ export default function HomeScreen() {
   }, [user?.id, checkDuePopup]);
 
   const markPopupSeen = useCallback(async (kind: PopupKind) => {
-    const key =
-      kind === "period1" ? PERIOD1_POPUP_KEY :
-      kind === "period2" ? PERIOD2_POPUP_KEY :
-      TAX_SEASON_POPUP_KEY;
+    const key = kind === "period2" ? PERIOD2_POPUP_KEY : TAX_SEASON_POPUP_KEY;
     await AsyncStorage.setItem(key, "1");
   }, []);
 
