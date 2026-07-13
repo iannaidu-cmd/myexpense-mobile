@@ -41,38 +41,104 @@ const formatDate = (dateStr: string) => {
 };
 
 // ── Once-off dashboard popups ─────────────────────────────────────────────────
-// Tax season (SARS eFiling) opens 1 July every year — reuse that as the trigger
-// so the popup shows once per year without a hardcoded date going stale.
-const taxSeasonOpenDate = () => new Date(new Date().getFullYear(), 6, 1);
-const TAX_SEASON_POPUP_KEY = `@myexpense:seen_tax_season_popup_v1_${new Date().getFullYear()}`;
+// Three separate notices, each tied to its own trigger date, matching the
+// 2026/27 provisional tax cycle (see lib/taxRules.ts and app/provisional-tax.tsx
+// for the same figures). Dates + keys are specific to this cycle and must be
+// hand-updated (with bumped keys) for the 2027/28 cycle.
+type PopupKind = "period1" | "period2" | "finalFiling";
 
-// Provisional tax period dates below are specific to the 2026/27 cycle
-// (see lib/taxRules.ts and app/provisional-tax.tsx for the same figures) and
-// must be hand-updated for the 2027/28 cycle, along with bumping the key.
-const PROVISIONAL_PERIODS_TRIGGER_DATE = new Date(2026, 2, 1); // 1 Mar 2026
-const PROVISIONAL_PERIODS_POPUP_KEY = "@myexpense:seen_provisional_periods_popup_v1_2026_27";
+const PERIOD1_TRIGGER_DATE = new Date(2026, 2, 1); // 1 Mar 2026
+const PERIOD1_POPUP_KEY = "@myexpense:seen_period1_popup_v2_2026";
 
-function PeriodBlock({ title, lines }: { title: string; lines: string[] }) {
+const PERIOD2_TRIGGER_DATE = new Date(2026, 8, 1); // 1 Sep 2026
+const PERIOD2_POPUP_KEY = "@myexpense:seen_period2_popup_v2_2026";
+
+const FINAL_FILING_TRIGGER_DATE = new Date(2027, 6, 1); // 1 Jul 2027
+const FINAL_FILING_POPUP_KEY = "@myexpense:seen_final_filing_popup_v2_2027";
+
+const POPUP_CONTENT: Record<PopupKind, {
+  icon: string;
+  iconColour: string;
+  eyebrow: string;
+  title: string;
+  subtitle: string;
+  rows: { label: string; value: string }[];
+  primaryLabel: string;
+  route: string;
+}> = {
+  period1: {
+    icon: "calendar",
+    iconColour: colour.primary,
+    eyebrow: "Period 1 of 2",
+    title: "Your new tax year starts today",
+    subtitle: "Keep every slip from now, so your first estimate is easy to file.",
+    rows: [
+      { label: "Track expenses from", value: "1 Mar 2026" },
+      { label: "Track expenses until", value: "31 Aug 2026" },
+      { label: "Pay your estimate by", value: "31 Aug 2026" },
+    ],
+    primaryLabel: "Start tracking",
+    route: "/(tabs)/add-expense",
+  },
+  period2: {
+    icon: "calendar",
+    iconColour: colour.warning,
+    eyebrow: "Period 2 of 2",
+    title: "Your second period has started",
+    subtitle: "Halfway through the tax year. Keep logging so your next estimate stays accurate.",
+    rows: [
+      { label: "Track expenses from", value: "1 Sep 2026" },
+      { label: "Track expenses until", value: "28 Feb 2027" },
+      { label: "Pay your estimate by", value: "28 Feb 2027" },
+    ],
+    primaryLabel: "Continue tracking",
+    route: "/(tabs)/add-expense",
+  },
+  finalFiling: {
+    icon: "checkmark.circle.fill",
+    iconColour: colour.success,
+    eyebrow: "Final filing season",
+    title: "Filing season is open",
+    subtitle: "Time to file your full year. Check your slips match what you've already paid.",
+    rows: [
+      { label: "Filing season opens", value: "Jul 2027" },
+      { label: "Submit your ITR12 by", value: "Jan 2028" },
+    ],
+    primaryLabel: "Review my return",
+    route: "/itr12-export-setup",
+  },
+};
+
+function PeriodCard({ rows }: { rows: { label: string; value: string }[] }) {
   return (
     <View
       style={{
         backgroundColor: colour.noir,
-        borderRadius: radius.md,
-        padding: space.md,
-        marginBottom: space.sm,
+        borderRadius: 16,
+        paddingHorizontal: 18,
+        marginBottom: 16,
         width: "100%",
       }}
     >
-      <Text style={{ ...typography.labelM, color: colour.onNoir, marginBottom: 4 }}>
-        {title}
-      </Text>
-      {lines.map((line, i) => (
-        <Text
+      {rows.map((row, i) => (
+        <View
           key={i}
-          style={{ ...typography.bodyS, color: colour.onNoir2, lineHeight: 18, marginTop: i > 0 ? 2 : 0 }}
+          style={{
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "baseline",
+            paddingVertical: 9,
+            borderBottomWidth: i < rows.length - 1 ? 1 : 0,
+            borderBottomColor: "rgba(255,255,255,0.08)",
+          }}
         >
-          • {line}
-        </Text>
+          <Text style={{ fontSize: 11.5, color: colour.onNoir2, fontWeight: "600" }}>
+            {row.label}
+          </Text>
+          <Text style={{ fontSize: 13, color: colour.onNoir, fontWeight: "700", textAlign: "right" }}>
+            {row.value}
+          </Text>
+        </View>
       ))}
     </View>
   );
@@ -92,8 +158,7 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showRefreshHint, setShowRefreshHint] = useState(false);
-  const [showTaxSeasonPopup, setShowTaxSeasonPopup] = useState(false);
-  const [showSlipsPopup, setShowSlipsPopup] = useState(false);
+  const [duePopup, setDuePopup] = useState<PopupKind | null>(null);
   const isFetching = useRef(false);
   const hasLoaded = useRef(false);
   const appStateRef = useRef(AppState.currentState);
@@ -161,41 +226,61 @@ export default function HomeScreen() {
   }, [loadData]);
 
   // Show each once-off popup at most once, gated by an AsyncStorage flag so
-  // dismissing it (or reopening the app) never shows it again. Only one shows
-  // at a time — the slips popup opens after the tax season one is dismissed
-  // (or immediately if the tax season one isn't due/already seen).
+  // dismissing it (or reopening the app) never shows it again. Only ONE
+  // <AnnouncementModal> is ever rendered — on Android, mounting a second
+  // <Modal> while the first is closing caused touch events to bleed through
+  // to the wrong popup's handler (the popup would flash and immediately
+  // navigate using the *previous* popup's action). A single shared modal
+  // whose content is keyed off `duePopup` makes that class of bug
+  // structurally impossible.
+  const checkDuePopup = useCallback(async (): Promise<PopupKind | null> => {
+    const [seenP1, seenP2, seenFinal] = await Promise.all([
+      AsyncStorage.getItem(PERIOD1_POPUP_KEY),
+      AsyncStorage.getItem(PERIOD2_POPUP_KEY),
+      AsyncStorage.getItem(FINAL_FILING_POPUP_KEY),
+    ]);
+    const now = new Date();
+    if (!seenP1 && now >= PERIOD1_TRIGGER_DATE) return "period1";
+    if (!seenP2 && now >= PERIOD2_TRIGGER_DATE) return "period2";
+    if (!seenFinal && now >= FINAL_FILING_TRIGGER_DATE) return "finalFiling";
+    return null;
+  }, []);
+
   useEffect(() => {
     if (!user) return;
+    checkDuePopup().then((due) => { if (due) setDuePopup(due); });
+  }, [user, checkDuePopup]);
+
+  const markPopupSeen = useCallback(async (kind: PopupKind) => {
+    const key =
+      kind === "period1" ? PERIOD1_POPUP_KEY :
+      kind === "period2" ? PERIOD2_POPUP_KEY :
+      FINAL_FILING_POPUP_KEY;
+    await AsyncStorage.setItem(key, "1");
+  }, []);
+
+  // Dismiss via X/backdrop — stays on the dashboard. If another popup is
+  // already due, it opens after a short delay so the modal's close
+  // animation finishes first instead of instantly swapping content.
+  const dismissPopup = useCallback(() => {
+    const kind = duePopup;
+    setDuePopup(null);
+    if (!kind) return;
     (async () => {
-      const [seenTaxSeason, seenSlips] = await Promise.all([
-        AsyncStorage.getItem(TAX_SEASON_POPUP_KEY),
-        AsyncStorage.getItem(PROVISIONAL_PERIODS_POPUP_KEY),
-      ]);
-      const now = new Date();
-      const taxSeasonDue = !seenTaxSeason && now >= taxSeasonOpenDate();
-      const slipsDue = !seenSlips && now >= PROVISIONAL_PERIODS_TRIGGER_DATE;
-
-      if (taxSeasonDue) {
-        setShowTaxSeasonPopup(true);
-      } else if (slipsDue) {
-        setShowSlipsPopup(true);
-      }
+      await markPopupSeen(kind);
+      const next = await checkDuePopup();
+      if (next) setTimeout(() => setDuePopup(next), 400);
     })();
-  }, [user]);
+  }, [duePopup, markPopupSeen, checkDuePopup]);
 
-  const dismissTaxSeasonPopup = useCallback(async () => {
-    setShowTaxSeasonPopup(false);
-    await AsyncStorage.setItem(TAX_SEASON_POPUP_KEY, "1");
-    const seenSlips = await AsyncStorage.getItem(PROVISIONAL_PERIODS_POPUP_KEY);
-    if (!seenSlips && new Date() >= PROVISIONAL_PERIODS_TRIGGER_DATE) {
-      setShowSlipsPopup(true);
-    }
-  }, []);
-
-  const dismissSlipsPopup = useCallback(async () => {
-    setShowSlipsPopup(false);
-    await AsyncStorage.setItem(PROVISIONAL_PERIODS_POPUP_KEY, "1");
-  }, []);
+  // Primary CTA — mark seen, close, and navigate. Doesn't chain to the next
+  // popup since the user is leaving the dashboard; it'll show next time
+  // this effect re-runs (next app open) if still due.
+  const actOnPopup = useCallback((kind: PopupKind, route: string) => {
+    setDuePopup(null);
+    markPopupSeen(kind);
+    router.push(route as any);
+  }, [markPopupSeen, router]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -587,55 +672,22 @@ export default function HomeScreen() {
         )}
       </ScrollView>
 
-      <AnnouncementModal
-        visible={showTaxSeasonPopup}
-        icon="doc.text.fill"
-        title="Tax season is open"
-        primaryLabel="Start preparing"
-        onPrimary={() => {
-          dismissTaxSeasonPopup();
-          router.push("/itr12-export-setup" as any);
-        }}
-        onClose={dismissTaxSeasonPopup}
-      >
-        <Text style={{ ...typography.bodyM, color: colour.textSub, textAlign: "center", lineHeight: 21 }}>
-          SARS eFiling has opened for the {activeTaxYear} tax year. Start preparing your ITR12 filing now so you&apos;re not rushing the deadline.
-        </Text>
-      </AnnouncementModal>
-
-      <AnnouncementModal
-        visible={showSlipsPopup}
-        icon="calendar"
-        title="Start collecting your slips"
-        primaryLabel="View provisional tax"
-        onPrimary={() => {
-          dismissSlipsPopup();
-          router.push("/provisional-tax" as any);
-        }}
-        onClose={dismissSlipsPopup}
-      >
-        <PeriodBlock
-          title="Period 1 (Ends 31 August 2026)"
-          lines={[
-            "Capture all expense slips incurred from 1 March 2026 to 31 August 2026.",
-            "File and pay your first provisional estimation by 31 August 2026.",
-          ]}
-        />
-        <PeriodBlock
-          title="Period 2 (Ends 28 February 2027)"
-          lines={[
-            "Capture all expense slips incurred from 1 September 2026 to 28 February 2027.",
-            "File and pay your second provisional estimation by 28 February 2027.",
-          ]}
-        />
-        <PeriodBlock
-          title="Final Filing Season (Opens July 2027)"
-          lines={[
-            "Submit your final, aggregated Income Tax Return (ITR12) by January 2028.",
-            "Use this period to reconcile your actual annual slips against the estimates paid.",
-          ]}
-        />
-      </AnnouncementModal>
+      {duePopup && (
+        <AnnouncementModal
+          visible
+          icon={POPUP_CONTENT[duePopup].icon}
+          iconColour={POPUP_CONTENT[duePopup].iconColour}
+          eyebrow={POPUP_CONTENT[duePopup].eyebrow}
+          title={POPUP_CONTENT[duePopup].title}
+          subtitle={POPUP_CONTENT[duePopup].subtitle}
+          primaryLabel={POPUP_CONTENT[duePopup].primaryLabel}
+          onPrimary={() => actOnPopup(duePopup, POPUP_CONTENT[duePopup].route)}
+          secondaryLabel="Remind me later"
+          onClose={dismissPopup}
+        >
+          <PeriodCard rows={POPUP_CONTENT[duePopup].rows} />
+        </AnnouncementModal>
+      )}
     </SafeAreaView>
   );
 }

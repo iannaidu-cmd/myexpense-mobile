@@ -14,20 +14,30 @@ import {
 interface AnnouncementModalProps {
   visible: boolean;
   icon?: string;
+  iconColour?: string;
+  eyebrow?: string;
   title: string;
+  subtitle?: string;
   children?: React.ReactNode;
   primaryLabel?: string;
   onPrimary?: () => void;
+  secondaryLabel?: string;
+  onSecondary?: () => void;
   onClose: () => void;
 }
 
 export function AnnouncementModal({
   visible,
   icon = "bell.fill",
+  iconColour = colour.primary,
+  eyebrow,
   title,
+  subtitle,
   children,
   primaryLabel,
   onPrimary,
+  secondaryLabel,
+  onSecondary,
   onClose,
 }: AnnouncementModalProps) {
   const backdropOpacity = useRef(new Animated.Value(0)).current;
@@ -53,10 +63,10 @@ export function AnnouncementModal({
         <Animated.View
           style={{
             flex: 1,
-            backgroundColor: "rgba(8, 8, 18, 0.58)",
+            backgroundColor: "rgba(15, 15, 30, 0.5)",
             alignItems: "center",
             justifyContent: "center",
-            paddingHorizontal: 24,
+            paddingHorizontal: 16,
             opacity: backdropOpacity,
           }}
         >
@@ -65,79 +75,102 @@ export function AnnouncementModal({
             style={{
               width: "100%",
               maxWidth: 360,
-              maxHeight: "82%",
+              maxHeight: "86%",
               backgroundColor: colour.white,
-              borderRadius: 28,
-              overflow: "hidden",
+              borderRadius: 26,
               opacity: cardOpacity,
               transform: [{ scale: cardScale }],
             }}
           >
-            {/* Top accent strip */}
-            <View style={{ width: "100%", height: 4, backgroundColor: colour.primary }} />
-
             {/* Close button */}
             <TouchableOpacity
               onPress={onClose}
               hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
               style={{
                 position: "absolute",
-                top: 16,
-                right: 16,
-                width: 32,
-                height: 32,
-                borderRadius: 16,
+                top: 14,
+                right: 14,
+                width: 28,
+                height: 28,
+                borderRadius: 14,
                 backgroundColor: colour.bgPage,
+                borderWidth: 1,
+                borderColor: colour.borderLight,
                 alignItems: "center",
                 justifyContent: "center",
                 zIndex: 1,
               }}
             >
-              <IconSymbol name="xmark" size={16} color={colour.textSecondary} />
+              <IconSymbol name="xmark" size={12} color={colour.textSub} />
             </TouchableOpacity>
 
             <ScrollView
-              contentContainerStyle={{ padding: 24, paddingTop: 28, alignItems: "center" }}
+              contentContainerStyle={{ padding: 24, paddingTop: 24, paddingBottom: 20, alignItems: "center" }}
               showsVerticalScrollIndicator={false}
             >
-              {/* Icon circle */}
-              <View style={{ marginBottom: 16, alignItems: "center", justifyContent: "center" }}>
-                <View
+              {/* Icon */}
+              <View
+                style={{
+                  width: 52,
+                  height: 52,
+                  borderRadius: 15,
+                  backgroundColor: iconColour,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginBottom: 14,
+                  shadowColor: iconColour,
+                  shadowOffset: { width: 0, height: 10 },
+                  shadowOpacity: 0.5,
+                  shadowRadius: 12,
+                  elevation: 6,
+                }}
+              >
+                <IconSymbol name={icon as any} size={24} color={colour.white} />
+              </View>
+
+              {eyebrow ? (
+                <Text
                   style={{
-                    position: "absolute",
-                    width: 88,
-                    height: 88,
-                    borderRadius: 44,
-                    backgroundColor: colour.primary,
-                    opacity: 0.08,
-                  }}
-                />
-                <View
-                  style={{
-                    width: 64,
-                    height: 64,
-                    borderRadius: 32,
-                    backgroundColor: colour.primary,
-                    alignItems: "center",
-                    justifyContent: "center",
+                    fontSize: 10.5,
+                    fontWeight: "700",
+                    letterSpacing: 1,
+                    textTransform: "uppercase",
+                    color: colour.accentDeep,
+                    marginBottom: 6,
+                    textAlign: "center",
                   }}
                 >
-                  <IconSymbol name={icon as any} size={26} color={colour.onPrimary} />
-                </View>
-              </View>
+                  {eyebrow}
+                </Text>
+              ) : null}
 
               <Text
                 style={{
-                  fontSize: 20,
-                  fontWeight: "700",
+                  fontSize: 19,
+                  fontWeight: "800",
                   color: colour.text,
                   textAlign: "center",
                   letterSpacing: -0.4,
-                  marginBottom: 12,
+                  marginBottom: 8,
                 }}
               >
                 {title}
               </Text>
+
+              {subtitle ? (
+                <Text
+                  style={{
+                    fontSize: 12.5,
+                    color: colour.textSub,
+                    textAlign: "center",
+                    lineHeight: 18,
+                    marginBottom: 18,
+                    paddingHorizontal: 4,
+                  }}
+                >
+                  {subtitle}
+                </Text>
+              ) : null}
 
               {children ? <View style={{ width: "100%" }}>{children}</View> : null}
 
@@ -149,14 +182,26 @@ export function AnnouncementModal({
                     width: "100%",
                     backgroundColor: colour.primary,
                     borderRadius: radius.pill,
-                    height: 52,
+                    height: 50,
                     alignItems: "center",
                     justifyContent: "center",
-                    marginTop: 20,
+                    marginTop: 4,
                   }}
                 >
                   <Text style={{ ...typography.btnL, color: colour.onPrimary }}>
                     {primaryLabel}
+                  </Text>
+                </TouchableOpacity>
+              ) : null}
+
+              {secondaryLabel ? (
+                <TouchableOpacity
+                  onPress={onSecondary ?? onClose}
+                  activeOpacity={0.7}
+                  style={{ marginTop: 12, paddingVertical: 4 }}
+                >
+                  <Text style={{ fontSize: 11.5, fontWeight: "600", color: colour.textSub }}>
+                    {secondaryLabel}
                   </Text>
                 </TouchableOpacity>
               ) : null}
