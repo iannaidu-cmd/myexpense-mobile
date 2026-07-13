@@ -1,3 +1,4 @@
+import { AnnouncementModal } from "@/components/AnnouncementModal";
 import MXLogo from "@/components/MXLogo";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { SA_MARGINAL_TAX_RATE } from "@/constants/tax";
@@ -8,6 +9,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { useExpenseStore } from "@/stores/expenseStore";
 import { colour, radius, space, typography } from "@/tokens";
 import { Expense } from "@/types/database";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -38,6 +40,44 @@ const formatDate = (dateStr: string) => {
   return date.toLocaleDateString("en-ZA", { day: "numeric", month: "short" });
 };
 
+// ── Once-off dashboard popups ─────────────────────────────────────────────────
+// Tax season (SARS eFiling) opens 1 July every year — reuse that as the trigger
+// so the popup shows once per year without a hardcoded date going stale.
+const taxSeasonOpenDate = () => new Date(new Date().getFullYear(), 6, 1);
+const TAX_SEASON_POPUP_KEY = `@myexpense:seen_tax_season_popup_v1_${new Date().getFullYear()}`;
+
+// Provisional tax period dates below are specific to the 2026/27 cycle
+// (see lib/taxRules.ts and app/provisional-tax.tsx for the same figures) and
+// must be hand-updated for the 2027/28 cycle, along with bumping the key.
+const PROVISIONAL_PERIODS_TRIGGER_DATE = new Date(2026, 2, 1); // 1 Mar 2026
+const PROVISIONAL_PERIODS_POPUP_KEY = "@myexpense:seen_provisional_periods_popup_v1_2026_27";
+
+function PeriodBlock({ title, lines }: { title: string; lines: string[] }) {
+  return (
+    <View
+      style={{
+        backgroundColor: colour.noir,
+        borderRadius: radius.md,
+        padding: space.md,
+        marginBottom: space.sm,
+        width: "100%",
+      }}
+    >
+      <Text style={{ ...typography.labelM, color: colour.onNoir, marginBottom: 4 }}>
+        {title}
+      </Text>
+      {lines.map((line, i) => (
+        <Text
+          key={i}
+          style={{ ...typography.bodyS, color: colour.onNoir2, lineHeight: 18, marginTop: i > 0 ? 2 : 0 }}
+        >
+          • {line}
+        </Text>
+      ))}
+    </View>
+  );
+}
+
 export default function HomeScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
@@ -52,6 +92,8 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showRefreshHint, setShowRefreshHint] = useState(false);
+  const [showTaxSeasonPopup, setShowTaxSeasonPopup] = useState(false);
+  const [showSlipsPopup, setShowSlipsPopup] = useState(false);
   const isFetching = useRef(false);
   const hasLoaded = useRef(false);
   const appStateRef = useRef(AppState.currentState);
@@ -117,6 +159,43 @@ export default function HomeScreen() {
     });
     return () => sub.remove();
   }, [loadData]);
+
+  // Show each once-off popup at most once, gated by an AsyncStorage flag so
+  // dismissing it (or reopening the app) never shows it again. Only one shows
+  // at a time — the slips popup opens after the tax season one is dismissed
+  // (or immediately if the tax season one isn't due/already seen).
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      const [seenTaxSeason, seenSlips] = await Promise.all([
+        AsyncStorage.getItem(TAX_SEASON_POPUP_KEY),
+        AsyncStorage.getItem(PROVISIONAL_PERIODS_POPUP_KEY),
+      ]);
+      const now = new Date();
+      const taxSeasonDue = !seenTaxSeason && now >= taxSeasonOpenDate();
+      const slipsDue = !seenSlips && now >= PROVISIONAL_PERIODS_TRIGGER_DATE;
+
+      if (taxSeasonDue) {
+        setShowTaxSeasonPopup(true);
+      } else if (slipsDue) {
+        setShowSlipsPopup(true);
+      }
+    })();
+  }, [user]);
+
+  const dismissTaxSeasonPopup = useCallback(async () => {
+    setShowTaxSeasonPopup(false);
+    await AsyncStorage.setItem(TAX_SEASON_POPUP_KEY, "1");
+    const seenSlips = await AsyncStorage.getItem(PROVISIONAL_PERIODS_POPUP_KEY);
+    if (!seenSlips && new Date() >= PROVISIONAL_PERIODS_TRIGGER_DATE) {
+      setShowSlipsPopup(true);
+    }
+  }, []);
+
+  const dismissSlipsPopup = useCallback(async () => {
+    setShowSlipsPopup(false);
+    await AsyncStorage.setItem(PROVISIONAL_PERIODS_POPUP_KEY, "1");
+  }, []);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -507,6 +586,56 @@ export default function HomeScreen() {
           </>
         )}
       </ScrollView>
+
+      <AnnouncementModal
+        visible={showTaxSeasonPopup}
+        icon="doc.text.fill"
+        title="Tax season is open"
+        primaryLabel="Start preparing"
+        onPrimary={() => {
+          dismissTaxSeasonPopup();
+          router.push("/itr12-export-setup" as any);
+        }}
+        onClose={dismissTaxSeasonPopup}
+      >
+        <Text style={{ ...typography.bodyM, color: colour.textSub, textAlign: "center", lineHeight: 21 }}>
+          SARS eFiling has opened for the {activeTaxYear} tax year. Start preparing your ITR12 filing now so you&apos;re not rushing the deadline.
+        </Text>
+      </AnnouncementModal>
+
+      <AnnouncementModal
+        visible={showSlipsPopup}
+        icon="calendar"
+        title="Start collecting your slips"
+        primaryLabel="View provisional tax"
+        onPrimary={() => {
+          dismissSlipsPopup();
+          router.push("/provisional-tax" as any);
+        }}
+        onClose={dismissSlipsPopup}
+      >
+        <PeriodBlock
+          title="Period 1 (Ends 31 August 2026)"
+          lines={[
+            "Capture all expense slips incurred from 1 March 2026 to 31 August 2026.",
+            "File and pay your first provisional estimation by 31 August 2026.",
+          ]}
+        />
+        <PeriodBlock
+          title="Period 2 (Ends 28 February 2027)"
+          lines={[
+            "Capture all expense slips incurred from 1 September 2026 to 28 February 2027.",
+            "File and pay your second provisional estimation by 28 February 2027.",
+          ]}
+        />
+        <PeriodBlock
+          title="Final Filing Season (Opens July 2027)"
+          lines={[
+            "Submit your final, aggregated Income Tax Return (ITR12) by January 2028.",
+            "Use this period to reconcile your actual annual slips against the estimates paid.",
+          ]}
+        />
+      </AnnouncementModal>
     </SafeAreaView>
   );
 }
