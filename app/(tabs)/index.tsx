@@ -55,6 +55,13 @@ const formatDate = (dateStr: string) => {
 // who signs up after mid-year — not just a testing artifact.
 type PopupKind = "taxSeasonOpen" | "period2";
 
+// Module-level (not component state) so it survives the Home screen
+// remounting within the same app run — e.g. navigating to another stack
+// screen and back — without waiting on the AsyncStorage write in
+// markPopupSeen to flush. AsyncStorage remains the source of truth across
+// app restarts; this only closes the gap within a single session.
+const dismissedThisSession = new Set<PopupKind>();
+
 const TAX_SEASON_TRIGGER_DATE = new Date(2026, 6, 13); // 13 Jul 2026 — eFiling opens for manual submissions (not 1 Jul, which is only auto-assessment notices)
 const TAX_SEASON_POPUP_KEY = "@myexpense:seen_tax_season_popup_v3_2026";
 
@@ -236,7 +243,9 @@ export default function HomeScreen() {
 
   useEffect(() => {
     if (!user) return;
-    checkDuePopup().then((due) => { if (due) setDuePopup((current) => current ?? due); });
+    checkDuePopup().then((due) => {
+      if (due && !dismissedThisSession.has(due)) setDuePopup((current) => current ?? due);
+    });
     // authStore recreates the `user` object on every Supabase auth event
     // (token refresh, INITIAL_SESSION, ...), not just on real login/logout.
     // Depending on `user` here reran this check — and could re-summon an
@@ -256,6 +265,7 @@ export default function HomeScreen() {
     const kind = duePopup;
     setDuePopup(null);
     if (!kind) return;
+    dismissedThisSession.add(kind);
     (async () => {
       await markPopupSeen(kind);
       const next = await checkDuePopup();
