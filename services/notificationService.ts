@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 
@@ -44,6 +45,24 @@ export async function savePushToken(userId: string, token: string): Promise<void
 async function isAlreadyScheduled(identifier: string): Promise<boolean> {
   const existing = await Notifications.getAllScheduledNotificationsAsync();
   return existing.some((n) => n.identifier === identifier);
+}
+
+// One-time cleanup for installs that hit the cancel/reschedule race above
+// before isAlreadyScheduled existed. When that race fires, the OS ends up
+// with two live alarms for the same identifier, but getAllScheduledNotificationsAsync
+// (and therefore isAlreadyScheduled) only ever surfaces the most recently
+// registered one — so the orphaned duplicate is invisible to the guard above
+// and fires forever alongside the tracked one. cancelAllScheduledNotificationsAsync
+// clears every OS-level alarm regardless of whether Expo still knows about
+// it, which actually removes the orphan. Gated to run once per install so it
+// doesn't itself re-trigger the same race on every relaunch.
+const DEDUP_RESET_KEY = "@myexpense:notif_dedup_reset_v1";
+
+export async function resetDuplicateNotificationsOnce(): Promise<void> {
+  const alreadyReset = await AsyncStorage.getItem(DEDUP_RESET_KEY);
+  if (alreadyReset) return;
+  await Notifications.cancelAllScheduledNotificationsAsync().catch(() => {});
+  await AsyncStorage.setItem(DEDUP_RESET_KEY, "1");
 }
 
 export async function scheduleWeeklyExpenseReminder(): Promise<void> {

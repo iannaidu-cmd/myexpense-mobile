@@ -4,6 +4,7 @@ import { configurePurchases } from "@/lib/purchases";
 import * as Sentry from "@sentry/react-native";
 import {
     registerForPushNotifications,
+    resetDuplicateNotificationsOnce,
     savePushToken,
     scheduleMonthlyReportReminder,
     scheduleSARSDeadlineReminders,
@@ -191,6 +192,7 @@ function NotificationSetup() {
       }
 
       try {
+        await resetDuplicateNotificationsOnce();
         await scheduleWeeklyExpenseReminder();
         await scheduleMonthlyReportReminder();
         await scheduleSARSDeadlineReminders();
