@@ -41,20 +41,24 @@ const formatDate = (dateStr: string) => {
 };
 
 // ── Once-off dashboard popups ─────────────────────────────────────────────────
-// Three separate notices, each tied to its own trigger date, matching the
-// 2026/27 provisional tax cycle (see lib/taxRules.ts and app/provisional-tax.tsx
-// for the same figures). Dates + keys are specific to this cycle and must be
-// hand-updated (with bumped keys) for the 2027/28 cycle.
-type PopupKind = "period1" | "period2" | "finalFiling";
+// Three separate notices in chronological order. Dates + keys are specific to
+// the current cycle and must be hand-updated (with bumped keys) each year:
+// - period1/period2: provisional tax periods for the 2026/27 tax year (see
+//   lib/taxRules.ts and app/provisional-tax.tsx for the same figures).
+// - taxSeasonOpen: SARS eFiling opening for the 2025/26 tax year (the one
+//   that just ended) — this is a *different*, already-completed tax year
+//   from the one period1/period2 are tracking, which is why its date (13
+//   Jul 2026) falls in between them rather than after both.
+type PopupKind = "period1" | "taxSeasonOpen" | "period2";
 
 const PERIOD1_TRIGGER_DATE = new Date(2026, 2, 1); // 1 Mar 2026
 const PERIOD1_POPUP_KEY = "@myexpense:seen_period1_popup_v2_2026";
 
+const TAX_SEASON_TRIGGER_DATE = new Date(2026, 6, 13); // 13 Jul 2026 — eFiling opens for manual submissions (not 1 Jul, which is only auto-assessment notices)
+const TAX_SEASON_POPUP_KEY = "@myexpense:seen_tax_season_popup_v3_2026";
+
 const PERIOD2_TRIGGER_DATE = new Date(2026, 8, 1); // 1 Sep 2026
 const PERIOD2_POPUP_KEY = "@myexpense:seen_period2_popup_v2_2026";
-
-const FINAL_FILING_TRIGGER_DATE = new Date(2027, 6, 13); // 13 Jul 2027 — eFiling opens for everyone (provisional taxpayers file manually, not via auto-assessment)
-const FINAL_FILING_POPUP_KEY = "@myexpense:seen_final_filing_popup_v2_2027";
 
 const POPUP_CONTENT: Record<PopupKind, {
   icon: string;
@@ -80,6 +84,20 @@ const POPUP_CONTENT: Record<PopupKind, {
     primaryLabel: "Start tracking",
     route: "/(tabs)/add-expense",
   },
+  taxSeasonOpen: {
+    icon: "doc.text.fill",
+    iconColour: colour.primary,
+    eyebrow: "Tax season 2026/27",
+    title: "Tax season is open",
+    subtitle: "SARS eFiling is open for manual submissions. Start on your ITR12 now, so October doesn't sneak up on you.",
+    rows: [
+      { label: "eFiling opened", value: "13 Jul 2026" },
+      { label: "Non-provisional deadline", value: "23 Oct 2026" },
+      { label: "Provisional & trusts deadline", value: "22 Jan 2027" },
+    ],
+    primaryLabel: "Start preparing",
+    route: "/itr12-export-setup",
+  },
   period2: {
     icon: "calendar",
     iconColour: colour.warning,
@@ -93,19 +111,6 @@ const POPUP_CONTENT: Record<PopupKind, {
     ],
     primaryLabel: "Continue tracking",
     route: "/(tabs)/add-expense",
-  },
-  finalFiling: {
-    icon: "checkmark.circle.fill",
-    iconColour: colour.success,
-    eyebrow: "Final filing season",
-    title: "Filing season is open",
-    subtitle: "Time to file your full year. Check your slips match what you've already paid.",
-    rows: [
-      { label: "Filing season opens", value: "13 Jul 2027" },
-      { label: "Submit your ITR12 by", value: "22 Jan 2028" },
-    ],
-    primaryLabel: "Review my return",
-    route: "/itr12-export-setup",
   },
 };
 
@@ -234,15 +239,16 @@ export default function HomeScreen() {
   // whose content is keyed off `duePopup` makes that class of bug
   // structurally impossible.
   const checkDuePopup = useCallback(async (): Promise<PopupKind | null> => {
-    const [seenP1, seenP2, seenFinal] = await Promise.all([
+    const [seenP1, seenTaxSeason, seenP2] = await Promise.all([
       AsyncStorage.getItem(PERIOD1_POPUP_KEY),
+      AsyncStorage.getItem(TAX_SEASON_POPUP_KEY),
       AsyncStorage.getItem(PERIOD2_POPUP_KEY),
-      AsyncStorage.getItem(FINAL_FILING_POPUP_KEY),
     ]);
     const now = new Date();
+    // Checked in chronological trigger-date order: 1 Mar → 13 Jul → 1 Sep.
     if (!seenP1 && now >= PERIOD1_TRIGGER_DATE) return "period1";
+    if (!seenTaxSeason && now >= TAX_SEASON_TRIGGER_DATE) return "taxSeasonOpen";
     if (!seenP2 && now >= PERIOD2_TRIGGER_DATE) return "period2";
-    if (!seenFinal && now >= FINAL_FILING_TRIGGER_DATE) return "finalFiling";
     return null;
   }, []);
 
@@ -255,7 +261,7 @@ export default function HomeScreen() {
     const key =
       kind === "period1" ? PERIOD1_POPUP_KEY :
       kind === "period2" ? PERIOD2_POPUP_KEY :
-      FINAL_FILING_POPUP_KEY;
+      TAX_SEASON_POPUP_KEY;
     await AsyncStorage.setItem(key, "1");
   }, []);
 
