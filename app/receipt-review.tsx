@@ -31,6 +31,7 @@ const CATEGORIES_FOR_PICKER = CATEGORIES.map((c) => ({
   name: c.label,
   code: c.code,
   deductible: c.deductible,
+  examples: c.examples,
 }));
 
 const LOW_CONFIDENCE_THRESHOLD = 0.7;
@@ -660,6 +661,12 @@ export default function ReceiptReviewScreen() {
                       style={{ ...typography.bodyXS, color: colour.textSub }}
                     >
                       {cat.code}
+                    </Text>
+                    <Text
+                      style={{ ...typography.bodyXS, color: colour.textSub, marginTop: 2 }}
+                      numberOfLines={1}
+                    >
+                      {cat.examples}
                     </Text>
                   </View>
                   {category === cat.name && (

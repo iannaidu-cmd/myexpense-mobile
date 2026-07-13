@@ -1,6 +1,7 @@
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { MXHeader } from "@/components/MXHeader";
 import { SuccessModal } from "@/components/SuccessModal";
+import { CATEGORIES } from "@/constants/categories";
 import {
   validateAmount,
   validateCategory,
@@ -30,24 +31,6 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const CATEGORIES = [
-  { label: "Travel & Transport",       code: "S11(a)",   deductible: true  },
-  { label: "Home Office",              code: "S11(a)",   deductible: true  },
-  { label: "Equipment & Tools",        code: "S11(e)",   deductible: true  },
-  { label: "Software & Subscriptions", code: "S11(a)",   deductible: true  },
-  { label: "Meals & Entertainment",    code: "S11(a)",   deductible: true  },
-  { label: "Professional Fees",        code: "S11(a)",   deductible: true  },
-  { label: "Telephone & Cell",         code: "S11(a)",   deductible: true  },
-  { label: "Marketing & Advertising",  code: "S11(a)",   deductible: true  },
-  { label: "Bank Charges",             code: "S11(a)",   deductible: true  },
-  { label: "Insurance",                code: "S11(a)",   deductible: true  },
-  { label: "Rent",                     code: "S11(a)",   deductible: true  },
-  { label: "Repairs & Maintenance",    code: "S11(a)",   deductible: true  },
-  { label: "Education",                code: "S11(a)",   deductible: true  },
-  { label: "Medical Aid",              code: "S11(a)",   deductible: true  },
-  { label: "Vehicle Expenses",         code: "Page 24",  deductible: true  },
-  { label: "Personal / Non-deductible",code: "N/A",      deductible: false },
-];
 
 function FieldLabel({ label }: { label: string }) {
   return (
@@ -363,7 +346,7 @@ export default function AddExpenseTab() {
                   }}
                   style={{
                     flexDirection: "row",
-                    alignItems: "center",
+                    alignItems: "flex-start",
                     paddingVertical: space.md,
                     borderBottomWidth: 1,
                     borderBottomColor: colour.borderLight,
@@ -373,17 +356,25 @@ export default function AddExpenseTab() {
                     width: 6, height: 6, borderRadius: 3,
                     backgroundColor: cat.deductible ? colour.primary : colour.textHint,
                     marginRight: space.md,
+                    marginTop: 6,
                   }} />
-                  <Text
-                    style={{ flex: 1, ...typography.bodyM, color: colour.text }}
-                  >
-                    {cat.label}
-                  </Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ ...typography.bodyM, color: colour.text }}>
+                      {cat.label}
+                    </Text>
+                    <Text
+                      style={{ ...typography.bodyXS, color: colour.textSub, marginTop: 2 }}
+                      numberOfLines={1}
+                    >
+                      {cat.examples}
+                    </Text>
+                  </View>
                   <Text
                     style={{
                       ...typography.bodyXS,
                       color: colour.primary,
                       fontWeight: "600",
+                      marginLeft: space.sm,
                     }}
                   >
                     {cat.code}

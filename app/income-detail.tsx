@@ -2,6 +2,7 @@ import { ConfirmModal } from "@/components/ConfirmModal";
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { NON_DEDUCTIBLE_LABEL } from "@/constants/categories";
 import { expenseService } from "@/services/expenseService";
 import { incomeService } from "@/services/incomeService";
 import { useAuthStore } from "@/stores/authStore";
@@ -106,7 +107,7 @@ export default function IncomeDetailScreen() {
       await expenseService.addExpense(user.id, {
         vendor: income.source,
         amount: income.amount,
-        category: "Non-deductible",
+        category: NON_DEDUCTIBLE_LABEL,
         tax_year: taxYearForDate(income.date),
         expense_date: income.date,
         is_deductible: false,

@@ -91,26 +91,37 @@ export interface UpdateExpense extends Partial<NewExpense> {
 // For sole proprietors all expenditure goes into the Local Business schedule;
 // individual line items are named fields, not coded. Only the net taxable
 // profit/loss carries a code (4222/4223, calculated by SARS).
+//
+// Keys must exactly match constants/categories.ts CATEGORIES labels — this
+// table used to carry its own shorter, drifted set of keys (missing Rent,
+// Repairs & Maintenance, Vehicle Expenses, Training & Education, Interest &
+// Finance Charges, and a "Non-deductible"/"Entertainment"/"Other Deductible"
+// set that never matched any real category name), which meant CSV/PDF export
+// silently fell back to a generic "Other" field for any expense in those
+// categories instead of the correct SARS line.
 
 export const ITR12_CATEGORIES: Record<
   string,
   { field: string; code: string; section: string }
 > = {
-  "Travel & Transport":       { field: "Travel Costs – Local",           code: "",     section: "S11(a) – Pg 11-12" },
-  "Home Office":              { field: "Rental Paid",                    code: "",     section: "S11(a) – Pg 11-12" },
-  "Equipment & Tools":        { field: "Depreciation",                   code: "",     section: "S11(e) – Pg 11-12" },
-  "Software & Subscriptions": { field: "Other",                          code: "",     section: "S11(a) – Pg 11-12" },
-  "Professional Fees":        { field: "Consulting Fees Paid",           code: "",     section: "S11(a) – Pg 11-12" },
-  "Telephone & Internet":     { field: "Telephone",                      code: "",     section: "S11(a) – Pg 11-12" },
-  "Marketing & Advertising":  { field: "Other",                          code: "",     section: "S11(a) – Pg 11-12" },
-  "Bank Charges":             { field: "Bank Charges",                   code: "",     section: "S11(a) – Pg 11-12" },
-  Utilities:                  { field: "Electricity / Rates and Taxes",  code: "",     section: "S11(a) – Pg 11-12" },
-  Entertainment:              { field: "Entertainment",                  code: "",     section: "S23(o) 80% – Pg 11-12" },
-  Insurance:                  { field: "Insurance",                      code: "",     section: "S11(a) – Pg 11-12" },
-  "Meals & Entertainment":    { field: "Entertainment",                  code: "",     section: "S23(o) 80% – Pg 11-12" },
-  "Retirement Annuity":       { field: "Total contributions",            code: "4006", section: "RA – Pg 23" },
-  "Other Deductible":         { field: "Other",                          code: "",     section: "S11(a) – Pg 11-12" },
-  "Non-deductible":           { field: "",                               code: "",     section: "" },
+  "Travel & Transport":         { field: "Travel Costs – Local",           code: "",     section: "S11(a) – Pg 11-12" },
+  "Home Office":                { field: "Rental Paid",                    code: "",     section: "S11(a) – Pg 11-12" },
+  "Equipment & Tools":          { field: "Depreciation",                   code: "",     section: "S11(e) – Pg 11-12" },
+  "Software & Subscriptions":   { field: "Other",                          code: "",     section: "S11(a) – Pg 11-12" },
+  "Meals & Entertainment":      { field: "Entertainment",                  code: "",     section: "S23(o) 80% – Pg 11-12" },
+  "Professional Fees":          { field: "Consulting Fees Paid",           code: "",     section: "S11(a) – Pg 11-12" },
+  Utilities:                    { field: "Electricity / Rates and Taxes",  code: "",     section: "S11(a) – Pg 11-12" },
+  "Marketing & Advertising":    { field: "Other",                          code: "",     section: "S11(a) – Pg 11-12" },
+  "Bank Charges":               { field: "Bank Charges",                   code: "",     section: "S11(a) – Pg 11-12" },
+  "Interest & Finance Charges": { field: "Interest Paid – Other",          code: "",     section: "S11(a) – Pg 11-12" },
+  Insurance:                    { field: "Insurance",                      code: "",     section: "S11(a) – Pg 11-12" },
+  Rent:                         { field: "Rental Paid",                    code: "",     section: "S11(a) – Pg 11-12" },
+  "Repairs & Maintenance":      { field: "Repairs",                        code: "",     section: "S11(a) – Pg 11-12" },
+  "Training & Education":       { field: "Other",                          code: "",     section: "S11(a) – Pg 11-12" },
+  "Telephone & Internet":       { field: "Telephone",                      code: "",     section: "S11(a) – Pg 11-12" },
+  "Vehicle Expenses":           { field: "Motor Vehicle Expenses",         code: "",     section: "S11(a) – Pg 11-12" },
+  "Retirement Annuity":         { field: "Total contributions",            code: "4006", section: "RA – Pg 23" },
+  "Personal / Other":           { field: "",                               code: "",     section: "" },
 };
 
 export const CATEGORY_LIST = Object.keys(ITR12_CATEGORIES);

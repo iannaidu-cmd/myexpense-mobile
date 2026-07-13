@@ -106,6 +106,7 @@ const ITR12_CATEGORIES = CATEGORIES.map((c) => ({
   label: c.label,
   icon: c.icon,
   code: c.code,
+  examples: c.examples,
 }));
 
 export default function AddExpenseScreen() {
@@ -577,21 +578,27 @@ export default function AddExpenseScreen() {
                   }}
                   style={{
                     flexDirection: "row",
-                    alignItems: "center",
+                    alignItems: "flex-start",
                     paddingVertical: 11,
                     borderBottomWidth: 1,
                     borderBottomColor: colour.border,
                   }}
                 >
-                  <IconSymbol name={cat.icon as any} size={18} color={colour.primary} style={{ marginRight: 12 } as any} />
-                  <Text style={{ flex: 1, fontSize: 14, color: colour.text }}>
-                    {cat.label}
-                  </Text>
+                  <IconSymbol name={cat.icon as any} size={18} color={colour.primary} style={{ marginRight: 12, marginTop: 1 } as any} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 14, color: colour.text }}>
+                      {cat.label}
+                    </Text>
+                    <Text style={{ fontSize: 11, color: colour.textSub, marginTop: 2 }} numberOfLines={1}>
+                      {cat.examples}
+                    </Text>
+                  </View>
                   <Text
                     style={{
                       fontSize: 11,
                       color: colour.accent,
                       fontWeight: "600",
+                      marginLeft: 8,
                     }}
                   >
                     {cat.code}

@@ -43,6 +43,7 @@ const ITR12_FIELD: Record<string, string> = {
   "Telephone & Cell": "Telephone and Internet",
   "Marketing & Advertising": "Advertising",
   "Bank Charges": "Bank Charges",
+  "Interest & Finance Charges": "Interest Paid – Other",
   Insurance: "Insurance",
   Rent: "Rental – Business Premises",
   "Repairs & Maintenance": "Repairs and Maintenance",
