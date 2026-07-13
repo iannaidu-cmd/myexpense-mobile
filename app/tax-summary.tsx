@@ -161,10 +161,12 @@ export default function TaxSummaryScreen() {
   const fmtKeyDate = (d: Date) =>
     d.toLocaleDateString("en-ZA", { day: "numeric", month: "short", year: "numeric" });
   const taxYearEndDate = new Date(deadlineYear, 1, 28); // 28 Feb
-  const efilingOpensDate = new Date(deadlineYear, 6, 1); // 1 Jul
+  const autoAssessmentStartDate = new Date(deadlineYear, 6, 1); // 1 Jul
+  const efilingOpensDate = new Date(deadlineYear, 6, 13); // 13 Jul
   const provisionalDate = new Date(deadlineYear + 1, 0, 22); // 22 Jan, following year
   const sarsKeyDates = [
     { label: "Tax year end", date: fmtKeyDate(taxYearEndDate), done: today > taxYearEndDate },
+    { label: "Auto-assessment notices", date: fmtKeyDate(autoAssessmentStartDate), done: today > autoAssessmentStartDate },
     { label: "eFiling opens", date: fmtKeyDate(efilingOpensDate), done: today > efilingOpensDate },
     { label: "Non-provisional filing", date: fmtKeyDate(deadlineDate), done: today > deadlineDate },
     { label: "Provisional (auto)", date: fmtKeyDate(provisionalDate), done: today > provisionalDate },

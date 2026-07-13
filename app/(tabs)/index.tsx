@@ -53,7 +53,7 @@ const PERIOD1_POPUP_KEY = "@myexpense:seen_period1_popup_v2_2026";
 const PERIOD2_TRIGGER_DATE = new Date(2026, 8, 1); // 1 Sep 2026
 const PERIOD2_POPUP_KEY = "@myexpense:seen_period2_popup_v2_2026";
 
-const FINAL_FILING_TRIGGER_DATE = new Date(2027, 6, 1); // 1 Jul 2027
+const FINAL_FILING_TRIGGER_DATE = new Date(2027, 6, 13); // 13 Jul 2027 — eFiling opens for everyone (provisional taxpayers file manually, not via auto-assessment)
 const FINAL_FILING_POPUP_KEY = "@myexpense:seen_final_filing_popup_v2_2027";
 
 const POPUP_CONTENT: Record<PopupKind, {
@@ -101,8 +101,8 @@ const POPUP_CONTENT: Record<PopupKind, {
     title: "Filing season is open",
     subtitle: "Time to file your full year. Check your slips match what you've already paid.",
     rows: [
-      { label: "Filing season opens", value: "Jul 2027" },
-      { label: "Submit your ITR12 by", value: "Jan 2028" },
+      { label: "Filing season opens", value: "13 Jul 2027" },
+      { label: "Submit your ITR12 by", value: "22 Jan 2028" },
     ],
     primaryLabel: "Review my return",
     route: "/itr12-export-setup",

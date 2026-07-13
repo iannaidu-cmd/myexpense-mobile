@@ -105,8 +105,26 @@ export async function scheduleSARSDeadlineReminders(): Promise<void> {
   const year = new Date().getFullYear();
   const now = new Date();
 
-  // eFiling open fires ON the day (1 Jul) — not early, since the message says "opens today".
-  const efilingOpenDate = new Date(year, 6, 1, 8, 0, 0);
+  // Auto-assessment notices go out 1–12 Jul; eFiling opens for everyone else
+  // (manual submission, non-provisional and provisional) on 13 Jul. Both
+  // fire ON the day, not early, since the message says "opens/starts today".
+  const autoAssessmentStartDate = new Date(year, 6, 1, 8, 0, 0);
+  if (autoAssessmentStartDate > now && !(await isAlreadyScheduled("sars-auto-assessment-start"))) {
+    await Notifications.scheduleNotificationAsync({
+      identifier: "sars-auto-assessment-start",
+      content: {
+        title: "SARS Deadline Reminder",
+        body: "SARS auto-assessment notices start going out today. Check your SMS/email — you may be auto-assessed.",
+        data: { route: "/itr12-export-setup" },
+      },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DATE,
+        date: autoAssessmentStartDate,
+      },
+    });
+  }
+
+  const efilingOpenDate = new Date(year, 6, 13, 8, 0, 0);
   if (efilingOpenDate > now && !(await isAlreadyScheduled("sars-efiling-open"))) {
     await Notifications.scheduleNotificationAsync({
       identifier: "sars-efiling-open",
@@ -175,6 +193,7 @@ export async function cancelMonthlyReportReminder(): Promise<void> {
 
 export async function cancelSARSDeadlineReminders(): Promise<void> {
   await Promise.all([
+    Notifications.cancelScheduledNotificationAsync("sars-auto-assessment-start"),
     Notifications.cancelScheduledNotificationAsync("sars-efiling-open"),
     Notifications.cancelScheduledNotificationAsync("sars-nonprovisional-deadline"),
     Notifications.cancelScheduledNotificationAsync("sars-provisional-deadline"),

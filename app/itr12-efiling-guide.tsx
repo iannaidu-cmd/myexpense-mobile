@@ -90,12 +90,14 @@ export default function ITR12EFilingGuideScreen() {
   const fmtKeyDate = (d: Date) =>
     d.toLocaleDateString("en-ZA", { day: "numeric", month: "short", year: "numeric" });
   const taxYearEndDate = new Date(filingStartYear + 1, 1, 28); // 28 Feb
-  const efilingOpensDate = new Date(filingStartYear + 1, 6, 1); // 1 Jul
+  const autoAssessmentStartDate = new Date(filingStartYear + 1, 6, 1); // 1 Jul
+  const efilingOpensDate = new Date(filingStartYear + 1, 6, 13); // 13 Jul
   const nonProvisionalDate = new Date(filingStartYear + 1, 9, 23); // 23 Oct
   const provisionalDate = new Date(filingStartYear + 2, 0, 22); // 22 Jan, following year
   const now = new Date();
   const KEY_DATES = [
     { label: "Tax year end", date: fmtKeyDate(taxYearEndDate), past: now > taxYearEndDate },
+    { label: "Auto-assessment notices", date: fmtKeyDate(autoAssessmentStartDate), past: now > autoAssessmentStartDate },
     { label: "eFiling opens", date: fmtKeyDate(efilingOpensDate), past: now > efilingOpensDate },
     { label: "Non-provisional filing", date: fmtKeyDate(nonProvisionalDate), past: now > nonProvisionalDate },
     { label: "Provisional (auto)", date: fmtKeyDate(provisionalDate), past: now > provisionalDate },
