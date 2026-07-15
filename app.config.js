@@ -31,7 +31,7 @@ const config = {
     },
   },
   android: {
-    package: "co.za.myexpense",
+    package: "co.za.myexpense.myapp",
     config: {
       googleMaps: {
         apiKey: process.env.GOOGLE_MAPS_API_KEY,

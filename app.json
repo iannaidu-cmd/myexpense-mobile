@@ -22,7 +22,7 @@
       }
     },
     "android": {
-      "package": "co.za.myexpense",
+      "package": "co.za.myexpense.myapp",
       "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
