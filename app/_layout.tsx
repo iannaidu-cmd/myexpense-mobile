@@ -57,7 +57,7 @@ SplashScreen.preventAutoHideAsync();
 function AuthGate() {
   const router = useRouter();
   const segments = useSegments();
-  const { user, isInitialised, pendingEmailVerification } = useAuthStore();
+  const { user, isInitialised, pendingEmailVerification, isAccessBlocked } = useAuthStore();
 
   useEffect(() => {
     if (!isInitialised) return;
@@ -77,6 +77,20 @@ function AuthGate() {
       return;
     }
 
+    // Renewal payment failed 7+ days ago — block everything except the
+    // dedicated screen (which offers "update payment" / "sign out"). Dev
+    // users and active promo_expires_at grants never set isAccessBlocked
+    // (see authStore.fetchPremiumStatus), so this never affects them.
+    const inAccessBlocked = segments[0] === "access-blocked";
+    if (isAccessBlocked && user && !inAccessBlocked) {
+      router.replace("/access-blocked");
+      return;
+    }
+    if (!isAccessBlocked && inAccessBlocked) {
+      router.replace("/(tabs)");
+      return;
+    }
+
     const inAuthGroup =
       segments[0] === "auth" ||
       segments[0] === "sign-in" ||
@@ -93,7 +107,7 @@ function AuthGate() {
     } else if (user && (inAuthGroup || inOnboarding)) {
       router.replace("/(tabs)");
     }
-  }, [user, isInitialised, segments, pendingEmailVerification]);
+  }, [user, isInitialised, segments, pendingEmailVerification, isAccessBlocked]);
 
   return null;
 }
@@ -393,6 +407,10 @@ function RootLayout() {
         <Stack.Screen
           name="subscription-manage"
           options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="access-blocked"
+          options={{ headerShown: false, gestureEnabled: false }}
         />
         {/* ── Utility ── */}
         <Stack.Screen

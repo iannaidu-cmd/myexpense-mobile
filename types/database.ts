@@ -15,6 +15,12 @@ export interface Profile {
   is_dev_user: boolean;
   push_token: string | null;
   terms_accepted_at: string | null;
+  /** Manually-granted comp access (e.g. "3 months free") — active while in the future. */
+  promo_expires_at: string | null;
+  /** Current RevenueCat entitlement expiry, synced by supabase/functions/revenuecat-webhook. */
+  subscription_expires_at: string | null;
+  /** Set when a renewal payment fails; cleared on the next successful renewal. Drives the 7-day access grace period. */
+  billing_issue_detected_at: string | null;
   created_at: string;
   updated_at: string;
 }

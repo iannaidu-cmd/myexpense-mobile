@@ -13,7 +13,6 @@ export interface UpdateProfile {
   tax_number?: string;
   work_type?: string;
   active_tax_year?: string;
-  subscription?: "free" | "pro" | "business";
   push_token?: string;
   terms_accepted_at?: string;
 }

@@ -75,6 +75,8 @@ interface AuthState {
   hasCompletedOnboarding: boolean;
   isDevUser: boolean;
   isPremium: boolean;
+  /** True when a paid subscription's renewal failed 7+ days ago and hasn't recovered. */
+  isAccessBlocked: boolean;
   termsAccepted: boolean;
   pendingEmailVerification: string | null;
 
@@ -91,15 +93,24 @@ interface AuthState {
   updatePassword: (newPassword: string) => Promise<void>;
 }
 
+// Failed-renewal payments get this many days of continued access before
+// isAccessBlocked flips true. Only applies to users who already have a paid
+// subscription with an unresolved billing issue — never to dev users or
+// active promo_expires_at grants (checked first, see below).
+const GRACE_PERIOD_DAYS = 7;
+
 // ─── Helper: fetch premium status from profiles ───────────────────────────────
 async function fetchPremiumStatus(userId: string): Promise<{
   isDevUser: boolean;
   isPremium: boolean;
+  isAccessBlocked: boolean;
   termsAccepted: boolean;
 }> {
   const { data } = await supabase
     .from("profiles")
-    .select("is_dev_user, subscription, terms_accepted_at, promo_expires_at")
+    .select(
+      "is_dev_user, subscription, terms_accepted_at, promo_expires_at, billing_issue_detected_at"
+    )
     .eq("id", userId)
     .single();
 
@@ -107,13 +118,18 @@ async function fetchPremiumStatus(userId: string): Promise<{
   const promoActive = data?.promo_expires_at
     ? new Date(data.promo_expires_at) > new Date()
     : false;
-  const isPremium =
-    isDevUser ||
-    promoActive ||
-    data?.subscription === "pro" ||
-    data?.subscription === "business";
+  const hasPaidSubscription =
+    data?.subscription === "pro" || data?.subscription === "business";
+
+  const graceDeadlineMs = data?.billing_issue_detected_at
+    ? new Date(data.billing_issue_detected_at).getTime() + GRACE_PERIOD_DAYS * 86_400_000
+    : null;
+  const graceExpired = graceDeadlineMs !== null && Date.now() > graceDeadlineMs;
+
+  const isPremium = isDevUser || promoActive || (hasPaidSubscription && !graceExpired);
+  const isAccessBlocked = !isDevUser && !promoActive && hasPaidSubscription && graceExpired;
   const termsAccepted = !!data?.terms_accepted_at;
-  return { isDevUser, isPremium, termsAccepted };
+  return { isDevUser, isPremium, isAccessBlocked, termsAccepted };
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -123,6 +139,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   hasCompletedOnboarding: false,
   isDevUser: false,
   isPremium: false,
+  isAccessBlocked: false,
   termsAccepted: false,
   pendingEmailVerification: null,
 
@@ -161,7 +178,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         // Start pre-fetching data in parallel with fetchPremiumStatus so the
         // query cache is warm by the time the splash fades.
         prefetchUserData(session.user.id);
-        const { isDevUser, isPremium, termsAccepted } = await fetchPremiumStatus(
+        const { isDevUser, isPremium, isAccessBlocked, termsAccepted } = await fetchPremiumStatus(
           session.user.id
         );
         set({
@@ -170,6 +187,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           isInitialised: true,
           isDevUser,
           isPremium,
+          isAccessBlocked,
           termsAccepted,
         });
       } else {
@@ -205,8 +223,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
               pendingEmailVerification: null,
             });
             fetchPremiumStatus(session.user.id)
-              .then(({ isDevUser, isPremium, termsAccepted }) => {
-                set({ isDevUser, isPremium, termsAccepted });
+              .then(({ isDevUser, isPremium, isAccessBlocked, termsAccepted }) => {
+                set({ isDevUser, isPremium, isAccessBlocked, termsAccepted });
               })
               .catch(() => {});
           } else {
@@ -219,6 +237,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             isAuthenticated: false,
             isDevUser: false,
             isPremium: false,
+            isAccessBlocked: false,
             termsAccepted: false,
           });
         }
@@ -235,8 +254,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   refreshPremiumStatus: async () => {
     const { user } = get();
     if (!user) return;
-    const { isDevUser, isPremium, termsAccepted } = await fetchPremiumStatus(user.id);
-    set({ isDevUser, isPremium, termsAccepted });
+    const { isDevUser, isPremium, isAccessBlocked, termsAccepted } = await fetchPremiumStatus(user.id);
+    set({ isDevUser, isPremium, isAccessBlocked, termsAccepted });
   },
 
   acceptTerms: async () => {
@@ -286,12 +305,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     // When email confirmation is required, session is null. Set
     // pendingEmailVerification so AuthGate routes to the verification screen.
     if (data.user && data.session) {
-      const { isDevUser, isPremium, termsAccepted } = await fetchPremiumStatus(data.user.id);
+      const { isDevUser, isPremium, isAccessBlocked, termsAccepted } = await fetchPremiumStatus(data.user.id);
       set({
         user: { id: data.user.id, email: data.user.email ?? "" },
         isAuthenticated: true,
         isDevUser,
         isPremium,
+        isAccessBlocked,
         termsAccepted,
         pendingEmailVerification: null,
       });
@@ -342,6 +362,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       isAuthenticated: false,
       isDevUser: false,
       isPremium: false,
+      isAccessBlocked: false,
       termsAccepted: false,
     });
   },
