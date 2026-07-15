@@ -25,10 +25,7 @@ export async function signInWithFacebook(): Promise<{
     });
     const oauthUrl = `${SUPABASE_URL}/auth/v1/authorize?${params.toString()}`;
 
-    const result = await WebBrowser.openAuthSessionAsync(oauthUrl, REDIRECT_URL, {
-      dismissButtonStyle: "close",
-      createTask: false, // Android: keep Custom Tab in the same task as the app
-    });
+    const result = await WebBrowser.openAuthSessionAsync(oauthUrl, REDIRECT_URL);
 
     // Always dismiss — on Android the Custom Tab can linger after the redirect.
     try { WebBrowser.dismissBrowser(); } catch {}
