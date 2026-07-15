@@ -12,9 +12,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 const CONFIRM_WORD = "DELETE";
 
 const WHAT_GETS_DELETED = [
-  "All expenses, income and mileage records",
-  "All receipt images",
-  "Your profile and tax information",
+  "All receipt images and OCR scans",
+  "Mileage logs, bank account and home office details",
+  "Your name, phone number, tax number and other profile details",
   "Your login — you won't be able to sign back in",
 ];
 
@@ -94,7 +94,9 @@ export default function DeleteAccountConfirmScreen() {
         >
           <Text style={{ ...typography.bodyS, color: colour.textSub, lineHeight: 20 }}>
             You'll have <Text style={{ fontWeight: "700", color: colour.text }}>30 days</Text> after
-            confirming to export your data or cancel before deletion is permanent.{"\n\n"}
+            confirming to export your data or cancel before this takes effect.{"\n\n"}
+            Your expense and income transaction records are kept for a further 5 years after that, as
+            required by SARS record-keeping rules — everything else above is gone for good.{"\n\n"}
             If you have an active Pro subscription, deleting your account does not cancel it — cancel
             separately via the App Store or Google Play to stop being billed.
           </Text>

@@ -92,9 +92,10 @@ export default function AccountPendingDeletionScreen() {
               lineHeight: 22,
             }}
           >
-            Your account and all your data — expenses, income, mileage and
-            receipts — will be permanently deleted on{"\n"}
-            <Text style={{ fontWeight: "700", color: colour.onNoir }}>{purgeDateLabel}</Text>.
+            Your login, receipts, mileage logs and profile details will be permanently deleted on{"\n"}
+            <Text style={{ fontWeight: "700", color: colour.onNoir }}>{purgeDateLabel}</Text>. Your
+            expense and income records are kept a further 5 years, as required by SARS record-keeping
+            rules.
           </Text>
         </View>
 

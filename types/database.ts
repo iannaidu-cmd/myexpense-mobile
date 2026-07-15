@@ -21,8 +21,10 @@ export interface Profile {
   subscription_expires_at: string | null;
   /** Set when a renewal payment fails; cleared on the next successful renewal. Drives the 7-day access grace period. */
   billing_issue_detected_at: string | null;
-  /** Set when the user requests account deletion; cleared if they cancel. supabase/functions/purge-deleted-accounts permanently deletes the account 30 days after this is set. */
+  /** Set when the user requests account deletion; cleared if they cancel. supabase/functions/purge-deleted-accounts strips PII and revokes login 30 days after this is set. */
   deletion_requested_at: string | null;
+  /** Set by purge-deleted-accounts once the 30-day purge has run — this row is now a PII-stripped tombstone kept alive only so retained expenses/income (which CASCADE from profiles.id) aren't lost. Anchors the eventual 5-year final-purge. */
+  purged_at: string | null;
   created_at: string;
   updated_at: string;
 }
