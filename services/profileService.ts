@@ -15,6 +15,8 @@ export interface UpdateProfile {
   active_tax_year?: string;
   push_token?: string;
   terms_accepted_at?: string;
+  /** The user's own choice about their own account — set to request deletion, null to cancel. */
+  deletion_requested_at?: string | null;
 }
 
 export const profileService = {

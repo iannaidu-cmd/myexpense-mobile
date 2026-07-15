@@ -57,7 +57,7 @@ SplashScreen.preventAutoHideAsync();
 function AuthGate() {
   const router = useRouter();
   const segments = useSegments();
-  const { user, isInitialised, pendingEmailVerification, isAccessBlocked } = useAuthStore();
+  const { user, isInitialised, pendingEmailVerification, isAccessBlocked, isPendingDeletion } = useAuthStore();
 
   useEffect(() => {
     if (!isInitialised) return;
@@ -74,6 +74,21 @@ function AuthGate() {
       router.replace(
         `/email-verification?email=${encodeURIComponent(pendingEmailVerification)}` as any
       );
+      return;
+    }
+
+    // Account deletion requested — block everything except the dedicated
+    // screen (Cancel deletion / Export my data), until either 30 days pass
+    // (purge-deleted-accounts deletes the account entirely) or the user
+    // cancels. Takes priority over isAccessBlocked below — no point telling
+    // someone to fix their payment method if they're being deleted anyway.
+    const inPendingDeletion = segments[0] === "account-pending-deletion";
+    if (isPendingDeletion && user && !inPendingDeletion) {
+      router.replace("/account-pending-deletion");
+      return;
+    }
+    if (!isPendingDeletion && inPendingDeletion) {
+      router.replace("/(tabs)");
       return;
     }
 
@@ -107,7 +122,7 @@ function AuthGate() {
     } else if (user && (inAuthGroup || inOnboarding)) {
       router.replace("/(tabs)");
     }
-  }, [user, isInitialised, segments, pendingEmailVerification, isAccessBlocked]);
+  }, [user, isInitialised, segments, pendingEmailVerification, isAccessBlocked, isPendingDeletion]);
 
   return null;
 }
@@ -411,6 +426,14 @@ function RootLayout() {
         <Stack.Screen
           name="access-blocked"
           options={{ headerShown: false, gestureEnabled: false }}
+        />
+        <Stack.Screen
+          name="account-pending-deletion"
+          options={{ headerShown: false, gestureEnabled: false }}
+        />
+        <Stack.Screen
+          name="delete-account-confirm"
+          options={{ headerShown: false }}
         />
         {/* ── Utility ── */}
         <Stack.Screen

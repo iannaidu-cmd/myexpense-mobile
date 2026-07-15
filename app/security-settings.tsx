@@ -376,6 +376,24 @@ export default function SecuritySettingsScreen() {
             danger
           />
         </View>
+
+        {/* Danger zone */}
+        <SectionHeader title="Danger zone" />
+        <View
+          style={{
+            borderTopWidth: 1,
+            borderBottomWidth: 1,
+            borderColor: colour.border,
+          }}
+        >
+          <ActionRow
+            icon="trash.fill"
+            label="Delete account"
+            sub="Permanently delete your account and all your data"
+            onPress={() => router.push("/delete-account-confirm" as any)}
+            danger
+          />
+        </View>
       </ScrollView>
       <ConfirmModal
         visible={showDisableBiometricConfirm}

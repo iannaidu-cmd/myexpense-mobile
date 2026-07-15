@@ -21,6 +21,8 @@ export interface Profile {
   subscription_expires_at: string | null;
   /** Set when a renewal payment fails; cleared on the next successful renewal. Drives the 7-day access grace period. */
   billing_issue_detected_at: string | null;
+  /** Set when the user requests account deletion; cleared if they cancel. supabase/functions/purge-deleted-accounts permanently deletes the account 30 days after this is set. */
+  deletion_requested_at: string | null;
   created_at: string;
   updated_at: string;
 }

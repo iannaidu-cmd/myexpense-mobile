@@ -77,6 +77,10 @@ interface AuthState {
   isPremium: boolean;
   /** True when a paid subscription's renewal failed 7+ days ago and hasn't recovered. */
   isAccessBlocked: boolean;
+  /** When the user requested account deletion — null if no pending request. */
+  deletionRequestedAt: string | null;
+  /** True while a deletion request is pending (i.e. deletionRequestedAt is set). */
+  isPendingDeletion: boolean;
   termsAccepted: boolean;
   pendingEmailVerification: string | null;
 
@@ -84,6 +88,8 @@ interface AuthState {
   completeOnboarding: () => void;
   refreshPremiumStatus: () => Promise<void>;
   acceptTerms: () => Promise<void>;
+  requestAccountDeletion: () => Promise<void>;
+  cancelAccountDeletion: () => Promise<void>;
   signUp: (email: string, password: string, fullName?: string) => Promise<void>;
   clearPendingEmailVerification: () => void;
   resendVerification: (email: string) => Promise<void>;
@@ -104,12 +110,14 @@ async function fetchPremiumStatus(userId: string): Promise<{
   isDevUser: boolean;
   isPremium: boolean;
   isAccessBlocked: boolean;
+  deletionRequestedAt: string | null;
+  isPendingDeletion: boolean;
   termsAccepted: boolean;
 }> {
   const { data } = await supabase
     .from("profiles")
     .select(
-      "is_dev_user, subscription, terms_accepted_at, promo_expires_at, billing_issue_detected_at"
+      "is_dev_user, subscription, terms_accepted_at, promo_expires_at, billing_issue_detected_at, deletion_requested_at"
     )
     .eq("id", userId)
     .single();
@@ -128,8 +136,10 @@ async function fetchPremiumStatus(userId: string): Promise<{
 
   const isPremium = isDevUser || promoActive || (hasPaidSubscription && !graceExpired);
   const isAccessBlocked = !isDevUser && !promoActive && hasPaidSubscription && graceExpired;
+  const deletionRequestedAt = data?.deletion_requested_at ?? null;
+  const isPendingDeletion = deletionRequestedAt !== null;
   const termsAccepted = !!data?.terms_accepted_at;
-  return { isDevUser, isPremium, isAccessBlocked, termsAccepted };
+  return { isDevUser, isPremium, isAccessBlocked, deletionRequestedAt, isPendingDeletion, termsAccepted };
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -140,6 +150,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   isDevUser: false,
   isPremium: false,
   isAccessBlocked: false,
+  deletionRequestedAt: null,
+  isPendingDeletion: false,
   termsAccepted: false,
   pendingEmailVerification: null,
 
@@ -178,9 +190,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         // Start pre-fetching data in parallel with fetchPremiumStatus so the
         // query cache is warm by the time the splash fades.
         prefetchUserData(session.user.id);
-        const { isDevUser, isPremium, isAccessBlocked, termsAccepted } = await fetchPremiumStatus(
-          session.user.id
-        );
+        const { isDevUser, isPremium, isAccessBlocked, deletionRequestedAt, isPendingDeletion, termsAccepted } =
+          await fetchPremiumStatus(session.user.id);
         set({
           user: { id: session.user.id, email: session.user.email ?? "" },
           isAuthenticated: true,
@@ -188,6 +199,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           isDevUser,
           isPremium,
           isAccessBlocked,
+          deletionRequestedAt,
+          isPendingDeletion,
           termsAccepted,
         });
       } else {
@@ -223,8 +236,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
               pendingEmailVerification: null,
             });
             fetchPremiumStatus(session.user.id)
-              .then(({ isDevUser, isPremium, isAccessBlocked, termsAccepted }) => {
-                set({ isDevUser, isPremium, isAccessBlocked, termsAccepted });
+              .then(({ isDevUser, isPremium, isAccessBlocked, deletionRequestedAt, isPendingDeletion, termsAccepted }) => {
+                set({ isDevUser, isPremium, isAccessBlocked, deletionRequestedAt, isPendingDeletion, termsAccepted });
               })
               .catch(() => {});
           } else {
@@ -238,6 +251,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             isDevUser: false,
             isPremium: false,
             isAccessBlocked: false,
+            deletionRequestedAt: null,
+            isPendingDeletion: false,
             termsAccepted: false,
           });
         }
@@ -254,8 +269,34 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   refreshPremiumStatus: async () => {
     const { user } = get();
     if (!user) return;
-    const { isDevUser, isPremium, isAccessBlocked, termsAccepted } = await fetchPremiumStatus(user.id);
-    set({ isDevUser, isPremium, isAccessBlocked, termsAccepted });
+    const { isDevUser, isPremium, isAccessBlocked, deletionRequestedAt, isPendingDeletion, termsAccepted } =
+      await fetchPremiumStatus(user.id);
+    set({ isDevUser, isPremium, isAccessBlocked, deletionRequestedAt, isPendingDeletion, termsAccepted });
+  },
+
+  // ── Request account deletion (starts the 30-day grace period) ─────────────
+  requestAccountDeletion: async () => {
+    const { user } = get();
+    if (!user) return;
+    const now = new Date().toISOString();
+    const { error } = await supabase
+      .from("profiles")
+      .update({ deletion_requested_at: now })
+      .eq("id", user.id);
+    if (error) throw new Error(error.message);
+    set({ deletionRequestedAt: now, isPendingDeletion: true });
+  },
+
+  // ── Cancel a pending account deletion ──────────────────────────────────────
+  cancelAccountDeletion: async () => {
+    const { user } = get();
+    if (!user) return;
+    const { error } = await supabase
+      .from("profiles")
+      .update({ deletion_requested_at: null })
+      .eq("id", user.id);
+    if (error) throw new Error(error.message);
+    set({ deletionRequestedAt: null, isPendingDeletion: false });
   },
 
   acceptTerms: async () => {
@@ -305,13 +346,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     // When email confirmation is required, session is null. Set
     // pendingEmailVerification so AuthGate routes to the verification screen.
     if (data.user && data.session) {
-      const { isDevUser, isPremium, isAccessBlocked, termsAccepted } = await fetchPremiumStatus(data.user.id);
+      const { isDevUser, isPremium, isAccessBlocked, deletionRequestedAt, isPendingDeletion, termsAccepted } =
+        await fetchPremiumStatus(data.user.id);
       set({
         user: { id: data.user.id, email: data.user.email ?? "" },
         isAuthenticated: true,
         isDevUser,
         isPremium,
         isAccessBlocked,
+        deletionRequestedAt,
+        isPendingDeletion,
         termsAccepted,
         pendingEmailVerification: null,
       });
@@ -363,6 +407,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       isDevUser: false,
       isPremium: false,
       isAccessBlocked: false,
+      deletionRequestedAt: null,
+      isPendingDeletion: false,
       termsAccepted: false,
     });
   },
