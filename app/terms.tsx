@@ -4,7 +4,7 @@ import { colour, radius, space } from "@/tokens";
 import { ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const LAST_UPDATED = "1 March 2025";
+const LAST_UPDATED = "15 July 2026";
 
 interface SectionProps {
   title: string;
@@ -131,8 +131,10 @@ export default function TermsScreen() {
         <Section title="1. About MyExpense">
           <Body>
             MyExpense is a mobile expense tracking and SARS ITR12 tax compliance
-            application operated by MyExpense (PTY) Ltd, a company registered in
-            the Republic of South Africa. The app is designed for sole
+            application operated by MyExpense (Pty) Ltd (registration number
+            2026/140774/07), a company registered in the Republic of South Africa
+            with its registered address at 13 The Bend, Pinelands, 7405, Cape Town,
+            South Africa. The app is designed for sole
             proprietors, freelancers, and independent contractors. These terms
             are governed by and must be interpreted in accordance with the
             Electronic Communications and Transactions Act, 2002 (ECT Act), the
@@ -186,9 +188,17 @@ export default function TermsScreen() {
           <Body>
             MyExpense offers a free tier and a paid subscription available on a
             monthly or annual billing cycle, at the prices shown in the app
-            before purchase (inclusive of VAT). The annual plan is billed once
+            before purchase (currently R99.99/month or R1099.00/year). MyExpense
+            (Pty) Ltd is not currently VAT registered, so no VAT is added to
+            these prices. The annual plan is billed once
             per year in advance at a discounted rate compared to paying
             monthly.{"\n\n"}
+            From time to time we may offer early-access or promotional periods
+            of free access (for example, to the first cohort of users who join
+            a waitlist). Where a free or promotional period is set to convert
+            into a paid subscription, we will notify you at least 7 days before
+            your first charge, by email or in-app notification, so you have the
+            opportunity to cancel before being billed.{"\n\n"}
             Paid subscriptions automatically renew at the end of each billing
             cycle — monthly for the monthly plan, annually for the annual plan
             — unless cancelled. You may cancel your subscription at any time
@@ -235,7 +245,7 @@ export default function TermsScreen() {
         <Section title="9. Intellectual Property">
           <Body>
             All content, features, and functionality of MyExpense — including
-            the software, design, logos, and text — are owned by MyExpense (PTY)
+            the software, design, logos, and text — are owned by MyExpense (Pty)
             Ltd and are protected by South African and international
             intellectual property laws.
           </Body>
@@ -244,21 +254,28 @@ export default function TermsScreen() {
         <Section title="10. Limitation of Liability">
           <Body>
             To the maximum extent permitted by applicable South African law,
-            including the Consumer Protection Act, MyExpense (PTY) Ltd shall not
+            including the Consumer Protection Act, MyExpense (Pty) Ltd shall not
             be liable for any indirect, incidental, special, or consequential
             damages arising from your use of the app, including but not limited
             to errors in tax calculations, data loss, or SARS penalties. Our
             total aggregate liability for any claim arising out of or related to
             the app shall not exceed the total fees paid by you in the twelve
-            months preceding the claim.
+            months preceding the claim. Nothing in this section excludes or
+            limits our liability for gross negligence, fraud, or any other
+            liability which section 51 of the Consumer Protection Act, or any
+            other law, does not permit us to exclude or limit.
           </Body>
         </Section>
 
-        <Section title="11. Governing Law">
+        <Section title="11. Governing Law & Jurisdiction">
           <Body>
             These terms are governed by the laws of the Republic of South
-            Africa. Any disputes arising from these terms shall be subject to
-            the exclusive jurisdiction of the courts of South Africa. In the
+            Africa. You and MyExpense (Pty) Ltd agree to submit to the
+            non-exclusive jurisdiction of the courts of South Africa for any
+            dispute arising from these terms, without prejudice to your right
+            as a consumer to refer a dispute to the National Consumer
+            Tribunal or another applicable alternative dispute resolution
+            body under the Consumer Protection Act. In the
             event of any conflict between these terms and the provisions of the
             CPA or the ECT Act, the relevant statutory provisions shall prevail.
           </Body>
@@ -274,12 +291,34 @@ export default function TermsScreen() {
           </Body>
         </Section>
 
-        <Section title="13. Contact Us">
+        <Section title="13. General Provisions">
+          <Bullet>
+            <Body style={{ color: colour.text }}>Severability: </Body>
+            If any provision of these terms is found to be unlawful, void, or
+            unenforceable, that provision will be severed and will not affect
+            the validity of the remaining provisions.
+          </Bullet>
+          <Bullet>
+            <Body style={{ color: colour.text }}>Entire agreement: </Body>
+            These terms, together with our Privacy Policy, constitute the
+            entire agreement between you and MyExpense (Pty) Ltd regarding your
+            use of the app, and supersede any prior agreements on this subject.
+          </Bullet>
+          <Bullet>
+            <Body style={{ color: colour.text }}>Assignment: </Body>
+            You may not assign or transfer your rights under these terms
+            without our written consent. We may assign these terms in
+            connection with a merger, acquisition, or sale of assets, provided
+            your rights under these terms are not diminished as a result.
+          </Bullet>
+        </Section>
+
+        <Section title="14. Contact Us">
           <Body>
             If you have questions about these Terms of Service, please contact
             us:{"\n\n"}
-            MyExpense (PTY) Ltd{"\n"}
-            Cape Town, South Africa{"\n"}
+            MyExpense (Pty) Ltd (Reg. No. 2026/140774/07){"\n"}
+            13 The Bend, Pinelands, 7405, Cape Town, South Africa{"\n"}
             legal@myexpense.co.za
           </Body>
         </Section>
