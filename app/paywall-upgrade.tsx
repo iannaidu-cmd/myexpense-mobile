@@ -2,8 +2,8 @@ import { MXButton } from "@/components/MXButton";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useAuthStore } from "@/stores/authStore";
 import {
-  PRODUCT_ANNUAL,
-  PRODUCT_MONTHLY,
+  PACKAGE_ANNUAL,
+  PACKAGE_MONTHLY,
   useSubscriptionStore,
 } from "@/stores/subscriptionStore";
 import { colour, space, typography } from "@/tokens";
@@ -167,8 +167,8 @@ export default function PaywallUpgradeScreen() {
 
   if (isPremium) return null;
 
-  const monthlyPkg = packages.find((p) => p.product.identifier === PRODUCT_MONTHLY);
-  const annualPkg = packages.find((p) => p.product.identifier === PRODUCT_ANNUAL);
+  const monthlyPkg = packages.find((p) => p.identifier === PACKAGE_MONTHLY);
+  const annualPkg = packages.find((p) => p.identifier === PACKAGE_ANNUAL);
   const selectedPkg: PurchasesPackage | undefined = selectedPlan === "monthly" ? monthlyPkg : annualPkg;
 
   // Fall back to hardcoded prices if RevenueCat packages aren't loaded yet
