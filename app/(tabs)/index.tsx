@@ -109,11 +109,11 @@ function PeriodCard({ rows }: { rows: { label: string; value: string }[] }) {
   return (
     <View
       style={{
-        backgroundColor: colour.noir,
-        borderRadius: 16,
-        paddingHorizontal: 18,
-        marginBottom: 16,
+        borderRadius: 14,
+        overflow: "hidden",
+        marginBottom: 18,
         width: "100%",
+        gap: 1,
       }}
     >
       {rows.map((row, i) => (
@@ -123,15 +123,15 @@ function PeriodCard({ rows }: { rows: { label: string; value: string }[] }) {
             flexDirection: "row",
             justifyContent: "space-between",
             alignItems: "baseline",
-            paddingVertical: 9,
-            borderBottomWidth: i < rows.length - 1 ? 1 : 0,
-            borderBottomColor: "rgba(255,255,255,0.08)",
+            paddingVertical: 11,
+            paddingHorizontal: 14,
+            backgroundColor: colour.noir2,
           }}
         >
           <Text style={{ fontSize: 11.5, color: colour.onNoir2, fontWeight: "600" }}>
             {row.label}
           </Text>
-          <Text style={{ fontSize: 13, color: colour.onNoir, fontWeight: "700", textAlign: "right" }}>
+          <Text style={{ fontSize: 12.5, color: colour.onNoir, fontWeight: "700", textAlign: "right" }}>
             {row.value}
           </Text>
         </View>
