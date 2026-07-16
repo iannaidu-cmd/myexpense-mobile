@@ -247,7 +247,7 @@ export default function PrivacyScreen() {
           <View style={{ marginTop: space.sm }}>
             <Bullet>Apple App Store / Google Play and RevenueCat: to process and manage your subscription payments</Bullet>
             <Bullet>Supabase: our database, file storage, and authentication provider</Bullet>
-            <Bullet>Anthropic: when you scan a receipt, the image is sent to Anthropic's Claude AI service to extract the vendor, amount, and date automatically. Receipt images are not used by Anthropic to train their models under our agreement with them</Bullet>
+            <Bullet>AI-assisted OCR service provider: when you scan a receipt, the image is sent to a third-party AI service to extract the vendor, amount, and date automatically. Receipt images are not used to train that provider's models under our agreement with them</Bullet>
             <Bullet>Sentry: to record anonymised crash and error diagnostics so we can keep the app reliable</Bullet>
             <Bullet>Google or Meta: only if you choose to sign in with Google or Facebook (subject to their own privacy policies)</Bullet>
             <Bullet>Law enforcement: only when required by a valid court order or legal obligation</Bullet>
