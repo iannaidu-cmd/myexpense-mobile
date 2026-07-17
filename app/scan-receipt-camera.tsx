@@ -242,7 +242,7 @@ export default function ScanReceiptCameraScreen() {
           }}
         >
           <Text style={{ color: "#fff", fontSize: 15, fontWeight: "700" }}>
-            Grant Camera Access
+            Continue
           </Text>
         </TouchableOpacity>
         <TouchableOpacity

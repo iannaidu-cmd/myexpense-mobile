@@ -25,7 +25,7 @@ const config = {
       NSFaceIDUsageDescription:
         "MyExpense uses Face ID to secure access to your financial data.",
       NSLocationWhenInUseUsageDescription:
-        "MyExpense tracks business travel distance for SARS mileage deductions.",
+        "MyExpense records the GPS coordinates of your trip's start and end points when you start and stop mileage tracking, so it can calculate the distance travelled for your SARS business mileage deduction. Location is only recorded while you are actively tracking a trip.",
       UIBackgroundModes: ["remote-notification"],
       LSApplicationQueriesSchemes: ["myexpense"],
     },
@@ -87,7 +87,7 @@ const config = {
       "expo-location",
       {
         locationAlwaysAndWhenInUsePermission:
-          "MyExpense uses your location to track business travel distance for SARS tax compliance.",
+          "MyExpense records the GPS coordinates of your trip's start and end points when you start and stop mileage tracking, so it can calculate the distance travelled for your SARS business mileage deduction. Location is only recorded while you are actively tracking a trip.",
       },
     ],
     "expo-font",
