@@ -173,8 +173,8 @@ export default function PaywallUpgradeScreen() {
 
   // Fall back to hardcoded prices if RevenueCat packages aren't loaded yet.
   // Must match the real Play Console / App Store Connect prices exactly:
-  // R99.99/month, R1099.00/year.
-  const MONTHLY_PRICE = monthlyPkg?.product.price ?? 99.99;
+  // R99/month, R1099.00/year.
+  const MONTHLY_PRICE = monthlyPkg?.product.price ?? 99;
   const ANNUAL_PRICE = annualPkg?.product.price ?? 1099.0;
   const ANNUAL_SAVING = Math.round(MONTHLY_PRICE * 12 - ANNUAL_PRICE);
   const ANNUAL_SAVING_PCT = MONTHLY_PRICE > 0 ? Math.round((ANNUAL_SAVING / (MONTHLY_PRICE * 12)) * 100) : 0;

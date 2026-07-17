@@ -188,7 +188,7 @@ export default function TermsScreen() {
           <Body>
             MyExpense offers a free tier and a paid subscription available on a
             monthly or annual billing cycle, at the prices shown in the app
-            before purchase (currently R99.99/month or R1099.00/year). MyExpense
+            before purchase (currently R99/month or R1099.00/year). MyExpense
             (Pty) Ltd is not currently VAT registered, so no VAT is added to
             these prices. The annual plan is billed once
             per year in advance at a discounted rate compared to paying
