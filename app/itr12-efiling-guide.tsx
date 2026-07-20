@@ -1,5 +1,7 @@
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
+import { IconSymbol } from "@/components/ui/icon-symbol";
+import { useExpenseStore } from "@/stores/expenseStore";
 import { colour, radius, space, typography } from "@/tokens";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
@@ -13,73 +15,96 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const STEPS = [
-  {
-    number: "1",
-    title: "Download your ITR12 export",
-    icon: "📄",
-    action: null,
-    tip: "Keep the PDF — SARS may request supporting documents for up to 5 years.",
-    description:
-      "Generate and save your MyExpense ITR12 PDF report. This contains all your deductions, supporting schedules and receipt register.",
-  },
-  {
-    number: "2",
-    title: "Log into SARS eFiling",
-    icon: "🔐",
-    action: { label: "Open SARS eFiling", url: "https://efiling.sars.gov.za" },
-    tip: "Use the SARS MobiApp as an alternative to the website.",
-    description:
-      "Visit the SARS eFiling portal and log in with your username and password. If you don't have an account, register at efiling.sars.gov.za.",
-  },
-  {
-    number: "3",
-    title: "Navigate to Income Tax",
-    icon: "📂",
-    action: null,
-    tip: "Select the correct tax year — 2024/25 means 1 March 2024 to 28 February 2025.",
-    description:
-      "From the eFiling dashboard, select Returns → Income Tax → ITR12. SARS will auto-populate some fields from employers and banks.",
-  },
-  {
-    number: "4",
-    title: "Enter your deductions",
-    icon: "✏️",
-    action: null,
-    tip: "Your MyExpense export shows ITR12 line codes per category — match them exactly.",
-    description:
-      "Use the amounts from your MyExpense ITR12 export to complete Section 11 (Other Deductions). Enter each category against its ITR12 code.",
-  },
-  {
-    number: "5",
-    title: "Upload supporting documents",
-    icon: "📎",
-    action: null,
-    tip: "SARS accepts PDF, JPG and PNG. Max 5MB per document.",
-    description:
-      "Attach your MyExpense PDF report and receipt register as supporting documents in the eFiling document manager.",
-  },
-  {
-    number: "6",
-    title: "Review and submit",
-    icon: "✅",
-    action: null,
-    tip: "Save a copy of your submission acknowledgement number.",
-    description:
-      "Review your return carefully before submission. Once submitted, SARS will issue an assessment. You can request a correction if needed.",
-  },
-];
-
-const KEY_DATES = [
-  { label: "Tax year end", date: "28 Feb 2025", past: true },
-  { label: "eFiling opens", date: "1 Jul 2025", past: false },
-  { label: "Non-provisional filing", date: "21 Oct 2025", past: false },
-  { label: "Provisional (auto)", date: "20 Jan 2026", past: false },
-];
+// Steps 1-2, 4-6 don't reference a specific tax year, so they stay static;
+// step 3's tip is filled in at render time with the tax year being filed for.
+function getSteps(taxYearTip: string) {
+  return [
+    {
+      number: "1",
+      title: "Download your ITR12 export",
+      icon: "doc.text.fill",
+      action: null,
+      tip: "Keep the PDF — SARS may request supporting documents for up to 5 years.",
+      description:
+        "Generate and save your MyExpense ITR12 PDF report. This contains all your deductions, supporting schedules and receipt register.",
+    },
+    {
+      number: "2",
+      title: "Log into SARS eFiling",
+      icon: "lock.fill",
+      action: { label: "Open SARS eFiling", url: "https://efiling.sars.gov.za" },
+      tip: "Use the SARS MobiApp as an alternative to the website.",
+      description:
+        "Visit the SARS eFiling portal and log in with your username and password. If you don't have an account, register at efiling.sars.gov.za.",
+    },
+    {
+      number: "3",
+      title: "Navigate to Income Tax",
+      icon: "folder.fill",
+      action: null,
+      tip: taxYearTip,
+      description:
+        "From the eFiling dashboard, select Returns → Income Tax → ITR12. SARS will auto-populate some fields from employers and banks.",
+    },
+    {
+      number: "4",
+      title: "Enter your deductions",
+      icon: "pencil",
+      action: null,
+      tip: "Your MyExpense export shows ITR12 line codes per category — match them exactly.",
+      description:
+        "Use the amounts from your MyExpense ITR12 export to complete Section 11 (Other Deductions). Enter each category against its ITR12 code.",
+    },
+    {
+      number: "5",
+      title: "Upload supporting documents",
+      icon: "paperclip",
+      action: null,
+      tip: "SARS accepts PDF, JPG and PNG. Max 5MB per document.",
+      description:
+        "Attach your MyExpense PDF report and receipt register as supporting documents in the eFiling document manager.",
+    },
+    {
+      number: "6",
+      title: "Review and submit",
+      icon: "checkmark.circle.fill",
+      action: null,
+      tip: "Save a copy of your submission acknowledgement number.",
+      description:
+        "Review your return carefully before submission. Once submitted, SARS will issue an assessment. You can request a correction if needed.",
+    },
+  ];
+}
 
 export default function ITR12EFilingGuideScreen() {
   const router = useRouter();
+  const { activeTaxYear } = useExpenseStore();
   const [completedSteps, setCompletedSteps] = useState<Set<string>>(new Set());
+
+  // The guide always concerns filing for the tax year that has just ended —
+  // activeTaxYear is the one currently in progress, so the filing year is one
+  // year behind it (e.g. filing in Jul-Oct 2026 concerns the 2025/26 year,
+  // while activeTaxYear at that point reads "2026/27").
+  const filingStartYear = parseInt(activeTaxYear.split("/")[0], 10) - 1;
+  const filingYearLabel = `${filingStartYear}/${String(filingStartYear + 1).slice(-2)}`;
+  const fmtKeyDate = (d: Date) =>
+    d.toLocaleDateString("en-ZA", { day: "numeric", month: "short", year: "numeric" });
+  const taxYearEndDate = new Date(filingStartYear + 1, 1, 28); // 28 Feb
+  const autoAssessmentStartDate = new Date(filingStartYear + 1, 6, 1); // 1 Jul
+  const efilingOpensDate = new Date(filingStartYear + 1, 6, 13); // 13 Jul
+  const nonProvisionalDate = new Date(filingStartYear + 1, 9, 23); // 23 Oct
+  const provisionalDate = new Date(filingStartYear + 2, 0, 22); // 22 Jan, following year
+  const now = new Date();
+  const KEY_DATES = [
+    { label: "Tax year end", date: fmtKeyDate(taxYearEndDate), past: now > taxYearEndDate },
+    { label: "Auto-assessment notices", date: fmtKeyDate(autoAssessmentStartDate), past: now > autoAssessmentStartDate },
+    { label: "eFiling opens", date: fmtKeyDate(efilingOpensDate), past: now > efilingOpensDate },
+    { label: "Non-provisional filing", date: fmtKeyDate(nonProvisionalDate), past: now > nonProvisionalDate },
+    { label: "Provisional (auto)", date: fmtKeyDate(provisionalDate), past: now > provisionalDate },
+  ];
+  const STEPS = getSteps(
+    `Select the correct tax year — ${filingYearLabel} means 1 March ${filingStartYear} to 28 February ${filingStartYear + 1}.`,
+  );
 
   const toggleStep = (num: string) => {
     setCompletedSteps((prev) => {
@@ -100,75 +125,95 @@ export default function ITR12EFilingGuideScreen() {
       <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
 
       <MXHeader
-        title="eFiling Guide"
-        subtitle="Step-by-step ITR12 submission · SARS 2024/25"
+        title="eFiling guide"
+        subtitle={`Step-by-step ITR12 submission · SARS ${filingYearLabel}`}
         showBack
-        backLabel="Export Preview"
-      >
-        <View style={{ marginTop: space.lg }}>
-          <View
-            style={{
-              flexDirection: "row",
-              justifyContent: "space-between",
-              marginBottom: space.xs,
-            }}
-          >
-            <Text style={{ ...typography.labelS, color: colour.onPrimary }}>
-              {completedSteps.size} of {STEPS.length} steps completed
-            </Text>
-            <Text style={{ ...typography.labelS, color: colour.primary100 }}>
-              {Math.round(progress)}%
-            </Text>
-          </View>
-          <View
-            style={{
-              height: 6,
-              backgroundColor: "rgba(255,255,255,0.2)",
-              borderRadius: 3,
-            }}
-          >
-            <View
-              style={{
-                width: `${progress}%`,
-                height: 6,
-                backgroundColor: colour.onPrimary,
-                borderRadius: 3,
-              }}
-            />
-          </View>
-        </View>
-      </MXHeader>
+        backLabel="Export preview"
+      />
 
-      <ScrollView
-        showsVerticalScrollIndicator={false}
+      {/* Progress bar — rendered outside MXHeader so colours match the light background */}
+      <View
         style={{
-          flex: 1,
+          paddingHorizontal: space.md,
+          paddingTop: space.sm,
+          paddingBottom: space.xs,
           backgroundColor: colour.background,
-          borderTopLeftRadius: 24,
-          borderTopRightRadius: 24,
         }}
-        contentContainerStyle={{ paddingBottom: 30 }}
       >
         <View
           style={{
-            marginHorizontal: space.md,
-            marginTop: space.lg,
-            backgroundColor: colour.primary,
-            borderRadius: radius.md,
-            padding: space.md,
-            marginBottom: space.lg,
+            flexDirection: "row",
+            justifyContent: "space-between",
+            marginBottom: 6,
           }}
         >
-          <Text
+          <Text style={{ ...typography.labelS, color: colour.text }}>
+            {completedSteps.size} of {STEPS.length} steps completed
+          </Text>
+          <Text style={{ ...typography.labelS, color: colour.primary }}>
+            {Math.round(progress)}%
+          </Text>
+        </View>
+        <View
+          style={{
+            height: 6,
+            backgroundColor: colour.borderLight,
+            borderRadius: 3,
+          }}
+        >
+          <View
             style={{
-              color: colour.onPrimary,
-              fontSize: 13,
-              fontWeight: "700",
+              width: `${progress}%` as any,
+              height: 6,
+              backgroundColor: colour.primary,
+              borderRadius: 3,
+            }}
+          />
+        </View>
+      </View>
+
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        style={{ flex: 1, backgroundColor: colour.background }}
+        contentContainerStyle={{ paddingBottom: 30 }}
+      >
+        {/* SARS Key Dates */}
+        <View
+          style={{
+            marginHorizontal: space.md,
+            marginTop: space.md,
+            backgroundColor: colour.noir,
+            borderRadius: radius.xl,
+            padding: space.md,
+            marginBottom: space.lg,
+            overflow: "hidden",
+          }}
+        >
+          <View
+            style={{
+              position: "absolute",
+              width: 120,
+              height: 120,
+              borderRadius: 60,
+              backgroundColor: colour.primary,
+              opacity: 0.3,
+              top: -40,
+              right: -30,
+            }}
+          />
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
               marginBottom: 12,
+              gap: space.xs,
             }}
           >
-            📅 SARS Key Dates — 2024/25
-          </Text>
+            <IconSymbol name="calendar" size={15} color={colour.accent} />
+            <Text style={{ color: colour.onNoir, fontSize: 13, fontWeight: "700" }}>
+              SARS Key Dates — 2024/25
+            </Text>
+          </View>
           {KEY_DATES.map((d, i) => (
             <View
               key={i}
@@ -183,7 +228,9 @@ export default function ITR12EFilingGuideScreen() {
                   width: 8,
                   height: 8,
                   borderRadius: 4,
-                  backgroundColor: d.past ? colour.successMid : colour.accent,
+                  backgroundColor: d.past
+                    ? "rgba(255,255,255,0.2)"
+                    : colour.accent,
                   marginRight: 10,
                 }}
               />
@@ -191,7 +238,7 @@ export default function ITR12EFilingGuideScreen() {
                 style={{
                   flex: 1,
                   fontSize: 12,
-                  color: d.past ? colour.primary200 : colour.onPrimary,
+                  color: d.past ? "rgba(255,255,255,0.4)" : colour.onNoir2,
                 }}
               >
                 {d.label}
@@ -200,7 +247,7 @@ export default function ITR12EFilingGuideScreen() {
                 style={{
                   fontSize: 12,
                   fontWeight: "600",
-                  color: d.past ? colour.primary200 : colour.primary100,
+                  color: d.past ? "rgba(255,255,255,0.4)" : colour.onNoir,
                 }}
               >
                 {d.date}
@@ -209,6 +256,7 @@ export default function ITR12EFilingGuideScreen() {
           ))}
         </View>
 
+        {/* Submission steps */}
         <View style={{ paddingHorizontal: space.md }}>
           <Text
             style={{
@@ -230,38 +278,36 @@ export default function ITR12EFilingGuideScreen() {
                     borderRadius: radius.md,
                     padding: space.md,
                     borderWidth: 1.5,
-                    borderColor: isComplete
-                      ? colour.success
-                      : colour.borderLight,
+                    borderColor: isComplete ? colour.success : colour.borderLight,
                   }}
                   activeOpacity={0.8}
                 >
-                  <View
-                    style={{ flexDirection: "row", alignItems: "flex-start" }}
-                  >
+                  <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
                     <View
                       style={{
                         width: 36,
                         height: 36,
                         borderRadius: 18,
-                        backgroundColor: isComplete
-                          ? colour.success
-                          : colour.primary,
+                        backgroundColor: isComplete ? colour.success : colour.primary,
                         alignItems: "center",
                         justifyContent: "center",
                         marginRight: space.md,
                         marginTop: 2,
                       }}
                     >
-                      <Text
-                        style={{
-                          color: colour.onPrimary,
-                          fontSize: 16,
-                          fontWeight: "800",
-                        }}
-                      >
-                        {isComplete ? "✓" : step.number}
-                      </Text>
+                      {isComplete ? (
+                        <IconSymbol name="checkmark" size={16} color={colour.onPrimary} />
+                      ) : (
+                        <Text
+                          style={{
+                            color: colour.onPrimary,
+                            fontSize: 16,
+                            fontWeight: "800",
+                          }}
+                        >
+                          {step.number}
+                        </Text>
+                      )}
                     </View>
                     <View style={{ flex: 1 }}>
                       <View
@@ -271,15 +317,16 @@ export default function ITR12EFilingGuideScreen() {
                           marginBottom: space.xs,
                         }}
                       >
-                        <Text style={{ fontSize: 20, marginRight: space.xs }}>
-                          {step.icon}
-                        </Text>
+                        <IconSymbol
+                          name={step.icon as any}
+                          size={16}
+                          color={isComplete ? colour.success : colour.primary}
+                          style={{ marginRight: space.xs } as any}
+                        />
                         <Text
                           style={{
                             ...typography.labelM,
-                            color: isComplete
-                              ? colour.success
-                              : colour.textPrimary,
+                            color: isComplete ? colour.success : colour.textPrimary,
                             flex: 1,
                           }}
                         >
@@ -297,16 +344,29 @@ export default function ITR12EFilingGuideScreen() {
                       </Text>
                       <View
                         style={{
-                          backgroundColor: colour.infoLight,
+                          backgroundColor: colour.primary50,
                           borderRadius: radius.sm,
                           padding: space.sm,
                           marginTop: space.sm,
+                          flexDirection: "row",
+                          alignItems: "flex-start",
+                          gap: 6,
                         }}
                       >
+                        <IconSymbol
+                          name="lightbulb.fill"
+                          size={13}
+                          color={colour.primary}
+                          style={{ marginTop: 2 } as any}
+                        />
                         <Text
-                          style={{ ...typography.bodyXS, color: colour.info }}
+                          style={{
+                            ...typography.bodyXS,
+                            color: colour.primary,
+                            flex: 1,
+                          }}
                         >
-                          💡 {step.tip}
+                          {step.tip}
                         </Text>
                       </View>
                       {step.action && (
@@ -350,28 +410,41 @@ export default function ITR12EFilingGuideScreen() {
           })}
         </View>
 
+        {/* Professional Review Recommended */}
         <View
           style={{
             marginHorizontal: space.md,
-            backgroundColor: colour.warningBg,
+            backgroundColor: colour.white,
             borderRadius: radius.md,
             padding: space.md,
             marginBottom: space.md,
+            borderWidth: 1,
+            borderColor: colour.borderLight,
+            borderLeftWidth: 4,
+            borderLeftColor: colour.warning,
           }}
         >
-          <Text
+          <View
             style={{
-              ...typography.labelM,
-              color: colour.warning,
+              flexDirection: "row",
+              alignItems: "center",
               marginBottom: space.xs,
+              gap: space.xs,
             }}
           >
-            ⚠️ Professional Review Recommended
-          </Text>
+            <IconSymbol
+              name="exclamationmark.triangle.fill"
+              size={16}
+              color={colour.warning}
+            />
+            <Text style={{ ...typography.labelM, color: colour.text }}>
+              Professional Review Recommended
+            </Text>
+          </View>
           <Text
             style={{
               ...typography.bodyS,
-              color: colour.warning,
+              color: colour.textSub,
               lineHeight: 20,
             }}
           >
@@ -381,6 +454,7 @@ export default function ITR12EFilingGuideScreen() {
           </Text>
         </View>
 
+        {/* Coming in Phase 2 */}
         <View
           style={{
             marginHorizontal: space.md,
@@ -390,21 +464,21 @@ export default function ITR12EFilingGuideScreen() {
             marginBottom: space.md,
           }}
         >
-          <Text
+          <View
             style={{
-              ...typography.labelM,
-              color: colour.primary,
+              flexDirection: "row",
+              alignItems: "center",
               marginBottom: space.xs,
+              gap: space.xs,
             }}
           >
-            🚀 Coming in Phase 2
-          </Text>
+            <IconSymbol name="bolt.fill" size={15} color={colour.primary} />
+            <Text style={{ ...typography.labelM, color: colour.primary }}>
+              Coming in Phase 2
+            </Text>
+          </View>
           <Text
-            style={{
-              ...typography.bodyS,
-              color: colour.primary,
-              lineHeight: 20,
-            }}
+            style={{ ...typography.bodyS, color: colour.primary, lineHeight: 20 }}
           >
             Direct eFiling submission on your behalf — MyExpense is applying for
             SARS ISV registration. Once approved, you'll be able to submit your

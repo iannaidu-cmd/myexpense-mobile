@@ -1,3 +1,5 @@
+import { ConfirmModal } from "@/components/ConfirmModal";
+import { InfoBanner } from "@/components/InfoBanner";
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -9,7 +11,9 @@ import React, { useEffect, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
+    KeyboardAvoidingView,
     Modal,
+    Platform,
     ScrollView,
     StatusBar,
     Text,
@@ -58,6 +62,7 @@ export default function BankAccountsScreen() {
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [confirmRemove, setConfirmRemove] = useState<{ id: string; name: string } | null>(null);
   const [showBankPicker, setShowBankPicker] = useState(false);
   const [showTypePicker, setShowTypePicker] = useState(false);
   const [bankName, setBankName] = useState("");
@@ -67,17 +72,19 @@ export default function BankAccountsScreen() {
   const [accountType, setAccountType] = useState("Cheque / Current");
 
   const loadAccounts = async () => {
-    if (!user) return;
+    if (!user) { setLoading(false); return; }
     setLoading(true);
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("bank_accounts")
         .select("*")
         .eq("user_id", user.id)
         .order("is_primary", { ascending: false });
+      if (error) throw error;
       setAccounts(data ?? []);
-    } catch (e) {
+    } catch (e: any) {
       console.error("BankAccounts load error:", e);
+      Alert.alert("Error", "Couldn't load your bank accounts. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -103,7 +110,7 @@ export default function BankAccountsScreen() {
     if (!user) return;
     setSaving(true);
     try {
-      await supabase.from("bank_accounts").insert({
+      const { error } = await supabase.from("bank_accounts").insert({
         user_id: user.id,
         bank_name: bankName.trim(),
         account_holder: accountHolder.trim(),
@@ -112,11 +119,12 @@ export default function BankAccountsScreen() {
         account_type: accountType,
         is_primary: accounts.length === 0,
       });
+      if (error) throw error;
       setShowModal(false);
       resetForm();
       await loadAccounts();
     } catch (e: any) {
-      Alert.alert("Error", e.message);
+      Alert.alert("Error", e.message ?? "Couldn't save your bank account. Please try again.");
     } finally {
       setSaving(false);
     }
@@ -125,44 +133,39 @@ export default function BankAccountsScreen() {
   const handleSetPrimary = async (id: string) => {
     if (!user) return;
     try {
-      await supabase
+      const { error: clearError } = await supabase
         .from("bank_accounts")
         .update({ is_primary: false })
         .eq("user_id", user.id);
-      await supabase
+      if (clearError) throw clearError;
+      const { error: setError } = await supabase
         .from("bank_accounts")
         .update({ is_primary: true })
         .eq("id", id)
         .eq("user_id", user.id);
+      if (setError) throw setError;
       await loadAccounts();
     } catch (e: any) {
-      Alert.alert("Error", e.message);
+      Alert.alert("Error", e.message ?? "Couldn't update your primary account. Please try again.");
     }
   };
 
-  const handleDelete = (id: string, name: string) => {
-    Alert.alert("Remove Account", `Remove ${name} account?`, [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Remove",
-        style: "destructive",
-        onPress: async () => {
-          setDeleting(id);
-          try {
-            await supabase
-              .from("bank_accounts")
-              .delete()
-              .eq("id", id)
-              .eq("user_id", user!.id);
-            await loadAccounts();
-          } catch (e: any) {
-            Alert.alert("Error", e.message);
-          } finally {
-            setDeleting(null);
-          }
-        },
-      },
-    ]);
+  const handleDelete = (id: string, name: string) => setConfirmRemove({ id, name });
+
+  const confirmRemoveAccount = async () => {
+    if (!confirmRemove) return;
+    const { id } = confirmRemove;
+    setConfirmRemove(null);
+    setDeleting(id);
+    try {
+      const { error } = await supabase.from("bank_accounts").delete().eq("id", id).eq("user_id", user!.id);
+      if (error) throw error;
+      await loadAccounts();
+    } catch (e: any) {
+      Alert.alert("Error", e.message ?? "Couldn't remove this account. Please try again.");
+    } finally {
+      setDeleting(null);
+    }
   };
 
   return (
@@ -173,7 +176,7 @@ export default function BankAccountsScreen() {
       <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
 
       <MXHeader
-        title="Bank Accounts"
+        title="Bank accounts"
         subtitle="Manage your banking details"
         showBack
         backLabel="Settings"
@@ -234,7 +237,7 @@ export default function BankAccountsScreen() {
               }}
             >
               <Text style={{ ...typography.btnL, color: colour.onPrimary }}>
-                Add Bank Account
+                Add bank account
               </Text>
             </TouchableOpacity>
           </View>
@@ -375,7 +378,7 @@ export default function BankAccountsScreen() {
                       <Text
                         style={{ ...typography.labelS, color: colour.primary }}
                       >
-                        Set Primary
+                        Set primary
                       </Text>
                     </TouchableOpacity>
                   )}
@@ -404,34 +407,11 @@ export default function BankAccountsScreen() {
                 </View>
               </View>
             ))}
-            <View
-              style={{
-                backgroundColor: colour.infoLight,
-                borderRadius: radius.md,
-                padding: space.md,
-              }}
-            >
-              <Text
-                style={{
-                  ...typography.labelS,
-                  color: colour.info,
-                  marginBottom: space.xs,
-                }}
-              >
-                POPIA & Security
-              </Text>
-              <Text
-                style={{
-                  ...typography.bodyXS,
-                  color: colour.info,
-                  lineHeight: 18,
-                }}
-              >
-                Your banking details are stored securely and encrypted. Account
-                numbers are masked in all exports. MyExpense never initiates
-                transfers from your accounts.
-              </Text>
-            </View>
+            <InfoBanner
+              icon="lock.fill"
+              title="POPIA & Security"
+              body="Your banking details are stored securely and encrypted. Account numbers are masked in all exports. MyExpense never initiates transfers from your accounts."
+            />
           </>
         )}
       </ScrollView>
@@ -453,7 +433,7 @@ export default function BankAccountsScreen() {
             }}
           >
             <Text style={{ ...typography.h4, color: colour.textPrimary }}>
-              Add Bank Account
+              Add bank account
             </Text>
             <TouchableOpacity
               onPress={() => {
@@ -468,6 +448,10 @@ export default function BankAccountsScreen() {
               </Text>
             </TouchableOpacity>
           </View>
+          <KeyboardAvoidingView
+            style={{ flex: 1 }}
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+          >
           <ScrollView
             contentContainerStyle={{ padding: space.lg }}
             keyboardShouldPersistTaps="handled"
@@ -706,13 +690,23 @@ export default function BankAccountsScreen() {
                 <ActivityIndicator color={colour.onPrimary} />
               ) : (
                 <Text style={{ ...typography.btnL, color: colour.onPrimary }}>
-                  Save Bank Account
+                  Save bank account
                 </Text>
               )}
             </TouchableOpacity>
           </ScrollView>
+          </KeyboardAvoidingView>
         </SafeAreaView>
       </Modal>
+      <ConfirmModal
+        visible={!!confirmRemove}
+        title="Remove account"
+        message={confirmRemove ? `Remove ${confirmRemove.name} account? This cannot be undone.` : undefined}
+        confirmLabel="Remove"
+        cancelLabel="Keep it"
+        onConfirm={confirmRemoveAccount}
+        onCancel={() => setConfirmRemove(null)}
+      />
       <MXTabBar />
     </SafeAreaView>
   );

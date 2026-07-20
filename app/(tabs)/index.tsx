@@ -1,3 +1,4 @@
+import { AnnouncementModal } from "@/components/AnnouncementModal";
 import MXLogo from "@/components/MXLogo";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { SA_MARGINAL_TAX_RATE } from "@/constants/tax";
@@ -5,13 +6,17 @@ import { expenseService } from "@/services/expenseService";
 import { incomeService } from "@/services/incomeService";
 import { profileService } from "@/services/profileService";
 import { useAuthStore } from "@/stores/authStore";
+import { useExpenseStore } from "@/stores/expenseStore";
 import { colour, radius, space, typography } from "@/tokens";
-import { ACTIVE_TAX_YEAR, Expense } from "@/types/database";
+import { Expense } from "@/types/database";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect, useRouter } from "expo-router";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  AppState,
   Platform,
+  RefreshControl,
   ScrollView,
   StatusBar,
   Text,
@@ -35,16 +40,124 @@ const formatDate = (dateStr: string) => {
   return date.toLocaleDateString("en-ZA", { day: "numeric", month: "short" });
 };
 
+// ── Once-off dashboard popups ─────────────────────────────────────────────────
+// Two separate notices in chronological order. Dates + keys are specific to
+// the current cycle and must be hand-updated (with bumped keys) each year:
+// - period2: provisional tax period 2 for the 2026/27 tax year (see
+//   lib/taxRules.ts and app/provisional-tax.tsx for the same figures).
+// - taxSeasonOpen: SARS eFiling opening for the 2025/26 tax year (the one
+//   that just ended) — this is a *different*, already-completed tax year
+//   from the one period2 is tracking, which is why its date (13 Jul 2026)
+//   falls before it rather than after.
+// A "period1" notice (tax year started 1 Mar) used to exist here too, but
+// was removed: every new user installing after 1 Mar sees it as already due,
+// so it fired back-to-back with taxSeasonOpen on first launch for anyone
+// who signs up after mid-year — not just a testing artifact.
+type PopupKind = "taxSeasonOpen" | "period2";
+
+// Module-level (not component state) so it survives the Home screen
+// remounting within the same app run — e.g. navigating to another stack
+// screen and back — without waiting on the AsyncStorage write in
+// markPopupSeen to flush. AsyncStorage remains the source of truth across
+// app restarts; this only closes the gap within a single session.
+const dismissedThisSession = new Set<PopupKind>();
+
+const TAX_SEASON_TRIGGER_DATE = new Date(2026, 6, 13); // 13 Jul 2026 — eFiling opens for manual submissions (not 1 Jul, which is only auto-assessment notices)
+const TAX_SEASON_POPUP_KEY = "@myexpense:seen_tax_season_popup_v3_2026";
+
+const PERIOD2_TRIGGER_DATE = new Date(2026, 8, 1); // 1 Sep 2026
+const PERIOD2_POPUP_KEY = "@myexpense:seen_period2_popup_v2_2026";
+
+const POPUP_CONTENT: Record<PopupKind, {
+  icon: string;
+  iconColour: string;
+  eyebrow: string;
+  title: string;
+  subtitle: string;
+  rows: { label: string; value: string }[];
+  primaryLabel: string;
+}> = {
+  taxSeasonOpen: {
+    icon: "doc.text.fill",
+    iconColour: colour.primary,
+    eyebrow: "Tax season 2026/27",
+    title: "Tax season is open",
+    subtitle: "SARS eFiling is open for manual submissions. Start on your ITR12 now, so October doesn't sneak up on you.",
+    rows: [
+      { label: "eFiling opened", value: "13 Jul 2026" },
+      { label: "Non-provisional deadline", value: "23 Oct 2026" },
+      { label: "Provisional & trusts deadline", value: "22 Jan 2027" },
+    ],
+    primaryLabel: "Start preparing",
+  },
+  period2: {
+    icon: "calendar",
+    iconColour: colour.warning,
+    eyebrow: "Period 2 of 2",
+    title: "Your second period has started",
+    subtitle: "Halfway through the tax year. Keep logging so your next estimate stays accurate.",
+    rows: [
+      { label: "Track expenses from", value: "1 Sep 2026" },
+      { label: "Track expenses until", value: "28 Feb 2027" },
+      { label: "Pay your estimate by", value: "28 Feb 2027" },
+    ],
+    primaryLabel: "Continue tracking",
+  },
+};
+
+function PeriodCard({ rows }: { rows: { label: string; value: string }[] }) {
+  return (
+    <View
+      style={{
+        borderRadius: 14,
+        overflow: "hidden",
+        marginBottom: 18,
+        width: "100%",
+        gap: 1,
+      }}
+    >
+      {rows.map((row, i) => (
+        <View
+          key={i}
+          style={{
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "baseline",
+            paddingVertical: 11,
+            paddingHorizontal: 14,
+            backgroundColor: colour.noir2,
+          }}
+        >
+          <Text style={{ fontSize: 11.5, color: colour.onNoir2, fontWeight: "600" }}>
+            {row.label}
+          </Text>
+          <Text style={{ fontSize: 12.5, color: colour.onNoir, fontWeight: "700", textAlign: "right" }}>
+            {row.value}
+          </Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
 export default function HomeScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
+  const { activeTaxYear } = useExpenseStore();
 
   const [firstName, setFirstName] = useState("");
   const [totalExpenses, setTotalExpenses] = useState(0);
   const [totalDeductions, setTotalDeductions] = useState(0);
   const [totalIncome, setTotalIncome] = useState(0);
   const [recentExpenses, setRecentExpenses] = useState<Expense[]>([]);
+  const [recentIncome, setRecentIncome] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [showRefreshHint, setShowRefreshHint] = useState(false);
+  const [duePopup, setDuePopup] = useState<PopupKind | null>(null);
+  const isFetching = useRef(false);
+  const hasLoaded = useRef(false);
+  const appStateRef = useRef(AppState.currentState);
 
   const now = new Date();
   const hour = now.getHours();
@@ -52,31 +165,143 @@ export default function HomeScreen() {
   const greeting = hour < 12 ? "Morning" : hour < 17 ? "Afternoon" : "Evening";
   const estimatedSaving = Math.round(totalDeductions * SA_MARGINAL_TAX_RATE);
 
-  const loadData = useCallback(async () => {
-    if (!user) return;
-    setLoading(true);
+  const loadData = useCallback(async (silent = false) => {
+    if (!user) { setLoading(false); setRefreshing(false); return; }
+    if (isFetching.current) return;
+    isFetching.current = true;
+    if (!silent) setLoading(true);
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("timeout")), 25_000),
+    );
     try {
-      const [profile, totals, incomeTotals, recent] = await Promise.all([
-        profileService.getProfile(user.id),
-        expenseService.getTotals(user.id, ACTIVE_TAX_YEAR),
-        incomeService.getTotals(user.id),
-        expenseService.getRecentExpenses(user.id, 5),
+      const [profile, totals, incomeTotals, recent, recentInc] = await Promise.race([
+        Promise.all([
+          profileService.getProfile(user.id),
+          expenseService.getTotals(user.id, activeTaxYear),
+          incomeService.getTotals(user.id, activeTaxYear),
+          expenseService.getRecentExpenses(user.id, 5),
+          incomeService.getRecentIncome(user.id, 5, activeTaxYear),
+        ]),
+        timeout,
       ]);
       if (profile?.full_name) setFirstName(profile.full_name.split(" ")[0]);
       setTotalExpenses(totals.totalExpenses);
       setTotalDeductions(totals.totalDeductions);
       setTotalIncome(incomeTotals.totalIncome);
       setRecentExpenses(recent);
+      setRecentIncome(recentInc);
+      hasLoaded.current = true;
+      setShowRefreshHint(false);
     } catch (e) {
-      console.error("HomeScreen load error:", e);
+      console.warn("HomeScreen load error:", e);
     } finally {
       setLoading(false);
+      setRefreshing(false);
+      isFetching.current = false;
     }
-  }, [user]);
+  }, [user?.id, activeTaxYear]);
 
+  // Fire when auth initialises (user changes null → User)
+  useEffect(() => { loadData(); }, [loadData]);
+
+  // Re-fire silently when tab gains focus — don't re-show spinner if data exists
   useFocusEffect(
-    useCallback(() => { loadData(); }, [loadData])
+    useCallback(() => { loadData(hasLoaded.current); }, [loadData])
   );
+
+  // Show refresh hint + attempt auto-reload when app returns from background
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (next) => {
+      if (appStateRef.current.match(/inactive|background/) && next === 'active') {
+        setShowRefreshHint(true);
+        loadData(true);
+      }
+      appStateRef.current = next;
+    });
+    return () => sub.remove();
+  }, [loadData]);
+
+  // Show each once-off popup at most once, gated by an AsyncStorage flag so
+  // dismissing it (or reopening the app) never shows it again. Only ONE
+  // <AnnouncementModal> is ever rendered — on Android, mounting a second
+  // <Modal> while the first is closing caused touch events to bleed through
+  // to the wrong popup's handler (the popup would flash and immediately
+  // navigate using the *previous* popup's action). A single shared modal
+  // whose content is keyed off `duePopup` makes that class of bug
+  // structurally impossible.
+  const checkDuePopup = useCallback(async (): Promise<PopupKind | null> => {
+    const [seenTaxSeason, seenP2] = await Promise.all([
+      AsyncStorage.getItem(TAX_SEASON_POPUP_KEY),
+      AsyncStorage.getItem(PERIOD2_POPUP_KEY),
+    ]);
+    const now = new Date();
+    // Checked in chronological trigger-date order: 13 Jul → 1 Sep.
+    if (!seenTaxSeason && now >= TAX_SEASON_TRIGGER_DATE) return "taxSeasonOpen";
+    if (!seenP2 && now >= PERIOD2_TRIGGER_DATE) return "period2";
+    return null;
+  }, []);
+
+  useEffect(() => {
+    if (!user) return;
+    checkDuePopup().then((due) => {
+      if (due && !dismissedThisSession.has(due)) setDuePopup((current) => current ?? due);
+    });
+    // authStore recreates the `user` object on every Supabase auth event
+    // (token refresh, INITIAL_SESSION, ...), not just on real login/logout.
+    // Depending on `user` here reran this check — and could re-summon an
+    // already-dismissed popup — on refresh events unrelated to auth state.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, checkDuePopup]);
+
+  const markPopupSeen = useCallback(async (kind: PopupKind) => {
+    const key = kind === "period2" ? PERIOD2_POPUP_KEY : TAX_SEASON_POPUP_KEY;
+    await AsyncStorage.setItem(key, "1");
+  }, []);
+
+  // Dismiss via X/backdrop — stays on the dashboard. If another popup is
+  // already due, it opens after a short delay so the modal's close
+  // animation finishes first instead of instantly swapping content.
+  const dismissPopup = useCallback(() => {
+    const kind = duePopup;
+    setDuePopup(null);
+    if (!kind) return;
+    dismissedThisSession.add(kind);
+    (async () => {
+      await markPopupSeen(kind);
+      const next = await checkDuePopup();
+      if (next) setTimeout(() => setDuePopup(next), 400);
+    })();
+  }, [duePopup, markPopupSeen, checkDuePopup]);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    setShowRefreshHint(false);
+    loadData(true);
+  }, [loadData]);
+
+  const recentActivity = useMemo(() => {
+    const expenses = recentExpenses.map(e => ({
+      type: 'expense' as const,
+      id: e.id,
+      label: e.vendor,
+      sublabel: e.category ?? "Expense",
+      date: e.expense_date,
+      amount: e.amount,
+      isDeductible: e.is_deductible,
+    }));
+    const income = recentIncome.map(i => ({
+      type: 'income' as const,
+      id: i.id,
+      label: i.source,
+      sublabel: i.description ?? "Income",
+      date: i.date,
+      amount: i.amount,
+      isDeductible: undefined,
+    }));
+    return [...expenses, ...income]
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, 6);
+  }, [recentExpenses, recentIncome]);
 
   const cardShadow =
     Platform.OS === "ios"
@@ -90,6 +315,14 @@ export default function HomeScreen() {
       <ScrollView
         contentContainerStyle={{ paddingHorizontal: 18, paddingTop: 8, paddingBottom: space.xxxl }}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colour.primary}
+            colors={[colour.primary]}
+          />
+        }
       >
         {/* ── Header row ── */}
         <View style={{
@@ -124,13 +357,26 @@ export default function HomeScreen() {
             }}>
               <IconSymbol name="bell.fill" size={16} color={colour.text} />
             </View>
-            <View style={{
-              position: "absolute", width: 8, height: 8, borderRadius: 4,
-              backgroundColor: colour.primary, top: 7, right: 7,
-              borderWidth: 2, borderColor: colour.background,
-            }} />
           </TouchableOpacity>
         </View>
+
+        {showRefreshHint && !loading && (
+          <TouchableOpacity
+            onPress={() => { setShowRefreshHint(false); loadData(false); }}
+            activeOpacity={0.8}
+            style={{
+              flexDirection: "row", alignItems: "center", justifyContent: "center",
+              gap: 6, backgroundColor: colour.primary, borderRadius: 20,
+              paddingHorizontal: 16, paddingVertical: 8,
+              alignSelf: "center", marginBottom: 12,
+            }}
+          >
+            <IconSymbol name="arrow.clockwise" size={13} color={colour.white} />
+            <Text style={{ color: colour.white, fontSize: 13, fontWeight: "600" }}>
+              Tap to refresh
+            </Text>
+          </TouchableOpacity>
+        )}
 
         {loading ? (
           <View style={{ alignItems: "center", paddingTop: space["5xl"] }}>
@@ -167,38 +413,38 @@ export default function HomeScreen() {
               </Text>
 
               <Text style={{ fontSize: 12, color: colour.onNoir2, fontWeight: "400", marginBottom: 20, opacity: 0.7 }}>
-                estimated tax refund · {ACTIVE_TAX_YEAR}
+                estimated tax refund · {activeTaxYear}
               </Text>
 
               <View style={{
                 flexDirection: "row", paddingTop: 16,
                 borderTopWidth: 1, borderTopColor: "rgba(255,255,255,0.10)",
               }}>
-                <View style={{ flex: 1 }}>
+                <TouchableOpacity
+                  style={{ flex: 1 }}
+                  activeOpacity={0.75}
+                  onPress={() => router.push("/income-history" as any)}
+                >
                   <Text style={{ fontSize: 11, color: colour.onNoir2, fontWeight: "500", marginBottom: 6 }}>
                     Income
                   </Text>
                   <Text style={{ fontSize: 18, fontWeight: "700", color: colour.onNoir, letterSpacing: -0.5 }}>
                     {formatZAR(totalIncome)}
                   </Text>
-                </View>
+                </TouchableOpacity>
                 <View style={{ width: 1, backgroundColor: "rgba(255,255,255,0.10)" }} />
-                <View style={{ flex: 1, paddingLeft: 16 }}>
+                <TouchableOpacity
+                  style={{ flex: 1, paddingLeft: 16 }}
+                  activeOpacity={0.75}
+                  onPress={() => router.push("/expense-history" as any)}
+                >
                   <Text style={{ fontSize: 11, color: colour.onNoir2, fontWeight: "500", marginBottom: 6 }}>
                     Expenses
                   </Text>
                   <Text style={{ fontSize: 18, fontWeight: "700", color: colour.onNoir, letterSpacing: -0.5 }}>
                     {formatZAR(totalExpenses)}
                   </Text>
-                </View>
-                <View style={{ flex: 1, paddingLeft: 16 }}>
-                  <Text style={{ fontSize: 11, color: colour.onNoir2, fontWeight: "500", marginBottom: 6 }}>
-                    Deductible
-                  </Text>
-                  <Text style={{ fontSize: 18, fontWeight: "700", color: colour.onNoir, letterSpacing: -0.5 }}>
-                    {formatZAR(totalDeductions)}
-                  </Text>
-                </View>
+                </TouchableOpacity>
               </View>
             </View>
 
@@ -241,7 +487,7 @@ export default function HomeScreen() {
 
             {/* ── Scan CTA banner ── */}
             <TouchableOpacity
-              onPress={() => router.push("/(tabs)/scan")}
+              onPress={() => router.push("/scan-receipt-camera" as any)}
               style={{
                 backgroundColor: colour.primary, borderRadius: radius.lg,
                 paddingVertical: 28, paddingHorizontal: 18, flexDirection: "row",
@@ -294,7 +540,7 @@ export default function HomeScreen() {
               </View>
             </TouchableOpacity>
 
-            {/* ── Recent transactions ── */}
+            {/* ── Recent activity ── */}
             <View style={{
               flexDirection: "row", justifyContent: "space-between",
               alignItems: "baseline", marginBottom: 8, marginHorizontal: 2,
@@ -302,12 +548,12 @@ export default function HomeScreen() {
               <Text style={{ fontSize: 14, fontWeight: "600", color: colour.text, letterSpacing: -0.2 }}>
                 Recent
               </Text>
-              <TouchableOpacity onPress={() => router.push("/(tabs)/reports")}>
-                <Text style={{ ...typography.labelS, color: colour.primary }}>See all</Text>
+              <TouchableOpacity onPress={() => router.push("/expense-history" as any)}>
+                <Text style={{ fontSize: 12, fontWeight: "600", color: colour.primary }}>See all</Text>
               </TouchableOpacity>
             </View>
 
-            {recentExpenses.length === 0 ? (
+            {recentActivity.length === 0 ? (
               <View style={{
                 backgroundColor: colour.white, borderRadius: radius.md,
                 borderWidth: 1, borderColor: colour.borderLight,
@@ -315,14 +561,18 @@ export default function HomeScreen() {
               }}>
                 <IconSymbol name="doc.text.fill" size={28} color={colour.textHint} style={{ marginBottom: 8 } as any} />
                 <Text style={{ ...typography.bodyS, color: colour.textSub, textAlign: "center" }}>
-                  No expenses yet.{"\n"}Add your first expense to get started.
+                  No activity yet.{"\n"}Add your first expense or income to get started.
                 </Text>
               </View>
             ) : (
-              recentExpenses.map((expense) => (
+              recentActivity.map((item) => (
                 <TouchableOpacity
-                  key={expense.id}
-                  onPress={() => router.push(`/expense-detail?id=${expense.id}` as any)}
+                  key={`${item.type}-${item.id}`}
+                  onPress={() => router.push(
+                    item.type === 'income'
+                      ? `/income-detail?id=${item.id}` as any
+                      : `/expense-detail?id=${item.id}` as any
+                  )}
                   style={{
                     backgroundColor: colour.white, borderRadius: radius.md,
                     borderWidth: 1, borderColor: colour.borderLight,
@@ -333,28 +583,37 @@ export default function HomeScreen() {
                 >
                   <View style={{
                     width: 32, height: 32, borderRadius: 10,
-                    backgroundColor: colour.surface1,
+                    backgroundColor: item.type === 'income' ? colour.successBg : colour.surface1,
                     alignItems: "center", justifyContent: "center",
                   }}>
-                    <Text style={{ fontSize: 13, fontWeight: "600", color: colour.textMid }}>
-                      {expense.category?.charAt(0)?.toUpperCase() ?? "?"}
-                    </Text>
+                    {item.type === 'income' ? (
+                      <IconSymbol name="arrow.down.circle.fill" size={16} color={colour.success} />
+                    ) : (
+                      <Text style={{ fontSize: 13, fontWeight: "600", color: colour.textMid }}>
+                        {item.sublabel?.charAt(0)?.toUpperCase() ?? "?"}
+                      </Text>
+                    )}
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={{ fontSize: 13, fontWeight: "600", color: colour.text }}>
-                      {expense.vendor}
+                      {item.label}
                     </Text>
                     <Text style={{ fontSize: 11, color: colour.textSub, marginTop: 1, fontWeight: "500" }}>
-                      {expense.category} · {formatDate(expense.expense_date)}
+                      {item.type === 'income' ? "Income" : item.sublabel} · {formatDate(item.date)}
                     </Text>
                   </View>
                   <View style={{ alignItems: "flex-end" }}>
-                    <Text style={{ fontSize: 13, fontWeight: "700", color: colour.text }}>
-                      {formatZAR(expense.amount)}
+                    <Text style={{ fontSize: 13, fontWeight: "700", color: item.type === 'income' ? colour.success : colour.text }}>
+                      {item.type === 'income' ? "+" : ""}{formatZAR(item.amount)}
                     </Text>
-                    {expense.is_deductible && (
+                    {item.type === 'expense' && item.isDeductible && (
                       <Text style={{ fontSize: 11, color: colour.success, fontWeight: "500", marginTop: 1 }}>
                         deductible
+                      </Text>
+                    )}
+                    {item.type === 'income' && (
+                      <Text style={{ fontSize: 11, color: colour.success, fontWeight: "500", marginTop: 1 }}>
+                        income
                       </Text>
                     )}
                   </View>
@@ -363,32 +622,63 @@ export default function HomeScreen() {
             )}
 
             {/* ── ITR12 Filing Season ── */}
-            <View style={{
-              backgroundColor: colour.primary50, borderRadius: radius.lg,
-              padding: space.lg, borderWidth: 1, borderColor: colour.primary100,
-              marginTop: space.md,
-            }}>
-              <Text style={{ fontSize: 15, fontWeight: "700", color: colour.primary, marginBottom: 6 }}>
-                ITR12 Filing Season
-              </Text>
-              <Text style={{ fontSize: 13, color: colour.textSub, marginBottom: 14, lineHeight: 19 }}>
-                Your {ACTIVE_TAX_YEAR} deductions are ready to export. Generate your SARS-ready report now.
-              </Text>
-              <TouchableOpacity
-                onPress={() => router.push("/itr12-export-setup")}
-                style={{
-                  backgroundColor: colour.primary, borderRadius: radius.pill,
-                  paddingVertical: 11, paddingHorizontal: 20, alignSelf: "flex-start",
-                }}
-              >
-                <Text style={{ fontSize: 13, fontWeight: "700", color: colour.onPrimary }}>
-                  Prepare ITR12 export
+            <TouchableOpacity
+              onPress={() => router.push("/itr12-export-setup")}
+              activeOpacity={0.85}
+              style={{
+                backgroundColor: colour.noir, borderRadius: radius.lg,
+                padding: 16, paddingHorizontal: 18,
+                flexDirection: "row", alignItems: "center", gap: 14,
+                marginTop: space.md, overflow: "hidden",
+              }}
+            >
+              <View style={{
+                position: "absolute", width: 120, height: 120, borderRadius: 60,
+                backgroundColor: colour.primary, opacity: 0.35, top: -40, right: -30,
+              }} />
+              <View style={{
+                width: 42, height: 42, borderRadius: 12,
+                backgroundColor: "rgba(255,255,255,0.15)",
+                alignItems: "center", justifyContent: "center",
+              }}>
+                <IconSymbol name="doc.text.fill" size={20} color={colour.white} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 15, fontWeight: "700", color: colour.onNoir, letterSpacing: -0.3 }}>
+                  ITR12 filing season
                 </Text>
-              </TouchableOpacity>
-            </View>
+                <Text style={{ fontSize: 11, color: colour.onNoir2, marginTop: 2 }}>
+                  {activeTaxYear} · Prepare your SARS-ready export
+                </Text>
+              </View>
+              <View style={{
+                width: 32, height: 32, borderRadius: 16,
+                backgroundColor: "rgba(255,255,255,0.15)",
+                alignItems: "center", justifyContent: "center",
+              }}>
+                <IconSymbol name="chevron.right" size={14} color={colour.white} />
+              </View>
+            </TouchableOpacity>
           </>
         )}
       </ScrollView>
+
+      {duePopup && (
+        <AnnouncementModal
+          visible
+          icon={POPUP_CONTENT[duePopup].icon}
+          iconColour={POPUP_CONTENT[duePopup].iconColour}
+          eyebrow={POPUP_CONTENT[duePopup].eyebrow}
+          title={POPUP_CONTENT[duePopup].title}
+          subtitle={POPUP_CONTENT[duePopup].subtitle}
+          primaryLabel={POPUP_CONTENT[duePopup].primaryLabel}
+          onPrimary={dismissPopup}
+          secondaryLabel="Remind me later"
+          onClose={dismissPopup}
+        >
+          <PeriodCard rows={POPUP_CONTENT[duePopup].rows} />
+        </AnnouncementModal>
+      )}
     </SafeAreaView>
   );
 }

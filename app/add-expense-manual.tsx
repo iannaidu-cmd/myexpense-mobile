@@ -1,16 +1,21 @@
+import { InfoBanner } from "@/components/InfoBanner";
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
+import { SuccessModal } from "@/components/SuccessModal";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { CATEGORIES } from "@/constants/categories";
 import { expenseService } from "@/services/expenseService";
 import { useAuthStore } from "@/stores/authStore";
+import { floorRatio, useHomeOfficeStore } from "@/stores/homeOfficeStore";
 import { colour } from "@/tokens";
-import { ACTIVE_TAX_YEAR } from "@/types/database";
+import { SARS_RATE_PER_KM, taxYearForDate } from "@/lib/taxRules";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
     ActivityIndicator,
     Alert,
+    KeyboardAvoidingView,
+    Platform,
     ScrollView,
     StatusBar,
     Text,
@@ -27,13 +32,18 @@ const NAV = { Home: "⊞", Scan: "⊡", Reports: "◈", Settings: "⚙" };
 function PhoneShell({ children }: { children: React.ReactNode }) {
   return (
     <View style={{ flex: 1, backgroundColor: colour.surface1 }}>
-      <ScrollView
+      <KeyboardAvoidingView
         style={{ flex: 1 }}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-        {children}
-      </ScrollView>
+        <ScrollView
+          style={{ flex: 1 }}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          {children}
+        </ScrollView>
+      </KeyboardAvoidingView>
       <MXTabBar />
     </View>
   );
@@ -96,11 +106,14 @@ const ITR12_CATEGORIES = CATEGORIES.map((c) => ({
   label: c.label,
   icon: c.icon,
   code: c.code,
+  examples: c.examples,
 }));
 
 export default function AddExpenseScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
+  const { setting: homeOfficeSetting, load: loadHomeOffice } = useHomeOfficeStore();
+  React.useEffect(() => { if (user) loadHomeOffice(user.id); }, [user]);
   const [amount, setAmount] = useState("");
   const [vendor, setVendor] = useState("");
   const [date, setDate] = useState(
@@ -117,7 +130,11 @@ export default function AddExpenseScreen() {
   const [note, setNote] = useState("");
   const [showCatPicker, setShowCatPicker] = useState(false);
   const [businessUsePct, setBusinessUsePct] = useState("100");
+  const [insuranceSubType, setInsuranceSubType] = useState<"business" | "property_contents">("business");
+  const [interestSubType, setInterestSubType] = useState<"business_loan" | "bond" | "personal">("business_loan");
   const [saving, setSaving] = useState(false);
+  const [successVisible, setSuccessVisible] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
 
   const selectedCat = ITR12_CATEGORIES.find((c) => c.label === category);
   const canSave = !!amount && parseFloat(amount) > 0 && !!vendor && !!category;
@@ -137,7 +154,27 @@ export default function AddExpenseScreen() {
     setSaving(true);
     try {
       const rawAmount = parseFloat(amount);
-      const pct = category === "Telephone & Cell" ? Math.min(Math.max(parseFloat(businessUsePct) || 100, 0), 100) / 100 : 1;
+      const ratio = homeOfficeSetting ? floorRatio(homeOfficeSetting) : 1;
+      const HOME_OFFICE_CATS = ["Home Office", "Utilities", "Repairs & Maintenance"];
+      let pct = 1;
+      let overrideDeductible: boolean | undefined;
+
+      if (category === "Telephone & Cell" || category === "Telephone & Internet") {
+        pct = Math.min(Math.max(parseFloat(businessUsePct) || 100, 0), 100) / 100;
+      } else if (HOME_OFFICE_CATS.includes(category)) {
+        pct = ratio;
+      } else if (category === "Insurance") {
+        pct = insuranceSubType === "property_contents"
+          ? ratio
+          : Math.min(Math.max(parseFloat(businessUsePct) || 100, 0), 100) / 100;
+      } else if (category === "Interest & Finance Charges") {
+        if (interestSubType === "personal") {
+          overrideDeductible = false;
+        } else if (interestSubType === "bond") {
+          pct = ratio;
+        }
+      }
+
       const savedAmount = parseFloat((rawAmount * pct).toFixed(2));
 
       await expenseService.addExpense(user.id, {
@@ -145,9 +182,9 @@ export default function AddExpenseScreen() {
         amount: savedAmount,
         category,
         itr12_code: selectedCat?.code ?? null,
-        tax_year: ACTIVE_TAX_YEAR,
+        tax_year: taxYearForDate(expenseDate),
         expense_date: expenseDate,
-        is_deductible: expType === "business",
+        is_deductible: overrideDeductible ?? (expType === "business"),
         vat_amount: vatAmount ? parseFloat(vatAmount) : undefined,
         notes: note.trim() || undefined,
       });
@@ -159,14 +196,8 @@ export default function AddExpenseScreen() {
       setNote("");
       setBusinessUsePct("100");
 
-      Alert.alert(
-        "Expense Saved ✓",
-        `R ${savedAmount.toLocaleString("en-ZA", { minimumFractionDigits: 2 })} at ${vendor.trim()} has been saved.`,
-        [
-          { text: "Add another", style: "cancel" },
-          { text: "Go home", onPress: () => router.replace("/(tabs)" as any) },
-        ],
-      );
+      setSuccessMessage(`R ${savedAmount.toLocaleString("en-ZA", { minimumFractionDigits: 2 })} at ${vendor.trim()} has been saved.`);
+      setSuccessVisible(true);
     } catch (e: any) {
       Alert.alert("Error saving expense", e.message);
     } finally {
@@ -383,9 +414,9 @@ export default function AddExpenseScreen() {
           {/* Contextual notes per category */}
           {category === "Telephone & Cell" && (
             <View>
-              <View style={{ backgroundColor: "#FFF8E1", borderRadius: 8, padding: 10, marginBottom: 10 }}>
-                <Text style={{ fontSize: 12, color: "#7B5800", lineHeight: 18 }}>
-                  SARS requires a stated business-use percentage. Enter the % of this device used for business. The deductible amount will be adjusted accordingly.
+              <View style={{ backgroundColor: colour.infoLight, borderRadius: 8, padding: 10, marginBottom: 10 }}>
+                <Text style={{ fontSize: 12, color: colour.info, lineHeight: 18 }}>
+                  What percentage of your phone is used for work? Enter that number below — we'll only claim that portion as a deduction.
                 </Text>
               </View>
               <FieldLabel label="Business use %" />
@@ -397,40 +428,143 @@ export default function AddExpenseScreen() {
               />
             </View>
           )}
-          {(category === "Home Office" || category === "Utilities") && (
-            <View style={{ backgroundColor: "#E8F5E9", borderRadius: 8, padding: 10, marginBottom: 10 }}>
-              <Text style={{ fontSize: 12, color: "#1B5E20", lineHeight: 18 }}>
-                Only the office portion is deductible. Formula: office m² ÷ total property m² × total cost. Enter the proportional amount only (e.g. 15m² ÷ 120m² = 12.5%).
-              </Text>
-            </View>
+          {(category === "Home Office" || category === "Utilities" || category === "Repairs & Maintenance") && (
+            <InfoBanner
+              icon="house.fill"
+              title={
+                homeOfficeSetting
+                  ? `Your home office takes up ${(floorRatio(homeOfficeSetting) * 100).toFixed(1)}% of your home`
+                  : "Home office size not set up yet"
+              }
+              body={
+                homeOfficeSetting
+                  ? `Only ${(floorRatio(homeOfficeSetting) * 100).toFixed(1)}% of this expense can be claimed (${homeOfficeSetting.officeM2}m² ÷ ${homeOfficeSetting.totalM2}m²).${amount && parseFloat(amount) > 0 ? ` Claimable amount: R ${Math.round(parseFloat(amount) * floorRatio(homeOfficeSetting)).toLocaleString("en-ZA")}` : ""}`
+                  : "Go to Settings → Tax setup → Home office to enter your room sizes. We'll automatically work out the claimable portion."
+              }
+              style={{ marginBottom: 10 }}
+            />
           )}
           {category === "Equipment & Tools" && !!amount && parseFloat(amount) > 7000 && (
-            <View style={{ backgroundColor: "#FFF3E0", borderRadius: 8, padding: 10, marginBottom: 10 }}>
-              <Text style={{ fontSize: 12, color: "#BF360C", lineHeight: 18 }}>
-                Items over R7,000 may be subject to SARS wear & tear schedules (e.g. computers 3 years, furniture 6 years) rather than being expensed in full. Consult your tax practitioner.
+            <View style={{ backgroundColor: colour.infoLight, borderRadius: 8, padding: 10, marginBottom: 10 }}>
+              <Text style={{ fontSize: 12, color: colour.info, lineHeight: 18 }}>
+                Big-ticket items like this may need to be claimed over a few years instead of all at once (e.g. 3 years for computers, 6 years for furniture). Check with your tax practitioner.
               </Text>
             </View>
           )}
           {category === "Vehicle Expenses" && (
-            <View style={{ backgroundColor: "#E3F2FD", borderRadius: 8, padding: 10, marginBottom: 10 }}>
-              <Text style={{ fontSize: 12, color: "#0D47A1", lineHeight: 18 }}>
-                Actual cost method: only the business proportion is deductible (business km ÷ total annual km × total vehicle costs). Check your mileage logbook for this ratio. The deemed cost method (R4.84/km) is tracked separately under Mileage.
-              </Text>
-            </View>
+            <InfoBanner
+              icon="car.fill"
+              body={`Only the work portion counts. Divide your work km by your total km for the year to find the claimable percentage — your mileage logbook tracks this. A flat rate of R${SARS_RATE_PER_KM}/km is tracked separately under Mileage.`}
+              style={{ marginBottom: 10 }}
+            />
           )}
           {category === "Retirement Annuity" && (
-            <View style={{ backgroundColor: "#F3E5F5", borderRadius: 8, padding: 10, marginBottom: 10 }}>
-              <Text style={{ fontSize: 12, color: "#4A148C", lineHeight: 18 }}>
-                RA deductions are capped at the greater of 27.5% of taxable income or remuneration, up to R350,000/year. SARS requires an IT3(a) certificate from your RA provider.
+            <View style={{ backgroundColor: colour.noir, borderRadius: 8, padding: 10, marginBottom: 10 }}>
+              <Text style={{ fontSize: 12, color: colour.onNoir2, lineHeight: 18 }}>
+                You can claim up to 27.5% of your income (max R350,000/year) for RA contributions. You'll need a certificate (IT3a) from your RA provider to submit with your tax return.
               </Text>
             </View>
           )}
           {category === "Meals & Entertainment" && (
-            <View style={{ backgroundColor: "#FFF8E1", borderRadius: 8, padding: 10, marginBottom: 10 }}>
-              <Text style={{ fontSize: 12, color: "#7B5800", lineHeight: 18 }}>
-                Only 80% of meals & entertainment is deductible under S23(o). MyExpense applies this cap automatically.
+            <View style={{ backgroundColor: colour.infoLight, borderRadius: 8, padding: 10, marginBottom: 10 }}>
+              <Text style={{ fontSize: 12, color: colour.info, lineHeight: 18 }}>
+                SARS only allows 80% of meals and entertainment to be claimed. We apply this limit automatically when you save.
               </Text>
             </View>
+          )}
+          {category === "Insurance" && (
+            <>
+              <FieldLabel label="Insurance type" />
+              <View style={{ flexDirection: "row", backgroundColor: colour.surface2, borderRadius: 10, padding: 3, marginBottom: 14 }}>
+                <TouchableOpacity
+                  onPress={() => setInsuranceSubType("business")}
+                  style={{ flex: 1, paddingVertical: 8, borderRadius: 8, backgroundColor: insuranceSubType === "business" ? colour.primary : "transparent", alignItems: "center" }}
+                >
+                  <Text style={{ fontSize: 11, fontWeight: "600", color: insuranceSubType === "business" ? colour.onPrimary : colour.textSub }}>
+                    Business policy
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => setInsuranceSubType("property_contents")}
+                  style={{ flex: 1, paddingVertical: 8, borderRadius: 8, backgroundColor: insuranceSubType === "property_contents" ? colour.primary : "transparent", alignItems: "center" }}
+                >
+                  <Text style={{ fontSize: 11, fontWeight: "600", color: insuranceSubType === "property_contents" ? colour.onPrimary : colour.textSub }}>
+                    Property / contents
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              {insuranceSubType === "business" ? (
+                <>
+                  <InfoBanner
+                    icon="shield.fill"
+                    body="If the policy is purely for your business (e.g. professional indemnity), enter 100%. If it covers both personal and business use, enter just the work percentage."
+                    style={{ marginBottom: 10 }}
+                  />
+                  <FieldLabel label="Business use %" />
+                  <UnderlineInput
+                    value={businessUsePct}
+                    onChangeText={setBusinessUsePct}
+                    placeholder="e.g. 60"
+                    keyboardType="decimal-pad"
+                  />
+                </>
+              ) : (
+                <InfoBanner
+                  icon="house.fill"
+                  title={homeOfficeSetting ? `We'll claim ${(floorRatio(homeOfficeSetting) * 100).toFixed(1)}% based on your home office size` : "Home office size not set up yet"}
+                  body={homeOfficeSetting
+                    ? `Your home office takes up ${(floorRatio(homeOfficeSetting) * 100).toFixed(1)}% of your home (${homeOfficeSetting.officeM2}m² ÷ ${homeOfficeSetting.totalM2}m²), so we'll claim that portion of this insurance.${amount && parseFloat(amount) > 0 ? ` Claimable amount: R ${Math.round(parseFloat(amount) * floorRatio(homeOfficeSetting)).toLocaleString("en-ZA")}` : ""}`
+                    : "Go to Settings → Tax setup → Home office to enter your room sizes."}
+                  style={{ marginBottom: 10 }}
+                />
+              )}
+            </>
+          )}
+          {category === "Interest & Finance Charges" && (
+            <>
+              <FieldLabel label="Interest type" />
+              <View style={{ flexDirection: "row", backgroundColor: colour.surface2, borderRadius: 10, padding: 3, marginBottom: 14 }}>
+                {([
+                  { key: "business_loan" as const, label: "Business" },
+                  { key: "bond" as const, label: "Bond" },
+                  { key: "personal" as const, label: "Personal" },
+                ]).map((opt) => (
+                  <TouchableOpacity
+                    key={opt.key}
+                    onPress={() => setInterestSubType(opt.key)}
+                    style={{ flex: 1, paddingVertical: 8, borderRadius: 8, backgroundColor: interestSubType === opt.key ? colour.primary : "transparent", alignItems: "center" }}
+                  >
+                    <Text style={{ fontSize: 11, fontWeight: "600", color: interestSubType === opt.key ? colour.onPrimary : colour.textSub }}>
+                      {opt.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              {interestSubType === "business_loan" && (
+                <InfoBanner
+                  icon="creditcard.fill"
+                  body="All the interest on a business loan can be claimed, as long as the loan was used to run your business."
+                  style={{ marginBottom: 10 }}
+                />
+              )}
+              {interestSubType === "bond" && (
+                <InfoBanner
+                  icon="house.fill"
+                  title={homeOfficeSetting ? `We'll claim ${(floorRatio(homeOfficeSetting) * 100).toFixed(1)}% based on your home office size` : "Home office size not set up yet"}
+                  body={homeOfficeSetting
+                    ? `Only the home office portion of your bond interest can be claimed. Your office takes up ${(floorRatio(homeOfficeSetting) * 100).toFixed(1)}% of your home (${homeOfficeSetting.officeM2}m² ÷ ${homeOfficeSetting.totalM2}m²).${amount && parseFloat(amount) > 0 ? ` Claimable amount: R ${Math.round(parseFloat(amount) * floorRatio(homeOfficeSetting)).toLocaleString("en-ZA")}` : ""}`
+                    : "Go to Settings → Tax setup → Home office to enter your room sizes."}
+                  style={{ marginBottom: 10 }}
+                />
+              )}
+              {interestSubType === "personal" && (
+                <InfoBanner
+                  icon="xmark.circle.fill"
+                  body="Personal interest like credit cards or personal loans can't be claimed as a tax deduction. This expense will be saved as non-deductible."
+                  style={{ marginBottom: 10 }}
+                />
+              )}
+            </>
           )}
 
           {showCatPicker && (
@@ -444,21 +578,27 @@ export default function AddExpenseScreen() {
                   }}
                   style={{
                     flexDirection: "row",
-                    alignItems: "center",
+                    alignItems: "flex-start",
                     paddingVertical: 11,
                     borderBottomWidth: 1,
                     borderBottomColor: colour.border,
                   }}
                 >
-                  <IconSymbol name={cat.icon as any} size={18} color={colour.primary} style={{ marginRight: 12 } as any} />
-                  <Text style={{ flex: 1, fontSize: 14, color: colour.text }}>
-                    {cat.label}
-                  </Text>
+                  <IconSymbol name={cat.icon as any} size={18} color={colour.primary} style={{ marginRight: 12, marginTop: 1 } as any} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 14, color: colour.text }}>
+                      {cat.label}
+                    </Text>
+                    <Text style={{ fontSize: 11, color: colour.textSub, marginTop: 2 }} numberOfLines={1}>
+                      {cat.examples}
+                    </Text>
+                  </View>
                   <Text
                     style={{
                       fontSize: 11,
                       color: colour.accent,
                       fontWeight: "600",
+                      marginLeft: 8,
                     }}
                   >
                     {cat.code}
@@ -585,6 +725,16 @@ export default function AddExpenseScreen() {
         </TouchableOpacity>
       </View>
     </PhoneShell>
+
+      <SuccessModal
+        visible={successVisible}
+        title="Expense saved"
+        message={successMessage}
+        primaryLabel="Go to dashboard"
+        onPrimary={() => { setSuccessVisible(false); router.replace("/(tabs)" as any); }}
+        secondaryLabel="Add another"
+        onSecondary={() => setSuccessVisible(false)}
+      />
     </SafeAreaView>
   );
 }

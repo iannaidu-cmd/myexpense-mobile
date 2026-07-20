@@ -258,7 +258,7 @@ export default function LoadingSkeletonScreen({
     { section: string; title: string }
   > = {
     expense_list: { section: "EXPENSES", title: "My Expenses" },
-    expense_detail: { section: "EXPENSES", title: "Expense Detail" },
+    expense_detail: { section: "EXPENSES", title: "Expense detail" },
     reports_home: {
       section: "REPORTS & ANALYTICS",
       title: "Financial Overview",

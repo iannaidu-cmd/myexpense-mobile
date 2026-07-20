@@ -1,8 +1,10 @@
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { configurePurchases } from "@/lib/purchases";
 import * as Sentry from "@sentry/react-native";
 import {
     registerForPushNotifications,
+    resetDuplicateNotificationsOnce,
     savePushToken,
     scheduleMonthlyReportReminder,
     scheduleSARSDeadlineReminders,
@@ -11,6 +13,7 @@ import {
 } from "@/services/notificationService";
 import { useAuthStore } from "@/stores/authStore";
 import { useSubscriptionStore } from "@/stores/subscriptionStore";
+import { colour } from "@/tokens";
 import {
     Inter_400Regular,
     Inter_500Medium,
@@ -27,9 +30,19 @@ import {
 import { Stack, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Animated, Image, Linking, LogBox, View } from "react-native";
 import "react-native-reanimated";
 import "react-native-url-polyfill/auto";
+import { supabase } from "@/lib/supabase";
+
+// Supabase internally console.errors when a stored refresh token is stale.
+// We handle this gracefully in authStore (signOut + redirect), so suppress
+// the LogBox overlay here to avoid alarming users with a red error screen.
+LogBox.ignoreLogs([
+  "AuthApiError: Invalid Refresh Token",
+  "Unable to activate keep awake",
+]);
 
 Sentry.init({
   dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
@@ -40,16 +53,58 @@ Sentry.init({
 
 SplashScreen.preventAutoHideAsync();
 
-export const unstable_settings = { anchor: "splash" };
-
 // ── Auth gate ─────────────────────────────────────────────────────────────────
 function AuthGate() {
   const router = useRouter();
   const segments = useSegments();
-  const { user, isInitialised } = useAuthStore();
+  const { user, isInitialised, pendingEmailVerification, isAccessBlocked, isPendingDeletion } = useAuthStore();
 
   useEffect(() => {
     if (!isInitialised) return;
+
+    // Email confirmation pending — route to verification screen. This runs
+    // inside AuthGate so there is no race between a screen's router.replace
+    // call and segments updating.
+    if (
+      pendingEmailVerification &&
+      !user &&
+      segments[0] !== "email-verification" &&
+      segments[0] !== "auth"
+    ) {
+      router.replace(
+        `/email-verification?email=${encodeURIComponent(pendingEmailVerification)}` as any
+      );
+      return;
+    }
+
+    // Account deletion requested — block everything except the dedicated
+    // screen (Cancel deletion / Export my data), until either 30 days pass
+    // (purge-deleted-accounts deletes the account entirely) or the user
+    // cancels. Takes priority over isAccessBlocked below — no point telling
+    // someone to fix their payment method if they're being deleted anyway.
+    const inPendingDeletion = segments[0] === "account-pending-deletion";
+    if (isPendingDeletion && user && !inPendingDeletion) {
+      router.replace("/account-pending-deletion");
+      return;
+    }
+    if (!isPendingDeletion && inPendingDeletion) {
+      router.replace("/(tabs)");
+      return;
+    }
+
+    // Renewal payment failed 7+ days ago — block everything except the
+    // dedicated screen (which offers "update payment" / "sign out"). Dev
+    // users and active promo_expires_at grants never set isAccessBlocked
+    // (see authStore.fetchPremiumStatus), so this never affects them.
+    const inAccessBlocked = segments[0] === "access-blocked";
+    if (isAccessBlocked && user && !inAccessBlocked) {
+      router.replace("/access-blocked");
+      return;
+    }
+    if (!isAccessBlocked && inAccessBlocked) {
+      router.replace("/(tabs)");
+      return;
+    }
 
     const inAuthGroup =
       segments[0] === "auth" ||
@@ -57,20 +112,9 @@ function AuthGate() {
       segments[0] === "sign-up" ||
       segments[0] === "forgot-password" ||
       segments[0] === "email-verification";
-    // reset-password is intentionally excluded: the Supabase recovery code
-    // creates a temporary session, and we must not redirect the user away
-    // from the form while they still need to submit their new password.
 
-    // profile-setup is NOT in inAuthGroup so authenticated users can access it
     const inProfileSetup = segments[0] === "profile-setup";
-
-    const inOnboarding =
-      segments[0] === "onboarding-step-1" ||
-      segments[0] === "onboarding-step-2" ||
-      segments[0] === "onboarding-step-3" ||
-      segments[0] === "splash";
-
-    // Legal screens are always accessible regardless of auth state
+    const inOnboarding = segments[0] === "onboarding-step-1";
     const inLegal = segments[0] === "terms" || segments[0] === "privacy";
 
     if (!user && !inAuthGroup && !inOnboarding && !inLegal && !inProfileSetup) {
@@ -78,8 +122,64 @@ function AuthGate() {
     } else if (user && (inAuthGroup || inOnboarding)) {
       router.replace("/(tabs)");
     }
-  }, [user, isInitialised, segments]);
+  }, [user, isInitialised, segments, pendingEmailVerification, isAccessBlocked, isPendingDeletion]);
 
+  return null;
+}
+
+// ── OAuth deep-link handler ───────────────────────────────────────────────────
+// Two cases:
+//   1. PKCE code via HTTPS App Link — when openAuthSessionAsync returns "cancel"
+//      because the OS routed the intent separately, the Linking event fires with
+//      the HTTPS callback URL. Extract the code and push to auth/callback.
+//   2. Implicit-flow hash tokens — password-reset magic links.
+function OAuthHandler() {
+  const router = useRouter();
+  useEffect(() => {
+    const handle = async (url: string | null) => {
+      if (!url) return;
+
+      // Custom scheme: email confirmation and OAuth callbacks
+      if (url.startsWith("myexpense://auth/callback")) {
+        const codeMatch = url.match(/[?&]code=([^&#]+)/);
+        if (codeMatch) {
+          router.replace(`/auth/callback?code=${codeMatch[1]}` as any);
+          return;
+        }
+      }
+
+      // HTTPS App Link fallback (when OS routes the intent separately)
+      if (url.includes("myexpense.co.za/auth/callback")) {
+        const codeMatch = url.match(/[?&]code=([^&#]+)/);
+        if (codeMatch) {
+          router.replace(`/auth/callback?code=${codeMatch[1]}` as any);
+          return;
+        }
+      }
+
+      // Implicit-flow hash tokens (password-reset magic links)
+      const hashIdx = url.indexOf("#");
+      const hash = hashIdx >= 0 ? url.slice(hashIdx + 1) : "";
+      if (!hash) return;
+      const p = new URLSearchParams(hash);
+      const at = p.get("access_token");
+      const rt = p.get("refresh_token");
+      if (at && rt) {
+        try {
+          // Guard against overwriting an already-authenticated session (e.g. a
+          // duplicate deep-link event). But DO allow overwriting an unconfirmed
+          // temporary session — that's exactly the email-confirmation case.
+          if (useAuthStore.getState().isAuthenticated) return;
+          await supabase.auth.setSession({ access_token: at, refresh_token: rt });
+        } catch {
+          // Silent
+        }
+      }
+    };
+    Linking.getInitialURL().then(handle);
+    const sub = Linking.addEventListener("url", ({ url }) => handle(url));
+    return () => sub.remove();
+  }, []);
   return null;
 }
 
@@ -121,6 +221,7 @@ function NotificationSetup() {
       }
 
       try {
+        await resetDuplicateNotificationsOnce();
         await scheduleWeeklyExpenseReminder();
         await scheduleMonthlyReportReminder();
         await scheduleSARSDeadlineReminders();
@@ -130,7 +231,7 @@ function NotificationSetup() {
 
       try {
         responseSub = setupNotificationResponseHandler((route) => {
-          router.push(route as any);
+          router.navigate(route as any);
         });
       } catch (e) {
         console.warn("Notification tap handler setup failed:", e);
@@ -146,9 +247,30 @@ function NotificationSetup() {
   return null;
 }
 
+const SPLASH_MIN_MS = 4000;
+const SPLASH_MAX_MS = 15000;
+
+// Overlay opacity is controlled by RootLayout so it can fade out smoothly.
+// InlineSplash only handles the logo entrance animation.
+function InlineSplash({ opacity }: { opacity: Animated.Value }) {
+  const scaleAnim = useRef(new Animated.Value(0.85)).current;
+  useEffect(() => {
+    Animated.spring(scaleAnim, { toValue: 1, delay: 200, useNativeDriver: true, tension: 60, friction: 8 }).start();
+  }, []);
+  return (
+    <Animated.View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: colour.background, alignItems: "center", justifyContent: "center", opacity }}>
+      <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+        <Image source={require("@/assets/images/sm_logo.gif")} style={{ width: 211, height: 211, resizeMode: "contain" }} />
+      </Animated.View>
+    </Animated.View>
+  );
+}
+
 function RootLayout() {
   const colorScheme = useColorScheme();
   const { initialise } = useAuthStore();
+  const [splashDone, setSplashDone] = useState(false);
+  const splashOpacity = useRef(new Animated.Value(1)).current;
   useFonts({
     Inter_400Regular,
     Inter_500Medium,
@@ -158,29 +280,31 @@ function RootLayout() {
   });
 
   useEffect(() => {
+    const startMs = Date.now();
     SplashScreen.hideAsync();
-    initialise();
+    const timeout = new Promise<void>((resolve) => setTimeout(resolve, SPLASH_MAX_MS));
+    Promise.race([initialise(), timeout]).then(() => {
+      const elapsed = Date.now() - startMs;
+      const remaining = Math.max(0, SPLASH_MIN_MS - elapsed);
+      setTimeout(() => {
+        Animated.timing(splashOpacity, { toValue: 0, duration: 500, useNativeDriver: true })
+          .start(() => setSplashDone(true));
+      }, remaining);
+    });
   }, []);
 
   return (
+    <ErrorBoundary>
+    <View style={{ flex: 1 }}>
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
       <AuthGate />
+      <OAuthHandler />
       <PurchasesSetup />
       <NotificationSetup />
       <Stack>
-        {" "}
         {/* ── Entry ── */}
-        <Stack.Screen name="splash" options={{ headerShown: false }} />
         <Stack.Screen
           name="onboarding-step-1"
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="onboarding-step-2"
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="onboarding-step-3"
           options={{ headerShown: false }}
         />
         {/* ── Auth ── */}
@@ -198,43 +322,29 @@ function RootLayout() {
         {/* ── Legal (accessible without login) ── */}
         <Stack.Screen name="terms" options={{ headerShown: false }} />
         <Stack.Screen name="privacy" options={{ headerShown: false }} />
+        <Stack.Screen name="terms-accept" options={{ headerShown: false }} />
         {/* ── Main tabs ── */}
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         {/* ── Income ── */}
         <Stack.Screen name="add-income" options={{ headerShown: false }} />
+        <Stack.Screen name="add-irp5-income" options={{ headerShown: false }} />
+        <Stack.Screen name="provisional-tax" options={{ headerShown: false }} />
         <Stack.Screen name="income-history" options={{ headerShown: false }} />
+        <Stack.Screen name="income-detail" options={{ headerShown: false }} />
         <Stack.Screen
           name="income-vs-expenses"
           options={{ headerShown: false }}
         />
         {/* ── Expense Management ── */}
-        <Stack.Screen
-          name="add-expense-manual"
-          options={{ title: "Add Expense", headerBackTitle: "Back" }}
-        />
-        <Stack.Screen
-          name="quick-add-expense"
-          options={{ title: "Quick Add", headerBackTitle: "Back" }}
-        />
+        <Stack.Screen name="add-expense-manual" options={{ headerShown: false }} />
+        <Stack.Screen name="quick-add-expense" options={{ headerShown: false }} />
         <Stack.Screen name="expense-detail" options={{ headerShown: false }} />
         <Stack.Screen name="expense-history" options={{ headerShown: false }} />
         <Stack.Screen name="edit-expense" options={{ headerShown: false }} />
-        <Stack.Screen
-          name="receipt-review"
-          options={{ title: "Review Receipt", headerBackTitle: "Back" }}
-        />
-        <Stack.Screen
-          name="scan-receipt-camera"
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="scan-receipt-processing"
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="recent-activity-feed"
-          options={{ title: "Recent Activity", headerBackTitle: "Back" }}
-        />
+        <Stack.Screen name="receipt-review" options={{ headerShown: false }} />
+        <Stack.Screen name="scan-receipt-camera" options={{ headerShown: false }} />
+        <Stack.Screen name="scan-receipt-processing" options={{ headerShown: false }} />
+        <Stack.Screen name="recent-activity-feed" options={{ headerShown: false }} />
         <Stack.Screen
           name="upload-from-gallery"
           options={{ headerShown: false }}
@@ -246,6 +356,7 @@ function RootLayout() {
         />
         {/* ── Tax & ITR12 ── */}
         <Stack.Screen name="tax-summary" options={{ headerShown: false }} />
+        <Stack.Screen name="government-concessions" options={{ headerShown: false }} />
         <Stack.Screen
           name="itr12-export-setup"
           options={{ headerShown: false }}
@@ -287,14 +398,12 @@ function RootLayout() {
           options={{ headerShown: false }}
         />
         {/* ── Settings ── */}
+        <Stack.Screen name="home-office-setup" options={{ headerShown: false }} />
         <Stack.Screen name="bank-accounts" options={{ headerShown: false }} />
+        <Stack.Screen name="bank-import" options={{ headerShown: false }} />
         <Stack.Screen name="profile" options={{ headerShown: false }} />
         <Stack.Screen
           name="notifications-settings"
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="appearance-settings"
           options={{ headerShown: false }}
         />
         <Stack.Screen
@@ -309,6 +418,22 @@ function RootLayout() {
             headerShown: false,
             presentation: "modal",
           }}
+        />
+        <Stack.Screen
+          name="subscription-manage"
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="access-blocked"
+          options={{ headerShown: false, gestureEnabled: false }}
+        />
+        <Stack.Screen
+          name="account-pending-deletion"
+          options={{ headerShown: false, gestureEnabled: false }}
+        />
+        <Stack.Screen
+          name="delete-account-confirm"
+          options={{ headerShown: false }}
         />
         {/* ── Utility ── */}
         <Stack.Screen
@@ -332,19 +457,12 @@ function RootLayout() {
           name="error-no-internet"
           options={{ headerShown: false }}
         />
-        {/* ── Stubs ── */}
-        <Stack.Screen name="reports-screens" options={{ headerShown: false }} />
-        <Stack.Screen
-          name="settings-screens"
-          options={{ headerShown: false }}
-        />
-        {/* ── Modal ── */}
-        <Stack.Screen name="modal" options={{ presentation: "modal" }} />
       </Stack>
       <StatusBar style="auto" />
-
-
     </ThemeProvider>
+    {!splashDone && <InlineSplash opacity={splashOpacity} />}
+    </View>
+    </ErrorBoundary>
   );
 }
 

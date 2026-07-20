@@ -7,14 +7,17 @@ import { CameraType, CameraView, useCameraPermissions } from "expo-camera";
 import * as Haptics from "expo-haptics";
 import * as ImageManipulator from "expo-image-manipulator";
 import * as ImagePicker from "expo-image-picker";
+import { useIsFocused } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import React, { useRef, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
     Animated,
+    Linking,
     Text,
     TouchableOpacity,
+    useWindowDimensions,
     View,
 } from "react-native";
 
@@ -82,6 +85,10 @@ const toBase64 = async (uri: string): Promise<string> => {
 export default function ScanReceiptCameraScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
+  const isFocused = useIsFocused();
+  const { width: screenWidth } = useWindowDimensions();
+  const frameWidth = screenWidth - 48;
+  const frameHeight = frameWidth * 1.4;
   const cameraRef = useRef<CameraView>(null);
   const [permission, requestPermission] = useCameraPermissions();
   const [facing] = useState<CameraType>("back");
@@ -195,6 +202,68 @@ export default function ScanReceiptCameraScreen() {
   if (!permission) return <View style={{ flex: 1, backgroundColor: "#000" }} />;
 
   if (!permission.granted) {
+    // Permanently denied (iOS won't re-show its own dialog at this point) —
+    // the only way forward is Settings, so this state gets its own copy and
+    // an explicit way back out.
+    if (!permission.canAskAgain) {
+      return (
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: "#000",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 32,
+          }}
+        >
+          <Text
+            style={{
+              color: "#fff",
+              fontSize: 20,
+              fontWeight: "800",
+              marginBottom: 12,
+              textAlign: "center",
+            }}
+          >
+            Camera Access Disabled
+          </Text>
+          <Text
+            style={{
+              color: "rgba(255,255,255,0.6)",
+              fontSize: 14,
+              textAlign: "center",
+              marginBottom: 32,
+            }}
+          >
+            Enable camera access in Settings to scan receipts for ITR12 compliance.
+          </Text>
+          <TouchableOpacity
+            onPress={() => Linking.openSettings()}
+            style={{
+              backgroundColor: C.primary,
+              borderRadius: 14,
+              paddingVertical: 14,
+              paddingHorizontal: 32,
+            }}
+          >
+            <Text style={{ color: "#fff", fontSize: 15, fontWeight: "700" }}>
+              Open Settings
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={{ marginTop: 16 }}
+          >
+            <Text style={{ color: "rgba(255,255,255,0.5)", fontSize: 14 }}>
+              Go back
+            </Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
+    // First ask (or not yet decided) — no dismiss/bypass option here, Continue
+    // must lead straight to the system permission prompt (App Review 5.1.1(iv)).
     return (
       <View
         style={{
@@ -236,15 +305,7 @@ export default function ScanReceiptCameraScreen() {
           }}
         >
           <Text style={{ color: "#fff", fontSize: 15, fontWeight: "700" }}>
-            Grant Camera Access
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={{ marginTop: 16 }}
-        >
-          <Text style={{ color: "rgba(255,255,255,0.5)", fontSize: 14 }}>
-            Go back
+            Continue
           </Text>
         </TouchableOpacity>
       </View>
@@ -253,7 +314,7 @@ export default function ScanReceiptCameraScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: "#000" }}>
-      <CameraView
+      {isFocused ? <CameraView
         ref={cameraRef}
         style={{ flex: 1 }}
         facing={facing}
@@ -334,12 +395,12 @@ export default function ScanReceiptCameraScreen() {
           />
           <Animated.View
             style={{
-              width: 280,
-              height: 240,
+              width: frameWidth,
+              height: frameHeight,
               transform: [{ scale: captureAnim }],
             }}
           >
-            <CornerBrackets color={C.teal} size={28} thickness={3} />
+            <CornerBrackets color="#FCEAD9" size={28} thickness={3} />
           </Animated.View>
           <View
             style={{
@@ -483,18 +544,8 @@ export default function ScanReceiptCameraScreen() {
               </Text>
             </TouchableOpacity>
           </View>
-          <Text
-            style={{
-              marginTop: 16,
-              fontSize: 11,
-              color: "rgba(255,255,255,0.4)",
-              textAlign: "center",
-            }}
-          >
-            Receipt stored securely in your private Supabase vault
-          </Text>
         </View>
-      </CameraView>
+      </CameraView> : null}
     </View>
   );
 }

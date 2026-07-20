@@ -1,8 +1,8 @@
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { colour, radius, space } from "@/tokens";
+import { colour } from "@/tokens";
 import { Tabs, useRouter } from "expo-router";
 import React, { useState } from "react";
-import { Modal, Platform, Pressable, Text, TouchableOpacity, View } from "react-native";
+import { Modal, Platform, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const TAB_CONFIG: {
@@ -11,22 +11,26 @@ const TAB_CONFIG: {
   icon: string;
   isFab?: boolean;
 }[] = [
-  { name: "index",       label: "Home",    icon: "house.fill"           },
-  { name: "add-expense", label: "Track",   icon: "car.fill"             },
-  { name: "scan",        label: null,      icon: "camera.fill", isFab: true },
-  { name: "reports",     label: "Reports", icon: "chart.bar.fill"       },
-  { name: "settings",    label: "Me",      icon: "person.fill"          },
+  { name: "index",       label: "Home",    icon: "house.fill"            },
+  { name: "add-expense", label: "Track",   icon: "car.fill"              },
+  { name: "scan",        label: null,      icon: "plus",       isFab: true },
+  { name: "reports",     label: "Reports", icon: "chart.bar.fill"        },
+  { name: "settings",    label: "Me",      icon: "person.fill"           },
+];
+
+const FAB_ACTIONS = [
+  { label: "Scan receipt", subtitle: "Camera or gallery",      icon: "camera.fill"           as const, route: "/scan-receipt-camera" },
+  { label: "Add expense",  subtitle: "Scan or enter manually", icon: "creditcard.fill"        as const, route: "/add-expense-manual" },
+  { label: "Add income",   subtitle: "Invoice or payment",     icon: "dollarsign.circle.fill" as const, route: "/add-income" },
 ];
 
 function CustomTabBar({
   state,
   navigation,
-  fabOpen,
   onFabPress,
 }: {
   state: any;
   navigation: any;
-  fabOpen: boolean;
   onFabPress: () => void;
 }) {
   const insets = useSafeAreaInsets();
@@ -44,242 +48,134 @@ function CustomTabBar({
       : { elevation: 10 };
 
   return (
-    <View
-      style={{
-        backgroundColor: colour.white,
-        borderTopWidth: 1,
-        borderTopColor: colour.borderLight,
-        flexDirection: "row",
-        paddingBottom: bp,
-        height: 56 + bp,
-        overflow: "visible",
-      }}
-    >
-      {(state.routes as any[]).map((route: any, index: number) => {
-        const tab = TAB_CONFIG.find((t) => t.name === route.name);
-        if (!tab) return null;
-        const isFocused = state.index === index;
+    <>
+      <View
+        style={{
+          backgroundColor: colour.white,
+          borderTopWidth: 1,
+          borderTopColor: colour.borderLight,
+          flexDirection: "row",
+          paddingBottom: bp,
+          height: 56 + bp,
+          overflow: Platform.OS === "ios" ? "visible" : undefined,
+        }}
+      >
+        {(state.routes as any[]).map((route: any, index: number) => {
+          const tab = TAB_CONFIG.find((t) => t.name === route.name);
+          if (!tab) return null;
+          const isFocused = state.index === index;
 
-        const onPress = () => {
+          const onPress = () => {
+            if (tab.isFab) {
+              onFabPress();
+              return;
+            }
+            if (tab.name === "add-expense") {
+              router.push("/mileage-tracker" as any);
+              return;
+            }
+            const event = navigation.emit({
+              type: "tabPress",
+              target: route.key,
+              canPreventDefault: true,
+            });
+            if (!isFocused && !event.defaultPrevented) {
+              navigation.navigate(route.name);
+            }
+          };
+
           if (tab.isFab) {
-            onFabPress();
-            return;
+            return (
+              <View
+                key={route.key}
+                style={{ flex: 1, alignItems: "center", overflow: Platform.OS === "ios" ? "visible" : undefined }}
+              >
+                <TouchableOpacity
+                  onPress={onPress}
+                  activeOpacity={0.85}
+                  style={{
+                    position: "absolute",
+                    top: -18,
+                    width: 52,
+                    height: 52,
+                    borderRadius: 26,
+                    backgroundColor: colour.primary,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    borderWidth: 4,
+                    borderColor: colour.white,
+                    ...fabShadow,
+                  }}
+                >
+                  <IconSymbol name="camera.aperture" size={22} color={colour.white} />
+                </TouchableOpacity>
+              </View>
+            );
           }
-          if (tab.name === "add-expense") {
-            router.push("/mileage-tracker" as any);
-            return;
-          }
-          const event = navigation.emit({
-            type: "tabPress",
-            target: route.key,
-            canPreventDefault: true,
-          });
-          if (!isFocused && !event.defaultPrevented) {
-            navigation.navigate(route.name);
-          }
-        };
 
-        if (tab.isFab) {
           return (
-            <View
+            <TouchableOpacity
               key={route.key}
-              style={{ flex: 1, alignItems: "center", overflow: "visible" }}
+              onPress={onPress}
+              activeOpacity={0.7}
+              style={{
+                flex: 1,
+                alignItems: "center",
+                justifyContent: "center",
+                paddingTop: 8,
+              }}
             >
-              <TouchableOpacity
-                onPress={onPress}
-                activeOpacity={0.85}
+              <IconSymbol
+                name={tab.icon as any}
+                size={20}
+                color={isFocused ? colour.primary : colour.navInactive}
+              />
+              <Text
                 style={{
-                  position: "absolute",
-                  top: -18,
-                  width: 52,
-                  height: 52,
-                  borderRadius: 26,
-                  backgroundColor: fabOpen ? colour.accentDeep : colour.primary,
-                  alignItems: "center",
-                  justifyContent: "center",
-                  borderWidth: 4,
-                  borderColor: colour.white,
-                  ...fabShadow,
+                  fontSize: 10,
+                  fontFamily: "Inter_500Medium",
+                  color: isFocused ? colour.text : colour.navInactive,
+                  marginTop: 3,
+                  alignSelf: "stretch",
+                  textAlign: "center",
                 }}
               >
-                {fabOpen ? (
-                  <IconSymbol name="xmark" size={20} color={colour.white} />
-                ) : (
-                  <IconSymbol name="camera.fill" size={22} color={colour.white} />
-                )}
-              </TouchableOpacity>
-            </View>
+                {tab.label}
+              </Text>
+            </TouchableOpacity>
           );
-        }
-
-        return (
-          <TouchableOpacity
-            key={route.key}
-            onPress={onPress}
-            activeOpacity={0.7}
-            style={{
-              flex: 1,
-              alignItems: "center",
-              justifyContent: "center",
-              paddingTop: 8,
-            }}
-          >
-            <IconSymbol
-              name={tab.icon as any}
-              size={20}
-              color={isFocused ? colour.primary : colour.navInactive}
-            />
-            <Text
-              style={{
-                fontSize: 10,
-                fontFamily: "Inter_500Medium",
-                color: isFocused ? colour.text : colour.navInactive,
-                marginTop: 3,
-              }}
-            >
-              {tab.label}
-            </Text>
-          </TouchableOpacity>
-        );
-      })}
-    </View>
-  );
-}
-
-function FabMenu({
-  visible,
-  onClose,
-  tabBarHeight,
-}: {
-  visible: boolean;
-  onClose: () => void;
-  tabBarHeight: number;
-}) {
-  const router = useRouter();
-
-  const handleAddExpense = () => {
-    onClose();
-    router.push("/(tabs)/add-expense" as any);
-  };
-
-  const handleAddIncome = () => {
-    onClose();
-    router.push("/add-income" as any);
-  };
-
-  const menuShadow =
-    Platform.OS === "ios"
-      ? { shadowColor: "#000", shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.18, shadowRadius: 24 }
-      : { elevation: 16 };
-
-  return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={onClose}
-      statusBarTranslucent
-    >
-      <Pressable
-        style={{ flex: 1 }}
-        onPress={onClose}
-      >
-        <View style={{ flex: 1, justifyContent: "flex-end" }}>
-          {/* Popover card */}
-          <Pressable
-            onPress={(e) => e.stopPropagation()}
-            style={{
-              position: "absolute",
-              bottom: tabBarHeight + 16,
-              alignSelf: "center",
-              width: 260,
-              backgroundColor: colour.white,
-              borderRadius: radius.xl,
-              overflow: "hidden",
-              ...menuShadow,
-            }}
-          >
-            {/* Add expense row */}
-            <TouchableOpacity
-              onPress={handleAddExpense}
-              activeOpacity={0.75}
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                paddingVertical: 16,
-                paddingHorizontal: 18,
-                gap: 14,
-                borderBottomWidth: 1,
-                borderBottomColor: colour.borderLight,
-              }}
-            >
-              <View style={{
-                width: 40, height: 40, borderRadius: 12,
-                backgroundColor: colour.primary50,
-                alignItems: "center", justifyContent: "center",
-              }}>
-                <IconSymbol name="plus" size={20} color={colour.primary} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 14, fontWeight: "600", color: colour.text }}>
-                  Add expense
-                </Text>
-                <Text style={{ fontSize: 11, color: colour.textSub, marginTop: 1 }}>
-                  Scan or enter manually
-                </Text>
-              </View>
-            </TouchableOpacity>
-
-            {/* Add income row */}
-            <TouchableOpacity
-              onPress={handleAddIncome}
-              activeOpacity={0.75}
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                paddingVertical: 16,
-                paddingHorizontal: 18,
-                gap: 14,
-              }}
-            >
-              <View style={{
-                width: 40, height: 40, borderRadius: 12,
-                backgroundColor: colour.successBg,
-                alignItems: "center", justifyContent: "center",
-              }}>
-                <IconSymbol name="plus" size={20} color={colour.success} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 14, fontWeight: "600", color: colour.text }}>
-                  Add income
-                </Text>
-                <Text style={{ fontSize: 11, color: colour.textSub, marginTop: 1 }}>
-                  Invoice or payment
-                </Text>
-              </View>
-            </TouchableOpacity>
-          </Pressable>
-        </View>
-      </Pressable>
-    </Modal>
+        })}
+      </View>
+    </>
   );
 }
 
 export default function TabLayout() {
-  const [fabOpen, setFabOpen] = useState(false);
   const insets = useSafeAreaInsets();
+  const router = useRouter();
+  const [fabOpen, setFabOpen] = useState(false);
   const bp = Platform.OS === "ios" ? insets.bottom : Math.max(insets.bottom, 8);
-  const tabBarHeight = 56 + bp;
+
+  const fabShadow =
+    Platform.OS === "ios"
+      ? {
+          shadowColor: colour.primary,
+          shadowOffset: { width: 0, height: 8 },
+          shadowOpacity: 0.45,
+          shadowRadius: 16,
+        }
+      : { elevation: 10 };
+
+  const handleFabAction = (route: string) => {
+    setFabOpen(false);
+    router.push(route as any);
+  };
 
   return (
     <>
       <Tabs
         tabBar={(props) => (
-          <CustomTabBar
-            {...props}
-            fabOpen={fabOpen}
-            onFabPress={() => setFabOpen((v) => !v)}
-          />
+          <CustomTabBar {...props} onFabPress={() => setFabOpen(true)} />
         )}
         screenOptions={{ headerShown: false }}
       >
@@ -289,11 +185,105 @@ export default function TabLayout() {
         <Tabs.Screen name="reports" />
         <Tabs.Screen name="settings" />
       </Tabs>
-      <FabMenu
+
+      {/* Modal lives outside the tab bar view hierarchy to avoid Android
+          getChildDrawingOrder crash (Fabric / New Architecture) */}
+      <Modal
         visible={fabOpen}
-        onClose={() => setFabOpen(false)}
-        tabBarHeight={tabBarHeight}
-      />
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        onRequestClose={() => setFabOpen(false)}
+      >
+        <View style={{ flex: 1 }}>
+          <TouchableOpacity
+            style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.45)" }}
+            activeOpacity={1}
+            onPress={() => setFabOpen(false)}
+          />
+
+          <View
+            style={{
+              position: "absolute",
+              bottom: 86 + bp,
+              left: 16,
+              right: 16,
+              backgroundColor: colour.white,
+              borderRadius: 20,
+              overflow: "hidden",
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 8 },
+              shadowOpacity: 0.12,
+              shadowRadius: 24,
+              elevation: 12,
+            }}
+          >
+            {FAB_ACTIONS.map((action, index) => (
+              <TouchableOpacity
+                key={action.route}
+                onPress={() => handleFabAction(action.route)}
+                activeOpacity={0.7}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  paddingHorizontal: 16,
+                  paddingVertical: 14,
+                  gap: 14,
+                  borderTopWidth: index > 0 ? 1 : 0,
+                  borderTopColor: colour.borderLight,
+                }}
+              >
+                <View
+                  style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: 10,
+                    backgroundColor: colour.primary,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <IconSymbol name={action.icon} size={20} color={colour.white} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontFamily: "Inter_500Medium", fontSize: 15, color: colour.text }}>
+                    {action.label}
+                  </Text>
+                  <Text style={{ fontFamily: "Inter_500Medium", fontSize: 12, color: colour.navInactive, marginTop: 2 }}>
+                    {action.subtitle}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <View
+            style={{
+              position: "absolute",
+              bottom: 22 + bp,
+              alignSelf: "center",
+            }}
+          >
+            <TouchableOpacity
+              onPress={() => setFabOpen(false)}
+              activeOpacity={0.85}
+              style={{
+                width: 52,
+                height: 52,
+                borderRadius: 26,
+                backgroundColor: colour.primary,
+                alignItems: "center",
+                justifyContent: "center",
+                borderWidth: 4,
+                borderColor: colour.white,
+                ...fabShadow,
+              }}
+            >
+              <IconSymbol name="xmark" size={22} color={colour.white} />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </>
   );
 }

@@ -1,4 +1,5 @@
 import { CATEGORY_PARTIAL_CAPS } from "@/constants/categories";
+import { getCached, invalidatePrefix, setCached } from "@/lib/queryCache";
 import { supabase } from "@/lib/supabase";
 import type { Expense, NewExpense, UpdateExpense } from "@/types/database";
 
@@ -11,6 +12,10 @@ export interface ExpenseTotals {
 export const expenseService = {
   // ── Get all expenses for a user + tax year ────────────────────────────────
   getExpenses: async (userId: string, taxYear: string): Promise<Expense[]> => {
+    const key = `exp:all:${userId}:${taxYear}`;
+    const cached = getCached<Expense[]>(key);
+    if (cached) return cached;
+
     const { data, error } = await supabase
       .from("expenses")
       .select("*")
@@ -19,11 +24,17 @@ export const expenseService = {
       .order("expense_date", { ascending: false });
 
     if (error) throw new Error(error.message);
-    return data ?? [];
+    const result = data ?? [];
+    setCached(key, result);
+    return result;
   },
 
   // ── Get ALL expenses for a user (no tax year filter) ─────────────────────
   getAllExpenses: async (userId: string): Promise<Expense[]> => {
+    const key = `exp:all-years:${userId}`;
+    const cached = getCached<Expense[]>(key);
+    if (cached) return cached;
+
     const { data, error } = await supabase
       .from("expenses")
       .select("*")
@@ -31,11 +42,17 @@ export const expenseService = {
       .order("expense_date", { ascending: false });
 
     if (error) throw new Error(error.message);
-    return data ?? [];
+    const result = data ?? [];
+    setCached(key, result);
+    return result;
   },
 
   // ── Get recent expenses (for Home screen) ─────────────────────────────────
   getRecentExpenses: async (userId: string, limit = 10): Promise<Expense[]> => {
+    const key = `exp:recent:${userId}:${limit}`;
+    const cached = getCached<Expense[]>(key);
+    if (cached) return cached;
+
     const { data, error } = await supabase
       .from("expenses")
       .select("*")
@@ -44,7 +61,9 @@ export const expenseService = {
       .limit(limit);
 
     if (error) throw new Error(error.message);
-    return data ?? [];
+    const result = data ?? [];
+    setCached(key, result);
+    return result;
   },
 
   // ── Get a single expense by id ────────────────────────────────────────────
@@ -64,6 +83,10 @@ export const expenseService = {
     userId: string,
     taxYear: string,
   ): Promise<ExpenseTotals> => {
+    const key = `exp:totals:${userId}:${taxYear}`;
+    const cached = getCached<ExpenseTotals>(key);
+    if (cached) return cached;
+
     const { data, error } = await supabase
       .from("expenses")
       .select("amount, is_deductible, category")
@@ -73,7 +96,7 @@ export const expenseService = {
     if (error) throw new Error(error.message);
 
     const expenses = data ?? [];
-    return {
+    const result: ExpenseTotals = {
       totalExpenses: expenses.reduce((sum, e) => sum + Number(e.amount), 0),
       totalDeductions: expenses
         .filter((e) => e.is_deductible)
@@ -83,6 +106,8 @@ export const expenseService = {
         }, 0),
       receiptCount: expenses.length,
     };
+    setCached(key, result);
+    return result;
   },
 
   // ── Add a new expense ─────────────────────────────────────────────────────
@@ -108,6 +133,7 @@ export const expenseService = {
       .single();
 
     if (error) throw new Error(error.message);
+    invalidatePrefix(`exp:`);
     return data;
   },
 
@@ -122,6 +148,7 @@ export const expenseService = {
       .single();
 
     if (error) throw new Error(error.message);
+    invalidatePrefix(`exp:`);
     return data;
   },
 
@@ -130,6 +157,48 @@ export const expenseService = {
     const { error } = await supabase.from("expenses").delete().eq("id", id);
 
     if (error) throw new Error(error.message);
+    invalidatePrefix(`exp:`);
+  },
+
+  // ── Remove duplicate expenses (same vendor + amount + date) ───────────────
+  // Keeps the oldest record for each combination, deletes the rest.
+  // Returns the number of duplicates removed.
+  removeDuplicates: async (userId: string, taxYear: string): Promise<number> => {
+    const { data, error } = await supabase
+      .from("expenses")
+      .select("id, vendor, amount, expense_date, created_at")
+      .eq("user_id", userId)
+      .eq("tax_year", taxYear)
+      .order("created_at", { ascending: true });
+
+    if (error) throw new Error(error.message);
+    const expenses = data ?? [];
+
+    const seen = new Set<string>();
+    const duplicateIds: string[] = [];
+
+    for (const e of expenses) {
+      const key = `${e.vendor}|${Number(e.amount).toFixed(2)}|${e.expense_date}`;
+      if (seen.has(key)) {
+        duplicateIds.push(e.id);
+      } else {
+        seen.add(key);
+      }
+    }
+
+    if (duplicateIds.length === 0) return 0;
+
+    const BATCH = 100;
+    for (let i = 0; i < duplicateIds.length; i += BATCH) {
+      const { error: delErr } = await supabase
+        .from("expenses")
+        .delete()
+        .in("id", duplicateIds.slice(i, i + BATCH));
+      if (delErr) throw new Error(delErr.message);
+    }
+
+    invalidatePrefix("exp:");
+    return duplicateIds.length;
   },
 
   // ── Get expenses grouped by category ─────────────────────────────────────
@@ -137,6 +206,10 @@ export const expenseService = {
     userId: string,
     taxYear: string,
   ): Promise<Record<string, number>> => {
+    const key = `exp:bycat:${userId}:${taxYear}`;
+    const cached = getCached<Record<string, number>>(key);
+    if (cached) return cached;
+
     const { data, error } = await supabase
       .from("expenses")
       .select("category, amount")
@@ -146,11 +219,13 @@ export const expenseService = {
 
     if (error) throw new Error(error.message);
 
-    return (data ?? []).reduce<Record<string, number>>((acc, e) => {
+    const result = (data ?? []).reduce<Record<string, number>>((acc, e) => {
       const cap = CATEGORY_PARTIAL_CAPS[e.category] ?? 1;
       acc[e.category] = (acc[e.category] ?? 0) + Number(e.amount) * cap;
       return acc;
     }, {});
+    setCached(key, result);
+    return result;
   },
 
   // ── Upload receipt and link to expense ────────────────────────────────────

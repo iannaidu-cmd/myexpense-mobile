@@ -1,112 +1,159 @@
-import { MXInput } from "@/components/MXInput";
+import { signInWithApple } from "@/services/appleAuthService";
+import { signInWithFacebook } from "@/services/facebookAuthService";
 import { signInWithGoogle } from "@/services/googleAuthService";
 import { useAuthStore } from "@/stores/authStore";
-import { colour, radius, space, typography } from "@/tokens";
+import { colour, radius } from "@/tokens";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import React, { useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StatusBar,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import Svg, { ClipPath, Defs, G, Path, Rect } from "react-native-svg";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import Svg, { Circle, ClipPath, Defs, G, Line, Path, Polyline, Rect } from "react-native-svg";
 
-// ── Facebook logo ─────────────────────────────────────────────────────────────
-function FacebookLogo({ size = 24 }: { size?: number }) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Rect width="24" height="24" rx="12" fill="#1877F2" />
+// ── Eye icon ──────────────────────────────────────────────────────────────────
+function EyeIcon({ off }: { off: boolean }) {
+  return off ? (
+    <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
       <Path
-        d="M16.5 12H14v-1.5c0-.69.31-1 1-1h1.5V7H14c-2.21 0-3 1.5-3 3v2H9v2.5h2V21h2.5v-6.5H16l.5-2.5z"
-        fill="white"
+        d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"
+        stroke={colour.textSub} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"
       />
+      <Line x1="1" y1="1" x2="23" y2="23" stroke={colour.textSub} strokeWidth={1.8} strokeLinecap="round" />
+    </Svg>
+  ) : (
+    <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"
+        stroke={colour.textSub} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"
+      />
+      <Circle cx={12} cy={12} r={3} stroke={colour.textSub} strokeWidth={1.8} />
     </Svg>
   );
 }
 
 // ── Google logo ───────────────────────────────────────────────────────────────
-function GoogleLogo({ size = 24 }: { size?: number }) {
+function GoogleLogo() {
   return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Defs>
-        <ClipPath id="clipGSU">
-          <Rect width="24" height="24" rx="12" />
-        </ClipPath>
-      </Defs>
-      <G clipPath="url(#clipGSU)">
-        <Path
-          d="M21.8 12.2c0-.7-.06-1.37-.17-2.02H12v3.82h5.5a4.7 4.7 0 01-2.04 3.08v2.56h3.3c1.93-1.78 3.04-4.4 3.04-7.44z"
-          fill="#4285F4"
-        />
-        <Path
-          d="M12 22c2.76 0 5.08-.92 6.77-2.48l-3.3-2.56c-.92.62-2.08.98-3.47.98-2.67 0-4.93-1.8-5.73-4.22H2.87v2.64A10 10 0 0012 22z"
-          fill="#34A853"
-        />
-        <Path
-          d="M6.27 13.72A6.02 6.02 0 016 12c0-.6.1-1.18.27-1.72V7.64H2.87A10 10 0 002 12c0 1.61.38 3.13 1.05 4.48l3.22-2.76z"
-          fill="#FBBC05"
-        />
-        <Path
-          d="M12 5.8c1.5 0 2.85.52 3.9 1.53l2.93-2.93C17.07 2.72 14.76 1.8 12 1.8a10 10 0 00-9.13 5.84l3.4 2.64C7.07 7.6 9.33 5.8 12 5.8z"
-          fill="#EA4335"
-        />
+    <Svg width={24} height={24} viewBox="0 0 24 24">
+      <Defs><ClipPath id="gsu"><Rect width="24" height="24" rx="12" /></ClipPath></Defs>
+      <G clipPath="url(#gsu)">
+        <Path d="M21.8 12.2c0-.7-.06-1.37-.17-2.02H12v3.82h5.5a4.7 4.7 0 0 1-2.04 3.08v2.56h3.3c1.93-1.78 3.04-4.4 3.04-7.44z" fill="#4285F4" />
+        <Path d="M12 22c2.76 0 5.08-.92 6.77-2.48l-3.3-2.56c-.92.62-2.08.98-3.47.98-2.67 0-4.93-1.8-5.73-4.22H2.87v2.64A10 10 0 0 0 12 22z" fill="#34A853" />
+        <Path d="M6.27 13.72A6.02 6.02 0 0 1 6 12c0-.6.1-1.18.27-1.72V7.64H2.87A10 10 0 0 0 2 12c0 1.61.38 3.13 1.05 4.48l3.22-2.76z" fill="#FBBC05" />
+        <Path d="M12 5.8c1.5 0 2.85.52 3.9 1.53l2.93-2.93C17.07 2.72 14.76 1.8 12 1.8a10 10 0 0 0-9.13 5.84l3.4 2.64C7.07 7.6 9.33 5.8 12 5.8z" fill="#EA4335" />
       </G>
     </Svg>
   );
 }
 
-// ── Social icon button ────────────────────────────────────────────────────────
-function SocialIconButton({
-  icon,
-  onPress,
-  disabled,
-  loading,
-  label,
+// ── Apple logo ────────────────────────────────────────────────────────────────
+function AppleLogo() {
+  return (
+    <Svg width={22} height={22} viewBox="0 0 24 24" fill="#000">
+      <Path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.7 9.05 7.4c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.39-1.32 2.76-2.54 3.99zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
+    </Svg>
+  );
+}
+
+// ── Facebook logo ─────────────────────────────────────────────────────────────
+function FacebookLogo() {
+  return (
+    <Svg width={24} height={24} viewBox="0 0 24 24">
+      <Rect width="24" height="24" rx="12" fill="#1877F2" />
+      <Path d="M16.5 12H14v-1.5c0-.69.31-1 1-1h1.5V7H14c-2.21 0-3 1.5-3 3v2H9v2.5h2V21h2.5v-6.5H16l.5-2.5z" fill="white" />
+    </Svg>
+  );
+}
+
+// ── Form field with focus ring ─────────────────────────────────────────────────
+function AuthField({
+  label, value, onChangeText, placeholder, secureTextEntry,
+  keyboardType, autoCapitalize = "none", autoCorrect = false,
+  autoComplete, trailing, onTrailingPress, hint, error,
 }: {
-  icon: React.ReactNode;
-  onPress: () => void;
-  disabled?: boolean;
-  loading?: boolean;
-  label: string;
+  label: string; value: string; onChangeText: (t: string) => void;
+  placeholder?: string; secureTextEntry?: boolean; keyboardType?: any;
+  autoCapitalize?: "none" | "words" | "sentences" | "characters";
+  autoCorrect?: boolean; autoComplete?: any;
+  trailing?: React.ReactNode; onTrailingPress?: () => void;
+  hint?: string; error?: string;
+}) {
+  const [focused, setFocused] = useState(false);
+  return (
+    <View>
+      <Text style={{ fontSize: 13, fontWeight: "600", color: colour.textMid, letterSpacing: 0.1, marginBottom: 7 }}>
+        {label}
+      </Text>
+      <View style={{
+        flexDirection: "row", alignItems: "center",
+        backgroundColor: colour.white,
+        borderRadius: radius.md, height: 54,
+        paddingHorizontal: 15,
+        borderWidth: focused ? 1.5 : 1,
+        borderColor: focused ? colour.primary : colour.borderLight,
+        ...Platform.select({
+          ios: focused
+            ? { shadowColor: colour.primary50, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 1, shadowRadius: 4 }
+            : { shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 2 },
+          android: {},
+        }),
+      }}>
+        <TextInput
+          value={value} onChangeText={onChangeText} placeholder={placeholder}
+          placeholderTextColor={colour.textHint} secureTextEntry={secureTextEntry}
+          keyboardType={keyboardType} autoCapitalize={autoCapitalize}
+          autoCorrect={autoCorrect} autoComplete={autoComplete}
+          onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
+          style={{ flex: 1, fontSize: 16, fontWeight: "500", color: colour.text, paddingVertical: 0 }}
+        />
+        {trailing && (
+          <TouchableOpacity onPress={onTrailingPress} hitSlop={8} activeOpacity={0.7}>
+            {trailing}
+          </TouchableOpacity>
+        )}
+      </View>
+      {hint && !error && (
+        <Text style={{ fontSize: 12, color: colour.textHint, marginTop: 6, letterSpacing: 0.1 }}>{hint}</Text>
+      )}
+      {error && (
+        <Text style={{ fontSize: 12, color: colour.danger, marginTop: 6 }}>{error}</Text>
+      )}
+    </View>
+  );
+}
+
+// ── Social button ─────────────────────────────────────────────────────────────
+function SocialButton({ icon, onPress, disabled, loading, label }: {
+  icon: React.ReactNode; onPress: () => void;
+  disabled?: boolean; loading?: boolean; label: string;
 }) {
   return (
     <TouchableOpacity
-      onPress={onPress}
-      disabled={disabled}
-      activeOpacity={0.8}
+      onPress={onPress} disabled={disabled} activeOpacity={0.8}
       accessibilityLabel={`Sign up with ${label}`}
       style={{
-        width: 56,
-        height: 56,
-        borderRadius: 28,
+        width: 56, height: 56, borderRadius: 28,
         backgroundColor: colour.white,
-        borderWidth: 1.5,
-        borderColor: colour.border,
-        alignItems: "center",
-        justifyContent: "center",
+        borderWidth: 1, borderColor: colour.borderLight,
+        alignItems: "center", justifyContent: "center",
         opacity: disabled ? 0.5 : 1,
         ...Platform.select({
-          ios: {
-            shadowColor: "#000",
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.08,
-            shadowRadius: 6,
-          },
-          android: { elevation: 3 },
+          ios: { shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2 },
+          android: { elevation: 1 },
         }),
       }}
     >
-      {loading ? (
-        <ActivityIndicator color={colour.textSecondary} size="small" />
-      ) : (
-        icon
-      )}
+      {loading ? <ActivityIndicator color={colour.textSub} size="small" /> : icon}
     </TouchableOpacity>
   );
 }
@@ -114,6 +161,7 @@ function SocialIconButton({
 // ── Screen ────────────────────────────────────────────────────────────────────
 export function SignupScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { signUp } = useAuthStore();
 
   const [name, setName] = useState("");
@@ -124,38 +172,23 @@ export function SignupScreen() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [fbLoading, setFbLoading] = useState(false);
-  const [errors, setErrors] = useState<{
-    name?: string;
-    email?: string;
-    password?: string;
-    agree?: string;
-  }>({});
-
-  const validate = () => {
-    const e: typeof errors = {};
-    if (!name.trim()) e.name = "Full name is required";
-    if (!email.includes("@")) e.email = "Enter a valid email address";
-    if (password.length < 8)
-      e.password = "Password must be at least 8 characters";
-    if (!agreed) e.agree = "You must accept the terms to continue";
-    return e;
-  };
+  const [appleLoading, setAppleLoading] = useState(false);
+  const [errors, setErrors] = useState<{ name?: string; email?: string; password?: string }>({});
 
   const handleSubmit = async () => {
-    const e = validate();
-    if (Object.keys(e).length) {
-      setErrors(e);
-      return;
-    }
+    const e: typeof errors = {};
+    if (!name.trim()) e.name = "Full name is required.";
+    if (!email.includes("@")) e.email = "Enter a valid email address.";
+    if (password.length < 8) e.password = "Use at least 8 characters.";
+    if (Object.keys(e).length) { setErrors(e); return; }
     setErrors({});
     setLoading(true);
     try {
       await signUp(email, password, name.trim());
-      router.replace({ pathname: "/email-verification", params: { email } });
+      // AuthGate handles routing: pendingEmailVerification → email-verification,
+      // or isAuthenticated → tabs (when email confirmation is disabled).
     } catch (err: any) {
-      setErrors({
-        email: err.message ?? "Could not create account. Please try again.",
-      });
+      setErrors({ email: err.message ?? "Could not create account. Please try again." });
     } finally {
       setLoading(false);
     }
@@ -165,343 +198,166 @@ export function SignupScreen() {
     setGoogleLoading(true);
     try {
       const result = await signInWithGoogle();
-      if (result.success) {
-        router.replace("/(tabs)");
-      } else if (result.error !== "cancelled") {
-        Alert.alert(
-          "Google Sign-In failed",
-          result.error ?? "Please try again.",
-        );
-      }
-    } finally {
-      setGoogleLoading(false);
-    }
+      if (result.success) router.replace("/(tabs)");
+      else if (result.error !== "cancelled") Alert.alert("Google Sign-In failed", result.error ?? "Please try again.");
+    } finally { setGoogleLoading(false); }
   };
 
   const handleFacebookSignIn = async () => {
     setFbLoading(true);
     try {
-      Alert.alert(
-        "Coming Soon",
-        "Facebook Sign-In will be available in the next update.",
-      );
-    } finally {
-      setFbLoading(false);
-    }
+      const result = await signInWithFacebook();
+      if (!result.success && result.error !== "cancelled") Alert.alert("Facebook Sign-In failed", result.error ?? "Please try again.");
+    } finally { setFbLoading(false); }
   };
 
-  const socialDisabled = loading || googleLoading || fbLoading;
+  const handleAppleSignIn = async () => {
+    setAppleLoading(true);
+    try {
+      const result = await signInWithApple();
+      if (result.success) router.replace("/(tabs)");
+      else if (result.error !== "cancelled") Alert.alert("Apple Sign-In failed", result.error ?? "Please try again.");
+    } finally { setAppleLoading(false); }
+  };
 
-  const passwordStrength =
-    password.length === 0
-      ? 0
-      : password.length < 6
-        ? 1
-        : password.length < 10
-          ? 2
-          : 3;
-  const strengthColors = [
-    "transparent",
-    colour.danger,
-    colour.warning,
-    colour.primary,
-  ];
-  const strengthLabels = ["", "Weak", "Fair", "Strong"];
+  const socialDisabled = loading || googleLoading || fbLoading || appleLoading;
+  const ctaDisabled = !agreed || loading || socialDisabled;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colour.white }}>
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-      >
-        <ScrollView
-          contentContainerStyle={{ flexGrow: 1 }}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Header */}
-          <View
-            style={{
-              backgroundColor: colour.primary,
-              paddingHorizontal: space.lg,
-              paddingTop: space["2xl"],
-              paddingBottom: space["3xl"],
-            }}
-          >
-            <Text
-              style={{
-                ...typography.h2,
-                fontWeight: "800",
-                color: colour.onPrimary,
-                marginBottom: space.xs,
-              }}
-            >
+    <SafeAreaView edges={["bottom"]} style={{ flex: 1, backgroundColor: colour.primary }}>
+      <StatusBar barStyle="light-content" backgroundColor={colour.primary} />
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+        <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+
+          {/* ── Periwinkle header ── */}
+          <View style={{
+            backgroundColor: colour.primary,
+            paddingTop: insets.top + 10,
+            paddingHorizontal: 24,
+            paddingBottom: 40,
+            overflow: "hidden",
+          }}>
+            <View style={{ position: "absolute", top: -46, right: -30, width: 150, height: 150, borderRadius: 75, backgroundColor: "rgba(255,255,255,0.10)" }} />
+            <View style={{ position: "absolute", top: 34, right: 42, width: 60, height: 60, borderRadius: 30, backgroundColor: "rgba(255,255,255,0.08)" }} />
+
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 9, marginBottom: 24 }}>
+              <Text style={{ fontSize: 16, fontWeight: "700", color: "#fff", letterSpacing: -0.2 }}>MyExpense</Text>
+            </View>
+
+            <Text style={{ fontSize: 27, fontWeight: "800", color: "#fff", letterSpacing: -0.5, lineHeight: 32, marginBottom: 8 }}>
               Create account
             </Text>
-            <Text
-              style={{ ...typography.bodyM, color: "rgba(255,255,255,0.75)" }}
-            >
-              Join 3.8 million self-employed South Africans maximising their tax
-              deductions.
+            <Text style={{ fontSize: 14, lineHeight: 21, color: "rgba(255,255,255,0.82)", maxWidth: 300 }}>
+              Join 3.8 million self-employed South Africans maximising their tax deductions.
             </Text>
           </View>
 
-          {/* Card */}
-          <View
-            style={{
-              flex: 1,
-              backgroundColor: colour.white,
-              borderTopLeftRadius: radius.xl,
-              borderTopRightRadius: radius.xl,
-              marginTop: -20,
-              padding: space.lg,
-              paddingTop: space["2xl"],
-            }}
-          >
-            {/* Full name */}
-            <View style={{ marginBottom: space.lg }}>
-              <MXInput
-                label="Full name"
-                value={name}
-                onChangeText={setName}
-                placeholder="e.g. Ian Naidu"
-                autoCapitalize="words"
-                autoCorrect={false}
-                error={errors.name}
-              />
-            </View>
+          {/* ── Cream card ── */}
+          <View style={{
+            flex: 1, backgroundColor: colour.background,
+            borderTopLeftRadius: 28, borderTopRightRadius: 28,
+            marginTop: -24, paddingHorizontal: 24, paddingTop: 28, paddingBottom: 28,
+          }}>
 
-            {/* Email */}
-            <View style={{ marginBottom: space.lg }}>
-              <MXInput
-                label="Email address"
-                value={email}
-                onChangeText={setEmail}
-                placeholder="you@example.co.za"
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoCorrect={false}
-                error={errors.email}
+            {/* Fields */}
+            <View style={{ gap: 18 }}>
+              <AuthField
+                label="Full name" value={name} onChangeText={setName}
+                placeholder="e.g. Ian Naidu" autoCapitalize="words"
+                autoCorrect={false} autoComplete="name" error={errors.name}
               />
-            </View>
-
-            {/* Password */}
-            <View style={{ marginBottom: space.sm }}>
-              <MXInput
-                label="Password"
-                value={password}
-                onChangeText={setPassword}
-                placeholder="Min. 8 characters"
-                secureTextEntry={!showPassword}
-                trailingIcon={
-                  <Text style={{ fontSize: 18 }}>
-                    {showPassword ? "🙈" : "👁️"}
-                  </Text>
-                }
-                onTrailingPress={() => setShowPassword(!showPassword)}
+              <AuthField
+                label="Email address" value={email} onChangeText={setEmail}
+                placeholder="you@example.co.za" keyboardType="email-address"
+                autoComplete="email" error={errors.email}
+              />
+              <AuthField
+                label="Password" value={password} onChangeText={setPassword}
+                placeholder="Create a password" secureTextEntry={!showPassword}
+                autoComplete="new-password"
+                hint="Use at least 8 characters."
+                trailing={<EyeIcon off={showPassword} />}
+                onTrailingPress={() => setShowPassword(s => !s)}
                 error={errors.password}
               />
             </View>
 
-            {/* Password strength */}
-            {password.length > 0 && (
-              <View style={{ marginBottom: space.lg }}>
-                <View
-                  style={{
-                    height: 4,
-                    borderRadius: 2,
-                    backgroundColor: strengthColors[passwordStrength],
-                    marginBottom: 4,
-                  }}
-                />
-                <Text
-                  style={{
-                    ...typography.bodyXS,
-                    color: colour.textSub,
-                    fontWeight: "600",
-                  }}
-                >
-                  {strengthLabels[passwordStrength]}
-                </Text>
-              </View>
-            )}
-
-            {/* Terms checkbox */}
+            {/* Consent checkbox */}
             <TouchableOpacity
-              style={{
-                flexDirection: "row",
-                alignItems: "flex-start",
-                gap: 10,
-                minHeight: 44,
-                marginBottom: space.sm,
-              }}
-              onPress={() => setAgreed(!agreed)}
-              activeOpacity={0.8}
+              onPress={() => setAgreed(a => !a)} activeOpacity={0.8}
+              style={{ flexDirection: "row", alignItems: "flex-start", gap: 12, marginTop: 20 }}
             >
-              <View
-                style={{
-                  width: 20,
-                  height: 20,
-                  borderRadius: 6,
-                  borderWidth: 1.5,
-                  borderColor: agreed ? colour.primary : colour.border,
-                  backgroundColor: agreed ? colour.primary : "transparent",
-                  justifyContent: "center",
-                  alignItems: "center",
-                  marginTop: 2,
-                  flexShrink: 0,
-                }}
-              >
+              <View style={{
+                width: 22, height: 22, borderRadius: 7, flexShrink: 0, marginTop: 1,
+                alignItems: "center", justifyContent: "center",
+                backgroundColor: agreed ? colour.primary : colour.white,
+                borderWidth: 1.5,
+                borderColor: agreed ? colour.primary : colour.border,
+              }}>
                 {agreed && (
-                  <Text
-                    style={{
-                      fontSize: 12,
-                      fontWeight: "700",
-                      color: colour.white,
-                    }}
-                  >
-                    ✓
-                  </Text>
+                  <Svg width={13} height={13} viewBox="0 0 24 24" fill="none">
+                    <Polyline points="20 6 9 17 4 12" stroke="white" strokeWidth={3.2} strokeLinecap="round" strokeLinejoin="round" />
+                  </Svg>
                 )}
               </View>
-              {/* Terms text — links navigate in-app */}
-              <Text
-                style={{
-                  ...typography.bodyS,
-                  color: colour.textSub,
-                  flex: 1,
-                  lineHeight: 20,
-                }}
-              >
+              <Text style={{ fontSize: 13, lineHeight: 19, color: colour.textSub, flex: 1 }}>
                 {"I agree to the "}
-                <Text
-                  style={{ color: colour.primary, fontWeight: "600" }}
-                  onPress={() => router.push("/terms")}
-                >
+                <Text style={{ color: colour.primary, fontWeight: "600" }} onPress={() => router.push("/terms")}>
                   Terms of Service
                 </Text>
                 {" and "}
-                <Text
-                  style={{ color: colour.primary, fontWeight: "600" }}
-                  onPress={() => router.push("/privacy")}
-                >
+                <Text style={{ color: colour.primary, fontWeight: "600" }} onPress={() => router.push("/privacy")}>
                   Privacy Policy
                 </Text>
                 {". Your data is protected under POPIA."}
               </Text>
             </TouchableOpacity>
-            {errors.agree && (
-              <Text
-                style={{
-                  ...typography.bodyXS,
-                  color: colour.danger,
-                  marginBottom: space.md,
-                }}
-              >
-                {errors.agree}
-              </Text>
-            )}
 
-            {/* Create account button */}
+            {/* CTA */}
             <TouchableOpacity
-              onPress={handleSubmit}
-              disabled={loading || socialDisabled}
+              onPress={handleSubmit} disabled={ctaDisabled} activeOpacity={0.85}
               style={{
-                backgroundColor:
-                  loading || socialDisabled ? colour.border : colour.primary,
-                borderRadius: radius.pill,
-                height: 52,
-                alignItems: "center",
-                justifyContent: "center",
-                marginBottom: space.xl,
-                marginTop: space.md,
+                backgroundColor: colour.primary, borderRadius: 100, height: 56,
+                alignItems: "center", justifyContent: "center", marginTop: 20,
+                opacity: ctaDisabled ? 0.45 : 1,
+                ...(!ctaDisabled ? Platform.select({
+                  ios: { shadowColor: colour.primary, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.32, shadowRadius: 18 },
+                  android: { elevation: 4 },
+                }) : {}),
               }}
             >
-              {loading ? (
-                <ActivityIndicator color={colour.onPrimary} />
-              ) : (
-                <Text style={{ ...typography.btnL, color: colour.onPrimary }}>
-                  Create Account
-                </Text>
+              {loading ? <ActivityIndicator color={colour.onPrimary} /> : (
+                <Text style={{ fontSize: 16, fontWeight: "700", color: colour.onPrimary, letterSpacing: 0.2 }}>Create account</Text>
               )}
             </TouchableOpacity>
 
-            {/* Social sign-up */}
-            <View style={{ alignItems: "center", marginBottom: space.xl }}>
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  marginBottom: space.lg,
-                  width: "100%",
-                }}
-              >
-                <View
-                  style={{ flex: 1, height: 1, backgroundColor: colour.border }}
-                />
-                <Text
-                  style={{
-                    ...typography.caption,
-                    color: colour.textSecondary,
-                    paddingHorizontal: space.md,
-                  }}
-                >
-                  or sign up with
-                </Text>
-                <View
-                  style={{ flex: 1, height: 1, backgroundColor: colour.border }}
-                />
-              </View>
-              <View
-                style={{
-                  flexDirection: "row",
-                  gap: space.xl,
-                  justifyContent: "center",
-                }}
-              >
-                <SocialIconButton
-                  label="Facebook"
-                  icon={<FacebookLogo size={24} />}
-                  onPress={handleFacebookSignIn}
-                  loading={fbLoading}
-                  disabled={socialDisabled}
-                />
-                <SocialIconButton
-                  label="Google"
-                  icon={<GoogleLogo size={24} />}
-                  onPress={handleGoogleSignIn}
-                  loading={googleLoading}
-                  disabled={socialDisabled}
-                />
-              </View>
+            {/* Divider */}
+            <View style={{ flexDirection: "row", alignItems: "center", marginTop: 20, marginBottom: 18 }}>
+              <View style={{ flex: 1, height: 1, backgroundColor: colour.borderLight }} />
+              <Text style={{ fontSize: 12, fontWeight: "600", color: colour.textSub, paddingHorizontal: 14, letterSpacing: 0.2 }}>
+                or sign up with
+              </Text>
+              <View style={{ flex: 1, height: 1, backgroundColor: colour.borderLight }} />
             </View>
 
-            {/* Sign in link */}
-            <View
-              style={{
-                flexDirection: "row",
-                justifyContent: "center",
-                alignItems: "center",
-              }}
-            >
-              <Text style={{ ...typography.bodyM, color: colour.textSub }}>
-                Already have an account?{" "}
-              </Text>
-              <TouchableOpacity
-                onPress={() => router.replace("/sign-in")}
-                activeOpacity={0.7}
-              >
-                <Text
-                  style={{
-                    ...typography.bodyM,
-                    color: colour.primary,
-                    fontWeight: "700",
-                  }}
-                >
-                  Sign In
-                </Text>
+            {/* Social buttons */}
+            <View style={{ flexDirection: "row", justifyContent: "center", gap: 16 }}>
+              {Platform.OS === "ios" && (
+                <SocialButton label="Apple" icon={<AppleLogo />} onPress={handleAppleSignIn} loading={appleLoading} disabled={!agreed || socialDisabled} />
+              )}
+              <SocialButton label="Google" icon={<GoogleLogo />} onPress={handleGoogleSignIn} loading={googleLoading} disabled={!agreed || socialDisabled} />
+              <SocialButton label="Facebook" icon={<FacebookLogo />} onPress={handleFacebookSignIn} loading={fbLoading} disabled={!agreed || socialDisabled} />
+            </View>
+
+            {/* Spacer + footer */}
+            <View style={{ flex: 1, minHeight: 24 }} />
+            <View style={{ flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 4 }}>
+              <Text style={{ fontSize: 14, color: colour.textSub }}>Already have an account?</Text>
+              <TouchableOpacity onPress={() => router.replace("/sign-in")} activeOpacity={0.7}>
+                <Text style={{ fontSize: 14, fontWeight: "700", color: colour.primary }}>Sign in</Text>
               </TouchableOpacity>
             </View>
+
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

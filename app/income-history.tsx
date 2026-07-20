@@ -5,10 +5,10 @@ import { incomeService } from "@/services/incomeService";
 import { useAuthStore } from "@/stores/authStore";
 import { colour, radius, space, typography } from "@/tokens";
 import { useFocusEffect, useRouter } from "expo-router";
+import { useAppForeground } from "@/hooks/use-app-foreground";
 import React, { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   RefreshControl,
   StatusBar,
@@ -57,18 +57,20 @@ export default function IncomeHistoryScreen() {
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [income, setIncome] = useState<any[]>([]);
   const [search, setSearch] = useState("");
-  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
-    if (!user) return;
+    if (!user) { setLoading(false); return; }
     setLoading(true);
+    setError(null);
     try {
       const data = await incomeService.getIncome(user.id);
       setIncome(data);
     } catch (e) {
       console.error("IncomeHistory load error:", e);
+      setError("Failed to load income. Pull down to retry.");
     } finally {
       setLoading(false);
     }
@@ -77,11 +79,13 @@ export default function IncomeHistoryScreen() {
   const handleRefresh = useCallback(async () => {
     if (!user) return;
     setRefreshing(true);
+    setError(null);
     try {
       const data = await incomeService.getIncome(user.id);
       setIncome(data);
     } catch (e) {
       console.error("IncomeHistory refresh error:", e);
+      setError("Failed to load income. Pull down to retry.");
     } finally {
       setRefreshing(false);
     }
@@ -92,53 +96,8 @@ export default function IncomeHistoryScreen() {
       loadData();
     }, [loadData]),
   );
+  useAppForeground(loadData);
 
-  const handleView = (item: any) => {
-    Alert.alert(
-      item.source,
-      [
-        `Amount: ${fmt(item.amount)}`,
-        `Date: ${formatDate(item.date)}`,
-        item.description ? `Notes: ${item.description}` : null,
-        item.category ? `Category: ${item.category}` : null,
-      ]
-        .filter(Boolean)
-        .join("\n"),
-      [
-        { text: "Close", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: () => handleDelete(item.id, item.source),
-        },
-      ],
-    );
-  };
-
-  const handleDelete = (id: string, source: string) => {
-    Alert.alert(
-      "Delete income",
-      `Remove "${source}" from your income records? This cannot be undone.`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            setDeletingId(id);
-            try {
-              await incomeService.deleteIncome(id);
-              setIncome((prev) => prev.filter((e) => e.id !== id));
-            } catch (e: any) {
-              Alert.alert("Error", e.message);
-            } finally {
-              setDeletingId(null);
-            }
-          },
-        },
-      ],
-    );
-  };
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
@@ -157,12 +116,12 @@ export default function IncomeHistoryScreen() {
   return (
     <SafeAreaView
       edges={["top"]}
-      style={{ flex: 1, backgroundColor: colour.success }}
+      style={{ flex: 1, backgroundColor: colour.background }}
     >
       <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
 
       <MXHeader
-        title="Income History"
+        title="Income history"
         showBack
         right={
           <TouchableOpacity
@@ -188,7 +147,7 @@ export default function IncomeHistoryScreen() {
             <Text
               style={{ ...typography.caption, color: colour.textSub }}
             >
-              Total Income
+              Total income
             </Text>
             <Text style={{ ...typography.amountM, color: colour.text }}>
               {fmt(totalIncome)}
@@ -247,7 +206,15 @@ export default function IncomeHistoryScreen() {
 
         {loading ? (
           <View style={{ alignItems: "center", paddingTop: space["4xl"] }}>
-            <ActivityIndicator color={colour.success} size="large" />
+            <ActivityIndicator color={colour.primary} size="large" />
+          </View>
+        ) : error ? (
+          <View style={{ alignItems: "center", paddingTop: space["4xl"], paddingHorizontal: space.lg }}>
+            <IconSymbol name="exclamationmark.triangle.fill" size={40} color={colour.danger} style={{ marginBottom: space.md } as any} />
+            <Text style={{ ...typography.h4, color: colour.text, marginBottom: space.sm, textAlign: "center" }}>{error}</Text>
+            <TouchableOpacity onPress={loadData}>
+              <Text style={{ ...typography.bodyM, color: colour.primary, fontWeight: "600" }}>Retry</Text>
+            </TouchableOpacity>
           </View>
         ) : (
           <FlatList
@@ -306,7 +273,7 @@ export default function IncomeHistoryScreen() {
                     <Text
                       style={{ ...typography.btnL, color: colour.text }}
                     >
-                      Add Income
+                      Add income
                     </Text>
                   </TouchableOpacity>
                 )}
@@ -314,8 +281,7 @@ export default function IncomeHistoryScreen() {
             }
             renderItem={({ item }) => (
               <TouchableOpacity
-                onPress={() => handleView(item)}
-                onLongPress={() => handleDelete(item.id, item.source)}
+                onPress={() => router.push(`/income-detail?id=${item.id}` as any)}
                 delayLongPress={500}
                 style={{
                   flexDirection: "row",
@@ -337,11 +303,7 @@ export default function IncomeHistoryScreen() {
                     marginRight: space.md,
                   }}
                 >
-                  {deletingId === item.id ? (
-                    <ActivityIndicator color={colour.success} size="small" />
-                  ) : (
-                    <IconSymbol name={sourceIcon(item.source)} size={20} color={colour.success} />
-                  )}
+                  <IconSymbol name={sourceIcon(item.source)} size={20} color={colour.success} />
                 </View>
 
                 {/* Details */}
@@ -389,27 +351,6 @@ export default function IncomeHistoryScreen() {
           />
         )}
       </View>
-
-      {/* Hint */}
-      {income.length > 0 && !loading && (
-        <View
-          style={{
-            backgroundColor: colour.bgCard,
-            paddingHorizontal: space.lg,
-            paddingVertical: space.sm,
-          }}
-        >
-          <Text
-            style={{
-              ...typography.micro,
-              color: colour.textHint,
-              textAlign: "center",
-            }}
-          >
-            Tap to view details · Long press to delete
-          </Text>
-        </View>
-      )}
 
       <MXTabBar />
     </SafeAreaView>

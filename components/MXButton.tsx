@@ -1,11 +1,12 @@
 // ─── MXButton ─────────────────────────────────────────────────────────────────
-// Variants: primary (solid pill), secondary (outlined), tertiary (text-only)
+// Variants: primary (solid pill), secondary (outlined), tertiary (text-only),
+// danger (solid pill, destructive actions e.g. delete account)
 
 import { colour, radius, space, typography } from "@/tokens";
 import React from "react";
 import { ActivityIndicator, Text, TouchableOpacity, View } from "react-native";
 
-type Variant = "primary" | "secondary" | "tertiary";
+type Variant = "primary" | "secondary" | "tertiary" | "danger";
 type Size = "L" | "M" | "S";
 
 interface MXButtonProps {
@@ -57,12 +58,15 @@ export function MXButton({
     ...(variant === "tertiary" && {
       backgroundColor: "transparent",
     }),
+    ...(variant === "danger" && {
+      backgroundColor: colour.danger,
+    }),
   };
 
   // ── Label style ───────────────────────────────────────────────────────────
   const labelStyle: object = {
     ...typography.actionM,
-    color: variant === "primary" ? colour.onPrimary : colour.primary,
+    color: variant === "primary" || variant === "danger" ? colour.onPrimary : colour.primary,
     fontWeight: "700",
     letterSpacing: 0.2,
   };
@@ -77,7 +81,7 @@ export function MXButton({
       {icon && <View style={{ marginRight: 8 }}>{icon}</View>}
       {loading ? (
         <ActivityIndicator
-          color={variant === "primary" ? colour.onPrimary : colour.primary}
+          color={variant === "primary" || variant === "danger" ? colour.onPrimary : colour.primary}
         />
       ) : (
         <Text style={labelStyle}>{label}</Text>

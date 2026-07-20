@@ -1,17 +1,21 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { InfoBanner } from "@/components/InfoBanner";
+import { useKeepAwake } from "expo-keep-awake";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from "@/components/maps";
+import { SARS_RATE_PER_KM, taxYearForDate } from "@/lib/taxRules";
 import { useAuthStore } from "@/stores/authStore";
+import { useExpenseStore } from "@/stores/expenseStore";
 import { colour, radius, space, typography } from "@/tokens";
-import { ACTIVE_TAX_YEAR } from "@/types/database";
 import * as Location from "expo-location";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
+    KeyboardAvoidingView,
     Modal,
     Platform,
     ScrollView,
@@ -23,8 +27,14 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-// ─── SARS deemed cost rate for 2024/25 tax year ───────────────────────────────
-const SARS_RATE_PER_KM = 4.84;
+
+// ─── Default map region — Johannesburg, SA ────────────────────────────────────
+const DEFAULT_REGION = {
+  latitude: -26.2041,
+  longitude: 28.0473,
+  latitudeDelta: 0.15,
+  longitudeDelta: 0.15,
+};
 
 // ─── ITR12 purpose categories ─────────────────────────────────────────────────
 const TRIP_PURPOSES = [
@@ -94,6 +104,7 @@ interface Coord {
 export default function MileageTrackerScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
+  const { activeTaxYear } = useExpenseStore();
 
   const [status, setStatus] = useState<TripStatus>("idle");
   const [coords, setCoords] = useState<Coord[]>([]);
@@ -108,9 +119,15 @@ export default function MileageTrackerScreen() {
   const [selectedPurpose, setSelectedPurpose] = useState(TRIP_PURPOSES[0]);
   const [tripNote, setTripNote] = useState("");
 
+  const [locationReady, setLocationReady] = useState(false);
+
+  useKeepAwake(status !== "idle" ? "mileage-trip" : undefined);
+
   const mapRef = useRef<MapView>(null);
   const locationSub = useRef<Location.LocationSubscription | null>(null);
+  const bgWatchRef = useRef<Location.LocationSubscription | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const gpsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastCoordRef = useRef<Coord | null>(null);
   const pausedKmRef = useRef(0);
 
@@ -170,30 +187,62 @@ export default function MileageTrackerScreen() {
             "Location Required",
             "MyExpense needs location access to track your business travel for SARS compliance.",
           );
+          setLocationReady(true);
           return;
         }
+
+        // Stage 1: try last-known position (instant — uses OS cache)
         try {
-          const pos = await Location.getCurrentPositionAsync({
-            accuracy: Location.Accuracy.Balanced,
-          });
-          setCurrentPos({
-            latitude: pos.coords.latitude,
-            longitude: pos.coords.longitude,
-          });
-        } catch {
-          // Location services disabled or unavailable — show default map position,
-          // trip tracking will still work once the user enables GPS and starts a trip
-          Alert.alert(
-            "Location Unavailable",
-            "Please enable location services (GPS) on your device to track trips accurately.",
+          const last = await Location.getLastKnownPositionAsync({ maxAge: 300_000 });
+          if (last) {
+            setCurrentPos({ latitude: last.coords.latitude, longitude: last.coords.longitude });
+            setLocationReady(true);
+            return;
+          }
+        } catch { /* no cached position — fall through */ }
+
+        // Stage 2: watch for first fresh fix, clear watch once received
+        try {
+          bgWatchRef.current = await Location.watchPositionAsync(
+            { accuracy: Location.Accuracy.Balanced, distanceInterval: 0, timeInterval: 2000 },
+            (loc) => {
+              setCurrentPos({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
+              setLocationReady(true);
+              bgWatchRef.current?.remove();
+              bgWatchRef.current = null;
+              if (gpsTimeoutRef.current) clearTimeout(gpsTimeoutRef.current);
+            },
           );
-        }
+        } catch { /* GPS unavailable */ }
+
+        // Fallback: hide overlay after 20 s regardless so user can still start a trip
+        gpsTimeoutRef.current = setTimeout(() => setLocationReady(true), 20_000);
       } catch {
-        // Permission check itself failed — ignore silently
+        setLocationReady(true);
       }
     })();
-    return () => stopTracking();
+    return () => {
+      stopTracking();
+      bgWatchRef.current?.remove();
+      if (gpsTimeoutRef.current) clearTimeout(gpsTimeoutRef.current);
+    };
   }, []);
+
+  // ── Centre map on first GPS fix ──────────────────────────────────────────
+  const hasAnimatedToUser = useRef(false);
+  useEffect(() => {
+    if (!currentPos || hasAnimatedToUser.current) return;
+    hasAnimatedToUser.current = true;
+    mapRef.current?.animateToRegion(
+      {
+        latitude: currentPos.latitude,
+        longitude: currentPos.longitude,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      },
+      800,
+    );
+  }, [currentPos]);
 
   // ── Elapsed timer ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -303,7 +352,7 @@ export default function MileageTrackerScreen() {
           start_lng: startPos?.longitude ?? null,
           end_lat: currentPos?.latitude ?? null,
           end_lng: currentPos?.longitude ?? null,
-          tax_year: ACTIVE_TAX_YEAR,
+          tax_year: taxYearForDate(tripDate),
           is_deductible: true,
           notes: tripNote || null,
           trip_date: tripDate,
@@ -370,17 +419,50 @@ export default function MileageTrackerScreen() {
     );
   }, [distanceKm, stopTracking, saveTrip]);
 
+  // Discard the trip entirely — no row is ever written to mileage_trips.
+  // Distinct from handleEnd, which always saves. Lets the user bail out of a
+  // trip started by accident (or a test drive) without it landing in their
+  // logbook, so there's nothing to clean up afterwards from Trip History.
+  const handleCancel = useCallback(() => {
+    Alert.alert(
+      "Discard Trip?",
+      `You've travelled ${distanceKm.toFixed(2)} km. This trip will NOT be saved.`,
+      [
+        { text: "Keep Tracking", style: "cancel" },
+        {
+          text: "Discard",
+          style: "destructive",
+          onPress: () => {
+            stopTracking();
+            clearSavedTrip();
+            setStatus("idle");
+            setDistanceKm(0);
+            setCoords([]);
+            setStartTime(null);
+            setElapsed(0);
+            setStartPos(null);
+            setTripNote("");
+            lastCoordRef.current = null;
+            pausedKmRef.current = 0;
+          },
+        },
+      ],
+    );
+  }, [distanceKm, stopTracking, clearSavedTrip]);
+
   const deductionEstimate = distanceKm * SARS_RATE_PER_KM;
   const elapsedStr = formatElapsed(elapsed);
+
+  // ── Split distance into whole and decimal parts ───────────────────────────
+  const [wholeKm, decimalKm] = distanceKm.toFixed(2).split(".");
 
   return (
     <View style={{ flex: 1, backgroundColor: colour.background }}>
       <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
 
-      {/* Primary-blue header area */}
       <SafeAreaView edges={["top"]} style={{ backgroundColor: colour.background }}>
         <MXHeader
-          title="Mileage Tracker"
+          title="Mileage tracker"
           showBack
           right={
             <TouchableOpacity
@@ -405,64 +487,63 @@ export default function MileageTrackerScreen() {
         contentContainerStyle={{ paddingBottom: space["3xl"] }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Map */}
+        {/* Map - larger at 280px */}
         <View
           style={{
             marginTop: -space.lg,
             marginHorizontal: space.md,
             borderRadius: radius.lg,
             overflow: "hidden",
-            height: 240,
+            height: 280,
             ...platformShadow,
           }}
         >
-          {currentPos ? (
-            <MapView
-              ref={mapRef}
-              provider={PROVIDER_GOOGLE}
-              style={{ flex: 1 }}
-              initialRegion={{
-                ...currentPos,
-                latitudeDelta: 0.01,
-                longitudeDelta: 0.01,
-              }}
-              showsUserLocation
-              showsMyLocationButton={false}
-              showsCompass={false}
-            >
-              {startPos && (
-                <Marker
-                  coordinate={startPos}
-                  title="Start"
-                  pinColor={colour.success}
-                />
-              )}
-              {coords.length > 1 && (
-                <Polyline
-                  coordinates={coords}
-                  strokeColor={colour.primary}
-                  strokeWidth={4}
-                />
-              )}
-            </MapView>
-          ) : (
+          <MapView
+            ref={mapRef}
+            provider={Platform.OS === "android" ? PROVIDER_GOOGLE : undefined}
+            style={{ flex: 1 }}
+            initialRegion={
+              currentPos
+                ? { ...currentPos, latitudeDelta: 0.01, longitudeDelta: 0.01 }
+                : DEFAULT_REGION
+            }
+            showsUserLocation
+            showsMyLocationButton={false}
+            showsCompass={false}
+          >
+            {startPos && (
+              <Marker
+                coordinate={startPos}
+                title="Start"
+                pinColor={colour.success}
+              />
+            )}
+            {coords.length > 1 && (
+              <Polyline
+                coordinates={coords}
+                strokeColor={colour.primary}
+                strokeWidth={4}
+              />
+            )}
+          </MapView>
+          {!locationReady && (
             <View
               style={{
-                flex: 1,
+                position: "absolute",
+                bottom: space.sm,
+                alignSelf: "center",
+                backgroundColor: "rgba(0,0,0,0.55)",
+                borderRadius: radius.pill,
+                paddingHorizontal: space.md,
+                paddingVertical: 6,
+                flexDirection: "row",
                 alignItems: "center",
-                justifyContent: "center",
-                backgroundColor: colour.surface1,
+                gap: 6,
               }}
             >
-              <ActivityIndicator color={colour.primary} />
-              <Text
-                style={{
-                  ...typography.bodyS,
-                  color: colour.textSub,
-                  marginTop: space.xs,
-                }}
-              >
-                Locating you…
+              <ActivityIndicator color="#fff" size="small" />
+              <Text style={{ ...typography.captionM, color: "#fff" }}>
+                Acquiring GPS…
               </Text>
             </View>
           )}
@@ -491,65 +572,143 @@ export default function MileageTrackerScreen() {
                 }}
               />
               <Text style={{ ...typography.captionM, color: colour.onPrimary }}>
-                {status === "running" ? "LIVE" : "PAUSED"}
+                {status === "running" ? "TRACKING" : "PAUSED"}
               </Text>
             </View>
           )}
         </View>
 
-        {/* Odometer card */}
+        {/* ── Distance card (redesigned) ─────────────────────────────────── */}
         <View
           style={{
             marginHorizontal: space.md,
             marginTop: space.md,
             backgroundColor: colour.white,
             borderRadius: radius.lg,
-            padding: space.lg,
+            padding: space.xl,
             ...platformShadow,
           }}
         >
-          <Text
-            style={{
-              ...typography.captionM,
-              color: colour.textSub,
-              marginBottom: space.xs,
-            }}
-          >
-            Distance travelled
-          </Text>
-          <OdometerDisplay km={distanceKm} />
-          <Text
-            style={{
-              ...typography.bodyXS,
-              color: colour.textHint,
-              textAlign: "center",
-              marginTop: 2,
-            }}
-          >
-            kilometres
-          </Text>
           <View
             style={{
               flexDirection: "row",
-              marginTop: space.md,
-              paddingTop: space.md,
-              borderTopWidth: 1,
-              borderTopColor: colour.borderLight,
-              gap: space.sm,
+              alignItems: "center",
+              justifyContent: "space-between",
             }}
           >
-            <StatPill label="Duration" value={elapsedStr} icon="clock.fill" />
-            <StatPill
-              label="SARS Rate"
-              value={`R${SARS_RATE_PER_KM}/km`}
-              icon="tag.fill"
-            />
-            <StatPill
-              label="Est. Deduction"
-              value={`R${deductionEstimate.toFixed(2)}`}
-              icon="dollarsign.circle"
-              highlight
-            />
+            {/* Left: big number */}
+            <View style={{ flexDirection: "row", alignItems: "baseline" }}>
+              <Text
+                style={{
+                  fontSize: 44,
+                  fontFamily: "Inter_800ExtraBold",
+                  color: colour.text,
+                  letterSpacing: -2,
+                  lineHeight: 48,
+                  fontVariant: ["tabular-nums"],
+                }}
+              >
+                {wholeKm}
+              </Text>
+              <Text
+                style={{
+                  fontSize: 36,
+                  fontFamily: "Inter_300Light",
+                  color: colour.borderLight,
+                  lineHeight: 48,
+                }}
+              >
+                .
+              </Text>
+              <Text
+                style={{
+                  fontSize: 28,
+                  fontFamily: "Inter_700Bold",
+                  color: colour.primary,
+                  letterSpacing: -1,
+                  lineHeight: 48,
+                  fontVariant: ["tabular-nums"],
+                }}
+              >
+                {decimalKm}
+              </Text>
+              <Text
+                style={{
+                  fontSize: 11,
+                  fontFamily: "Inter_600SemiBold",
+                  color: colour.textHint,
+                  letterSpacing: 0.3,
+                  marginLeft: 6,
+                  marginBottom: 4,
+                }}
+              >
+                km
+              </Text>
+            </View>
+
+            {/* Right: noir stat pills */}
+            <View style={{ alignItems: "flex-end", gap: 6 }}>
+              <View
+                style={{
+                  backgroundColor: colour.noir,
+                  borderRadius: radius.sm,
+                  paddingHorizontal: space.md,
+                  paddingVertical: 6,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 6,
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 13,
+                    fontFamily: "Inter_700Bold",
+                    color: colour.onNoir,
+                  }}
+                >
+                  {elapsedStr}
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 9,
+                    fontFamily: "Inter_600SemiBold",
+                    color: colour.onNoir2,
+                  }}
+                >
+                  DURATION
+                </Text>
+              </View>
+              <View
+                style={{
+                  backgroundColor: colour.primary,
+                  borderRadius: radius.sm,
+                  paddingHorizontal: space.md,
+                  paddingVertical: 6,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 6,
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 13,
+                    fontFamily: "Inter_700Bold",
+                    color: colour.onPrimary,
+                  }}
+                >
+                  R{deductionEstimate.toFixed(2)}
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 9,
+                    fontFamily: "Inter_600SemiBold",
+                    color: colour.primary100,
+                  }}
+                >
+                  DEDUCTION
+                </Text>
+              </View>
+            </View>
           </View>
         </View>
 
@@ -633,33 +792,15 @@ export default function MileageTrackerScreen() {
               >
                 <IconSymbol name="play.fill" size={20} color={colour.onPrimary} />
                 <Text style={{ ...typography.actionL, color: colour.onPrimary }}>
-                  Start Trip
+                  Start trip
                 </Text>
               </TouchableOpacity>
 
-              {/* SARS compliance note */}
-              <View
-                style={{
-                  marginTop: space.md,
-                  backgroundColor: colour.primary50,
-                  borderRadius: radius.md,
-                  padding: space.md,
-                  flexDirection: "row",
-                  gap: space.sm,
-                }}
-              >
-                <IconSymbol name="info.circle" size={16} color={colour.primary} />
-                <Text
-                  style={{
-                    ...typography.bodyXS,
-                    color: colour.primary,
-                    flex: 1,
-                  }}
-                >
-                  SARS deemed rate for 2024/25: R4.84/km. Only business travel
-                  is deductible under S11(a).
-                </Text>
-              </View>
+              <InfoBanner
+                title={`SARS deemed rate ${activeTaxYear}: R${SARS_RATE_PER_KM}/km`}
+                body="Only business travel is deductible under S11(a). Personal trips are excluded."
+                style={{ marginTop: space.md }}
+              />
             </>
           )}
 
@@ -710,6 +851,16 @@ export default function MileageTrackerScreen() {
                   </>
                 )}
               </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleCancel}
+                disabled={saving}
+                style={{ alignItems: "center", paddingVertical: space.sm }}
+                activeOpacity={0.6}
+              >
+                <Text style={{ ...typography.actionS, color: colour.textSub }}>
+                  Discard trip (don't save)
+                </Text>
+              </TouchableOpacity>
             </View>
           )}
 
@@ -730,7 +881,7 @@ export default function MileageTrackerScreen() {
               >
                 <IconSymbol name="play.fill" size={18} color={colour.onPrimary} />
                 <Text style={{ ...typography.actionL, color: colour.onPrimary }}>
-                  Resume Trip
+                  Resume trip
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -760,6 +911,16 @@ export default function MileageTrackerScreen() {
                   </>
                 )}
               </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleCancel}
+                disabled={saving}
+                style={{ alignItems: "center", paddingVertical: space.sm }}
+                activeOpacity={0.6}
+              >
+                <Text style={{ ...typography.actionS, color: colour.textSub }}>
+                  Discard trip (don't save)
+                </Text>
+              </TouchableOpacity>
             </View>
           )}
         </View>
@@ -772,6 +933,10 @@ export default function MileageTrackerScreen() {
         animationType="slide"
         onRequestClose={() => setShowPurpose(false)}
       >
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+        >
         <View
           style={{
             flex: 1,
@@ -806,7 +971,7 @@ export default function MileageTrackerScreen() {
                 marginBottom: space.xs,
               }}
             >
-              Trip Purpose
+              Trip purpose
             </Text>
             <Text
               style={{
@@ -913,145 +1078,15 @@ export default function MileageTrackerScreen() {
             >
               <IconSymbol name="play.fill" size={18} color={colour.onPrimary} />
               <Text style={{ ...typography.actionL, color: colour.onPrimary }}>
-                Start Tracking
+                Start tracking
               </Text>
             </TouchableOpacity>
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       <MXTabBar />
-    </View>
-  );
-}
-
-// ─── Sub-components ───────────────────────────────────────────────────────────
-
-function OdometerDisplay({ km }: { km: number }) {
-  const [whole, decimal] = km.toFixed(2).split(".");
-  const paddedWhole = whole.padStart(5, "0");
-  return (
-    <View
-      style={{
-        flexDirection: "row",
-        justifyContent: "center",
-        alignItems: "flex-end",
-        gap: 2,
-      }}
-    >
-      {paddedWhole.split("").map((d, i) => (
-        <OdoDigit
-          key={`w-${i}`}
-          digit={d}
-          dim={i < paddedWhole.length - Math.max(1, whole.length)}
-        />
-      ))}
-      <Text
-        style={{
-          fontSize: 28,
-          fontWeight: "700",
-          color: colour.textSub,
-          marginBottom: 4,
-          lineHeight: 36,
-        }}
-      >
-        .
-      </Text>
-      {decimal.split("").map((d, i) => (
-        <OdoDigit key={`d-${i}`} digit={d} small />
-      ))}
-    </View>
-  );
-}
-
-function OdoDigit({
-  digit,
-  dim,
-  small,
-}: {
-  digit: string;
-  dim?: boolean;
-  small?: boolean;
-}) {
-  return (
-    <View
-      style={{
-        backgroundColor: dim ? colour.surface1 : colour.background,
-        borderRadius: radius.sm,
-        minWidth: small ? 28 : 36,
-        height: small ? 44 : 56,
-        alignItems: "center",
-        justifyContent: "center",
-        borderWidth: 1,
-        borderColor: colour.borderLight,
-        ...Platform.select({
-          ios: {
-            shadowColor: "#000",
-            shadowOffset: { width: 0, height: 1 },
-            shadowOpacity: 0.08,
-            shadowRadius: 2,
-          },
-          android: { elevation: 1 },
-        }),
-      }}
-    >
-      <Text
-        style={{
-          fontSize: small ? 22 : 32,
-          fontWeight: "700",
-          color: dim ? colour.textHint : colour.primary,
-          fontVariant: ["tabular-nums"],
-          lineHeight: small ? 28 : 40,
-        }}
-      >
-        {digit}
-      </Text>
-    </View>
-  );
-}
-
-function StatPill({
-  label,
-  value,
-  icon,
-  highlight,
-}: {
-  label: string;
-  value: string;
-  icon: "clock.fill" | "tag.fill" | "dollarsign.circle";
-  highlight?: boolean;
-}) {
-  return (
-    <View
-      style={{
-        flex: 1,
-        backgroundColor: highlight ? colour.primary50 : colour.surface1,
-        borderRadius: radius.md,
-        padding: space.sm,
-        alignItems: "center",
-      }}
-    >
-      <IconSymbol name={icon} size={14} color={highlight ? colour.primary : colour.textSub} style={{ marginBottom: 2 } as any} />
-      <Text
-        style={{
-          ...typography.bodyXS,
-          color: highlight ? colour.primary : colour.textSub,
-          textAlign: "center",
-          fontWeight: highlight ? "700" : "400",
-        }}
-      >
-        {value}
-      </Text>
-      <Text
-        style={{
-          ...typography.captionM,
-          color: colour.textHint,
-          textAlign: "center",
-          fontSize: 9,
-        }}
-      >
-        {label}
-      </Text>
     </View>
   );
 }

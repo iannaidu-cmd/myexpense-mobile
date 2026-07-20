@@ -1,34 +1,8 @@
 import { supabase } from '@/lib/supabase';
+import { estimateTaxSaving } from '@/lib/taxRules';
 import type { TaxSummary } from '@/types/database';
 import { expenseService } from './expenseService';
 import { incomeService } from './incomeService';
-
-// ─── Tax Service ──────────────────────────────────────────────────────────────
-// All Supabase database operations for tax summaries.
-// Used by taxStore — do not call directly from screens.
-// ─────────────────────────────────────────────────────────────────────────────
-
-// SARS 2024/25 tax brackets (ZAR)
-const TAX_BRACKETS = [
-  { limit: 237100,  rate: 0.18, base: 0 },
-  { limit: 370500,  rate: 0.26, base: 42678 },
-  { limit: 512800,  rate: 0.31, base: 77362 },
-  { limit: 673000,  rate: 0.36, base: 121475 },
-  { limit: 857900,  rate: 0.39, base: 179147 },
-  { limit: 1817000, rate: 0.41, base: 251258 },
-  { limit: Infinity, rate: 0.45, base: 644489 },
-];
-
-function getMarginalRate(income: number): number {
-  for (const bracket of TAX_BRACKETS) {
-    if (income <= bracket.limit) return bracket.rate;
-  }
-  return 0.45;
-}
-
-const estimateTaxSaving = (deductions: number, income: number): number => {
-  return Math.round(deductions * getMarginalRate(income));
-};
 
 export const taxService = {
 
@@ -51,7 +25,7 @@ export const taxService = {
     const [totals, categoryBreakdown, incomeTotals] = await Promise.all([
       expenseService.getTotals(userId, taxYear),
       expenseService.getByCategory(userId, taxYear),
-      incomeService.getTotals(userId),
+      incomeService.getTotals(userId, taxYear),
     ]);
 
     const { totalExpenses, totalDeductions } = totals;

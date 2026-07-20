@@ -1,12 +1,9 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import type { TaxSummary } from '@/types/database';
 import { taxService } from '@/services/taxService';
 import { ACTIVE_TAX_YEAR } from '@/types/database';
-
-// ─── Tax Store ────────────────────────────────────────────────────────────────
-// Global tax summary state. Import and use in any screen with:
-//   const { summary, loadSummary } = useTaxStore();
-// ─────────────────────────────────────────────────────────────────────────────
+import { mmkvStorage } from '@/lib/storage';
 
 interface TaxState {
   summary: TaxSummary | null;
@@ -20,38 +17,54 @@ interface TaxState {
   clearError: () => void;
 }
 
-export const useTaxStore = create<TaxState>((set, get) => ({
-  summary: null,
-  activeTaxYear: ACTIVE_TAX_YEAR,
-  isLoading: false,
-  error: null,
+export const useTaxStore = create<TaxState>()(
+  persist(
+    (set, get) => ({
+      summary: null,
+      activeTaxYear: ACTIVE_TAX_YEAR,
+      isLoading: false,
+      error: null,
 
-  loadSummary: async (userId, taxYear) => {
-    const year = taxYear ?? get().activeTaxYear;
-    set({ isLoading: true, error: null });
-    try {
-      const summary = await taxService.getTaxSummary(userId, year);
-      set({ summary });
-    } catch (e: any) {
-      set({ error: e.message });
-    } finally {
-      set({ isLoading: false });
+      loadSummary: async (userId, taxYear) => {
+        const year = taxYear ?? get().activeTaxYear;
+        set({ isLoading: true, error: null });
+        try {
+          const summary = await taxService.getTaxSummary(userId, year);
+          set({ summary });
+        } catch (e: any) {
+          set({ error: e.message });
+        } finally {
+          set({ isLoading: false });
+        }
+      },
+
+      recalculate: async (userId, taxYear) => {
+        const year = taxYear ?? get().activeTaxYear;
+        set({ isLoading: true, error: null });
+        try {
+          const summary = await taxService.recalculateSummary(userId, year);
+          set({ summary });
+        } catch (e: any) {
+          set({ error: e.message });
+        } finally {
+          set({ isLoading: false });
+        }
+      },
+
+      setActiveTaxYear: (year) => set({ activeTaxYear: year }),
+      clearError: () => set({ error: null }),
+    }),
+    {
+      name: 'tax-store',
+      storage: mmkvStorage,
+      // activeTaxYear is deliberately NOT persisted: it must always start
+      // from the freshly-computed current tax year on cold start, not a
+      // value frozen from whenever the store was first created. Otherwise a
+      // persisted store silently keeps showing last year's data after the
+      // 1 March SA tax-year rollover.
+      partialize: (state) => ({
+        summary: state.summary,
+      }),
     }
-  },
-
-  recalculate: async (userId, taxYear) => {
-    const year = taxYear ?? get().activeTaxYear;
-    set({ isLoading: true, error: null });
-    try {
-      const summary = await taxService.recalculateSummary(userId, year);
-      set({ summary });
-    } catch (e: any) {
-      set({ error: e.message });
-    } finally {
-      set({ isLoading: false });
-    }
-  },
-
-  setActiveTaxYear: (year) => set({ activeTaxYear: year }),
-  clearError: () => set({ error: null }),
-}));
+  )
+);

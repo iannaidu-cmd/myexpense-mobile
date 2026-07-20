@@ -1,5 +1,7 @@
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { MXHeader } from "@/components/MXHeader";
+import { SuccessModal } from "@/components/SuccessModal";
+import { CATEGORIES } from "@/constants/categories";
 import {
   validateAmount,
   validateCategory,
@@ -11,13 +13,15 @@ import { expenseService } from "@/services/expenseService";
 import { scheduleReceiptReminder } from "@/services/notificationService";
 import { useAuthStore } from "@/stores/authStore";
 import { colour, radius, space, typography } from "@/tokens";
-import { ACTIVE_TAX_YEAR } from "@/types/database";
+import { taxYearForDate } from "@/lib/taxRules";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
     ActivityIndicator,
     Alert,
+    KeyboardAvoidingView,
+    Platform,
     ScrollView,
     StatusBar,
     Text,
@@ -27,24 +31,6 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const CATEGORIES = [
-  { label: "Travel & Transport",       code: "S11(a)",   deductible: true  },
-  { label: "Home Office",              code: "S11(a)",   deductible: true  },
-  { label: "Equipment & Tools",        code: "S11(e)",   deductible: true  },
-  { label: "Software & Subscriptions", code: "S11(a)",   deductible: true  },
-  { label: "Meals & Entertainment",    code: "S11(a)",   deductible: true  },
-  { label: "Professional Fees",        code: "S11(a)",   deductible: true  },
-  { label: "Telephone & Cell",         code: "S11(a)",   deductible: true  },
-  { label: "Marketing & Advertising",  code: "S11(a)",   deductible: true  },
-  { label: "Bank Charges",             code: "S11(a)",   deductible: true  },
-  { label: "Insurance",                code: "S11(a)",   deductible: true  },
-  { label: "Rent",                     code: "S11(a)",   deductible: true  },
-  { label: "Repairs & Maintenance",    code: "S11(a)",   deductible: true  },
-  { label: "Education",                code: "S11(a)",   deductible: true  },
-  { label: "Medical Aid",              code: "S11(a)",   deductible: true  },
-  { label: "Vehicle Expenses",         code: "Page 24",  deductible: true  },
-  { label: "Personal / Non-deductible",code: "N/A",      deductible: false },
-];
 
 function FieldLabel({ label }: { label: string }) {
   return (
@@ -109,6 +95,8 @@ export default function AddExpenseTab() {
   const [note, setNote] = useState("");
   const [showCatPicker, setShowCatPicker] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [successVisible, setSuccessVisible] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
 
   const selectedCat = CATEGORIES.find((c) => c.label === category);
   const canSave = !!amount && !!vendor && !!category && parseFloat(amount) > 0;
@@ -144,7 +132,7 @@ export default function AddExpenseTab() {
         amount: parseFloat(amount),
         category,
         itr12_code: selectedCat?.code ?? null,
-        tax_year: ACTIVE_TAX_YEAR,
+        tax_year: taxYearForDate(expenseDate),
         expense_date: expenseDate,
         is_deductible: selectedCat?.deductible ?? false,
         vat_amount: vatAmount ? parseFloat(vatAmount) : undefined,
@@ -173,14 +161,8 @@ export default function AddExpenseTab() {
       setVatAmount("");
       setNote("");
 
-      Alert.alert(
-        "Expense Saved ✓",
-        `${vendor} — R ${parseFloat(amount).toLocaleString("en-ZA", { minimumFractionDigits: 2 })} has been saved.`,
-        [
-          { text: "Add Another", style: "cancel" },
-          { text: "Go Home", onPress: () => router.replace("/(tabs)") },
-        ],
-      );
+      setSuccessMessage(`${vendor} — R ${parseFloat(amount).toLocaleString("en-ZA", { minimumFractionDigits: 2 })} has been saved.`);
+      setSuccessVisible(true);
     } catch (e: any) {
       Alert.alert("Error saving expense", e.message);
     } finally {
@@ -197,6 +179,10 @@ export default function AddExpenseTab() {
 
       <MXHeader title="Add expense" showBack />
 
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
       <ScrollView
         style={{ flex: 1, backgroundColor: colour.background }}
         showsVerticalScrollIndicator={false}
@@ -360,7 +346,7 @@ export default function AddExpenseTab() {
                   }}
                   style={{
                     flexDirection: "row",
-                    alignItems: "center",
+                    alignItems: "flex-start",
                     paddingVertical: space.md,
                     borderBottomWidth: 1,
                     borderBottomColor: colour.borderLight,
@@ -370,17 +356,25 @@ export default function AddExpenseTab() {
                     width: 6, height: 6, borderRadius: 3,
                     backgroundColor: cat.deductible ? colour.primary : colour.textHint,
                     marginRight: space.md,
+                    marginTop: 6,
                   }} />
-                  <Text
-                    style={{ flex: 1, ...typography.bodyM, color: colour.text }}
-                  >
-                    {cat.label}
-                  </Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ ...typography.bodyM, color: colour.text }}>
+                      {cat.label}
+                    </Text>
+                    <Text
+                      style={{ ...typography.bodyXS, color: colour.textSub, marginTop: 2 }}
+                      numberOfLines={1}
+                    >
+                      {cat.examples}
+                    </Text>
+                  </View>
                   <Text
                     style={{
                       ...typography.bodyXS,
                       color: colour.primary,
                       fontWeight: "600",
+                      marginLeft: space.sm,
                     }}
                   >
                     {cat.code}
@@ -493,6 +487,16 @@ export default function AddExpenseTab() {
           </Text>
         </TouchableOpacity>
       </ScrollView>
+      </KeyboardAvoidingView>
+      <SuccessModal
+        visible={successVisible}
+        title="Expense saved"
+        message={successMessage}
+        primaryLabel="Go to dashboard"
+        onPrimary={() => { setSuccessVisible(false); router.replace("/(tabs)"); }}
+        secondaryLabel="Add another"
+        onSecondary={() => setSuccessVisible(false)}
+      />
     </SafeAreaView>
   );
 }

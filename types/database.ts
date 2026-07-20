@@ -12,7 +12,19 @@ export interface Profile {
   work_type: string | null;
   active_tax_year: string;
   subscription: "free" | "pro" | "business";
+  is_dev_user: boolean;
   push_token: string | null;
+  terms_accepted_at: string | null;
+  /** Manually-granted comp access (e.g. "3 months free") — active while in the future. */
+  promo_expires_at: string | null;
+  /** Current RevenueCat entitlement expiry, synced by supabase/functions/revenuecat-webhook. */
+  subscription_expires_at: string | null;
+  /** Set when a renewal payment fails; cleared on the next successful renewal. Drives the 7-day access grace period. */
+  billing_issue_detected_at: string | null;
+  /** Set when the user requests account deletion; cleared if they cancel. supabase/functions/purge-deleted-accounts strips PII and revokes login 30 days after this is set. */
+  deletion_requested_at: string | null;
+  /** Set by purge-deleted-accounts once the 30-day purge has run — this row is now a PII-stripped tombstone kept alive only so retained expenses/income (which CASCADE from profiles.id) aren't lost. Anchors the eventual 5-year final-purge. */
+  purged_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -84,29 +96,60 @@ export interface UpdateExpense extends Partial<NewExpense> {
 }
 
 // ─── ITR12 Categories (SARS-aligned) ─────────────────────────────────────────
+// field: the exact label used in the eFiling Local Business Income section (Pg 11-12).
+// code:  only set where SARS assigns a standalone source code outside that section.
+// For sole proprietors all expenditure goes into the Local Business schedule;
+// individual line items are named fields, not coded. Only the net taxable
+// profit/loss carries a code (4222/4223, calculated by SARS).
+//
+// Keys must exactly match constants/categories.ts CATEGORIES labels — this
+// table used to carry its own shorter, drifted set of keys (missing Rent,
+// Repairs & Maintenance, Vehicle Expenses, Training & Education, Interest &
+// Finance Charges, and a "Non-deductible"/"Entertainment"/"Other Deductible"
+// set that never matched any real category name), which meant CSV/PDF export
+// silently fell back to a generic "Other" field for any expense in those
+// categories instead of the correct SARS line.
 
 export const ITR12_CATEGORIES: Record<
   string,
-  { code: string; section: string }
+  { field: string; code: string; section: string }
 > = {
-  "Travel & Transport": { code: "4011", section: "S11(a)" },
-  "Home Office": { code: "4018", section: "S11(a)" },
-  "Equipment & Tools": { code: "4022", section: "S11(e)" },
-  "Software & Subscriptions": { code: "4011", section: "S11(a)" },
-  "Professional Fees": { code: "4011", section: "S11(a)" },
-  "Telephone & Internet": { code: "4011", section: "S11(a)" },
-  "Marketing & Advertising": { code: "4011", section: "S11(a)" },
-  "Bank Charges": { code: "4011", section: "S11(a)" },
-  Utilities: { code: "4011", section: "S11(a)" },
-  Entertainment: { code: "4011", section: "S11(a)" },
-  Insurance: { code: "4011", section: "S11(a)" },
-  "Other Deductible": { code: "4011", section: "S11(a)" },
-  "Non-deductible": { code: "", section: "" },
+  "Travel & Transport":         { field: "Travel Costs – Local",           code: "",     section: "S11(a) – Pg 11-12" },
+  "Home Office":                { field: "Rental Paid",                    code: "",     section: "S11(a) – Pg 11-12" },
+  "Equipment & Tools":          { field: "Depreciation",                   code: "",     section: "S11(e) – Pg 11-12" },
+  "Software & Subscriptions":   { field: "Other",                          code: "",     section: "S11(a) – Pg 11-12" },
+  "Meals & Entertainment":      { field: "Entertainment",                  code: "",     section: "S23(o) 80% – Pg 11-12" },
+  "Professional Fees":          { field: "Consulting Fees Paid",           code: "",     section: "S11(a) – Pg 11-12" },
+  Utilities:                    { field: "Electricity / Rates and Taxes",  code: "",     section: "S11(a) – Pg 11-12" },
+  "Marketing & Advertising":    { field: "Other",                          code: "",     section: "S11(a) – Pg 11-12" },
+  "Bank Charges":               { field: "Bank Charges",                   code: "",     section: "S11(a) – Pg 11-12" },
+  "Interest & Finance Charges": { field: "Interest Paid – Other",          code: "",     section: "S11(a) – Pg 11-12" },
+  Insurance:                    { field: "Insurance",                      code: "",     section: "S11(a) – Pg 11-12" },
+  Rent:                         { field: "Rental Paid",                    code: "",     section: "S11(a) – Pg 11-12" },
+  "Repairs & Maintenance":      { field: "Repairs",                        code: "",     section: "S11(a) – Pg 11-12" },
+  "Training & Education":       { field: "Other",                          code: "",     section: "S11(a) – Pg 11-12" },
+  "Telephone & Internet":       { field: "Telephone",                      code: "",     section: "S11(a) – Pg 11-12" },
+  "Vehicle Expenses":           { field: "Motor Vehicle Expenses",         code: "",     section: "S11(a) – Pg 11-12" },
+  "Retirement Annuity":         { field: "Total contributions",            code: "4006", section: "RA – Pg 23" },
+  "Personal / Other":           { field: "",                               code: "",     section: "" },
 };
 
 export const CATEGORY_LIST = Object.keys(ITR12_CATEGORIES);
 
 // ─── Tax years ────────────────────────────────────────────────────────────────
+// ACTIVE_TAX_YEAR is derived from today's date (not hand-set) so it rolls over
+// automatically every 1 March — see lib/taxRules.ts getCurrentTaxYear().
 
-export const TAX_YEARS = ["2024/25", "2023/24", "2022/23", "2021/22"];
-export const ACTIVE_TAX_YEAR = "2024/25";
+import { getCurrentTaxYear } from "@/lib/taxRules";
+
+export const ACTIVE_TAX_YEAR = getCurrentTaxYear();
+
+function recentTaxYears(count = 6): string[] {
+  const startYear = parseInt(ACTIVE_TAX_YEAR.split("/")[0], 10);
+  return Array.from({ length: count }, (_, i) => {
+    const y = startYear - i;
+    return `${y}/${String(y + 1).slice(-2)}`;
+  });
+}
+
+export const TAX_YEARS = recentTaxYears();

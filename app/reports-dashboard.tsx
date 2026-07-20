@@ -7,6 +7,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { useExpenseStore } from "@/stores/expenseStore";
 import { colour, radius, space, typography } from "@/tokens";
 import { useFocusEffect, useRouter } from "expo-router";
+import { useAppForeground } from "@/hooks/use-app-foreground";
 import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
@@ -290,15 +291,15 @@ export default function ReportsDashboardScreen() {
   >([]);
 
   const loadData = useCallback(async () => {
-    if (!user) return;
+    if (!user) { setLoading(false); return; }
     setLoading(true);
     try {
       const [incomeTotals, expenseTotals, allExpenses, allIncome, byCategory] =
         await Promise.all([
-          incomeService.getTotals(user.id),
+          incomeService.getTotals(user.id, activeTaxYear),
           expenseService.getTotals(user.id, activeTaxYear),
           expenseService.getExpenses(user.id, activeTaxYear),
-          incomeService.getIncome(user.id),
+          incomeService.getIncome(user.id, activeTaxYear),
           expenseService.getByCategory(user.id, activeTaxYear),
         ]);
 
@@ -357,6 +358,7 @@ export default function ReportsDashboardScreen() {
       loadData();
     }, [loadData]),
   );
+  useAppForeground(loadData);
 
   const maxVal       = Math.max(...monthlyData.flatMap((d) => [d.income, d.expense]), 1);
   const estTaxSaving = Math.round(totalDeductions * 0.31);
@@ -490,24 +492,37 @@ export default function ReportsDashboardScreen() {
             {/* ── Tax saving callout ───────────────────────────────────────── */}
             <View
               style={{
-                backgroundColor: colour.successLight,
+                backgroundColor: colour.noir,
                 borderRadius: radius.md,
                 padding: space.lg,
                 flexDirection: "row",
                 justifyContent: "space-between",
                 alignItems: "center",
                 marginBottom: space.xl,
+                overflow: "hidden",
               }}
             >
+              <View
+                style={{
+                  position: "absolute",
+                  width: 100,
+                  height: 100,
+                  borderRadius: 50,
+                  backgroundColor: colour.primary,
+                  opacity: 0.25,
+                  top: -40,
+                  right: -20,
+                }}
+              />
               <View>
-                <Text style={[typography.labelM, { color: colour.success }]}>
+                <Text style={[typography.labelM, { color: colour.onNoir }]}>
                   Estimated Tax Saving
                 </Text>
-                <Text style={[typography.caption, { color: colour.success }]}>
+                <Text style={[typography.caption, { color: colour.onNoir2 }]}>
                   Based on 31% marginal rate
                 </Text>
               </View>
-              <Text style={[typography.amountM, { color: colour.success }]}>
+              <Text style={[typography.amountM, { color: colour.accent }]}>
                 {fmt(estTaxSaving)}
               </Text>
             </View>

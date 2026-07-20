@@ -121,7 +121,7 @@ export default function ITR12PDFReportScreen() {
         >
           PDF Report
         </Text>
-        <Text style={{ color: C.textSub, fontSize: 12, marginTop: 4 }}>
+        <Text style={{ color: C.primary100, fontSize: 12, marginTop: 4 }}>
           Tax Year 2024/25
         </Text>
       </View>

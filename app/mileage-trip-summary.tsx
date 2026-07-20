@@ -1,6 +1,8 @@
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { SARS_RATE_PER_KM } from "@/lib/taxRules";
+import { useExpenseStore } from "@/stores/expenseStore";
 import { colour, radius, space, typography } from "@/tokens";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React from "react";
@@ -15,7 +17,6 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const SARS_RATE_PER_KM = 4.84;
 
 function formatElapsed(seconds: number): string {
   const h = Math.floor(seconds / 3600);
@@ -45,6 +46,7 @@ const platformShadow =
 
 export default function MileageTripSummaryScreen() {
   const router = useRouter();
+  const { activeTaxYear } = useExpenseStore();
   const params = useLocalSearchParams<{
     tripId: string;
     distanceKm: string;
@@ -291,7 +293,7 @@ export default function MileageTripSummaryScreen() {
           </Text>
           <DetailRow icon="tag.fill" label="Purpose" value={purpose} />
           <DetailRow icon="doc.text.fill" label="SARS reference" value={itr12} />
-          <DetailRow icon="calendar" label="Tax year" value="2024/25" />
+          <DetailRow icon="calendar" label="Tax year" value={activeTaxYear} />
           <DetailRow
             icon="dollarsign.circle.fill"
             label="SARS rate"
@@ -365,7 +367,7 @@ export default function MileageTripSummaryScreen() {
           }}
         >
           <Text style={{ ...typography.bodyXS, color: colour.warning }}>
-            The deduction estimate uses the SARS 2024/25 deemed cost rate.
+            The deduction estimate uses the SARS deemed cost rate of R{SARS_RATE_PER_KM}/km.
             Actual deductibility depends on your total business km vs private km
             ratio. Consult a tax professional for your ITR12 submission.
           </Text>

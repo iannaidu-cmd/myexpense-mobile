@@ -1,19 +1,24 @@
+import { IconSymbol } from "@/components/ui/icon-symbol";
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
+import { SuccessModal } from "@/components/SuccessModal";
 import {
   validateAmount,
   validateDate,
   validateIncomeSource,
   validateNote,
 } from "@/lib/validation";
+import { taxYearForDate } from "@/lib/taxRules";
 import { incomeService } from "@/services/incomeService";
 import { useAuthStore } from "@/stores/authStore";
 import { colour, radius, space, typography } from "@/tokens";
-import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import React, { useEffect, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
+    KeyboardAvoidingView,
+    Platform,
     ScrollView,
     StatusBar,
     Text,
@@ -43,7 +48,7 @@ const FULL_CATEGORIES = [
   { label: "Income of Employment (Salary / Wage)"            },
   { label: "Bonuses"                                         },
   { label: "Overtime"                                        },
-  { label: "Fridge Benefits"                                 },
+  { label: "Fringe Benefits"                                 },
   { label: "Income or Profits (Beneficiary of a Trust)"     },
   { label: "Cell Phone Allowance"                            },
   { label: "Fees from Companies / CC for Services Rendered" },
@@ -107,18 +112,37 @@ function UnderlineInput({
 export default function AddIncomeScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
+  const { id } = useLocalSearchParams<{ id?: string }>();
+  const isEditing = !!id;
 
   const [amount, setAmount] = useState("");
   const [source, setSource] = useState("");
+  const [category, setCategory] = useState("");
   const [description, setDescription] = useState("");
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [showFullList, setShowFullList] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [loadingExisting, setLoadingExisting] = useState(isEditing);
+  const [successVisible, setSuccessVisible] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
+
+  // Pre-fill form when editing
+  useEffect(() => {
+    if (!id) return;
+    incomeService.getIncomeById(id).then((entry) => {
+      setAmount(String(entry.amount));
+      setSource(entry.source);
+      setCategory(entry.category ?? "");
+      setDescription(entry.description ?? "");
+      setDate(entry.date);
+    }).catch(console.error).finally(() => setLoadingExisting(false));
+  }, [id]);
 
   const canSave = !!amount && parseFloat(amount) > 0 && !!source;
 
-  const selectSource = (s: string) => {
+  const selectSource = (s: string, label?: string) => {
     setSource(s);
+    setCategory(label ?? s);
     setShowFullList(false);
   };
 
@@ -145,32 +169,50 @@ export default function AddIncomeScreen() {
 
     setSaving(true);
     try {
-      await incomeService.addIncome(user.id, {
-        amount: parseFloat(amount),
-        source: source.trim(),
-        description: description.trim() || undefined,
-        date: incomeDate,
-      });
-
-      setAmount("");
-      setSource("");
-      setDescription("");
-      setDate(new Date().toISOString().split("T")[0]);
-
-      Alert.alert(
-        "Income Saved ✓",
-        `R ${parseFloat(amount).toLocaleString("en-ZA", { minimumFractionDigits: 2 })} from ${source} has been saved.`,
-        [
-          { text: "Add another", style: "cancel" },
-          { text: "Go home", onPress: () => router.replace("/(tabs)") },
-        ],
-      );
+      if (isEditing && id) {
+        await incomeService.updateIncome(id, {
+          amount: parseFloat(amount),
+          source: source.trim(),
+          description: description.trim() || undefined,
+          date: incomeDate,
+          tax_year: taxYearForDate(incomeDate),
+        });
+        setSuccessMessage(`Income updated successfully.`);
+      } else {
+        await incomeService.addIncome(user.id, {
+          amount: parseFloat(amount),
+          source: source.trim(),
+          category: category.trim() || undefined,
+          description: description.trim() || undefined,
+          date: incomeDate,
+          tax_year: taxYearForDate(incomeDate),
+        });
+        setAmount("");
+        setSource("");
+        setCategory("");
+        setDescription("");
+        setDate(new Date().toISOString().split("T")[0]);
+        setSuccessMessage(`R ${parseFloat(amount).toLocaleString("en-ZA", { minimumFractionDigits: 2 })} from ${source} has been saved.`);
+      }
+      setSuccessVisible(true);
     } catch (e: any) {
-      Alert.alert("Error saving income", e.message);
+      Alert.alert(isEditing ? "Error updating income" : "Error saving income", e.message);
     } finally {
       setSaving(false);
     }
   };
+
+  if (loadingExisting) {
+    return (
+      <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colour.background }}>
+        <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
+        <MXHeader title="Edit income" subtitle="Update your income entry" showBack />
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+          <ActivityIndicator color={colour.success} size="large" />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView
@@ -180,22 +222,66 @@ export default function AddIncomeScreen() {
       <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
 
       <MXHeader
-        title="Add income"
-        subtitle="Track your earnings for ITR12"
+        title={isEditing ? "Edit income" : "Add income"}
+        subtitle={isEditing ? "Update your income entry" : "Track your earnings for ITR12"}
         showBack
       />
 
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
       <ScrollView
         style={{ flex: 1, backgroundColor: colour.background }}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ paddingBottom: space.xxxl }}
       >
+        {/* IRP5 / employment income shortcut */}
+        {!isEditing && (
+          <TouchableOpacity
+            onPress={() => router.push("/add-irp5-income" as any)}
+            style={{
+              marginHorizontal: space.lg,
+              marginTop: space.lg,
+              marginBottom: space.md,
+              backgroundColor: colour.noir,
+              borderRadius: radius.lg,
+              padding: space.md,
+              flexDirection: "row",
+              alignItems: "center",
+              gap: space.md,
+            }}
+          >
+            <View
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 10,
+                backgroundColor: colour.primary,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <IconSymbol name="doc.text.fill" size={16} color={colour.white} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 13, fontWeight: "700", color: colour.onNoir }}>
+                Adding IRP5 / employment income?
+              </Text>
+              <Text style={{ fontSize: 11, color: colour.onNoir2, marginTop: 1 }}>
+                Use the IRP5 form to capture source codes, PAYE and ITR12 data
+              </Text>
+            </View>
+            <IconSymbol name="chevron.right" size={13} color={colour.onNoir2} />
+          </TouchableOpacity>
+        )}
+
         {/* Quick pick */}
         <View
           style={{
             paddingHorizontal: space.lg,
-            paddingTop: space.lg,
+            paddingTop: isEditing ? space.lg : 0,
             marginBottom: space.md,
           }}
         >
@@ -213,7 +299,7 @@ export default function AddIncomeScreen() {
               {QUICK_PICKS.map((q) => (
                 <TouchableOpacity
                   key={q.label}
-                  onPress={() => selectSource(q.source)}
+                  onPress={() => selectSource(q.source, q.label)}
                   style={{
                     paddingHorizontal: space.md,
                     paddingVertical: space.sm,
@@ -403,7 +489,7 @@ export default function AddIncomeScreen() {
                 color: canSave ? colour.onPrimary : colour.textSub,
               }}
             >
-              {canSave ? "Save income" : "Fill in required fields"}
+              {canSave ? (isEditing ? "Save changes" : "Save income") : "Fill in required fields"}
             </Text>
           )}
         </TouchableOpacity>
@@ -417,7 +503,21 @@ export default function AddIncomeScreen() {
           </Text>
         </TouchableOpacity>
       </ScrollView>
+      </KeyboardAvoidingView>
       <MXTabBar />
+
+      <SuccessModal
+        visible={successVisible}
+        title={isEditing ? "Income updated" : "Income saved"}
+        message={successMessage}
+        primaryLabel={isEditing ? "Back to details" : "Go to dashboard"}
+        onPrimary={() => {
+          setSuccessVisible(false);
+          isEditing ? router.back() : router.replace("/(tabs)");
+        }}
+        secondaryLabel={isEditing ? undefined : "Add another"}
+        onSecondary={isEditing ? undefined : () => setSuccessVisible(false)}
+      />
     </SafeAreaView>
   );
 }

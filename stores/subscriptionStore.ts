@@ -11,9 +11,21 @@ import { create } from "zustand";
 // Entitlement IDs (must match RevenueCat dashboard exactly):
 export const ENTITLEMENT_PRO = "pro";
 //
-// Product identifiers (must match App Store Connect / Play Console):
+// Product identifiers (must match App Store Connect / Play Console).
+// Reference only — do NOT match packages against these directly. Android
+// subscriptions with a Play base plan come back from RevenueCat as
+// "myexpense_pro_monthly:monthly-autorenew" (base plan ID appended), so an
+// exact-match against the bare product ID silently fails on Android while
+// working fine on iOS. Match on the package identifiers below instead,
+// which RevenueCat keeps consistent across every platform.
 export const PRODUCT_MONTHLY = "myexpense_pro_monthly";
 export const PRODUCT_ANNUAL = "myexpense_pro_annual";
+
+// RevenueCat package identifiers (auto-assigned for the standard monthly/
+// annual package types within an offering) — platform-agnostic, use these
+// to find packages instead of product.identifier.
+export const PACKAGE_MONTHLY = "$rc_monthly";
+export const PACKAGE_ANNUAL = "$rc_annual";
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface SubscriptionState {

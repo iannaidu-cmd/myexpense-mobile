@@ -21,9 +21,8 @@ function csvField(val: string | number | null | undefined): string {
   return str;
 }
 
-function getITR12Code(category: string, itr12_code?: string | null): string {
-  if (itr12_code) return itr12_code;
-  return ITR12_CATEGORIES[category]?.code ?? "4011";
+function getITR12Field(category: string): string {
+  return ITR12_CATEGORIES[category]?.field || "Other";
 }
 
 // ─── Core CSV generation ──────────────────────────────────────────────────────
@@ -36,7 +35,7 @@ export function generateCSV(expenses: Expense[]): string {
     "Date",
     "Vendor",
     "Category",
-    "ITR12 Code",
+    "ITR12 Field (eFiling)",
     "Amount (ZAR)",
     "VAT Amount (ZAR)",
     "Deductible (Y/N)",
@@ -55,7 +54,7 @@ export function generateCSV(expenses: Expense[]): string {
         csvField(e.expense_date),
         csvField(e.vendor),
         csvField(e.category),
-        csvField(getITR12Code(e.category, e.itr12_code)),
+        csvField(getITR12Field(e.category)),
         csvField(Number(e.amount).toFixed(2)),
         csvField(e.vat_amount != null ? Number(e.vat_amount).toFixed(2) : ""),
         csvField(e.is_deductible ? "Y" : "N"),

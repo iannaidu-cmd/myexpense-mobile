@@ -16,7 +16,6 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const SUPPORT_EMAIL = "support@myexpense.co.za";
-const DOCS_URL = "https://myexpense.co.za/help";
 
 // ─── FAQ data ─────────────────────────────────────────────────────────────────
 const FAQS = [
@@ -209,12 +208,6 @@ export default function HelpSupportScreen() {
     );
   };
 
-  const handleDocs = () => {
-    Linking.openURL(DOCS_URL).catch(() =>
-      Alert.alert("Could not open link", `Visit ${DOCS_URL}`),
-    );
-  };
-
   const handlePrivacy = () => router.push("/privacy");
   const handleTerms = () => router.push("/terms");
 
@@ -224,7 +217,7 @@ export default function HelpSupportScreen() {
       style={{ flex: 1, backgroundColor: colour.background }}
     >
       <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
-      <MXBackHeader title="Help & Support" />
+      <MXBackHeader title="Help & support" />
 
       <ScrollView
         style={{
@@ -250,12 +243,6 @@ export default function HelpSupportScreen() {
             label="Email support"
             sub={SUPPORT_EMAIL}
             onPress={handleEmail}
-          />
-          <ContactRow
-            icon="globe"
-            label="Help centre"
-            sub="Browse guides and tutorials online"
-            onPress={handleDocs}
             isLast
           />
         </View>

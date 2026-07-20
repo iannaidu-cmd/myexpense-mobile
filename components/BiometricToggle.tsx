@@ -11,6 +11,8 @@ import {
     saveBiometricSession,
     setBiometricEnabled,
 } from "@/services/biometricService";
+import { IconSymbol } from "@/components/ui/icon-symbol";
+import { supabase } from "@/lib/supabase";
 import { colour, radius, space, typography } from "@/tokens";
 import { useEffect, useState } from "react";
 import { Alert, Switch, Text, View } from "react-native";
@@ -39,33 +41,24 @@ export function BiometricToggle() {
       );
       if (!success) return;
 
-      try {
-        const { supabase } = await import("@/lib/supabase");
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-        if (
-          !session?.access_token ||
-          !session?.refresh_token ||
-          !session?.user?.email
-        ) {
-          Alert.alert(
-            "Error",
-            "Could not enable biometrics. Please sign in again.",
-          );
-          return;
-        }
-        await saveBiometricSession(
-          session.user.email,
-          session.access_token,
-          session.refresh_token,
+      // Save the current session so biometric login can restore it
+      const { data } = await supabase.auth.getSession();
+      if (!data.session) {
+        Alert.alert(
+          "Error",
+          "Could not save session. Please sign out and back in, then try again.",
         );
-        await setBiometricEnabled(true);
-        setEnabled(true);
-        Alert.alert("Enabled", `${label} sign-in is now active.`);
-      } catch (e: any) {
-        Alert.alert("Error", e.message);
+        return;
       }
+      await saveBiometricSession(
+        data.session.user?.email ?? "",
+        data.session.access_token,
+        data.session.refresh_token,
+      );
+
+      await setBiometricEnabled(true);
+      setEnabled(true);
+      Alert.alert("Enabled", `${label} sign-in is now active.`);
     } else {
       Alert.alert(
         `Disable ${label}?`,
@@ -101,9 +94,20 @@ export function BiometricToggle() {
         marginBottom: space.sm,
       }}
     >
+      <View style={{
+        width: 30, height: 30, borderRadius: radius.pill,
+        backgroundColor: colour.primary50,
+        alignItems: "center", justifyContent: "center", marginRight: 12,
+      }}>
+        <IconSymbol
+          name={label === "Face ID" ? "faceid" : "touchid"}
+          size={14}
+          color={colour.accentDeep}
+        />
+      </View>
       <View style={{ flex: 1 }}>
         <Text style={{ ...typography.labelM, color: colour.textPrimary }}>
-          {label === "Face ID" ? "🔐" : "👆"} {label} Sign-In
+          {label} Sign-In
         </Text>
         <Text
           style={{

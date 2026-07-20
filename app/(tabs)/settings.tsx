@@ -1,12 +1,13 @@
 import { BiometricToggle } from "@/components/BiometricToggle";
+import { ConfirmModal } from "@/components/ConfirmModal";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { profileService } from "@/services/profileService";
 import { useAuthStore } from "@/stores/authStore";
+import { floorRatio, useHomeOfficeStore } from "@/stores/homeOfficeStore";
 import { colour, radius, space, typography } from "@/tokens";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  Alert,
   ScrollView,
   StatusBar,
   Text,
@@ -15,7 +16,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const SECTIONS: {
+const BASE_SECTIONS: {
   title: string;
   items: { icon: string; label: string; sub: string; route: string }[];
 }[] = [
@@ -25,20 +26,26 @@ const SECTIONS: {
       { icon: "person.fill",    label: "My profile",      sub: "Name, email, business details",  route: "/profile"                },
       { icon: "creditcard.fill",label: "Subscription",    sub: "Free plan · Upgrade to Pro",     route: "/paywall-upgrade"        },
       { icon: "folder.fill",    label: "Bank accounts",   sub: "Manage your banking details",    route: "/bank-accounts"          },
+      { icon: "tray.and.arrow.up.fill", label: "Import transactions", sub: "Import from a bank statement (CSV / OFX)", route: "/bank-import" },
+    ],
+  },
+  {
+    title: "Tax setup",
+    items: [
+      { icon: "house.fill", label: "Home office", sub: "Configure your home office deduction", route: "/home-office-setup" },
     ],
   },
   {
     title: "Preferences",
     items: [
       { icon: "bell.fill",      label: "Notifications",   sub: "Push, email & filing reminders", route: "/notifications-settings" },
-      { icon: "eye.fill",       label: "Appearance",      sub: "Theme & display settings",       route: "/appearance-settings"    },
     ],
   },
   {
     title: "Security & privacy",
     items: [
       { icon: "lock.fill",      label: "Security",        sub: "Password, biometrics, sessions", route: "/security-settings"      },
-      { icon: "lock.fill",      label: "Data & privacy",  sub: "POPIA · Data export & deletion", route: "/privacy"                },
+      { icon: "lock.fill",      label: "Data & privacy",  sub: "POPIA compliance · Privacy policy", route: "/privacy"                },
     ],
   },
   {
@@ -52,12 +59,18 @@ const SECTIONS: {
 
 export default function SettingsTabScreen() {
   const router = useRouter();
-  const { user, signOut } = useAuthStore();
+  const { user, signOut, isPremium, isDevUser } = useAuthStore();
+  const { setting: homeOfficeSetting, load: loadHomeOffice } = useHomeOfficeStore();
   const [fullName, setFullName] = useState("");
+  // "business" has no matching RevenueCat product/entitlement yet — intentional
+  // scaffolding for a future business-tier plan, not reachable via any current
+  // purchase flow. Keep the type and label in place until that plan ships.
   const [subscription, setSubscription] = useState<"free" | "pro" | "business">("free");
+  const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
 
   useEffect(() => {
     if (!user) return;
+    loadHomeOffice(user.id);
     profileService.getProfile(user.id).then((p) => {
       if (p) {
         setFullName(p.full_name ?? "");
@@ -71,21 +84,43 @@ export default function SettingsTabScreen() {
     (user?.email?.[0]?.toUpperCase() ?? "?");
 
   const planLabel =
-    subscription === "pro" ? "Pro plan" :
-    subscription === "business" ? "Business plan" : "Free plan";
+    isDevUser ? "Developer account" :
+    subscription === "pro" ? "Pro plan · Active" :
+    subscription === "business" ? "Business plan · Active" : "Free plan";
 
-  const handleSignOut = () => {
-    Alert.alert("Sign out", "Are you sure you want to sign out?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Sign out",
-        style: "destructive",
-        onPress: async () => {
-          await signOut();
-          router.replace("/onboarding-step-1");
-        },
-      },
-    ]);
+  const SECTIONS = BASE_SECTIONS.map((section) => ({
+    ...section,
+    items: section.items.map((item) => {
+      if (item.route === "/paywall-upgrade") {
+        return {
+          ...item,
+          sub: isDevUser
+            ? "Developer access · All features unlocked"
+            : isPremium
+            ? "Pro plan · Active"
+            : "Free plan · Upgrade to Pro",
+          route: isPremium ? "/subscription-manage" : "/paywall-upgrade",
+        };
+      }
+      if (item.route === "/home-office-setup") {
+        const ratio = floorRatio(homeOfficeSetting);
+        return {
+          ...item,
+          sub: homeOfficeSetting
+            ? `Floor ratio: ${(ratio * 100).toFixed(1)}% · ${homeOfficeSetting.officeM2}m² of ${homeOfficeSetting.totalM2}m²`
+            : "Configure your home office deduction",
+        };
+      }
+      return item;
+    }),
+  }));
+
+  const handleSignOut = () => setShowSignOutConfirm(true);
+
+  const confirmSignOut = async () => {
+    setShowSignOutConfirm(false);
+    await signOut();
+    router.replace("/onboarding-step-1");
   };
 
   return (
@@ -234,6 +269,16 @@ export default function SettingsTabScreen() {
           MyExpense (PTY) Ltd · Cape Town, South Africa
         </Text>
       </ScrollView>
+      <ConfirmModal
+        visible={showSignOutConfirm}
+        title="Sign out"
+        message="Are you sure you want to sign out of your account?"
+        confirmLabel="Sign out"
+        cancelLabel="Stay signed in"
+        onConfirm={confirmSignOut}
+        onCancel={() => setShowSignOutConfirm(false)}
+        icon="arrow.right.square.fill"
+      />
     </SafeAreaView>
   );
 }

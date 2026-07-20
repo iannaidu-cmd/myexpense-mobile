@@ -107,7 +107,7 @@ export default function ProfileSetupScreen() {
       <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         <ScrollView
           contentContainerStyle={{ flexGrow: 1 }}

@@ -1,5 +1,7 @@
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
+import { SuccessModal } from "@/components/SuccessModal";
+import { CATEGORIES } from "@/constants/categories";
 import {
   validateAmount,
   validateDate,
@@ -14,7 +16,9 @@ import {
     ActivityIndicator,
     Alert,
     FlatList,
+    KeyboardAvoidingView,
     Modal,
+    Platform,
     ScrollView,
     StatusBar,
     Text,
@@ -24,36 +28,16 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const ITR12_CATEGORIES = [
-  { name: "Advertising & Marketing", section: "S11(a)", deductible: true },
-  { name: "Bank Charges", section: "S11(a)", deductible: true },
-  { name: "Computer & IT Equipment", section: "S11(e)", deductible: true },
-  { name: "Courier & Delivery", section: "S11(a)", deductible: true },
-  { name: "Fuel & Oil", section: "S11(a)", deductible: true },
-  { name: "Home Office", section: "S11(a)", deductible: true },
-  { name: "Insurance - Business", section: "S11(a)", deductible: true },
-  { name: "Legal & Professional Fees", section: "S11(a)", deductible: true },
-  { name: "Motor Vehicle Expenses", section: "S11(a)", deductible: true },
-  { name: "Office Rental", section: "S11(a)", deductible: true },
-  { name: "Phone & Internet", section: "S11(a)", deductible: true },
-  { name: "Printing & Stationery", section: "S11(a)", deductible: true },
-  { name: "Professional Development", section: "S11(a)", deductible: true },
-  { name: "Repairs & Maintenance", section: "S11(a)", deductible: true },
-  { name: "Software & Subscriptions", section: "S11(a)", deductible: true },
-  { name: "Staff Costs", section: "S11(a)", deductible: true },
-  { name: "Travel - Business", section: "S11(a)", deductible: true },
-  {
-    name: "Uniforms & Protective Clothing",
-    section: "S11(a)",
-    deductible: true,
-  },
-  { name: "Utilities - Business Share", section: "S11(a)", deductible: true },
-  {
-    name: "Meals - Client Entertainment",
-    section: "S11(a)",
-    deductible: false,
-  },
-];
+// Derived from the shared canonical list — names must match add-expense-manual,
+// receipt-review, and category-breakdown so a saved expense's category always
+// resolves to the same picker entry (this list used to be a wholly separate,
+// hand-written set of names that shared none with the canonical list).
+const ITR12_CATEGORIES = CATEGORIES.map((c) => ({
+  name: c.label,
+  section: c.code,
+  deductible: c.deductible,
+  examples: c.examples,
+}));
 
 export default function EditExpenseScreen() {
   const router = useRouter();
@@ -61,6 +45,7 @@ export default function EditExpenseScreen() {
 
   const [loadingExpense, setLoadingExpense] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [successVisible, setSuccessVisible] = useState(false);
   const [error, setError] = useState("");
 
   const [expenseType, setExpenseType] = useState<"business" | "personal">(
@@ -129,9 +114,7 @@ export default function EditExpenseScreen() {
         is_deductible: isDeductible,
         notes: notes.trim() || undefined,
       });
-      Alert.alert("Saved", "Your expense has been updated.", [
-        { text: "OK", onPress: () => router.back() },
-      ]);
+      setSuccessVisible(true);
     } catch (e: any) {
       setError(e.message ?? "Failed to save. Please try again.");
     } finally {
@@ -165,6 +148,10 @@ export default function EditExpenseScreen() {
       <MXHeader title="Update details" showBack />
 
       {/* Form */}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
       <ScrollView
         style={{
           flex: 1,
@@ -455,6 +442,7 @@ export default function EditExpenseScreen() {
           )}
         </TouchableOpacity>
       </ScrollView>
+      </KeyboardAvoidingView>
 
       {/* Category Modal */}
       <Modal
@@ -519,6 +507,12 @@ export default function EditExpenseScreen() {
                     {item.section} ·{" "}
                     {item.deductible ? "Deductible" : "Non-deductible"}
                   </Text>
+                  <Text
+                    style={{ ...typography.bodyXS, color: colour.textSub, marginTop: 2 }}
+                    numberOfLines={1}
+                  >
+                    {item.examples}
+                  </Text>
                 </View>
                 {category === item.name && (
                   <Text style={{ color: colour.primary, fontSize: 16 }}>✓</Text>
@@ -529,6 +523,14 @@ export default function EditExpenseScreen() {
         </SafeAreaView>
       </Modal>
       <MXTabBar />
+
+      <SuccessModal
+        visible={successVisible}
+        title="Changes saved"
+        message="Your expense has been updated."
+        primaryLabel="Done"
+        onPrimary={() => { setSuccessVisible(false); router.back(); }}
+      />
     </SafeAreaView>
   );
 }

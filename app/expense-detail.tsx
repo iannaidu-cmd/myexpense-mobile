@@ -1,7 +1,10 @@
+import { ConfirmModal } from "@/components/ConfirmModal";
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { taxYearForDate } from "@/lib/taxRules";
 import { expenseService } from "@/services/expenseService";
+import { incomeService } from "@/services/incomeService";
 import { useAuthStore } from "@/stores/authStore";
 import { colour, radius, space, typography } from "@/tokens";
 import { ACTIVE_TAX_YEAR } from "@/types/database";
@@ -226,7 +229,7 @@ function ReceiptViewer({
               bottom: 40,
             }}
           >
-            🔒 Secure view · Link expires in 5 minutes
+            Secure view · Link expires in 5 minutes
           </Text>
         )}
       </View>
@@ -242,8 +245,11 @@ export default function ExpenseDetailScreen() {
 
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
+  const [converting, setConverting] = useState(false);
   const [expense, setExpense] = useState<any>(null);
   const [viewerVisible, setViewerVisible] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showConvertConfirm, setShowConvertConfirm] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -259,29 +265,39 @@ export default function ExpenseDetailScreen() {
       });
   }, [id]);
 
-  const handleDelete = () => {
-    Alert.alert(
-      "Delete expense",
-      "Are you sure you want to delete this expense? This cannot be undone.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            if (!expense) return;
-            setDeleting(true);
-            try {
-              await expenseService.deleteExpense(expense.id);
-              router.replace("/(tabs)" as any);
-            } catch (e: any) {
-              Alert.alert("Error", e.message);
-              setDeleting(false);
-            }
-          },
-        },
-      ],
-    );
+  const handleDelete = () => setShowDeleteConfirm(true);
+
+  const confirmConvertToIncome = async () => {
+    if (!expense || !user) return;
+    setShowConvertConfirm(false);
+    setConverting(true);
+    try {
+      await incomeService.addIncome(user.id, {
+        amount: expense.amount,
+        source: expense.vendor,
+        date: expense.expense_date,
+        description: expense.notes ?? "Converted from expense",
+        tax_year: taxYearForDate(expense.expense_date),
+      });
+      await expenseService.deleteExpense(expense.id);
+      router.replace("/income-history" as any);
+    } catch (e: any) {
+      Alert.alert("Error", e.message);
+      setConverting(false);
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!expense) return;
+    setShowDeleteConfirm(false);
+    setDeleting(true);
+    try {
+      await expenseService.deleteExpense(expense.id);
+      router.back();
+    } catch (e: any) {
+      Alert.alert("Error", e.message);
+      setDeleting(false);
+    }
   };
 
   // Determine the storage path for signed URL generation.
@@ -347,7 +363,7 @@ export default function ExpenseDetailScreen() {
       />
 
       <MXHeader
-        title="Expense Detail"
+        title="Expense detail"
         showBack
         right={
           <TouchableOpacity
@@ -369,17 +385,17 @@ export default function ExpenseDetailScreen() {
         <View style={{ flexDirection: "row", gap: space.sm, marginTop: space.md }}>
           {itr12Code ? (
             <View style={{
-              backgroundColor: colour.primary50, borderRadius: radius.full,
+              backgroundColor: colour.noir, borderRadius: radius.full,
               paddingVertical: 4, paddingHorizontal: space.sm,
             }}>
-              <Text style={{ ...typography.labelS, color: colour.accentDeep }}>{itr12Code}</Text>
+              <Text style={{ ...typography.labelS, color: colour.onNoir2 }}>{itr12Code}</Text>
             </View>
           ) : null}
           <View style={{
-            backgroundColor: expense.is_deductible ? colour.successBg : colour.dangerBg,
+            backgroundColor: expense.is_deductible ? colour.success : colour.danger,
             borderRadius: radius.full, paddingVertical: 4, paddingHorizontal: space.sm,
           }}>
-            <Text style={{ ...typography.labelS, color: expense.is_deductible ? colour.success : colour.danger }}>
+            <Text style={{ ...typography.labelS, color: colour.white }}>
               {expense.is_deductible ? "Deductible" : "Non-deductible"}
             </Text>
           </View>
@@ -400,7 +416,7 @@ export default function ExpenseDetailScreen() {
         {expense.is_deductible ? (
           <View
             style={{
-              backgroundColor: colour.successLight,
+              backgroundColor: colour.noir,
               borderRadius: radius.md,
               padding: space.md,
               flexDirection: "row",
@@ -410,21 +426,21 @@ export default function ExpenseDetailScreen() {
             }}
           >
             <View>
-              <Text style={{ ...typography.labelM, color: colour.success }}>
-                Tax Claimable Amount
+              <Text style={{ ...typography.labelM, color: colour.onNoir }}>
+                Tax claimable amount
               </Text>
-              <Text style={{ ...typography.caption, color: colour.success }}>
+              <Text style={{ ...typography.caption, color: colour.onNoir2 }}>
                 ITR12 · {itr12Code}
               </Text>
             </View>
-            <Text style={{ ...typography.amountM, color: colour.success }}>
+            <Text style={{ ...typography.amountM, color: colour.primary }}>
               {fmt(claimable)}
             </Text>
           </View>
         ) : (
           <View
             style={{
-              backgroundColor: colour.dangerBg,
+              backgroundColor: colour.noir,
               borderRadius: radius.md,
               padding: space.md,
               marginBottom: space.xl,
@@ -433,7 +449,7 @@ export default function ExpenseDetailScreen() {
             <Text style={{ ...typography.labelM, color: colour.danger }}>
               Non-deductible expense
             </Text>
-            <Text style={{ ...typography.caption, color: colour.danger }}>
+            <Text style={{ ...typography.caption, color: colour.onNoir2 }}>
               This expense cannot be claimed on your ITR12
             </Text>
           </View>
@@ -494,10 +510,10 @@ export default function ExpenseDetailScreen() {
             }
           }}
           style={{
-            backgroundColor: hasReceipt ? colour.primaryLight : colour.bgPage,
+            backgroundColor: hasReceipt ? colour.noir : colour.bgPage,
             borderRadius: radius.md,
             borderWidth: 1,
-            borderColor: hasReceipt ? colour.primary : colour.border,
+            borderColor: hasReceipt ? colour.noir : colour.border,
             padding: space.lg,
             flexDirection: "row",
             alignItems: "center",
@@ -506,47 +522,44 @@ export default function ExpenseDetailScreen() {
           }}
         >
           <View style={{ flexDirection: "row", alignItems: "center" }}>
-            <Text style={{ fontSize: 20, marginRight: space.sm }}>
-              {hasReceipt ? "🧾" : "📎"}
-            </Text>
+            <View style={{ width: 36, height: 36, borderRadius: radius.md, backgroundColor: hasReceipt ? "rgba(255,255,255,0.15)" : colour.surface2, alignItems: "center", justifyContent: "center", marginRight: space.sm }}>
+              <IconSymbol name={hasReceipt ? "doc.fill" : "paperclip"} size={16} color={hasReceipt ? colour.white : colour.textSub} />
+            </View>
             <View>
               <Text
                 style={{
                   ...typography.labelM,
-                  color: hasReceipt ? colour.primary : colour.textSecondary,
+                  color: hasReceipt ? colour.onNoir : colour.textSecondary,
                 }}
               >
                 {hasReceipt ? "Receipt attached" : "No receipt uploaded"}
               </Text>
               <Text
-                style={{ ...typography.caption, color: colour.textSecondary }}
+                style={{ ...typography.caption, color: hasReceipt ? colour.onNoir2 : colour.textSecondary }}
               >
                 {hasReceipt ? "Tap to view full screen" : "Tap to add receipt"}
               </Text>
             </View>
           </View>
-          <Text style={{ color: colour.textSecondary, fontSize: 18 }}>›</Text>
+          <Text style={{ color: hasReceipt ? colour.onNoir2 : colour.textSecondary, fontSize: 18 }}>›</Text>
         </TouchableOpacity>
 
         {/* SARS compliance note */}
         <View
           style={{
-            backgroundColor: colour.infoLight,
+            backgroundColor: colour.noir,
             borderRadius: radius.md,
             padding: space.md,
             marginBottom: space.xl,
           }}
         >
-          <Text
-            style={{
-              ...typography.labelS,
-              color: colour.info,
-              marginBottom: space.xs,
-            }}
-          >
-            📋 SARS Compliance
-          </Text>
-          <Text style={{ ...typography.bodyS, color: colour.info }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: space.xs, marginBottom: space.xs }}>
+            <IconSymbol name="checkmark.seal.fill" size={14} color={colour.primary} />
+            <Text style={{ ...typography.labelS, color: colour.onNoir }}>
+              SARS compliance
+            </Text>
+          </View>
+          <Text style={{ ...typography.bodyS, color: colour.onNoir2 }}>
             Keep this receipt for 5 years from the date of assessment. Required
             for {itr12Code} deduction claims on your ITR12.
           </Text>
@@ -569,6 +582,32 @@ export default function ExpenseDetailScreen() {
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
+          onPress={() => setShowConvertConfirm(true)}
+          disabled={converting}
+          style={{
+            borderRadius: radius.pill,
+            borderWidth: 1.5,
+            borderColor: colour.primary,
+            height: 52,
+            alignItems: "center",
+            justifyContent: "center",
+            marginBottom: space.md,
+            flexDirection: "row",
+            gap: space.sm,
+          }}
+        >
+          {converting ? (
+            <ActivityIndicator color={colour.primary} />
+          ) : (
+            <>
+              <IconSymbol name="arrow.left.arrow.right" size={16} color={colour.primary} />
+              <Text style={{ ...typography.btnL, color: colour.primary }}>
+                Reclassify as income
+              </Text>
+            </>
+          )}
+        </TouchableOpacity>
+        <TouchableOpacity
           onPress={handleDelete}
           disabled={deleting}
           style={{
@@ -589,6 +628,25 @@ export default function ExpenseDetailScreen() {
           )}
         </TouchableOpacity>
       </ScrollView>
+      <ConfirmModal
+        visible={showDeleteConfirm}
+        title="Delete expense"
+        message="This expense will be permanently removed. This cannot be undone."
+        confirmLabel="Delete"
+        cancelLabel="Keep it"
+        onConfirm={confirmDelete}
+        onCancel={() => setShowDeleteConfirm(false)}
+      />
+      <ConfirmModal
+        visible={showConvertConfirm}
+        title="Reclassify as income?"
+        message="This will remove the expense record and create a new income entry with the same amount and date."
+        confirmLabel="Convert"
+        cancelLabel="Cancel"
+        onConfirm={confirmConvertToIncome}
+        onCancel={() => setShowConvertConfirm(false)}
+        icon="arrow.left.arrow.right"
+      />
       <MXTabBar />
     </SafeAreaView>
   );

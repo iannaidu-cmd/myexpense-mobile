@@ -1,11 +1,15 @@
+import { ConfirmModal } from "@/components/ConfirmModal";
+import { InfoBanner } from "@/components/InfoBanner";
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { mileageService, type MileageTrip } from "@/services/mileageService";
+import { mileageRateForTaxYear } from "@/lib/taxRules";
 import { useAuthStore } from "@/stores/authStore";
+import { useExpenseStore } from "@/stores/expenseStore";
 import { colour, radius, space, typography } from "@/tokens";
-import { ACTIVE_TAX_YEAR } from "@/types/database";
 import { useFocusEffect, useRouter } from "expo-router";
+import { useAppForeground } from "@/hooks/use-app-foreground";
 import React, { useCallback, useState } from "react";
 import {
     ActivityIndicator,
@@ -19,7 +23,6 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const SARS_RATE_PER_KM = 4.84;
 
 const platformShadow =
   Platform.select({
@@ -58,16 +61,18 @@ function formatDate(dateStr: string): string {
 export default function MileageHistoryScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
+  const { activeTaxYear } = useExpenseStore();
 
   const [loading, setLoading] = useState(true);
   const [trips, setTrips] = useState<MileageTrip[]>([]);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const loadTrips = useCallback(async () => {
-    if (!user) return;
+    if (!user) { setLoading(false); return; }
     setLoading(true);
     try {
-      const data = await mileageService.getTrips(user.id, ACTIVE_TAX_YEAR);
+      const data = await mileageService.getTrips(user.id, activeTaxYear);
       setTrips(data);
     } catch (e: any) {
       console.error("MileageHistory load error:", e);
@@ -82,36 +87,34 @@ export default function MileageHistoryScreen() {
       loadTrips();
     }, [loadTrips]),
   );
+  useAppForeground(loadTrips);
 
-  const handleDelete = (id: string) => {
-    Alert.alert(
-      "Delete trip",
-      "Remove this trip from your logbook? This cannot be undone.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            setDeleting(id);
-            try {
-              await mileageService.deleteTrip(id, user!.id);
-              await loadTrips();
-            } catch (e: any) {
-              Alert.alert("Error", e.message);
-            } finally {
-              setDeleting(null);
-            }
-          },
-        },
-      ],
-    );
+  const handleDelete = (id: string) => setConfirmDeleteId(id);
+
+  const confirmDelete = async () => {
+    if (!confirmDeleteId) return;
+    const id = confirmDeleteId;
+    setConfirmDeleteId(null);
+    setDeleting(id);
+    try {
+      await mileageService.deleteTrip(id, user!.id);
+      await loadTrips();
+    } catch (e: any) {
+      Alert.alert("Error", e.message);
+    } finally {
+      setDeleting(null);
+    }
   };
 
-  // Totals
+  // Totals — trips are already scoped to activeTaxYear (see loadTrips), so a
+  // single rate lookup for that year applies to all of them. Using today's
+  // rate here would misvalue trips from a year with a different SARS rate.
+  const mileageRate = mileageRateForTaxYear(activeTaxYear);
   const totalKm = trips.reduce((s, t) => s + Number(t.distance_km), 0);
-  const totalDeductions = totalKm * SARS_RATE_PER_KM;
+  const totalDeductions = mileageRate != null ? totalKm * mileageRate : 0;
   const totalTrips = trips.length;
+  const fmtDeduction = (km: number) =>
+    mileageRate != null ? `R${(km * mileageRate).toFixed(2)}` : "Rate unknown";
 
   return (
     <SafeAreaView
@@ -121,20 +124,20 @@ export default function MileageHistoryScreen() {
       <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
 
       <MXHeader
-        title="Trip Logbook"
-        subtitle={`Tax Year ${ACTIVE_TAX_YEAR}`}
+        title="Trip logbook"
+        subtitle={`Tax Year ${activeTaxYear}`}
         showBack
         right={
           <TouchableOpacity
             onPress={() => router.push("/mileage-tracker")}
             style={{
-              backgroundColor: "rgba(255,255,255,0.18)",
+              backgroundColor: colour.primary50,
               borderRadius: radius.pill,
               paddingHorizontal: space.md,
               paddingVertical: space.xs,
             }}
           >
-            <Text style={{ ...typography.actionS, color: colour.onPrimary }}>
+            <Text style={{ ...typography.actionS, color: colour.accentDeep }}>
               + New Trip
             </Text>
           </TouchableOpacity>
@@ -204,7 +207,7 @@ export default function MileageHistoryScreen() {
                 marginTop: 2,
               }}
             >
-              R{totalDeductions.toFixed(0)}
+              {mileageRate != null ? `R${totalDeductions.toFixed(0)}` : "—"}
             </Text>
           </View>
           <View
@@ -341,8 +344,7 @@ export default function MileageHistoryScreen() {
                     <Text
                       style={{ ...typography.caption, color: colour.success }}
                     >
-                      R
-                      {(Number(trip.distance_km) * SARS_RATE_PER_KM).toFixed(2)}
+                      {fmtDeduction(Number(trip.distance_km))}
                     </Text>
                   </View>
                 </View>
@@ -413,8 +415,7 @@ export default function MileageHistoryScreen() {
                     <Text
                       style={{ ...typography.labelS, color: colour.success }}
                     >
-                      R
-                      {(Number(trip.distance_km) * SARS_RATE_PER_KM).toFixed(2)}
+                      {fmtDeduction(Number(trip.distance_km))}
                     </Text>
                   </View>
                 </View>
@@ -476,40 +477,24 @@ export default function MileageHistoryScreen() {
               </View>
             ))}
 
-            {/* SARS note */}
-            <View
-              style={{
-                backgroundColor: colour.infoLight,
-                borderRadius: radius.md,
-                padding: space.md,
-                marginTop: space.sm,
-              }}
-            >
-              <Text
-                style={{
-                  ...typography.labelS,
-                  color: colour.info,
-                  marginBottom: space.xs,
-                }}
-              >
-                SARS Logbook Requirement
-              </Text>
-              <Text
-                style={{
-                  ...typography.bodyXS,
-                  color: colour.info,
-                  lineHeight: 18,
-                }}
-              >
-                SARS requires a travel logbook for vehicle expense claims. This
-                logbook records each business trip with date, distance, purpose
-                and calculated deduction at the deemed rate of R4.84/km for the
-                2024/25 tax year.
-              </Text>
-            </View>
+            <InfoBanner
+              icon="car.fill"
+              title="SARS Logbook Requirement"
+              body={`SARS requires a travel logbook for vehicle expense claims. This logbook records each business trip with date, distance, purpose and calculated deduction at the SARS deemed rate${mileageRate != null ? ` of R${mileageRate}/km for ${activeTaxYear}` : ` for ${activeTaxYear} (not yet on record)`}.`}
+              style={{ marginTop: space.sm }}
+            />
           </>
         )}
       </ScrollView>
+      <ConfirmModal
+        visible={!!confirmDeleteId}
+        title="Delete trip"
+        message="Remove this trip from your logbook? This cannot be undone."
+        confirmLabel="Delete"
+        cancelLabel="Keep it"
+        onConfirm={confirmDelete}
+        onCancel={() => setConfirmDeleteId(null)}
+      />
       <MXTabBar />
     </SafeAreaView>
   );

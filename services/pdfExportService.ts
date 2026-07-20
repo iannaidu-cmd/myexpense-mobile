@@ -54,11 +54,13 @@ const fmtDate = (iso: string) => {
   });
 };
 
-// ─── ITR12 code lookup ────────────────────────────────────────────────────────
+// ─── ITR12 field name lookup ──────────────────────────────────────────────────
+// Returns the exact field label from the ITR12 Local Business Income section
+// (pages 11-12) or "Total contributions (4006)" for RA. For sole proprietors
+// there are no individual source codes per expenditure item.
 
-function getITR12Code(category: string, itr12_code?: string | null): string {
-  if (itr12_code) return itr12_code;
-  return ITR12_CATEGORIES[category]?.code ?? "4011";
+function getITR12Field(category: string): string {
+  return ITR12_CATEGORIES[category]?.field || "Other";
 }
 
 // ─── HTML template ────────────────────────────────────────────────────────────
@@ -136,7 +138,7 @@ function buildHTML(opts: {
             <td>${fmtDate(e.expense_date)}</td>
             <td>${e.vendor}</td>
             <td>${e.category}</td>
-            <td style="text-align:center">${getITR12Code(e.category, e.itr12_code)}</td>
+            <td style="text-align:center">${getITR12Field(e.category)}</td>
             <td style="text-align:right">${fmtZAR(e.amount)}</td>
             ${includeVAT ? `<td style="text-align:right">${e.vat_amount ? fmtZAR(e.vat_amount) : "—"}</td>` : ""}
             <td style="text-align:center">${e.is_deductible ? "✓" : "✗"}</td>
@@ -152,7 +154,7 @@ function buildHTML(opts: {
                 <th>Date</th>
                 <th>Vendor</th>
                 <th>Category</th>
-                <th style="text-align:center">ITR12</th>
+                <th style="text-align:center">eFiling Field</th>
                 <th style="text-align:right">Amount</th>
                 ${includeVAT ? '<th style="text-align:right">VAT</th>' : ""}
                 <th style="text-align:center">Deductible</th>
@@ -414,7 +416,7 @@ function buildHTML(opts: {
       <thead>
         <tr>
           <th>Category</th>
-          <th style="text-align:center">ITR12 Code</th>
+          <th style="text-align:center">eFiling Field</th>
           <th style="text-align:center">Items</th>
           <th style="text-align:right">Amount</th>
         </tr>
@@ -476,31 +478,27 @@ export async function generateITR12PDF(opts: PDFExportOptions): Promise<void> {
     await Promise.all([
       profileService.getProfile(userId),
       expenseService.getExpenses(userId, taxYear),
-      incomeService.getTotals(userId),
+      incomeService.getTotals(userId, taxYear),
       expenseService.getTotals(userId, taxYear),
       expenseService.getByCategory(userId, taxYear),
     ]);
 
-  // Build category breakdown with code + count
+  // Build category breakdown: amounts from byCategory (already filtered to
+  // is_deductible=true and capped via CATEGORY_PARTIAL_CAPS), counts from expenses.
   const categoryBreakdown: Record<
     string,
     { amount: number; code: string; count: number }
   > = {};
 
-  for (const expense of expenses) {
-    const key = expense.category;
-    if (!categoryBreakdown[key]) {
-      categoryBreakdown[key] = {
-        amount: 0,
-        code: getITR12Code(expense.category, expense.itr12_code),
-        count: 0,
-      };
-    }
-    categoryBreakdown[key].amount += Number(expense.amount);
-    categoryBreakdown[key].count += 1;
+  for (const [cat, amount] of Object.entries(byCategory)) {
+    categoryBreakdown[cat] = {
+      amount,
+      code: getITR12Field(cat),
+      count: expenses.filter((e) => e.category === cat && e.is_deductible).length,
+    };
   }
 
-  // Total VAT
+  // Total VAT (all expenses, not filtered by deductibility)
   const totalVAT = expenses.reduce(
     (sum, e) => sum + Number(e.vat_amount ?? 0),
     0,

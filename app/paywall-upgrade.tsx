@@ -1,128 +1,149 @@
 import { MXButton } from "@/components/MXButton";
-import { MXCard } from "@/components/MXCard";
-import { MXHeader } from "@/components/MXHeader";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { MXTabBar } from "@/components/MXTabBar";
 import { useAuthStore } from "@/stores/authStore";
 import {
-  PRODUCT_ANNUAL,
-  PRODUCT_MONTHLY,
+  PACKAGE_ANNUAL,
+  PACKAGE_MONTHLY,
   useSubscriptionStore,
 } from "@/stores/subscriptionStore";
-import { colour, radius, space, typography } from "@/tokens";
+import { colour, space, typography } from "@/tokens";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useState } from "react";
-import {
-  Alert,
-  Platform,
-  ScrollView,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Alert, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { type PurchasesPackage } from "react-native-purchases";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const PREMIUM_FEATURES = [
-  "Unlimited OCR receipt scanning",
-  "Full SARS ITR12 categorisation (S11(a), S11(e) & more)",
-  "Automated deduction optimisation",
-  "Export-ready tax reports (PDF & CSV)",
-  "Multi-device sync",
-  "Priority support",
-  "POPIA-compliant data storage",
+const FEATURES: { label: string; icon: "camera.fill" | "car.fill" | "chart.bar.fill" | "square.and.arrow.up" }[] = [
+  { label: "Unlimited receipt scanning & OCR", icon: "camera.fill" },
+  { label: "Automatic mileage tracking", icon: "car.fill" },
+  { label: "ITR12-ready category reports", icon: "chart.bar.fill" },
+  { label: "Unlimited exports, anytime", icon: "square.and.arrow.up" },
 ];
 
-const FREE_FEATURES = [
-  "Up to 10 receipts per month",
-  "Basic ITR12 expense categories",
-  "Manual expense entry",
-  "Monthly summary report",
-];
-
-function SectionLabel({ children }: { children: string }) {
-  return (
-    <Text
-      style={{
-        ...typography.labelS,
-        color: colour.textHint,
-        letterSpacing: 0.8,
-        marginBottom: space.xs,
-      }}
-    >
-      {children}
-    </Text>
-  );
+// The RevenueCat webhook (supabase/functions/revenuecat-webhook) syncs
+// profiles.subscription shortly after a purchase, but not synchronously with
+// the purchase call returning — refresh once immediately, then once more
+// after a short delay in case the webhook hasn't landed yet.
+async function syncPremiumStatus(): Promise<void> {
+  await useAuthStore.getState().refreshPremiumStatus().catch(() => {});
+  if (!useAuthStore.getState().isPremium) {
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    await useAuthStore.getState().refreshPremiumStatus().catch(() => {});
+  }
 }
 
-function FeatureRow({
-  label,
-  muted = false,
-}: {
-  label: string;
-  muted?: boolean;
-}) {
+function FeatureRow({ label, icon }: { label: string; icon: (typeof FEATURES)[number]["icon"] }) {
   return (
-    <View
-      style={{
-        flexDirection: "row",
-        alignItems: "flex-start",
-        gap: space.sm,
-        paddingVertical: space.xs,
-      }}
-    >
+    <View style={{ flexDirection: "row", alignItems: "center", gap: space.md }}>
       <View
         style={{
-          width: 22,
-          height: 22,
-          borderRadius: 11,
-          backgroundColor: muted ? colour.surface2 : colour.successBg,
+          width: 30,
+          height: 30,
+          borderRadius: 9,
+          backgroundColor: `${colour.primary}40`,
           alignItems: "center",
           justifyContent: "center",
-          marginTop: 1,
           flexShrink: 0,
         }}
       >
-        <Text
+        <IconSymbol name={icon} size={15} color={colour.onNoir} />
+      </View>
+      <Text style={{ ...typography.labelM, color: colour.onNoir, fontWeight: "600" }}>{label}</Text>
+    </View>
+  );
+}
+
+function PlanRow({
+  active,
+  name,
+  sub,
+  priceDisplay,
+  period,
+  savingPercent,
+  onPress,
+}: {
+  active: boolean;
+  name: string;
+  sub: string;
+  priceDisplay: string;
+  period: string;
+  savingPercent?: number;
+  onPress: () => void;
+}) {
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      activeOpacity={0.85}
+      style={{
+        borderWidth: 1.5,
+        borderColor: active ? colour.primary300 : `${colour.onNoir}24`,
+        backgroundColor: active ? `${colour.primary}24` : "transparent",
+        borderRadius: 18,
+        paddingVertical: space.md,
+        paddingHorizontal: space.lg,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+      }}
+    >
+      <View style={{ flexDirection: "row", alignItems: "center", flexShrink: 1 }}>
+        <View
           style={{
-            fontSize: 12,
-            fontWeight: "700",
-            color: muted ? colour.textDisabled : colour.successMid,
-            lineHeight: 16,
+            width: 20,
+            height: 20,
+            borderRadius: 10,
+            borderWidth: 2,
+            borderColor: active ? colour.primary300 : `${colour.onNoir}59`,
+            backgroundColor: active ? colour.primary300 : "transparent",
+            alignItems: "center",
+            justifyContent: "center",
+            marginRight: space.md,
+            flexShrink: 0,
           }}
         >
-          ✓
-        </Text>
+          {active && (
+            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: colour.noir }} />
+          )}
+        </View>
+        <View style={{ flexShrink: 1 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: space.sm }}>
+            <Text style={{ ...typography.labelM, color: colour.onNoir, fontWeight: "700" }}>{name}</Text>
+            {!!savingPercent && savingPercent > 0 && (
+              <View
+                style={{
+                  backgroundColor: colour.success,
+                  borderRadius: 100,
+                  paddingHorizontal: space.sm,
+                  paddingVertical: 2,
+                }}
+              >
+                <Text style={{ fontSize: 10, fontWeight: "700", color: colour.text }}>
+                  Save {savingPercent}%
+                </Text>
+              </View>
+            )}
+          </View>
+          <Text style={{ ...typography.bodyXS, color: colour.onNoir2, fontWeight: "500", marginTop: 3 }}>
+            {sub}
+          </Text>
+        </View>
       </View>
-      <Text
-        style={{
-          ...typography.bodyM,
-          color: muted ? colour.textDisabled : colour.text,
-          flex: 1,
-        }}
-      >
-        {label}
-      </Text>
-    </View>
+      <View style={{ alignItems: "flex-end", flexShrink: 0 }}>
+        <Text style={{ ...typography.labelM, color: colour.onNoir, fontWeight: "800" }}>{priceDisplay}</Text>
+        <Text style={{ ...typography.bodyXS, color: colour.onNoir2, fontWeight: "500" }}>{period}</Text>
+      </View>
+    </TouchableOpacity>
   );
 }
 
 export default function PaywallUpgradeScreen() {
   const router = useRouter();
   const { isPremium } = useAuthStore();
-  const {
-    packages,
-    loading,
-    isPro,
-    purchasePackage,
-    restorePurchases,
-    refresh,
-  } = useSubscriptionStore();
+  const { packages, loading, isPro, purchasePackage, restorePurchases, refresh } = useSubscriptionStore();
 
-  const [selectedPlan, setSelectedPlan] = useState<"monthly" | "annual">(
-    "monthly"
-  );
+  const [selectedPlan, setSelectedPlan] = useState<"monthly" | "annual">("monthly");
 
   useEffect(() => {
     refresh().catch(console.warn);
@@ -131,45 +152,44 @@ export default function PaywallUpgradeScreen() {
   // ── Dev / premium bypass — skip paywall entirely ──────────────────────────
   useEffect(() => {
     if (isPremium) {
-      router.back();
+      router.replace("/(tabs)/settings" as any);
     }
   }, [isPremium]);
 
   // If already Pro via RevenueCat (e.g. restored), go back
   useEffect(() => {
     if (isPro) {
-      Alert.alert(
-        "You're on Pro!",
-        "Premium is already active on this account.",
-        [{ text: "OK", onPress: () => router.back() }]
-      );
+      Alert.alert("You're on Pro!", "Premium is already active on this account.", [
+        { text: "OK", onPress: () => router.back() },
+      ]);
     }
   }, [isPro]);
 
-  const monthlyPkg = packages.find(
-    (p) => p.product.identifier === PRODUCT_MONTHLY
-  );
-  const annualPkg = packages.find(
-    (p) => p.product.identifier === PRODUCT_ANNUAL
-  );
-  const selectedPkg: PurchasesPackage | undefined =
-    selectedPlan === "monthly" ? monthlyPkg : annualPkg;
+  if (isPremium) return null;
 
-  // Fall back to hardcoded prices if RevenueCat packages aren't loaded yet
+  const monthlyPkg = packages.find((p) => p.identifier === PACKAGE_MONTHLY);
+  const annualPkg = packages.find((p) => p.identifier === PACKAGE_ANNUAL);
+  const selectedPkg: PurchasesPackage | undefined = selectedPlan === "monthly" ? monthlyPkg : annualPkg;
+
+  // Fall back to hardcoded prices if RevenueCat packages aren't loaded yet.
+  // Must match the real Play Console / App Store Connect prices exactly:
+  // R99/month, R1099.00/year.
   const MONTHLY_PRICE = monthlyPkg?.product.price ?? 99;
-  const ANNUAL_PRICE = annualPkg?.product.price ?? Math.round(99 * 12 * 0.8);
+  const ANNUAL_PRICE = annualPkg?.product.price ?? 1099.0;
   const ANNUAL_SAVING = Math.round(MONTHLY_PRICE * 12 - ANNUAL_PRICE);
+  const ANNUAL_SAVING_PCT = MONTHLY_PRICE > 0 ? Math.round((ANNUAL_SAVING / (MONTHLY_PRICE * 12)) * 100) : 0;
+
+  const displayMonthly = monthlyPkg?.product.priceString ?? `R${MONTHLY_PRICE.toFixed(2)}`;
+  const displayAnnual = annualPkg?.product.priceString ?? `R${ANNUAL_PRICE.toFixed(2)}`;
 
   const handlePurchase = async () => {
     if (!selectedPkg) {
-      Alert.alert(
-        "Not available",
-        "Products are still loading. Please try again in a moment."
-      );
+      Alert.alert("Not available", "Products are still loading. Please try again in a moment.");
       return;
     }
     const success = await purchasePackage(selectedPkg);
     if (success) {
+      await syncPremiumStatus();
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       Alert.alert(
         "Welcome to Pro! ⚡",
@@ -182,339 +202,167 @@ export default function PaywallUpgradeScreen() {
   const handleRestore = async () => {
     const restored = await restorePurchases();
     if (restored) {
-      Alert.alert(
-        "Purchases restored",
-        "Your Pro subscription has been restored.",
-        [{ text: "OK", onPress: () => router.back() }]
-      );
+      await syncPremiumStatus();
+      Alert.alert("Purchases restored", "Your Pro subscription has been restored.", [
+        { text: "OK", onPress: () => router.back() },
+      ]);
     } else {
-      Alert.alert(
-        "Nothing to restore",
-        "No active Pro subscription was found on this account."
-      );
+      Alert.alert("Nothing to restore", "No active Pro subscription was found on this account.");
     }
   };
 
-  const displayMonthly = monthlyPkg?.product.priceString ?? `R${MONTHLY_PRICE}`;
-  const displayAnnual = annualPkg?.product.priceString ?? `R${ANNUAL_PRICE}`;
-
   return (
-    <SafeAreaView
-      edges={["top"]}
-      style={{ flex: 1, backgroundColor: colour.white }}
-    >
-      <MXHeader
-        title="Upgrade"
-        showBack
-        right={
-          <TouchableOpacity
-            onPress={handleRestore}
-            disabled={loading}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Text style={{ ...typography.actionS, color: colour.primary }}>
-              Restore
-            </Text>
-          </TouchableOpacity>
-        }
-      />
+    <SafeAreaView edges={["top", "bottom"]} style={{ flex: 1, backgroundColor: colour.noir }}>
+      <StatusBar style="light" />
+
+      <View pointerEvents="none" style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}>
+        <View
+          style={{
+            position: "absolute",
+            width: 220,
+            height: 220,
+            borderRadius: 110,
+            backgroundColor: `${colour.primary}8C`,
+            top: -70,
+            right: -70,
+          }}
+        />
+        <View
+          style={{
+            position: "absolute",
+            width: 160,
+            height: 160,
+            borderRadius: 80,
+            backgroundColor: `${colour.primary}40`,
+            top: 120,
+            left: -70,
+          }}
+        />
+      </View>
+
+      <View style={{ flexDirection: "row", justifyContent: "flex-end", paddingHorizontal: space.lg, paddingTop: space.xs }}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          style={{
+            width: 32,
+            height: 32,
+            borderRadius: 16,
+            backgroundColor: `${colour.onNoir}1F`,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <IconSymbol name="xmark" size={14} color={colour.onNoir} />
+        </TouchableOpacity>
+      </View>
 
       <ScrollView
-        contentContainerStyle={{
-          paddingHorizontal: space.lg,
-          paddingTop: space.xl,
-          paddingBottom: space.xxxl,
-          gap: space.lg,
-        }}
+        contentContainerStyle={{ paddingHorizontal: space.xxl, paddingBottom: space.xxl }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Hero */}
-        <View style={{ alignItems: "center", gap: space.xs }}>
-          <IconSymbol name="bolt.fill" size={36} color={colour.primary} />
-          <Text
-            style={{
-              ...typography.h2,
-              fontWeight: "800",
-              color: colour.text,
-              textAlign: "center",
-            }}
-          >
-            Unlock Premium
-          </Text>
-          <Text
-            style={{
-              ...typography.bodyM,
-              color: colour.textSub,
-              textAlign: "center",
-              lineHeight: 22,
-            }}
-          >
-            Claim every deduction you're entitled to.{"\n"}
-            Let MyExpense handle the SARS heavy lifting.
-          </Text>
-        </View>
-
-        {/* Plan selector */}
-        <MXCard noBorder padding={0}>
-          {/* Toggle row */}
-          <View
-            style={{
-              flexDirection: "row",
-              backgroundColor: colour.surface1,
-              borderRadius: radius.md,
-              padding: 4,
-              marginBottom: space.md,
-            }}
-          >
-            {(["monthly", "annual"] as const).map((plan) => (
-              <TouchableOpacity
-                key={plan}
-                onPress={() => setSelectedPlan(plan)}
-                style={{
-                  flex: 1,
-                  paddingVertical: space.sm,
-                  borderRadius: radius.sm,
-                  alignItems: "center",
-                  backgroundColor:
-                    selectedPlan === plan ? colour.white : "transparent",
-                  ...(selectedPlan === plan && Platform.OS === "ios"
-                    ? { shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 4, shadowOffset: { width: 0, height: 2 } }
-                    : selectedPlan === plan && Platform.OS === "android"
-                    ? { elevation: 2 }
-                    : {}),
-                }}
-              >
-                <Text
-                  style={{
-                    ...typography.labelM,
-                    color:
-                      selectedPlan === plan ? colour.primary : colour.textSub,
-                    fontWeight: selectedPlan === plan ? "700" : "500",
-                  }}
-                >
-                  {plan === "monthly" ? "Monthly" : "Annual"}
-                </Text>
-                {plan === "annual" && ANNUAL_SAVING > 0 && (
-                  <Text
-                    style={{
-                      ...typography.bodyXS,
-                      color: colour.success,
-                      fontWeight: "600",
-                    }}
-                  >
-                    Save R{ANNUAL_SAVING}
-                  </Text>
-                )}
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          {/* Price display */}
-          <View
-            style={{
-              backgroundColor: colour.primary50,
-              borderRadius: radius.lg,
-              padding: space.lg,
-              alignItems: "center",
-              gap: space.xs,
-            }}
-          >
-            <View
-              style={{
-                backgroundColor: colour.primary,
-                borderRadius: radius.pill,
-                paddingHorizontal: space.md,
-                paddingVertical: space.xxs,
-                marginBottom: space.xs,
-              }}
-            >
-              <Text
-                style={{
-                  ...typography.labelS,
-                  color: colour.onPrimary,
-                  fontWeight: "700",
-                  letterSpacing: 0.6,
-                }}
-              >
-                {selectedPlan === "monthly" ? "Most popular" : "Best value"}
-              </Text>
-            </View>
-
-            <Text
-              style={{
-                ...typography.amountXL,
-                color: colour.primary,
-                fontWeight: "800",
-                fontSize: 52,
-                lineHeight: 60,
-              }}
-            >
-              {selectedPlan === "monthly" ? displayMonthly : displayAnnual}
-            </Text>
-            <Text style={{ ...typography.bodyS, color: colour.textSub }}>
-              {selectedPlan === "monthly"
-                ? "Billed monthly · Cancel anytime"
-                : `Billed annually · ${displayMonthly}/mo equivalent`}
-            </Text>
-
-            {selectedPlan === "monthly" && ANNUAL_SAVING > 0 && (
-              <View
-                style={{
-                  backgroundColor: colour.successBg,
-                  borderRadius: radius.sm,
-                  paddingHorizontal: space.md,
-                  paddingVertical: space.xxs,
-                  marginTop: space.xs,
-                }}
-              >
-                <Text
-                  style={{
-                    ...typography.bodyXS,
-                    color: colour.success,
-                    fontWeight: "600",
-                  }}
-                >
-                  💡 Save 20% with annual — R{ANNUAL_SAVING}/yr savings
-                </Text>
-              </View>
-            )}
-          </View>
-        </MXCard>
-
-        {/* Feature comparison */}
-        <MXCard>
-          <SectionLabel>Premium — everything you need</SectionLabel>
-          {PREMIUM_FEATURES.map((f) => (
-            <FeatureRow key={f} label={f} />
-          ))}
-
-          <View
-            style={{
-              height: 1,
-              backgroundColor: colour.borderLight,
-              marginVertical: space.md,
-            }}
-          />
-
-          <SectionLabel>Free plan — what you have now</SectionLabel>
-          {FREE_FEATURES.map((f) => (
-            <FeatureRow key={f} label={f} muted />
-          ))}
-        </MXCard>
-
-        {/* Value callout */}
         <View
           style={{
-            backgroundColor: colour.primary50,
-            borderRadius: radius.md,
-            padding: space.md,
-            flexDirection: "row",
+            width: 52,
+            height: 52,
+            borderRadius: 16,
+            backgroundColor: `${colour.onNoir}1F`,
             alignItems: "center",
-            gap: space.md,
-          }}
-        >
-          <IconSymbol name="doc.text.fill" size={28} color={colour.primary} />
-          <View style={{ flex: 1 }}>
-            <Text style={{ ...typography.labelM, color: colour.primary }}>
-              Less than one accountant visit
-            </Text>
-            <Text
-              style={{
-                ...typography.bodyXS,
-                color: colour.textSub,
-                marginTop: 2,
-              }}
-            >
-              At R99/month, MyExpense costs less than a single hour with a tax
-              practitioner — and works year-round.
-            </Text>
-          </View>
-        </View>
-
-        {/* Trust badges */}
-        <View
-          style={{
-            flexDirection: "row",
             justifyContent: "center",
-            flexWrap: "wrap",
-            gap: space.sm,
+            marginTop: space.sm,
+            marginBottom: space.lg,
           }}
         >
-          {["🔒 POPIA Compliant", "🇿🇦 SARS Aligned", "✕ Cancel Anytime"].map(
-            (badge) => (
-              <View
-                key={badge}
-                style={{
-                  backgroundColor: colour.surface1,
-                  borderRadius: radius.pill,
-                  paddingHorizontal: space.md,
-                  paddingVertical: space.xxs,
-                  borderWidth: 1,
-                  borderColor: colour.borderLight,
-                }}
-              >
-                <Text
-                  style={{
-                    ...typography.bodyXS,
-                    color: colour.textSub,
-                    fontWeight: "500",
-                  }}
-                >
-                  {badge}
-                </Text>
-              </View>
-            )
-          )}
+          <IconSymbol name="crown.fill" size={24} color={colour.onNoir} />
         </View>
-      </ScrollView>
 
-      {/* Pinned CTA footer */}
-      <View
-        style={{
-          backgroundColor: colour.white,
-          paddingHorizontal: space.lg,
-          paddingTop: space.md,
-          paddingBottom: space.lg,
-          borderTopWidth: 1,
-          borderTopColor: colour.borderLight,
-          ...Platform.select({
-            ios: {
-              shadowOffset: { width: 0, height: -4 },
-              shadowOpacity: 0.06,
-              shadowRadius: 12,
-            },
-            android: { elevation: 8 },
-            default: { boxShadow: "0px -4px 12px rgba(0,0,0,0.06)" },
-          }),
-        }}
-      >
+        <Text style={{ ...typography.h2, fontWeight: "800", color: colour.onNoir, lineHeight: 34 }}>
+          Go <Text style={{ color: colour.primary300 }}>Pro</Text> with{"\n"}MyExpense.
+        </Text>
+        <Text
+          style={{
+            ...typography.bodyM,
+            color: colour.onNoir2,
+            fontWeight: "500",
+            lineHeight: 21,
+            marginTop: space.sm,
+            marginBottom: space.xxl,
+          }}
+        >
+          Unlimited receipt scanning, automatic ITR12 categorisation and full SARS-ready reports.
+        </Text>
+
+        <View style={{ gap: space.md, marginBottom: space.xxl }}>
+          {FEATURES.map((f) => (
+            <FeatureRow key={f.label} {...f} />
+          ))}
+        </View>
+
+        <View style={{ gap: space.sm, marginBottom: space.lg }}>
+          <PlanRow
+            active={selectedPlan === "annual"}
+            name="Annual"
+            sub="Billed once a year"
+            priceDisplay={displayAnnual}
+            period="/year"
+            savingPercent={ANNUAL_SAVING_PCT}
+            onPress={() => setSelectedPlan("annual")}
+          />
+          <PlanRow
+            active={selectedPlan === "monthly"}
+            name="Monthly"
+            sub="Billed every month"
+            priceDisplay={displayMonthly}
+            period="/month"
+            onPress={() => setSelectedPlan("monthly")}
+          />
+        </View>
+
         <MXButton
-          label={
-            loading
-              ? "Loading..."
-              : selectedPlan === "monthly"
-                ? `Start Pro — ${displayMonthly}/month`
-                : `Start Pro — ${displayAnnual}/year`
-          }
+          label={loading ? "Loading..." : "Continue"}
           variant="primary"
           size="L"
           onPress={handlePurchase}
           fullWidth
         />
+
         <Text
           style={{
             ...typography.bodyXS,
-            color: colour.textHint,
+            color: colour.onNoir2,
+            opacity: 0.85,
             textAlign: "center",
-            marginTop: space.xs,
+            lineHeight: 17,
+            marginTop: space.md,
+            marginBottom: space.lg,
           }}
         >
-          Subscription managed by{" "}
-          {Platform.OS === "ios" ? "Apple" : "Google"} · Cancel anytime
+          Cancel anytime. Renews automatically until cancelled.{"\n"}By continuing you agree to our{" "}
+          <Text style={{ color: colour.onNoir2, textDecorationLine: "underline" }} onPress={() => router.push("/terms" as any)}>
+            Terms
+          </Text>{" "}
+          and{" "}
+          <Text style={{ color: colour.onNoir2, textDecorationLine: "underline" }} onPress={() => router.push("/privacy" as any)}>
+            Privacy Policy
+          </Text>
+          .
         </Text>
-      </View>
 
-      <MXTabBar />
+        <View style={{ flexDirection: "row", justifyContent: "center", gap: space.xxl }}>
+          <Text
+            style={{ ...typography.bodyXS, color: colour.onNoir2, opacity: 0.85, fontWeight: "500" }}
+            onPress={loading ? undefined : handleRestore}
+          >
+            Restore purchase
+          </Text>
+          <Text
+            style={{ ...typography.bodyXS, color: colour.onNoir2, opacity: 0.85, fontWeight: "500" }}
+            onPress={() => router.back()}
+          >
+            Maybe later
+          </Text>
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }

@@ -1,11 +1,15 @@
+import { InfoBanner } from "@/components/InfoBanner";
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { VAT_RATE } from "@/lib/taxRules";
 import { expenseService } from "@/services/expenseService";
+import { incomeService } from "@/services/incomeService";
 import { useAuthStore } from "@/stores/authStore";
 import { useExpenseStore } from "@/stores/expenseStore";
 import { colour, radius, space, typography } from "@/tokens";
 import { useFocusEffect, useRouter } from "expo-router";
+import { useAppForeground } from "@/hooks/use-app-foreground";
 import React, { useCallback, useState } from "react";
 import {
     ActivityIndicator,
@@ -19,7 +23,6 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const VAT_RATE = 0.15;
 const fmt = (n: number) =>
   `R ${Number(n).toLocaleString("en-ZA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const formatDate = (dateStr: string) =>
@@ -28,6 +31,14 @@ const formatDate = (dateStr: string) =>
     month: "short",
     year: "numeric",
   });
+
+function csvField(val: string | number | null | undefined): string {
+  if (val === null || val === undefined) return "";
+  const str = String(val);
+  if (str.includes(",") || str.includes('"') || str.includes("\n"))
+    return `"${str.replace(/"/g, '""')}"`;
+  return str;
+}
 
 type Period = "month" | "quarter" | "year";
 
@@ -38,13 +49,28 @@ export default function VATSummaryScreen() {
   const [loading, setLoading] = useState(true);
   const [expenses, setExpenses] = useState<any[]>([]);
   const [period, setPeriod] = useState<Period>("month");
+  const [trailing12Revenue, setTrailing12Revenue] = useState(0);
+
+  const VAT_THRESHOLD = 1_000_000;
 
   const loadData = useCallback(async () => {
-    if (!user) return;
+    if (!user) { setLoading(false); return; }
     setLoading(true);
     try {
-      const data = await expenseService.getExpenses(user.id, activeTaxYear);
+      const [data, allIncome] = await Promise.all([
+        expenseService.getExpenses(user.id, activeTaxYear),
+        incomeService.getIncome(user.id),
+      ]);
       setExpenses(data.filter((e) => e.vat_amount && Number(e.vat_amount) > 0));
+
+      // Rolling 12-month revenue for VAT threshold
+      const cutoff = new Date();
+      cutoff.setFullYear(cutoff.getFullYear() - 1);
+      const cutoffStr = cutoff.toISOString().split("T")[0];
+      const trailing = allIncome
+        .filter((e) => e.date >= cutoffStr)
+        .reduce((s, e) => s + Number(e.amount), 0);
+      setTrailing12Revenue(trailing);
     } catch (e) {
       console.error("VATSummary load error:", e);
     } finally {
@@ -57,6 +83,7 @@ export default function VATSummaryScreen() {
       loadData();
     }, [loadData]),
   );
+  useAppForeground(loadData);
 
   const now = new Date();
   const filtered = expenses.filter((e) => {
@@ -81,20 +108,42 @@ export default function VATSummaryScreen() {
 
   const handleExport = async () => {
     try {
+      const periodLabel =
+        period === "month"
+          ? now.toLocaleDateString("en-ZA", { month: "long", year: "numeric" })
+          : period === "quarter"
+          ? `Q${Math.floor(now.getMonth() / 3) + 1} ${now.getFullYear()}`
+          : `Tax year ${activeTaxYear}`;
+
+      const header = [
+        "Vendor", "Date", "Gross Amount (ZAR)", "VAT Amount (ZAR)", "Category", "Claimable",
+      ].join(",");
+
+      const rows = filtered.map((e) =>
+        [
+          csvField(e.vendor),
+          csvField(e.expense_date),
+          csvField(Number(e.amount).toFixed(2)),
+          csvField(Number(e.vat_amount).toFixed(2)),
+          csvField(e.category),
+          csvField(e.is_deductible ? "Yes" : "No"),
+        ].join(","),
+      );
+
       const lines = [
         "MyExpense VAT Report",
         `Tax Year: ${activeTaxYear}`,
-        `Period: ${period}`,
+        `Period: ${periodLabel}`,
+        `Generated: ${now.toLocaleDateString("en-ZA")}`,
         "",
-        "Vendor,Date,Amount,VAT,Category,Claimable",
-        ...filtered.map(
-          (e) =>
-            `${e.vendor},${e.expense_date},${e.amount},${e.vat_amount},${e.category},${e.is_deductible ? "Yes" : "No"}`,
-        ),
+        header,
+        ...rows,
         "",
-        `Total VAT: ${fmt(totalVAT)}`,
-        `Claimable VAT: ${fmt(claimableVAT)}`,
+        `Total VAT paid,${fmt(totalVAT)}`,
+        `Claimable input tax,${fmt(claimableVAT)}`,
+        `Non-claimable VAT,${fmt(nonClaimable)}`,
       ].join("\n");
+
       await Share.share({ message: lines, title: "VAT Report" });
     } catch (e) {
       Alert.alert("Export failed", "Could not export VAT report.");
@@ -114,7 +163,7 @@ export default function VATSummaryScreen() {
     >
       <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
       <MXHeader
-        title="VAT Summary"
+        title="VAT summary"
         subtitle={`VAT at ${(VAT_RATE * 100).toFixed(0)}% · South Africa`}
         showBack
         backLabel="Reports"
@@ -132,6 +181,69 @@ export default function VATSummaryScreen() {
           paddingBottom: space["4xl"],
         }}
       >
+        {/* ── VAT threshold tracker ─────────────────────────────────── */}
+        {(() => {
+          const pct = Math.min(trailing12Revenue / VAT_THRESHOLD, 1);
+          const pctDisplay = Math.round((trailing12Revenue / VAT_THRESHOLD) * 100);
+          const barColour =
+            pctDisplay >= 95 ? colour.danger
+            : pctDisplay >= 80 ? colour.warning
+            : colour.success;
+          const bgColour =
+            pctDisplay >= 95 ? colour.dangerBg
+            : pctDisplay >= 80 ? colour.warningBg
+            : colour.successBg;
+          const remaining = VAT_THRESHOLD - trailing12Revenue;
+
+          return (
+            <View
+              style={{
+                backgroundColor: colour.noir,
+                borderRadius: radius.md,
+                padding: space.md,
+                marginBottom: space.xl,
+              }}
+            >
+              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
+                <Text style={{ fontSize: 11, fontWeight: "700", color: colour.onNoir2, letterSpacing: 0.6 }}>
+                  VAT REGISTRATION THRESHOLD
+                </Text>
+                <View style={{ backgroundColor: bgColour, borderRadius: radius.pill, paddingHorizontal: 8, paddingVertical: 3 }}>
+                  <Text style={{ fontSize: 10, fontWeight: "700", color: barColour }}>
+                    {pctDisplay}%
+                  </Text>
+                </View>
+              </View>
+
+              <Text style={{ fontSize: 22, fontWeight: "800", color: colour.onNoir, letterSpacing: -0.5, marginBottom: 2 }}>
+                {`R ${Math.round(trailing12Revenue).toLocaleString("en-ZA")}`}
+              </Text>
+              <Text style={{ fontSize: 11, color: colour.onNoir2, marginBottom: space.md }}>
+                of R 1,000,000 threshold · rolling 12 months
+              </Text>
+
+              <View style={{ height: 8, backgroundColor: "rgba(255,255,255,0.1)", borderRadius: 4, marginBottom: 8 }}>
+                <View
+                  style={{
+                    width: `${pct * 100}%`,
+                    height: 8,
+                    backgroundColor: barColour,
+                    borderRadius: 4,
+                  }}
+                />
+              </View>
+
+              <Text style={{ fontSize: 11, color: colour.onNoir2 }}>
+                {trailing12Revenue >= VAT_THRESHOLD
+                  ? `⚠️ Threshold exceeded by R ${Math.round(trailing12Revenue - VAT_THRESHOLD).toLocaleString("en-ZA")} — VAT registration is compulsory.`
+                  : pctDisplay >= 80
+                    ? `R ${Math.round(remaining).toLocaleString("en-ZA")} remaining — approaching the compulsory registration threshold.`
+                    : `R ${Math.round(remaining).toLocaleString("en-ZA")} below the R1M compulsory registration threshold.`}
+              </Text>
+            </View>
+          );
+        })()}
+
         <View
           style={{
             flexDirection: "row",
@@ -211,7 +323,7 @@ export default function VATSummaryScreen() {
               <View
                 style={{
                   flex: 1,
-                  backgroundColor: colour.successLight,
+                  backgroundColor: colour.white,
                   borderRadius: radius.md,
                   padding: space.md,
                   borderLeftWidth: 3,
@@ -254,7 +366,7 @@ export default function VATSummaryScreen() {
                   <Text
                     style={{ ...typography.caption, color: colour.warning }}
                   >
-                    Zero-rated or exempt supplies
+                    VAT on non-business expenses
                   </Text>
                 </View>
                 <Text style={{ ...typography.amountS, color: colour.warning }}>
@@ -263,29 +375,12 @@ export default function VATSummaryScreen() {
               </View>
             )}
 
-            <View
-              style={{
-                backgroundColor: colour.infoLight,
-                borderRadius: radius.md,
-                padding: space.md,
-                marginBottom: space.xl,
-              }}
-            >
-              <Text
-                style={{
-                  ...typography.labelS,
-                  color: colour.info,
-                  marginBottom: space.xs,
-                }}
-              >
-                VAT Registration Note
-              </Text>
-              <Text style={{ ...typography.bodyS, color: colour.info }}>
-                VAT input claims apply only if you are a registered VAT vendor
-                with SARS. If your annual turnover exceeds R1 million, VAT
-                registration is compulsory.
-              </Text>
-            </View>
+            <InfoBanner
+              icon="percent"
+              title="Voluntary registration"
+              body="You may voluntarily register for VAT if your turnover exceeds R50,000 per year. VAT input claims only apply once you are a registered VAT vendor."
+              style={{ marginBottom: space.xl }}
+            />
 
             <Text
               style={{
@@ -358,8 +453,8 @@ export default function VATSummaryScreen() {
                     <View
                       style={{
                         backgroundColor: entry.is_deductible
-                          ? colour.successLight
-                          : colour.dangerLight,
+                          ? colour.successBg
+                          : colour.dangerBg,
                         borderRadius: radius.full,
                         paddingHorizontal: space.xs,
                         paddingVertical: 2,

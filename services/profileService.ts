@@ -1,3 +1,4 @@
+import { getCached, invalidatePrefix, setCached } from "@/lib/queryCache";
 import { supabase } from "@/lib/supabase";
 import type { Profile } from "@/types/database";
 
@@ -12,13 +13,19 @@ export interface UpdateProfile {
   tax_number?: string;
   work_type?: string;
   active_tax_year?: string;
-  subscription?: "free" | "pro" | "business";
   push_token?: string;
+  terms_accepted_at?: string;
+  /** The user's own choice about their own account — set to request deletion, null to cancel. */
+  deletion_requested_at?: string | null;
 }
 
 export const profileService = {
   // ── Get profile by user id ────────────────────────────────────────────────
   getProfile: async (userId: string): Promise<Profile | null> => {
+    const key = `profile:${userId}`;
+    const cached = getCached<Profile>(key);
+    if (cached) return cached;
+
     const { data, error } = await supabase
       .from("profiles")
       .select("*")
@@ -26,7 +33,9 @@ export const profileService = {
       .single();
 
     if (error && error.code !== "PGRST116") throw new Error(error.message);
-    return data ?? null;
+    const result = data ?? null;
+    if (result) setCached(key, result, 120_000); // 2-min TTL — profile rarely changes
+    return result;
   },
 
   // ── Update profile ────────────────────────────────────────────────────────
@@ -42,6 +51,7 @@ export const profileService = {
       .single();
 
     if (error) throw new Error(error.message);
+    invalidatePrefix(`profile:${userId}`);
     return data;
   },
 

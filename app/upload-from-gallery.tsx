@@ -1,5 +1,6 @@
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
+import { IconSymbol } from "@/components/ui/icon-symbol";
 import { receiptState } from "@/lib/receiptState";
 import { useAuthStore } from "@/stores/authStore";
 import { colour, radius, space, typography } from "@/tokens";
@@ -73,12 +74,22 @@ export default function UploadFromGalleryScreen() {
       const uint8Array = new Uint8Array(arrayBuffer);
 
       const { supabase } = await import("@/lib/supabase");
-      const { error: uploadError } = await supabase.storage
-        .from("receipts")
-        .upload(storagePath, uint8Array, {
+
+      const UPLOAD_TIMEOUT_MS = 60_000;
+      const uploadTimeout = new Promise<never>((_, reject) =>
+        setTimeout(
+          () => reject(new Error("Upload timed out. Please check your connection and try again.")),
+          UPLOAD_TIMEOUT_MS,
+        ),
+      );
+
+      const { error: uploadError } = await Promise.race([
+        supabase.storage.from("receipts").upload(storagePath, uint8Array, {
           upsert: true,
           contentType: "image/jpeg",
-        });
+        }),
+        uploadTimeout,
+      ]);
       if (uploadError) throw new Error(uploadError.message);
 
       await supabase.from("receipts").insert({
@@ -140,7 +151,7 @@ export default function UploadFromGalleryScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: colour.background }}>
       <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
 
-      <MXHeader title="Upload Receipt" showBack />
+      <MXHeader title="Upload receipt" showBack />
 
       {/* Card */}
       <View
@@ -174,14 +185,19 @@ export default function UploadFromGalleryScreen() {
             marginBottom: space.lg,
           }}
         >
-          <Text
-            style={[
-              typography.labelS,
-              { color: colour.primary, marginBottom: space.xs },
-            ]}
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: space.xs,
+              marginBottom: space.xs,
+            }}
           >
-            📋 Tips for best results
-          </Text>
+            <IconSymbol name="list.bullet.clipboard.fill" size={14} color={colour.primary} />
+            <Text style={[typography.labelS, { color: colour.primary }]}>
+              Tips for best results
+            </Text>
+          </View>
           <Text style={[typography.bodyS, { color: colour.primary }]}>
             • Ensure the receipt is fully visible and well-lit{"\n"}• Avoid
             blurry or dark images{"\n"}• JPEG and PNG formats are supported
@@ -222,7 +238,7 @@ export default function UploadFromGalleryScreen() {
             <ActivityIndicator color={colour.textOnPrimary} />
           ) : (
             <Text style={[typography.btnL, { color: colour.textOnPrimary }]}>
-              Upload Receipt
+              Upload receipt
             </Text>
           )}
         </TouchableOpacity>

@@ -7,9 +7,12 @@ import { useAuthStore } from "@/stores/authStore";
 import { useExpenseStore } from "@/stores/expenseStore";
 import { colour, radius, space, typography } from "@/tokens";
 import { useFocusEffect, useRouter } from "expo-router";
+import { useAppForeground } from "@/hooks/use-app-foreground";
 import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
   ScrollView,
   StatusBar,
   Text,
@@ -37,9 +40,10 @@ const CATEGORY_META: Record<
   "Meals & Entertainment":      { icon: "fork.knife",           color: C.warning,      itr12Code: "S11(a)", deductiblePct: 0.8 },
   "Professional Fees":          { icon: "doc.text.fill",        color: C.danger,       itr12Code: "S11(a)" },
   "Utilities":                  { icon: "bolt.fill",            color: C.teal,         itr12Code: "S11(a)" },
-  "Telephone & Cell":           { icon: "phone.fill",           color: C.accent,       itr12Code: "S11(a)" },
+  "Telephone & Internet":       { icon: "phone.fill",           color: C.accent,       itr12Code: "S11(a)" },
   "Marketing & Advertising":    { icon: "megaphone.fill",       color: C.warningMid,   itr12Code: "S11(a)" },
   "Bank Charges":               { icon: "building.columns.fill",color: C.navyDark,     itr12Code: "S11(a)" },
+  "Interest & Finance Charges": { icon: "percent",              color: C.brandTeal,    itr12Code: "S11(a)" },
   "Insurance":                  { icon: "shield.fill",          color: C.successMid,   itr12Code: "S11(a)" },
   "Rent":                       { icon: "building.2.fill",      color: C.info,         itr12Code: "S11(a)" },
   "Repairs & Maintenance":      { icon: "wrench.fill",          color: C.warning,      itr12Code: "S11(a)" },
@@ -99,7 +103,7 @@ export default function CategoryBreakdownScreen() {
   }, [selected, user, activeTaxYear]);
 
   const loadData = useCallback(async () => {
-    if (!user) return;
+    if (!user) { setLoading(false); return; }
     setLoading(true);
     try {
       const [byCategory, totals] = await Promise.all([
@@ -120,6 +124,7 @@ export default function CategoryBreakdownScreen() {
       loadData();
     }, [loadData]),
   );
+  useAppForeground(loadData);
 
   const categories = Object.entries(breakdown)
     .map(([name, amount]) => {
@@ -155,6 +160,10 @@ export default function CategoryBreakdownScreen() {
         backLabel="Tax & ITR12"
       />
 
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
       <ScrollView
         style={{ flex: 1, backgroundColor: C.background }}
         contentContainerStyle={{ paddingBottom: 30 }}
@@ -625,6 +634,7 @@ export default function CategoryBreakdownScreen() {
           </>
         )}
       </ScrollView>
+      </KeyboardAvoidingView>
       <MXTabBar />
     </SafeAreaView>
   );
