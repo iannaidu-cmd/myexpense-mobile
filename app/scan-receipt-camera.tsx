@@ -14,6 +14,7 @@ import {
     ActivityIndicator,
     Alert,
     Animated,
+    Linking,
     Text,
     TouchableOpacity,
     useWindowDimensions,
@@ -201,6 +202,68 @@ export default function ScanReceiptCameraScreen() {
   if (!permission) return <View style={{ flex: 1, backgroundColor: "#000" }} />;
 
   if (!permission.granted) {
+    // Permanently denied (iOS won't re-show its own dialog at this point) —
+    // the only way forward is Settings, so this state gets its own copy and
+    // an explicit way back out.
+    if (!permission.canAskAgain) {
+      return (
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: "#000",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 32,
+          }}
+        >
+          <Text
+            style={{
+              color: "#fff",
+              fontSize: 20,
+              fontWeight: "800",
+              marginBottom: 12,
+              textAlign: "center",
+            }}
+          >
+            Camera Access Disabled
+          </Text>
+          <Text
+            style={{
+              color: "rgba(255,255,255,0.6)",
+              fontSize: 14,
+              textAlign: "center",
+              marginBottom: 32,
+            }}
+          >
+            Enable camera access in Settings to scan receipts for ITR12 compliance.
+          </Text>
+          <TouchableOpacity
+            onPress={() => Linking.openSettings()}
+            style={{
+              backgroundColor: C.primary,
+              borderRadius: 14,
+              paddingVertical: 14,
+              paddingHorizontal: 32,
+            }}
+          >
+            <Text style={{ color: "#fff", fontSize: 15, fontWeight: "700" }}>
+              Open Settings
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={{ marginTop: 16 }}
+          >
+            <Text style={{ color: "rgba(255,255,255,0.5)", fontSize: 14 }}>
+              Go back
+            </Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
+    // First ask (or not yet decided) — no dismiss/bypass option here, Continue
+    // must lead straight to the system permission prompt (App Review 5.1.1(iv)).
     return (
       <View
         style={{
@@ -243,14 +306,6 @@ export default function ScanReceiptCameraScreen() {
         >
           <Text style={{ color: "#fff", fontSize: 15, fontWeight: "700" }}>
             Continue
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={{ marginTop: 16 }}
-        >
-          <Text style={{ color: "rgba(255,255,255,0.5)", fontSize: 14 }}>
-            Go back
           </Text>
         </TouchableOpacity>
       </View>
