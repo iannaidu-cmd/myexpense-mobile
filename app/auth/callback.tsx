@@ -174,10 +174,12 @@ export default function AuthCallbackScreen() {
 
   // Dismiss the Chrome Custom Tab as soon as the callback screen mounts.
   // Guard: on iOS the browser is already gone by the time the deep-link fires.
+  // dismissBrowser() is async and rejects if no session is open, but on
+  // Android the native module doesn't implement it at all — it returns
+  // undefined (not a Promise), so a bare .catch() throws. Promise.resolve()
+  // normalises both cases.
   useEffect(() => {
-    // dismissBrowser() is async and rejects if no session is open (e.g. iOS
-    // already auto-dismissed it), so this must be a .catch(), not a sync try/catch.
-    WebBrowser.dismissBrowser().catch(() => {});
+    Promise.resolve(WebBrowser.dismissBrowser()).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -243,7 +245,7 @@ export default function AuthCallbackScreen() {
 
   useEffect(() => {
     if (user) {
-      WebBrowser.dismissBrowser().catch(() => {});
+      Promise.resolve(WebBrowser.dismissBrowser()).catch(() => {});
       router.replace("/(tabs)");
     }
   }, [user]);
