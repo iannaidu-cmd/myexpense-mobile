@@ -27,10 +27,11 @@ export async function signInWithFacebook(): Promise<{
 
     const result = await WebBrowser.openAuthSessionAsync(oauthUrl, REDIRECT_URL);
 
-    // Always dismiss — on Android the Custom Tab can linger after the redirect.
-    // dismissBrowser() is async and rejects if no session is open (e.g. iOS
-    // already auto-dismissed it), so this must be a .catch(), not a sync try/catch.
-    WebBrowser.dismissBrowser().catch(() => {});
+    // dismissBrowser() is async and rejects if no session is open, but on
+    // Android the native module doesn't implement it at all — it returns
+    // undefined (not a Promise), so a bare .catch() throws. Promise.resolve()
+    // normalises both cases.
+    Promise.resolve(WebBrowser.dismissBrowser()).catch(() => {});
 
     if (result.type === "cancel" || result.type === "dismiss") {
       return { success: false, error: "Sign-in was cancelled." };
