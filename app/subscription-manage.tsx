@@ -2,22 +2,34 @@ import { MXBackHeader } from "@/components/MXBackHeader";
 import { MXButton } from "@/components/MXButton";
 import { MXTabBar } from "@/components/MXTabBar";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { profileService } from "@/services/profileService";
 import { useAuthStore } from "@/stores/authStore";
 import { useSubscriptionStore } from "@/stores/subscriptionStore";
 import { colour, radius, space, typography } from "@/tokens";
 import { useRouter } from "expo-router";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Alert, Linking, Platform, ScrollView, StatusBar, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function SubscriptionManageScreen() {
   const router = useRouter();
-  const { isPremium, isDevUser, subscription } = useAuthStore();
+  const { user, isPremium, isDevUser } = useAuthStore();
   const { customerInfo, loading, restorePurchases, refresh } = useSubscriptionStore();
+  // authStore's AuthState doesn't expose the raw tier, only the derived
+  // isPremium boolean — same pattern as (tabs)/settings.tsx, read it from
+  // the profile directly.
+  const [subscription, setSubscription] = useState<"free" | "pro" | "business">("free");
 
   useEffect(() => {
     refresh().catch(console.warn);
   }, []);
+
+  useEffect(() => {
+    if (!user) return;
+    profileService.getProfile(user.id).then((p) => {
+      if (p) setSubscription(p.subscription ?? "free");
+    });
+  }, [user]);
 
   const planLabel =
     isDevUser ? "Developer account" :
@@ -120,7 +132,7 @@ export default function SubscriptionManageScreen() {
             <MXButton
               label="Restore purchases"
               onPress={handleRestore}
-              variant="ghost"
+              variant="tertiary"
               loading={loading}
             />
           </View>
