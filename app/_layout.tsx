@@ -27,7 +27,7 @@ import {
     DefaultTheme,
     ThemeProvider,
 } from "@react-navigation/native";
-import { Stack, useRouter, useSegments } from "expo-router";
+import { Stack, useRootNavigationState, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useRef, useState } from "react";
@@ -53,13 +53,36 @@ Sentry.init({
 
 SplashScreen.preventAutoHideAsync();
 
+// Polls until the root navigator has committed its first state. Deep-link
+// handlers run on mount/async event and can't rely on an effect dependency
+// array to re-fire once ready, unlike AuthGate, so they poll a ref instead.
+function waitForNavigationReady(readyRef: { current: boolean }) {
+  return new Promise<void>((resolve) => {
+    if (readyRef.current) {
+      resolve();
+      return;
+    }
+    const interval = setInterval(() => {
+      if (readyRef.current) {
+        clearInterval(interval);
+        resolve();
+      }
+    }, 50);
+  });
+}
+
 // ── Auth gate ─────────────────────────────────────────────────────────────────
 function AuthGate() {
   const router = useRouter();
   const segments = useSegments();
+  const navigationState = useRootNavigationState();
   const { user, isInitialised, pendingEmailVerification, isAccessBlocked, isPendingDeletion } = useAuthStore();
 
   useEffect(() => {
+    // Root navigator hasn't committed its first state yet — calling
+    // router.replace() here throws "navigate before mounting the Root
+    // Layout" (Sentry: seen on fast cold starts, mostly Android).
+    if (!navigationState?.key) return;
     if (!isInitialised) return;
 
     // Email confirmation pending — route to verification screen. This runs
@@ -122,7 +145,7 @@ function AuthGate() {
     } else if (user && (inAuthGroup || inOnboarding)) {
       router.replace("/(tabs)");
     }
-  }, [user, isInitialised, segments, pendingEmailVerification, isAccessBlocked, isPendingDeletion]);
+  }, [user, isInitialised, segments, pendingEmailVerification, isAccessBlocked, isPendingDeletion, navigationState?.key]);
 
   return null;
 }
@@ -135,6 +158,10 @@ function AuthGate() {
 //   2. Implicit-flow hash tokens — password-reset magic links.
 function OAuthHandler() {
   const router = useRouter();
+  const navigationState = useRootNavigationState();
+  const readyRef = useRef(false);
+  readyRef.current = !!navigationState?.key;
+
   useEffect(() => {
     const handle = async (url: string | null) => {
       if (!url) return;
@@ -143,6 +170,7 @@ function OAuthHandler() {
       if (url.startsWith("myexpense://auth/callback")) {
         const codeMatch = url.match(/[?&]code=([^&#]+)/);
         if (codeMatch) {
+          await waitForNavigationReady(readyRef);
           router.replace(`/auth/callback?code=${codeMatch[1]}` as any);
           return;
         }
@@ -152,6 +180,7 @@ function OAuthHandler() {
       if (url.includes("myexpense.co.za/auth/callback")) {
         const codeMatch = url.match(/[?&]code=([^&#]+)/);
         if (codeMatch) {
+          await waitForNavigationReady(readyRef);
           router.replace(`/auth/callback?code=${codeMatch[1]}` as any);
           return;
         }

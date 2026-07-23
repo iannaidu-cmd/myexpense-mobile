@@ -27,6 +27,17 @@ export function VerifyEmailScreen({
   const [resendSent, setResendSent] = useState(false);
   const appState = useRef(AppState.currentState);
 
+  const checkConfirmed = async () => {
+    const { data } = await supabase.auth.getSession();
+    const emailConfirmed =
+      data.session?.user &&
+      (!data.session.user.email || !!data.session.user.email_confirmed_at);
+    if (emailConfirmed) {
+      await initialise();
+      router.replace("/(tabs)");
+    }
+  };
+
   useEffect(() => {
     const subscription = AppState.addEventListener(
       "change",
@@ -35,19 +46,20 @@ export function VerifyEmailScreen({
           appState.current.match(/inactive|background/) &&
           nextState === "active"
         ) {
-          const { data } = await supabase.auth.getSession();
-          const emailConfirmed =
-            data.session?.user &&
-            (!data.session.user.email || !!data.session.user.email_confirmed_at);
-          if (emailConfirmed) {
-            await initialise();
-            router.replace("/(tabs)");
-          }
+          await checkConfirmed();
         }
         appState.current = nextState;
       }
     );
-    return () => subscription.remove();
+    // Safety net: the confirmation link opens externally (Mail → Safari), and
+    // the background→active AppState transition this relies on is not always
+    // reliable (e.g. iPadOS Stage Manager keeps the app "active" the whole
+    // time). Poll independently so we don't depend solely on that transition.
+    const poll = setInterval(checkConfirmed, 4000);
+    return () => {
+      subscription.remove();
+      clearInterval(poll);
+    };
   }, []);
 
   const handleResend = async () => {
@@ -238,6 +250,24 @@ export function VerifyEmailScreen({
             </Text>
           </TouchableOpacity>
         )}
+
+        {/* Already confirmed elsewhere (e.g. link opened in a browser, not the
+            app) — the account is confirmed server-side the moment the link is
+            tapped, even if this device never receives a local session. Give
+            the user a way out instead of leaving them stuck on this screen. */}
+        <TouchableOpacity
+          onPress={() => { clearPendingEmailVerification(); router.replace("/sign-in"); }}
+          style={{
+            height: 44,
+            alignItems: "center",
+            justifyContent: "center",
+            marginBottom: space.md,
+          }}
+        >
+          <Text style={{ ...typography.btnL, color: colour.primary, fontWeight: "700" }}>
+            Already confirmed? Sign in
+          </Text>
+        </TouchableOpacity>
 
         {/* Use a different email */}
         <TouchableOpacity
