@@ -10,7 +10,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "co.za.myexpense",
-      "buildNumber": "1",
+      "buildNumber": "43",
       "infoPlist": {
         "NSCameraUsageDescription": "MyExpense uses the camera to scan receipts for expense records.",
         "NSPhotoLibraryUsageDescription": "MyExpense accesses your photo library to import receipt images.",
@@ -23,7 +23,7 @@
     },
     "android": {
       "package": "co.za.myexpense.myapp",
-      "versionCode": 1,
+      "versionCode": 11,
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
