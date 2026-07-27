@@ -103,8 +103,24 @@ interface Coord {
 
 export default function MileageTrackerScreen() {
   const router = useRouter();
-  const { user } = useAuthStore();
+  const { user, isPremium, isInitialised, refreshPremiumStatus } = useAuthStore();
   const { activeTaxYear } = useExpenseStore();
+
+  const [premiumChecked, setPremiumChecked] = useState(false);
+
+  // Mileage tracking is Pro-only — zero free-tier access. Mirrors
+  // app/itr12-export-setup.tsx's gate exactly.
+  useEffect(() => {
+    if (!isInitialised || !user) return;
+    refreshPremiumStatus().finally(() => setPremiumChecked(true));
+  }, [isInitialised, user]);
+
+  useEffect(() => {
+    if (!premiumChecked) return;
+    if (!isPremium) {
+      router.replace("/paywall-upgrade" as any);
+    }
+  }, [premiumChecked, isPremium]);
 
   const [status, setStatus] = useState<TripStatus>("idle");
   const [coords, setCoords] = useState<Coord[]>([]);
@@ -176,8 +192,11 @@ export default function MileageTrackerScreen() {
     AsyncStorage.removeItem(TRIP_STORAGE_KEY);
   }, []);
 
-  // ── Request location permission on mount ─────────────────────────────────
+  // ── Request location permission once premium status is confirmed ─────────
+  // Gated on isPremium so a free user (who gets redirected to the paywall)
+  // is never prompted for location access on a screen they can't use.
   useEffect(() => {
+    if (!premiumChecked || !isPremium) return;
     (async () => {
       try {
         const { status: perm } =
@@ -226,7 +245,7 @@ export default function MileageTrackerScreen() {
       bgWatchRef.current?.remove();
       if (gpsTimeoutRef.current) clearTimeout(gpsTimeoutRef.current);
     };
-  }, []);
+  }, [premiumChecked, isPremium]);
 
   // ── Centre map on first GPS fix ──────────────────────────────────────────
   const hasAnimatedToUser = useRef(false);
@@ -455,6 +474,15 @@ export default function MileageTrackerScreen() {
 
   // ── Split distance into whole and decimal parts ───────────────────────────
   const [wholeKm, decimalKm] = distanceKm.toFixed(2).split(".");
+
+  if (!premiumChecked) {
+    return (
+      <View style={{ flex: 1, backgroundColor: colour.background, alignItems: "center", justifyContent: "center" }}>
+        <ActivityIndicator color={colour.primary} size="large" />
+      </View>
+    );
+  }
+  if (!isPremium) return null; // router.replace to /paywall-upgrade already in flight
 
   return (
     <View style={{ flex: 1, backgroundColor: colour.background }}>

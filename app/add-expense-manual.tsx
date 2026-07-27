@@ -4,6 +4,7 @@ import { MXTabBar } from "@/components/MXTabBar";
 import { SuccessModal } from "@/components/SuccessModal";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { CATEGORIES } from "@/constants/categories";
+import { FREE_EXPENSE_LIMIT } from "@/constants/freeTier";
 import { expenseService } from "@/services/expenseService";
 import { useAuthStore } from "@/stores/authStore";
 import { floorRatio, useHomeOfficeStore } from "@/stores/homeOfficeStore";
@@ -111,7 +112,7 @@ const ITR12_CATEGORIES = CATEGORIES.map((c) => ({
 
 export default function AddExpenseScreen() {
   const router = useRouter();
-  const { user } = useAuthStore();
+  const { user, isPremium } = useAuthStore();
   const { setting: homeOfficeSetting, load: loadHomeOffice } = useHomeOfficeStore();
   React.useEffect(() => { if (user) loadHomeOffice(user.id); }, [user]);
   const [amount, setAmount] = useState("");
@@ -142,6 +143,24 @@ export default function AddExpenseScreen() {
   const handleSave = async () => {
     if (!canSave || !user) return;
 
+    setSaving(true);
+
+    if (!isPremium) {
+      const count = await expenseService.countThisMonth(user.id).catch(() => null);
+      if (count !== null && count >= FREE_EXPENSE_LIMIT) {
+        setSaving(false);
+        Alert.alert(
+          "Monthly limit reached",
+          `Free accounts can log ${FREE_EXPENSE_LIMIT} expenses a month. Upgrade to Pro for unlimited expense tracking.`,
+          [
+            { text: "Not now", style: "cancel" },
+            { text: "Upgrade", onPress: () => router.push("/paywall-upgrade" as any) },
+          ],
+        );
+        return;
+      }
+    }
+
     // Parse DD/MM/YYYY → YYYY-MM-DD
     let expenseDate = date;
     if (date.includes("/")) {
@@ -151,7 +170,6 @@ export default function AddExpenseScreen() {
       }
     }
 
-    setSaving(true);
     try {
       const rawAmount = parseFloat(amount);
       const ratio = homeOfficeSetting ? floorRatio(homeOfficeSetting) : 1;

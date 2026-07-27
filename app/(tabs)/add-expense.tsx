@@ -2,6 +2,7 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { MXHeader } from "@/components/MXHeader";
 import { SuccessModal } from "@/components/SuccessModal";
 import { CATEGORIES } from "@/constants/categories";
+import { FREE_EXPENSE_LIMIT } from "@/constants/freeTier";
 import {
   validateAmount,
   validateCategory,
@@ -85,7 +86,7 @@ function UnderlineInput({
 
 export default function AddExpenseTab() {
   const router = useRouter();
-  const { user } = useAuthStore();
+  const { user, isPremium } = useAuthStore();
 
   const [amount, setAmount] = useState("");
   const [vendor, setVendor] = useState("");
@@ -125,6 +126,23 @@ export default function AddExpenseTab() {
     }
 
     setSaving(true);
+
+    if (!isPremium) {
+      const count = await expenseService.countThisMonth(user.id).catch(() => null);
+      if (count !== null && count >= FREE_EXPENSE_LIMIT) {
+        setSaving(false);
+        Alert.alert(
+          "Monthly limit reached",
+          `Free accounts can log ${FREE_EXPENSE_LIMIT} expenses a month. Upgrade to Pro for unlimited expense tracking.`,
+          [
+            { text: "Not now", style: "cancel" },
+            { text: "Upgrade", onPress: () => router.push("/paywall-upgrade" as any) },
+          ],
+        );
+        return;
+      }
+    }
+
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       const savedExpense = await expenseService.addExpense(user.id, {
