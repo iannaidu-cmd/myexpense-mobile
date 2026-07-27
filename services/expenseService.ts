@@ -110,6 +110,24 @@ export const expenseService = {
     return result;
   },
 
+  // ── Count expenses created this calendar month (free-tier cap enforcement) ─
+  // Deliberately NOT cached (unlike every other read in this file) — this
+  // gates a write, so it must always reflect the true current count.
+  countThisMonth: async (userId: string): Promise<number> => {
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+
+    const { count, error } = await supabase
+      .from("expenses")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .gte("created_at", startOfMonth.toISOString());
+
+    if (error) throw new Error(error.message);
+    return count ?? 0;
+  },
+
   // ── Add a new expense ─────────────────────────────────────────────────────
   addExpense: async (userId: string, expense: NewExpense): Promise<Expense> => {
     const { data, error } = await supabase

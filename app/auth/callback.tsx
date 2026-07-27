@@ -290,7 +290,7 @@ export default function AuthCallbackScreen() {
       <View
         style={{
           flex: 1,
-          backgroundColor: colour.primary,
+          backgroundColor: colour.background,
           alignItems: "center",
           justifyContent: "center",
           gap: 16,
@@ -299,7 +299,7 @@ export default function AuthCallbackScreen() {
       >
         <Text
           style={{
-            color: colour.onPrimary,
+            color: colour.text,
             fontSize: 14,
             fontWeight: "600",
             textAlign: "center",
@@ -312,7 +312,7 @@ export default function AuthCallbackScreen() {
             onPress={handleResendFromError}
             disabled={resending}
             style={{
-              backgroundColor: colour.onPrimary,
+              backgroundColor: colour.primary,
               paddingVertical: 12,
               paddingHorizontal: 24,
               borderRadius: 8,
@@ -320,7 +320,7 @@ export default function AuthCallbackScreen() {
               opacity: resending ? 0.6 : 1,
             }}
           >
-            <Text style={{ color: colour.primary, fontWeight: "700", fontSize: 15 }}>
+            <Text style={{ color: colour.onPrimary, fontWeight: "700", fontSize: 15 }}>
               {resending ? "Sending…" : "Send new confirmation email"}
             </Text>
           </TouchableOpacity>
@@ -328,15 +328,21 @@ export default function AuthCallbackScreen() {
         <TouchableOpacity
           onPress={() => router.replace("/sign-in")}
           style={{
-            backgroundColor: showResend ? "transparent" : colour.onPrimary,
+            backgroundColor: showResend ? "transparent" : colour.primary,
             paddingVertical: 12,
             paddingHorizontal: 24,
             borderRadius: 8,
             borderWidth: showResend ? 1 : 0,
-            borderColor: colour.onPrimary,
+            borderColor: colour.primary,
           }}
         >
-          <Text style={{ color: colour.onPrimary, fontWeight: "700", fontSize: 15 }}>
+          <Text
+            style={{
+              color: showResend ? colour.primary : colour.onPrimary,
+              fontWeight: "700",
+              fontSize: 15,
+            }}
+          >
             {isCrossDeviceConfirm ? "Go to Sign In" : "Back to Sign In"}
           </Text>
         </TouchableOpacity>
@@ -348,17 +354,17 @@ export default function AuthCallbackScreen() {
     <View
       style={{
         flex: 1,
-        backgroundColor: colour.primary,
+        backgroundColor: colour.background,
         alignItems: "center",
         justifyContent: "center",
         gap: 16,
         padding: 32,
       }}
     >
-      <ActivityIndicator color={colour.onPrimary} size="large" />
+      <ActivityIndicator color={colour.primary} size="large" />
       <Text
         style={{
-          color: colour.onPrimary,
+          color: colour.textSub,
           fontSize: 13,
           fontWeight: "600",
           textAlign: "center",

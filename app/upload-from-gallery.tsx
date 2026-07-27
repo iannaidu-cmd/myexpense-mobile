@@ -1,7 +1,9 @@
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { FREE_SCAN_LIMIT } from "@/constants/freeTier";
 import { receiptState } from "@/lib/receiptState";
+import { receiptService } from "@/services/receiptService";
 import { useAuthStore } from "@/stores/authStore";
 import { colour, radius, space, typography } from "@/tokens";
 import * as ImageManipulator from "expo-image-manipulator";
@@ -24,10 +26,38 @@ import {
 
 export default function UploadFromGalleryScreen() {
   const router = useRouter();
-  const { user } = useAuthStore();
+  const { user, isPremium, isInitialised, refreshPremiumStatus } = useAuthStore();
   const insets = useSafeAreaInsets();
   const [pickedUri, setPickedUri] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+
+  const [premiumChecked, setPremiumChecked] = useState(false);
+  const [scanBlocked, setScanBlocked] = useState(false);
+  const [scanGateReady, setScanGateReady] = useState(false);
+
+  // Refresh premium status before deciding whether the free-tier scan cap applies.
+  useEffect(() => {
+    if (!isInitialised || !user) return;
+    refreshPremiumStatus().finally(() => setPremiumChecked(true));
+  }, [isInitialised, user]);
+
+  // Enforce the free-tier scan cap (shared with scan-receipt-camera.tsx — a
+  // gallery upload spends a scan exactly like a camera capture does).
+  // Fails open on a count-check error — a network blip shouldn't block a scan.
+  useEffect(() => {
+    if (!premiumChecked || !user) return;
+    if (isPremium) {
+      setScanGateReady(true);
+      return;
+    }
+    receiptService
+      .countThisMonth(user.id)
+      .then((count) => {
+        if (count >= FREE_SCAN_LIMIT) setScanBlocked(true);
+      })
+      .catch(() => {})
+      .finally(() => setScanGateReady(true));
+  }, [premiumChecked, isPremium, user]);
 
   const openPicker = useCallback(async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -52,9 +82,10 @@ export default function UploadFromGalleryScreen() {
   }, [router]);
 
   useEffect(() => {
+    if (!scanGateReady || scanBlocked) return;
     openPicker();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [scanGateReady, scanBlocked]);
 
   const handleUpload = async () => {
     if (!pickedUri || !user) return;
@@ -121,6 +152,43 @@ export default function UploadFromGalleryScreen() {
       setUploading(false);
     }
   };
+
+  if (!scanGateReady) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: colour.background, alignItems: "center", justifyContent: "center" }}>
+        <ActivityIndicator color={colour.primary} size="large" />
+      </SafeAreaView>
+    );
+  }
+
+  if (scanBlocked) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: colour.background }}>
+        <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
+        <MXHeader title="Upload receipt" showBack />
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 32 }}>
+          <Text style={[typography.bodyM, { fontWeight: "800", fontSize: 20, color: colour.text, marginBottom: 12, textAlign: "center" }]}>
+            Monthly Scan Limit Reached
+          </Text>
+          <Text style={[typography.bodyS, { color: colour.textSub, textAlign: "center", marginBottom: 32 }]}>
+            Free accounts get {FREE_SCAN_LIMIT} receipt scans a month. Upgrade to Pro for unlimited scanning, or add this expense manually.
+          </Text>
+          <TouchableOpacity
+            onPress={() => router.replace("/paywall-upgrade" as any)}
+            style={{ backgroundColor: colour.primary, borderRadius: radius.pill, paddingVertical: 14, paddingHorizontal: 32 }}
+          >
+            <Text style={[typography.btnL, { color: colour.textOnPrimary }]}>Upgrade to Pro</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => router.replace("/(tabs)/add-expense" as any)}
+            style={{ marginTop: 16 }}
+          >
+            <Text style={[typography.bodyS, { color: colour.textSub }]}>Add manually instead</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   // Show a loading state while the picker is opening
   if (!pickedUri) {

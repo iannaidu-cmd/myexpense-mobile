@@ -14,7 +14,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { useExpenseStore } from "@/stores/expenseStore";
 import { colour, radius, space, typography } from "@/tokens";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -498,8 +498,25 @@ type FilterTab = "All" | "Deductible" | "Personal" | "Income";
 
 export default function BankImportScreen() {
   const router = useRouter();
-  const { user } = useAuthStore();
+  const { user, isPremium, isInitialised, refreshPremiumStatus } = useAuthStore();
   const { activeTaxYear } = useExpenseStore();
+
+  const [premiumChecked, setPremiumChecked] = useState(false);
+
+  // Bank statement import is Pro-only — zero free-tier access, since it can
+  // bulk-add far more expenses in one go than the manual-entry cap allows.
+  // Mirrors app/itr12-export-setup.tsx's gate exactly.
+  useEffect(() => {
+    if (!isInitialised || !user) return;
+    refreshPremiumStatus().finally(() => setPremiumChecked(true));
+  }, [isInitialised, user]);
+
+  useEffect(() => {
+    if (!premiumChecked) return;
+    if (!isPremium) {
+      router.replace("/paywall-upgrade" as any);
+    }
+  }, [premiumChecked, isPremium]);
 
   const [transactions, setTransactions] = useState<ParsedTransaction[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -666,6 +683,15 @@ export default function BankImportScreen() {
   const activePickerTx = transactions.find((t) => t.id === categoryPickerFor);
 
   // ── Render ─────────────────────────────────────────────────────────────────
+
+  if (!premiumChecked) {
+    return (
+      <View style={{ flex: 1, backgroundColor: colour.background, alignItems: "center", justifyContent: "center" }}>
+        <ActivityIndicator color={colour.primary} size="large" />
+      </View>
+    );
+  }
+  if (!isPremium) return null; // router.replace to /paywall-upgrade already in flight
 
   return (
     <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colour.background }}>

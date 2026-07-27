@@ -1,6 +1,8 @@
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { FREE_SCAN_LIMIT } from "@/constants/freeTier";
 import { supabase } from "@/lib/supabase";
 import { receiptState } from "@/lib/receiptState";
+import { receiptService } from "@/services/receiptService";
 import { useAuthStore } from "@/stores/authStore";
 import { colour } from "@/tokens";
 import { CameraType, CameraView, useCameraPermissions } from "expo-camera";
@@ -9,7 +11,7 @@ import * as ImageManipulator from "expo-image-manipulator";
 import * as ImagePicker from "expo-image-picker";
 import { useIsFocused } from "@react-navigation/native";
 import { useRouter } from "expo-router";
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
@@ -84,7 +86,7 @@ const toBase64 = async (uri: string): Promise<string> => {
 
 export default function ScanReceiptCameraScreen() {
   const router = useRouter();
-  const { user } = useAuthStore();
+  const { user, isPremium, isInitialised, refreshPremiumStatus } = useAuthStore();
   const isFocused = useIsFocused();
   const { width: screenWidth } = useWindowDimensions();
   const frameWidth = screenWidth - 48;
@@ -95,6 +97,33 @@ export default function ScanReceiptCameraScreen() {
   const [torchOn, setTorchOn] = useState(false);
   const [uploading, setUploading] = useState(false);
   const captureAnim = useRef(new Animated.Value(1)).current;
+
+  const [premiumChecked, setPremiumChecked] = useState(false);
+  const [scanBlocked, setScanBlocked] = useState(false);
+  const [scanGateReady, setScanGateReady] = useState(false);
+
+  // Refresh premium status before deciding whether the free-tier scan cap applies.
+  useEffect(() => {
+    if (!isInitialised || !user) return;
+    refreshPremiumStatus().finally(() => setPremiumChecked(true));
+  }, [isInitialised, user]);
+
+  // Enforce the free-tier scan cap (3/month) once premium status is known.
+  // Fails open on a count-check error — a network blip shouldn't block a scan.
+  useEffect(() => {
+    if (!premiumChecked || !user) return;
+    if (isPremium) {
+      setScanGateReady(true);
+      return;
+    }
+    receiptService
+      .countThisMonth(user.id)
+      .then((count) => {
+        if (count >= FREE_SCAN_LIMIT) setScanBlocked(true);
+      })
+      .catch(() => {})
+      .finally(() => setScanGateReady(true));
+  }, [premiumChecked, isPremium, user]);
 
   const animateCapture = () => {
     Animated.sequence([
@@ -198,6 +227,71 @@ export default function ScanReceiptCameraScreen() {
       await uploadAndProceed(result.assets[0].uri, `receipt_${Date.now()}.jpg`);
     }
   };
+
+  if (!scanGateReady) {
+    return (
+      <View style={{ flex: 1, backgroundColor: "#000", alignItems: "center", justifyContent: "center" }}>
+        <ActivityIndicator color={C.teal} size="large" />
+      </View>
+    );
+  }
+
+  if (scanBlocked) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: "#000",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: 32,
+        }}
+      >
+        <Text
+          style={{
+            color: "#fff",
+            fontSize: 20,
+            fontWeight: "800",
+            marginBottom: 12,
+            textAlign: "center",
+          }}
+        >
+          Monthly Scan Limit Reached
+        </Text>
+        <Text
+          style={{
+            color: "rgba(255,255,255,0.6)",
+            fontSize: 14,
+            textAlign: "center",
+            marginBottom: 32,
+          }}
+        >
+          Free accounts get {FREE_SCAN_LIMIT} receipt scans a month. Upgrade to Pro for unlimited scanning, or add this expense manually.
+        </Text>
+        <TouchableOpacity
+          onPress={() => router.replace("/paywall-upgrade" as any)}
+          style={{
+            backgroundColor: C.primary,
+            borderRadius: 14,
+            paddingVertical: 14,
+            paddingHorizontal: 32,
+          }}
+        >
+          <Text style={{ color: "#fff", fontSize: 15, fontWeight: "700" }}>
+            Upgrade to Pro
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => router.replace("/(tabs)/add-expense" as any)}
+          style={{ marginTop: 16 }}
+        >
+          <Text style={{ color: "rgba(255,255,255,0.5)", fontSize: 14 }}>
+            Add manually instead
+          </Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   if (!permission) return <View style={{ flex: 1, backgroundColor: "#000" }} />;
 

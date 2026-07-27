@@ -12,4 +12,20 @@ export const receiptService = {
     if (error) throw new Error(error.message);
     return data ?? [];
   },
+
+  // ── Count receipts uploaded this calendar month (free-tier cap enforcement) ─
+  countThisMonth: async (userId: string): Promise<number> => {
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+
+    const { count, error } = await supabase
+      .from("receipts")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .gte("created_at", startOfMonth.toISOString());
+
+    if (error) throw new Error(error.message);
+    return count ?? 0;
+  },
 };
