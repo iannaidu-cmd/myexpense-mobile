@@ -104,5 +104,5 @@ On startup: Sentry initialised → RevenueCat configured per platform → push n
 ## Supabase / backend notes
 
 - Deep-link scheme: `myexpense://` — used for OAuth callback and password reset.
-- Location permissions (expo-location) are required for mileage tracking; SARS compliance copy is set in `app.json`.
+- Location permissions (expo-location) are required for mileage tracking; SARS compliance copy is set in `app.config.js` (the sole Expo config file — there is no `app.json`).
 - Migrations live in `/supabase/migrations`.

@@ -1,6 +1,6 @@
 // Dynamic config so secrets (e.g. Google Maps API key) can be injected via
 // EAS secrets or a local .env without ever appearing in source control.
-// This file supersedes app.json — Expo reads app.config.js first when present.
+// This is the sole Expo config file — do not reintroduce app.json alongside it.
 
 /** @type {import('expo/config').ExpoConfig} */
 const config = {
@@ -33,7 +33,7 @@ const config = {
   },
   android: {
     package: "co.za.myexpense.myapp",
-    versionCode: 11,
+    versionCode: 12,
     config: {
       googleMaps: {
         apiKey: process.env.GOOGLE_MAPS_API_KEY,
@@ -103,6 +103,7 @@ const config = {
       },
     ],
     "expo-web-browser",
+    "expo-apple-authentication",
     [
       "@sentry/react-native/expo",
       {
