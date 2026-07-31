@@ -530,6 +530,11 @@ export default function MileageTrackerScreen() {
             ref={mapRef}
             provider={Platform.OS === "android" ? PROVIDER_GOOGLE : undefined}
             style={{ flex: 1 }}
+            // The rounded-corner overflow:hidden wrapper above forces Android to
+            // composite this SurfaceView into an offscreen layer; without these
+            // two flags that renders solid black instead of the map tiles.
+            needsOffscreenAlphaCompositing={Platform.OS === "android"}
+            renderToHardwareTextureAndroid={Platform.OS === "android"}
             initialRegion={
               currentPos
                 ? { ...currentPos, latitudeDelta: 0.01, longitudeDelta: 0.01 }
