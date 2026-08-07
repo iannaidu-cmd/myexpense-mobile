@@ -30,7 +30,7 @@ const KEYWORD_MAP: Array<[RegExp, string]> = [
   [/\b(facebook\s*ads?|google\s*ads?|instagram\s*ads?|meta\s*ads?|linkedin\s*ads?|tiktok\s*ads?)\b/i, "Marketing & Advertising"],
   [/\b(shell|engen|bp\b|caltex|sasol|total\s*energies|astron\s*energy)\b/i, "Vehicle Expenses"],
   [/\b(uber|lyft|bolt\s*(za)?|taxify|indriver|gautrain)\b/i,               "Travel & Transport"],
-  [/\b(telkom|mtn|vodacom|cell\s*c\b|rain\b|afrihost|webafrica|vox\s*telecom)\b/i, "Telephone & Cell"],
+  [/\b(telkom|mtn|vodacom|cell\s*c\b|rain\b|afrihost|webafrica|vox\s*telecom)\b/i, "Telephone & Internet"],
   [/\b(steers|kfc|mcdonald|nando|wimpy|chicken\s*licken|debonairs|spur\b|ocean\s*basket|pizza\s*hut|panarottis|fishaways|vida\s*e\s*caffe|bootlegger|barristers|hog\s*house|brassbel|cape\s*to\s*cuba)\b/i, "Meals & Entertainment"],
   [/\b(woolworths\s*food|pick\s*n\s*pay|pnp\b|checkers\b|spar\b|kwik\s*spar|food\s*lovers|trader\s*joes|mr\s*d\s*food)\b/i, "Meals & Entertainment"],
   [/\b(sanlam|old\s*mutual|discovery\s*(life|health)?|momentum\s*(life|health)?|liberty\s*life|hollard|santam|outsurance|miway|absa\s*insur)\b/i, "Insurance"],

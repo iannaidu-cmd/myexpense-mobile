@@ -431,7 +431,7 @@ export default function AddExpenseScreen() {
             </View>
           )}
           {/* Contextual notes per category */}
-          {category === "Telephone & Cell" && (
+          {(category === "Telephone & Cell" || category === "Telephone & Internet") && (
             <View>
               <View style={{ backgroundColor: colour.infoLight, borderRadius: 8, padding: 10, marginBottom: 10 }}>
                 <Text style={{ fontSize: 12, color: colour.info, lineHeight: 18 }}>
