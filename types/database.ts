@@ -10,6 +10,11 @@ export interface Profile {
   phone: string | null;
   tax_number: string | null;
   work_type: string | null;
+  /** "YYYY-MM-DD" — drives age-based rebate selection in lib/taxLiability.ts. */
+  date_of_birth: string | null;
+  medical_aid_monthly: number | null;
+  medical_aid_dependants: number;
+  has_disability: boolean;
   active_tax_year: string;
   subscription: "free" | "pro" | "business";
   is_dev_user: boolean;
@@ -73,6 +78,35 @@ export interface TaxSummary {
   itr12_readiness_pct: number;
   category_breakdown: Record<string, number> | null;
   last_calculated_at: string;
+}
+
+// SARS tax liability estimate (owed/refund) for a tax year — see
+// lib/taxLiability.ts for the calculation engine and
+// services/taxLiabilityService.ts for the Supabase read/write layer.
+export interface TaxLiabilityEstimate {
+  id: string;
+  user_id: string;
+  tax_year: string;
+  other_taxable_income: number;
+  retirement_annuity_contributions: number;
+  tax_already_paid: number;
+  donations_ytd: number | null;
+  taxable_income: number;
+  gross_tax: number;
+  rebates_applied: number;
+  medical_credit_applied: number;
+  final_liability: number; // positive = owing, negative = refund
+  last_calculated_at: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface NewTaxLiabilityEstimate {
+  tax_year: string;
+  other_taxable_income: number;
+  retirement_annuity_contributions: number;
+  tax_already_paid: number;
+  donations_ytd?: number | null;
 }
 
 // ─── Form / input types ───────────────────────────────────────────────────────

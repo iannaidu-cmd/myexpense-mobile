@@ -5,6 +5,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { NON_DEDUCTIBLE_LABEL } from "@/constants/categories";
+import { supabase } from "@/lib/supabase";
 import * as DocumentPicker from "expo-document-picker";
 import { File } from "expo-file-system";
 
@@ -362,4 +363,32 @@ export async function pickAndParseStatement(): Promise<ParsedTransaction[] | nul
     return parseOFX(content);
   }
   return parseCSV(content);
+}
+
+// ─── Free-tier usage tracking ─────────────────────────────────────────────────
+// One row per completed import session (not per imported transaction — a
+// single statement can add many expenses at once, and the free-tier cap
+// counts sessions, matching how the user actually experiences the limit).
+// bank_import_log has no other purpose; see the migration that created it.
+
+export async function logBankImport(userId: string): Promise<void> {
+  const { error } = await supabase.from("bank_import_log").insert({ user_id: userId });
+  if (error) throw new Error(error.message);
+}
+
+// Deliberately NOT cached — gates entry to the whole screen, so it must
+// always reflect the true current count.
+export async function countBankImportsThisMonth(userId: string): Promise<number> {
+  const startOfMonth = new Date();
+  startOfMonth.setDate(1);
+  startOfMonth.setHours(0, 0, 0, 0);
+
+  const { count, error } = await supabase
+    .from("bank_import_log")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .gte("created_at", startOfMonth.toISOString());
+
+  if (error) throw new Error(error.message);
+  return count ?? 0;
 }

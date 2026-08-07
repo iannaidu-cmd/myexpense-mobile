@@ -5,7 +5,7 @@ import { SA_MARGINAL_TAX_RATE } from "@/constants/tax";
 import { expenseService } from "@/services/expenseService";
 import { incomeService } from "@/services/incomeService";
 import { profileService } from "@/services/profileService";
-import { useAuthStore } from "@/stores/authStore";
+import { GRACE_PERIOD_DAYS, useAuthStore } from "@/stores/authStore";
 import { useExpenseStore } from "@/stores/expenseStore";
 import { colour, radius, space, typography } from "@/tokens";
 import { Expense } from "@/types/database";
@@ -53,7 +53,7 @@ const formatDate = (dateStr: string) => {
 // was removed: every new user installing after 1 Mar sees it as already due,
 // so it fired back-to-back with taxSeasonOpen on first launch for anyone
 // who signs up after mid-year — not just a testing artifact.
-type PopupKind = "taxSeasonOpen" | "period2";
+type PopupKind = "taxSeasonOpen" | "period2" | "billingIssue";
 
 // Module-level (not component state) so it survives the Home screen
 // remounting within the same app run — e.g. navigating to another stack
@@ -68,7 +68,14 @@ const TAX_SEASON_POPUP_KEY = "@myexpense:seen_tax_season_popup_v3_2026";
 const PERIOD2_TRIGGER_DATE = new Date(2026, 8, 1); // 1 Sep 2026
 const PERIOD2_POPUP_KEY = "@myexpense:seen_period2_popup_v2_2026";
 
-const POPUP_CONTENT: Record<PopupKind, {
+// Keyed by the exact billing_issue_detected_at timestamp (not a static key
+// like the two above) so a resolved-then-recurring billing issue re-shows
+// the warning instead of staying silently suppressed by an old dismissal.
+function billingIssuePopupKey(detectedAtIso: string): string {
+  return `@myexpense:seen_billing_issue_popup:${detectedAtIso}`;
+}
+
+type PopupContent = {
   icon: string;
   iconColour: string;
   eyebrow: string;
@@ -76,7 +83,9 @@ const POPUP_CONTENT: Record<PopupKind, {
   subtitle: string;
   rows: { label: string; value: string }[];
   primaryLabel: string;
-}> = {
+};
+
+const POPUP_CONTENT: Record<Exclude<PopupKind, "billingIssue">, PopupContent> = {
   taxSeasonOpen: {
     icon: "doc.text.fill",
     iconColour: colour.primary,
@@ -104,6 +113,28 @@ const POPUP_CONTENT: Record<PopupKind, {
     primaryLabel: "Continue tracking",
   },
 };
+
+// billingIssue's rows depend on billingIssueDetectedAt (when the card
+// failure happened), so it can't live in the static POPUP_CONTENT table
+// above — resolved at render/check time instead.
+function getPopupContent(kind: PopupKind, billingIssueDetectedAt: string | null): PopupContent {
+  if (kind !== "billingIssue") return POPUP_CONTENT[kind];
+
+  const deadline = billingIssueDetectedAt
+    ? new Date(new Date(billingIssueDetectedAt).getTime() + GRACE_PERIOD_DAYS * 86_400_000)
+    : null;
+  return {
+    icon: "exclamationmark.triangle.fill",
+    iconColour: colour.danger,
+    eyebrow: "Payment issue",
+    title: "We couldn't charge your card",
+    subtitle: `Your last renewal payment didn't go through. Your Pro access keeps working for now — update your payment method before the deadline below to avoid losing it.`,
+    rows: deadline
+      ? [{ label: "Access blocked if unresolved by", value: deadline.toLocaleDateString("en-ZA", { day: "numeric", month: "short", year: "numeric" }) }]
+      : [],
+    primaryLabel: "Update payment method",
+  };
+}
 
 function PeriodCard({ rows }: { rows: { label: string; value: string }[] }) {
   return (
@@ -142,7 +173,7 @@ function PeriodCard({ rows }: { rows: { label: string; value: string }[] }) {
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { user } = useAuthStore();
+  const { user, billingIssueDetectedAt } = useAuthStore();
   const { activeTaxYear } = useExpenseStore();
 
   const [firstName, setFirstName] = useState("");
@@ -230,6 +261,12 @@ export default function HomeScreen() {
   // whose content is keyed off `duePopup` makes that class of bug
   // structurally impossible.
   const checkDuePopup = useCallback(async (): Promise<PopupKind | null> => {
+    // Billing issue checked first — a payment problem is more urgent/
+    // actionable than the seasonal reminders below.
+    if (billingIssueDetectedAt) {
+      const seenBilling = await AsyncStorage.getItem(billingIssuePopupKey(billingIssueDetectedAt));
+      if (!seenBilling) return "billingIssue";
+    }
     const [seenTaxSeason, seenP2] = await Promise.all([
       AsyncStorage.getItem(TAX_SEASON_POPUP_KEY),
       AsyncStorage.getItem(PERIOD2_POPUP_KEY),
@@ -239,7 +276,7 @@ export default function HomeScreen() {
     if (!seenTaxSeason && now >= TAX_SEASON_TRIGGER_DATE) return "taxSeasonOpen";
     if (!seenP2 && now >= PERIOD2_TRIGGER_DATE) return "period2";
     return null;
-  }, []);
+  }, [billingIssueDetectedAt]);
 
   useEffect(() => {
     if (!user) return;
@@ -254,9 +291,13 @@ export default function HomeScreen() {
   }, [user?.id, checkDuePopup]);
 
   const markPopupSeen = useCallback(async (kind: PopupKind) => {
+    if (kind === "billingIssue") {
+      if (billingIssueDetectedAt) await AsyncStorage.setItem(billingIssuePopupKey(billingIssueDetectedAt), "1");
+      return;
+    }
     const key = kind === "period2" ? PERIOD2_POPUP_KEY : TAX_SEASON_POPUP_KEY;
     await AsyncStorage.setItem(key, "1");
-  }, []);
+  }, [billingIssueDetectedAt]);
 
   // Dismiss via X/backdrop — stays on the dashboard. If another popup is
   // already due, it opens after a short delay so the modal's close
@@ -272,6 +313,14 @@ export default function HomeScreen() {
       if (next) setTimeout(() => setDuePopup(next), 400);
     })();
   }, [duePopup, markPopupSeen, checkDuePopup]);
+
+  // billingIssue's primary action needs to navigate (to subscription
+  // management) in addition to dismissing — the other two kinds just dismiss.
+  const handlePopupPrimary = useCallback(() => {
+    const kind = duePopup;
+    dismissPopup();
+    if (kind === "billingIssue") router.push("/subscription-manage" as any);
+  }, [duePopup, dismissPopup, router]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -663,22 +712,25 @@ export default function HomeScreen() {
         )}
       </ScrollView>
 
-      {duePopup && (
-        <AnnouncementModal
-          visible
-          icon={POPUP_CONTENT[duePopup].icon}
-          iconColour={POPUP_CONTENT[duePopup].iconColour}
-          eyebrow={POPUP_CONTENT[duePopup].eyebrow}
-          title={POPUP_CONTENT[duePopup].title}
-          subtitle={POPUP_CONTENT[duePopup].subtitle}
-          primaryLabel={POPUP_CONTENT[duePopup].primaryLabel}
-          onPrimary={dismissPopup}
-          secondaryLabel="Remind me later"
-          onClose={dismissPopup}
-        >
-          <PeriodCard rows={POPUP_CONTENT[duePopup].rows} />
-        </AnnouncementModal>
-      )}
+      {duePopup && (() => {
+        const content = getPopupContent(duePopup, billingIssueDetectedAt);
+        return (
+          <AnnouncementModal
+            visible
+            icon={content.icon}
+            iconColour={content.iconColour}
+            eyebrow={content.eyebrow}
+            title={content.title}
+            subtitle={content.subtitle}
+            primaryLabel={content.primaryLabel}
+            onPrimary={handlePopupPrimary}
+            secondaryLabel="Remind me later"
+            onClose={dismissPopup}
+          >
+            {content.rows.length > 0 ? <PeriodCard rows={content.rows} /> : null}
+          </AnnouncementModal>
+        );
+      })()}
     </SafeAreaView>
   );
 }

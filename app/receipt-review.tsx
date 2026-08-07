@@ -8,6 +8,7 @@ import { expenseService } from "@/services/expenseService";
 import { useAuthStore } from "@/stores/authStore";
 import { floorRatio, useHomeOfficeStore } from "@/stores/homeOfficeStore";
 import { colour, radius, space, typography } from "@/tokens";
+import { displayDateToISO, formatDateInputDDMMYYYY, isoToDisplayDate } from "@/lib/dateInput";
 import { taxYearForDate } from "@/lib/taxRules";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -134,7 +135,7 @@ export default function ReceiptReviewScreen() {
   const [amount, setAmount] = useState(params.amount ?? "");
   const [vendor, setVendor] = useState(params.vendor ?? "");
   const [date, setDate] = useState(
-    params.date || new Date().toISOString().split("T")[0],
+    isoToDisplayDate(params.date || new Date().toISOString().split("T")[0]),
   );
   const [vatAmount, setVatAmount] = useState(params.vatAmount ?? "");
   const [category, setCategory] = useState(params.category ?? "");
@@ -205,6 +206,7 @@ export default function ReceiptReviewScreen() {
       const savedAmount = isHomeOfficeCat
         ? parseFloat((rawAmount * homeOfficeRatio).toFixed(2))
         : rawAmount;
+      const expenseDateIso = displayDateToISO(date);
 
       await expenseService.addExpense(user.id, {
         vendor: vendor.trim(),
@@ -212,8 +214,8 @@ export default function ReceiptReviewScreen() {
         category,
         itr12_code:
           expenseType === "personal" ? null : (selectedCat?.code ?? null),
-        tax_year: taxYearForDate(date),
-        expense_date: date,
+        tax_year: taxYearForDate(expenseDateIso),
+        expense_date: expenseDateIso,
         is_deductible: isDeductible,
         vat_amount: vatAmount ? parseFloat(vatAmount) : undefined,
         notes: notes.trim() || undefined,
@@ -507,14 +509,15 @@ export default function ReceiptReviewScreen() {
 
           {/* Date */}
           <FieldLabel
-            label="Date (YYYY-MM-DD)"
+            label="Date (DD/MM/YYYY)"
             extracted={ocrFields.date}
             lowConfidence={lowConf.date}
           />
           <TextInput
             value={date}
-            onChangeText={setDate}
-            placeholder="YYYY-MM-DD"
+            onChangeText={(t) => setDate(formatDateInputDDMMYYYY(t))}
+            placeholder="DD/MM/YYYY"
+            keyboardType="number-pad"
             placeholderTextColor={colour.textHint}
             style={{
               ...typography.bodyM,

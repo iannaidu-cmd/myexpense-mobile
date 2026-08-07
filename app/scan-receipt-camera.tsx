@@ -1,10 +1,12 @@
+import { AnnouncementModal } from "@/components/AnnouncementModal";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { FREE_SCAN_LIMIT } from "@/constants/freeTier";
+import { FREE_SCAN_LIMIT, scanAllowanceNoticeKey } from "@/constants/freeTier";
 import { supabase } from "@/lib/supabase";
 import { receiptState } from "@/lib/receiptState";
 import { receiptService } from "@/services/receiptService";
 import { useAuthStore } from "@/stores/authStore";
 import { colour } from "@/tokens";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { CameraType, CameraView, useCameraPermissions } from "expo-camera";
 import * as Haptics from "expo-haptics";
 import * as ImageManipulator from "expo-image-manipulator";
@@ -101,6 +103,7 @@ export default function ScanReceiptCameraScreen() {
   const [premiumChecked, setPremiumChecked] = useState(false);
   const [scanBlocked, setScanBlocked] = useState(false);
   const [scanGateReady, setScanGateReady] = useState(false);
+  const [showAllowanceNotice, setShowAllowanceNotice] = useState(false);
 
   // Refresh premium status before deciding whether the free-tier scan cap applies.
   useEffect(() => {
@@ -108,7 +111,7 @@ export default function ScanReceiptCameraScreen() {
     refreshPremiumStatus().finally(() => setPremiumChecked(true));
   }, [isInitialised, user]);
 
-  // Enforce the free-tier scan cap (3/month) once premium status is known.
+  // Enforce the free-tier scan cap (20/month) once premium status is known.
   // Fails open on a count-check error — a network blip shouldn't block a scan.
   useEffect(() => {
     if (!premiumChecked || !user) return;
@@ -124,6 +127,21 @@ export default function ScanReceiptCameraScreen() {
       .catch(() => {})
       .finally(() => setScanGateReady(true));
   }, [premiumChecked, isPremium, user]);
+
+  // Once-per-calendar-month heads-up telling free users their scan allowance,
+  // shown the first time they reach Scan each month — not shown once they've
+  // already hit the cap, since the blocked-screen copy covers that case.
+  useEffect(() => {
+    if (!scanGateReady || isPremium || scanBlocked) return;
+    AsyncStorage.getItem(scanAllowanceNoticeKey()).then((seen) => {
+      if (!seen) setShowAllowanceNotice(true);
+    });
+  }, [scanGateReady, isPremium, scanBlocked]);
+
+  const dismissAllowanceNotice = () => {
+    setShowAllowanceNotice(false);
+    AsyncStorage.setItem(scanAllowanceNoticeKey(), "1").catch(() => {});
+  };
 
   const animateCapture = () => {
     Animated.sequence([
@@ -640,6 +658,18 @@ export default function ScanReceiptCameraScreen() {
           </View>
         </View>
       </CameraView> : null}
+
+      <AnnouncementModal
+        visible={showAllowanceNotice}
+        icon="camera.fill"
+        iconColour={C.primary}
+        eyebrow="Free plan"
+        title={`You have ${FREE_SCAN_LIMIT} free scans this month`}
+        subtitle="Free accounts can scan up to this many receipts a month. Upgrade to Pro anytime for unlimited scanning."
+        primaryLabel="Got it"
+        onPrimary={dismissAllowanceNotice}
+        onClose={dismissAllowanceNotice}
+      />
     </View>
   );
 }

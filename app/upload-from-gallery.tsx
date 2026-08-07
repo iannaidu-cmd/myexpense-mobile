@@ -1,11 +1,13 @@
+import { AnnouncementModal } from "@/components/AnnouncementModal";
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { FREE_SCAN_LIMIT } from "@/constants/freeTier";
+import { FREE_SCAN_LIMIT, scanAllowanceNoticeKey } from "@/constants/freeTier";
 import { receiptState } from "@/lib/receiptState";
 import { receiptService } from "@/services/receiptService";
 import { useAuthStore } from "@/stores/authStore";
 import { colour, radius, space, typography } from "@/tokens";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as ImageManipulator from "expo-image-manipulator";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
@@ -34,6 +36,7 @@ export default function UploadFromGalleryScreen() {
   const [premiumChecked, setPremiumChecked] = useState(false);
   const [scanBlocked, setScanBlocked] = useState(false);
   const [scanGateReady, setScanGateReady] = useState(false);
+  const [showAllowanceNotice, setShowAllowanceNotice] = useState(false);
 
   // Refresh premium status before deciding whether the free-tier scan cap applies.
   useEffect(() => {
@@ -58,6 +61,21 @@ export default function UploadFromGalleryScreen() {
       .catch(() => {})
       .finally(() => setScanGateReady(true));
   }, [premiumChecked, isPremium, user]);
+
+  // Once-per-calendar-month heads-up telling free users their scan allowance
+  // — shared AsyncStorage key with scan-receipt-camera.tsx, so it only ever
+  // shows once a month regardless of which entry point the user reaches first.
+  useEffect(() => {
+    if (!scanGateReady || isPremium || scanBlocked) return;
+    AsyncStorage.getItem(scanAllowanceNoticeKey()).then((seen) => {
+      if (!seen) setShowAllowanceNotice(true);
+    });
+  }, [scanGateReady, isPremium, scanBlocked]);
+
+  const dismissAllowanceNotice = () => {
+    setShowAllowanceNotice(false);
+    AsyncStorage.setItem(scanAllowanceNoticeKey(), "1").catch(() => {});
+  };
 
   const openPicker = useCallback(async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -312,6 +330,18 @@ export default function UploadFromGalleryScreen() {
         </TouchableOpacity>
       </View>
       <MXTabBar />
+
+      <AnnouncementModal
+        visible={showAllowanceNotice}
+        icon="camera.fill"
+        iconColour={colour.primary}
+        eyebrow="Free plan"
+        title={`You have ${FREE_SCAN_LIMIT} free scans this month`}
+        subtitle="Free accounts can scan up to this many receipts a month. Upgrade to Pro anytime for unlimited scanning."
+        primaryLabel="Got it"
+        onPrimary={dismissAllowanceNotice}
+        onClose={dismissAllowanceNotice}
+      />
     </SafeAreaView>
   );
 }

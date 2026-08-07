@@ -1,4 +1,5 @@
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { FacebookOAuthModal } from "@/components/auth/FacebookOAuthModal";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { configurePurchases } from "@/lib/purchases";
 import * as Sentry from "@sentry/react-native";
@@ -166,22 +167,22 @@ function OAuthHandler() {
     const handle = async (url: string | null) => {
       if (!url) return;
 
-      // Custom scheme: email confirmation and OAuth callbacks
-      if (url.startsWith("myexpense://auth/callback")) {
-        const codeMatch = url.match(/[?&]code=([^&#]+)/);
-        if (codeMatch) {
+      // Custom scheme (email confirmation, Google/email OAuth) or the
+      // verified HTTPS App Link (Facebook OAuth — see facebookAuthService.ts
+      // for why Facebook needs this instead of the custom scheme). Pass the
+      // full query string through verbatim rather than only extracting
+      // `code` — previously any redirect carrying `error`/`error_code`
+      // instead of a code was silently dropped here with no sign to the
+      // user of what went wrong. auth/callback.tsx already knows how to
+      // surface those params; this just stops swallowing them beforehand.
+      if (url.startsWith("myexpense://auth/callback") || url.includes("myexpense.co.za/auth/callback")) {
+        const hasCode = /[?&]code=/.test(url);
+        const hasError = /[?&](?:error|error_code)=/.test(url);
+        if (hasCode || hasError) {
           await waitForNavigationReady(readyRef);
-          router.replace(`/auth/callback?code=${codeMatch[1]}` as any);
-          return;
-        }
-      }
-
-      // HTTPS App Link fallback (when OS routes the intent separately)
-      if (url.includes("myexpense.co.za/auth/callback")) {
-        const codeMatch = url.match(/[?&]code=([^&#]+)/);
-        if (codeMatch) {
-          await waitForNavigationReady(readyRef);
-          router.replace(`/auth/callback?code=${codeMatch[1]}` as any);
+          const queryIdx = url.indexOf("?");
+          const query = queryIdx >= 0 ? url.slice(queryIdx) : "";
+          router.replace(`/auth/callback${query}` as any);
           return;
         }
       }
@@ -330,6 +331,7 @@ function RootLayout() {
       <OAuthHandler />
       <PurchasesSetup />
       <NotificationSetup />
+      <FacebookOAuthModal />
       <Stack>
         {/* ── Entry ── */}
         <Stack.Screen
@@ -385,6 +387,8 @@ function RootLayout() {
         />
         {/* ── Tax & ITR12 ── */}
         <Stack.Screen name="tax-summary" options={{ headerShown: false }} />
+        <Stack.Screen name="tax-liability-inputs" options={{ headerShown: false }} />
+        <Stack.Screen name="tax-liability-summary" options={{ headerShown: false }} />
         <Stack.Screen name="government-concessions" options={{ headerShown: false }} />
         <Stack.Screen
           name="itr12-export-setup"

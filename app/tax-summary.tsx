@@ -3,15 +3,16 @@ import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { expenseService } from "@/services/expenseService";
 import { incomeService } from "@/services/incomeService";
-import { getMarginalRate } from "@/lib/taxRules";
+import { getMarginalRate, medicalTaxCreditForYear, raDeductionCap } from "@/lib/taxRules";
+import { profileService } from "@/services/profileService";
+import { taxLiabilityService } from "@/services/taxLiabilityService";
 import { taxService } from "@/services/taxService";
 import { useAuthStore } from "@/stores/authStore";
 import { useExpenseStore } from "@/stores/expenseStore";
-import { medicalTaxCredit, useTaxProfileStore } from "@/stores/taxProfileStore";
 import { colour, radius, space } from "@/tokens";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useAppForeground } from "@/hooks/use-app-foreground";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
     ActivityIndicator,
     ScrollView,
@@ -91,20 +92,21 @@ export default function TaxSummaryScreen() {
     Record<string, number>
   >({});
   const [itr12Readiness, setItr12Readiness] = useState(0);
-
-  const { profile: taxProfile, load: loadTaxProfile } = useTaxProfileStore();
-  useEffect(() => { loadTaxProfile(); }, []);
+  const [medicalAidDependants, setMedicalAidDependants] = useState(0);
+  const [medicalAidMonthly, setMedicalAidMonthly] = useState(0);
+  const [hasDisability, setHasDisability] = useState(false);
 
   const loadData = useCallback(async () => {
     if (!user) { setLoading(false); return; }
     setLoading(true);
     try {
-      const [expenseTotals, incomeTotals, breakdown, summary] =
+      const [expenseTotals, incomeTotals, breakdown, summary, profile] =
         await Promise.all([
           expenseService.getTotals(user.id, activeTaxYear),
           incomeService.getTotals(user.id, activeTaxYear),
           expenseService.getByCategory(user.id, activeTaxYear),
           taxService.recalculateSummary(user.id, activeTaxYear),
+          profileService.getProfile(user.id),
         ]);
 
       setTotalExpenses(expenseTotals.totalExpenses);
@@ -112,6 +114,9 @@ export default function TaxSummaryScreen() {
       setTotalIncome(incomeTotals.totalIncome);
       setCategoryBreakdown(breakdown);
       setItr12Readiness(summary.itr12_readiness_pct ?? 0);
+      setMedicalAidDependants(profile?.medical_aid_dependants ?? 0);
+      setMedicalAidMonthly(profile?.medical_aid_monthly ?? 0);
+      setHasDisability(profile?.has_disability ?? false);
     } catch (e) {
       console.error("TaxSummary load error:", e);
     } finally {
@@ -131,11 +136,13 @@ export default function TaxSummaryScreen() {
 
   // Medical Aid Tax Credit (MTC) — SARS S6A, persisted from tax profile
   const medAidInExpenses = categoryBreakdown["Medical Aid"] ?? 0;
-  const annualMTC = medicalTaxCredit(taxProfile.numMedDependants);
+  const annualMTC = medicalTaxCreditForYear(medicalAidDependants, activeTaxYear);
 
-  // RA: total RA contributions from expenses, cap = 27.5% of income, max R350,000
+  // RA: total RA contributions from expenses, cap = 27.5% of income up to the
+  // tax year's absolute S11F cap (lib/taxRules.ts — previously hardcoded to
+  // the 2025/26 figure of R350,000 regardless of the active tax year).
   const raContributions = categoryBreakdown["Retirement Annuity"] ?? 0;
-  const raCap = Math.min(Math.round(totalIncome * 0.275), 350000);
+  const raCap = raDeductionCap(totalIncome, activeTaxYear);
   const raDeductible = Math.min(raContributions, raCap);
   const deductionRate =
     totalExpenses > 0 ? Math.round((totalDeductions / totalExpenses) * 100) : 0;
@@ -145,6 +152,14 @@ export default function TaxSummaryScreen() {
     .sort(([, a], [, b]) => b - a)
     .slice(0, 8);
   const maxCatAmount = Math.max(...categoryRows.map(([, v]) => v), 1);
+
+  // Routes to the summary if an estimate already exists for this tax year,
+  // otherwise to the inputs screen to create one — see app/tax-liability-*.
+  const handleTaxLiabilityPress = async () => {
+    if (!user) return;
+    const existing = await taxLiabilityService.getEstimate(user.id, activeTaxYear);
+    router.push((existing ? "/tax-liability-summary" : "/tax-liability-inputs") as any);
+  };
 
   // Days to SARS non-provisional filing deadline, derived from the active tax year
   const deadlineYear = parseInt(activeTaxYear.split("/")[0]) + 1;
@@ -736,7 +751,7 @@ export default function TaxSummaryScreen() {
                   </Text>
                   {[
                     { label: "RA contributions", value: fmt(raContributions) },
-                    { label: `Cap (27.5% of R${totalIncome.toLocaleString("en-ZA")}, max R350,000)`, value: fmt(raCap) },
+                    { label: `Cap (27.5% of R${totalIncome.toLocaleString("en-ZA")}, max R${raCap.toLocaleString("en-ZA")})`, value: fmt(raCap) },
                     { label: "Deductible amount", value: fmt(raDeductible) },
                   ].map((row, i) => (
                     <View key={i} style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 6 }}>
@@ -753,7 +768,7 @@ export default function TaxSummaryScreen() {
               )}
 
               {/* Medical Aid Tax Credits */}
-              {(medAidInExpenses > 0 || taxProfile.medicalAidAnnualContrib > 0 || taxProfile.numMedDependants > 0) && (
+              {(medAidInExpenses > 0 || medicalAidMonthly > 0 || medicalAidDependants > 0) && (
                 <View
                   style={{
                     marginHorizontal: space.md,
@@ -773,11 +788,11 @@ export default function TaxSummaryScreen() {
                   </Text>
                   <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 6 }}>
                     <Text style={{ fontSize: 12, color: colour.textSub, flex: 1, marginRight: 8 }} numberOfLines={2}>
-                      Annual MTC · {taxProfile.numMedDependants === 0 ? "main member only" : `${taxProfile.numMedDependants} dependant${taxProfile.numMedDependants > 1 ? "s" : ""}`}
+                      Annual MTC · {medicalAidDependants === 0 ? "main member only" : `${medicalAidDependants} dependant${medicalAidDependants > 1 ? "s" : ""}`}
                     </Text>
                     <Text style={{ fontSize: 14, fontWeight: "800", color: colour.success }}>{fmt(annualMTC)}</Text>
                   </View>
-                  {taxProfile.hasDisability && (
+                  {hasDisability && (
                     <View style={{ backgroundColor: colour.primary50, borderRadius: 6, padding: 8, marginBottom: 6 }}>
                       <Text style={{ fontSize: 11, color: colour.accentDeep, fontWeight: "600" }}>
                         Disability: out-of-pocket medical expenses fully deductible (no 7.5% floor). Attach ITR-DD.
@@ -901,6 +916,12 @@ export default function TaxSummaryScreen() {
                   overflow: "hidden",
                 }}
               >
+                <NavRow
+                  icon="dollarsign.circle.fill"
+                  label="Tax Refund or Bill"
+                  sub="What you owe SARS or get back"
+                  onPress={handleTaxLiabilityPress}
+                />
                 <NavRow
                   icon="square.and.arrow.up"
                   label="ITR12 export setup"

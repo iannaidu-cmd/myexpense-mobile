@@ -14,7 +14,7 @@ const config = {
   ios: {
     supportsTablet: true,
     bundleIdentifier: "co.za.myexpense",
-    buildNumber: "49",
+    buildNumber: "55",
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false,
       NSCameraUsageDescription:
@@ -33,7 +33,7 @@ const config = {
   },
   android: {
     package: "co.za.myexpense.myapp",
-    versionCode: 13,
+    versionCode: 19,
     config: {
       googleMaps: {
         apiKey: process.env.GOOGLE_MAPS_API_KEY,

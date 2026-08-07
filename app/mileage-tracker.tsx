@@ -5,7 +5,9 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from "@/components/maps";
+import { FREE_MILEAGE_TRIP_LIMIT } from "@/constants/freeTier";
 import { SARS_RATE_PER_KM, taxYearForDate } from "@/lib/taxRules";
+import { mileageService } from "@/services/mileageService";
 import { useAuthStore } from "@/stores/authStore";
 import { useExpenseStore } from "@/stores/expenseStore";
 import { colour, radius, space, typography } from "@/tokens";
@@ -107,20 +109,33 @@ export default function MileageTrackerScreen() {
   const { activeTaxYear } = useExpenseStore();
 
   const [premiumChecked, setPremiumChecked] = useState(false);
+  const [tripLimitReached, setTripLimitReached] = useState(false);
+  const [mileageGateReady, setMileageGateReady] = useState(false);
 
-  // Mileage tracking is Pro-only — zero free-tier access. Mirrors
-  // app/itr12-export-setup.tsx's gate exactly.
   useEffect(() => {
     if (!isInitialised || !user) return;
     refreshPremiumStatus().finally(() => setPremiumChecked(true));
   }, [isInitialised, user]);
 
+  // Enforce the free-tier trip cap (20/month) once premium status is known.
+  // One "use" = one saved trip, counted directly off mileage_trips — no
+  // separate log table needed, unlike bank import / ITR12 export, which
+  // don't otherwise write a per-use row anywhere.
+  // Fails open on a count-check error — a network blip shouldn't block a trip.
   useEffect(() => {
-    if (!premiumChecked) return;
-    if (!isPremium) {
-      router.replace("/paywall-upgrade" as any);
+    if (!premiumChecked || !user) return;
+    if (isPremium) {
+      setMileageGateReady(true);
+      return;
     }
-  }, [premiumChecked, isPremium]);
+    mileageService
+      .countThisMonth(user.id)
+      .then((count) => {
+        if (count >= FREE_MILEAGE_TRIP_LIMIT) setTripLimitReached(true);
+      })
+      .catch(() => {})
+      .finally(() => setMileageGateReady(true));
+  }, [premiumChecked, isPremium, user]);
 
   const [status, setStatus] = useState<TripStatus>("idle");
   const [coords, setCoords] = useState<Coord[]>([]);
@@ -192,11 +207,12 @@ export default function MileageTrackerScreen() {
     AsyncStorage.removeItem(TRIP_STORAGE_KEY);
   }, []);
 
-  // ── Request location permission once premium status is confirmed ─────────
-  // Gated on isPremium so a free user (who gets redirected to the paywall)
-  // is never prompted for location access on a screen they can't use.
+  // ── Request location permission once the free-tier trip gate is resolved ──
+  // Gated on mileageGateReady + !tripLimitReached so a free user who's
+  // already used their 20 trips this month (who sees the limit-reached
+  // screen instead) is never prompted for location access.
   useEffect(() => {
-    if (!premiumChecked || !isPremium) return;
+    if (!mileageGateReady || tripLimitReached) return;
     (async () => {
       try {
         const { status: perm } =
@@ -245,7 +261,7 @@ export default function MileageTrackerScreen() {
       bgWatchRef.current?.remove();
       if (gpsTimeoutRef.current) clearTimeout(gpsTimeoutRef.current);
     };
-  }, [premiumChecked, isPremium]);
+  }, [mileageGateReady, tripLimitReached]);
 
   // ── Centre map on first GPS fix ──────────────────────────────────────────
   const hasAnimatedToUser = useRef(false);
@@ -475,14 +491,39 @@ export default function MileageTrackerScreen() {
   // ── Split distance into whole and decimal parts ───────────────────────────
   const [wholeKm, decimalKm] = distanceKm.toFixed(2).split(".");
 
-  if (!premiumChecked) {
+  if (!mileageGateReady) {
     return (
       <View style={{ flex: 1, backgroundColor: colour.background, alignItems: "center", justifyContent: "center" }}>
         <ActivityIndicator color={colour.primary} size="large" />
       </View>
     );
   }
-  if (!isPremium) return null; // router.replace to /paywall-upgrade already in flight
+
+  if (tripLimitReached) {
+    return (
+      <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colour.background }}>
+        <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
+        <MXHeader title="Mileage Tracker" showBack />
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 32 }}>
+          <Text style={{ ...typography.bodyM, fontWeight: "800", fontSize: 20, color: colour.text, marginBottom: 12, textAlign: "center" }}>
+            Monthly Trip Limit Reached
+          </Text>
+          <Text style={{ ...typography.bodyS, color: colour.textSub, textAlign: "center", marginBottom: 32 }}>
+            Free accounts can log {FREE_MILEAGE_TRIP_LIMIT} trips a month. Upgrade to Pro for unlimited mileage tracking.
+          </Text>
+          <TouchableOpacity
+            onPress={() => router.replace("/paywall-upgrade" as any)}
+            style={{ backgroundColor: colour.primary, borderRadius: radius.pill, paddingVertical: 14, paddingHorizontal: 32 }}
+          >
+            <Text style={{ ...typography.btnL, color: colour.textOnPrimary }}>Upgrade to Pro</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => router.back()} style={{ marginTop: 16 }}>
+            <Text style={{ ...typography.bodyS, color: colour.textSub }}>Go back</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <View style={{ flex: 1, backgroundColor: colour.background }}>

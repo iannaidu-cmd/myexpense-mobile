@@ -77,3 +77,31 @@ export async function exportITR12(options: ExportOptions): Promise<ExportResult>
     };
   }
 }
+
+// ─── Free-tier usage tracking ─────────────────────────────────────────────────
+// One row per successful export (any format — PDF, CSV, or this xlsx eFiling
+// reference). itr12_export_log has no other purpose; see the migration that
+// created it. Exports write no row anywhere else, unlike scans (receipts)
+// or expenses, so this is the only source of truth for the monthly count.
+
+export async function logItr12Export(userId: string): Promise<void> {
+  const { error } = await supabase.from("itr12_export_log").insert({ user_id: userId });
+  if (error) throw new Error(error.message);
+}
+
+// Deliberately NOT cached — gates entry to the whole screen, so it must
+// always reflect the true current count.
+export async function countItr12ExportsThisMonth(userId: string): Promise<number> {
+  const startOfMonth = new Date();
+  startOfMonth.setDate(1);
+  startOfMonth.setHours(0, 0, 0, 0);
+
+  const { count, error } = await supabase
+    .from("itr12_export_log")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .gte("created_at", startOfMonth.toISOString());
+
+  if (error) throw new Error(error.message);
+  return count ?? 0;
+}
