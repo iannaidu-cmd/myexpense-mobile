@@ -3,7 +3,10 @@ import { MXTabBar } from "@/components/MXTabBar";
 import { SuccessModal } from "@/components/SuccessModal";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { CATEGORIES, NON_DEDUCTIBLE_LABEL } from "@/constants/categories";
+import { FREE_BANK_IMPORT_LIMIT } from "@/constants/freeTier";
 import {
+  countBankImportsThisMonth,
+  logBankImport,
   ParsedTransaction,
   pickAndParseStatement,
 } from "@/services/bankImportService";
@@ -502,21 +505,33 @@ export default function BankImportScreen() {
   const { activeTaxYear } = useExpenseStore();
 
   const [premiumChecked, setPremiumChecked] = useState(false);
+  const [importGateReady, setImportGateReady] = useState(false);
+  const [importLimitReached, setImportLimitReached] = useState(false);
 
-  // Bank statement import is Pro-only — zero free-tier access, since it can
-  // bulk-add far more expenses in one go than the manual-entry cap allows.
-  // Mirrors app/itr12-export-setup.tsx's gate exactly.
   useEffect(() => {
     if (!isInitialised || !user) return;
     refreshPremiumStatus().finally(() => setPremiumChecked(true));
   }, [isInitialised, user]);
 
+  // Enforce the free-tier import-session cap (20/month) once premium status
+  // is known. One "use" = one completed import session (not one per
+  // transaction) — a single statement can still add many expenses at once,
+  // same as before, just capped at 20 sessions/month for free accounts
+  // instead of blocked outright.
+  // Fails open on a count-check error — a network blip shouldn't block an import.
   useEffect(() => {
-    if (!premiumChecked) return;
-    if (!isPremium) {
-      router.replace("/paywall-upgrade" as any);
+    if (!premiumChecked || !user) return;
+    if (isPremium) {
+      setImportGateReady(true);
+      return;
     }
-  }, [premiumChecked, isPremium]);
+    countBankImportsThisMonth(user.id)
+      .then((count) => {
+        if (count >= FREE_BANK_IMPORT_LIMIT) setImportLimitReached(true);
+      })
+      .catch(() => {})
+      .finally(() => setImportGateReady(true));
+  }, [premiumChecked, isPremium, user]);
 
   const [transactions, setTransactions] = useState<ParsedTransaction[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -652,6 +667,7 @@ export default function BankImportScreen() {
           }),
         ),
       ]);
+      await logBankImport(user.id).catch((e) => console.warn("logBankImport failed:", e.message));
       setImportedCount(freshExpenses.length);
       setImportedIncomeCount(incomeEntries.length);
       setSkippedCount(skipped);
@@ -684,14 +700,39 @@ export default function BankImportScreen() {
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
-  if (!premiumChecked) {
+  if (!importGateReady) {
     return (
       <View style={{ flex: 1, backgroundColor: colour.background, alignItems: "center", justifyContent: "center" }}>
         <ActivityIndicator color={colour.primary} size="large" />
       </View>
     );
   }
-  if (!isPremium) return null; // router.replace to /paywall-upgrade already in flight
+
+  if (importLimitReached) {
+    return (
+      <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colour.background }}>
+        <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
+        <MXHeader title="Import transactions" showBack />
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 32 }}>
+          <Text style={{ ...typography.bodyM, fontWeight: "800", fontSize: 20, color: colour.text, marginBottom: 12, textAlign: "center" }}>
+            Monthly Import Limit Reached
+          </Text>
+          <Text style={{ ...typography.bodyS, color: colour.textSub, textAlign: "center", marginBottom: 32 }}>
+            Free accounts get {FREE_BANK_IMPORT_LIMIT} bank statement imports a month. Upgrade to Pro for unlimited imports.
+          </Text>
+          <TouchableOpacity
+            onPress={() => router.replace("/paywall-upgrade" as any)}
+            style={{ backgroundColor: colour.primary, borderRadius: radius.pill, paddingVertical: 14, paddingHorizontal: 32 }}
+          >
+            <Text style={{ ...typography.btnL, color: colour.textOnPrimary }}>Upgrade to Pro</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => router.back()} style={{ marginTop: 16 }}>
+            <Text style={{ ...typography.bodyS, color: colour.textSub }}>Go back</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colour.background }}>

@@ -20,21 +20,82 @@ export function getCurrentTaxYear(now: Date = new Date()): string {
 
 export const TAX_YEAR = getCurrentTaxYear();
 
-// SARS income tax brackets (ZAR) — 2026/27 (1 March 2026 – 28 February 2027).
-// Unlike TAX_YEAR above, these figures can't be derived from the date — SARS
-// publishes new rates each year (usually around the February Budget Speech)
-// and this table must be updated by hand once they do, or estimates for the
-// new tax year will silently use the prior year's brackets.
-// Source: sars.gov.za/tax-rates/income-tax/rates-of-tax-for-individuals/ (updated 25 Feb 2026)
-export const TAX_BRACKETS = [
-  { limit: 245100,   rate: 0.18, base: 0      },
-  { limit: 383100,   rate: 0.26, base: 44118  },
-  { limit: 530200,   rate: 0.31, base: 79998  },
-  { limit: 695800,   rate: 0.36, base: 125599 },
-  { limit: 887000,   rate: 0.39, base: 185215 },
-  { limit: 1878600,  rate: 0.41, base: 259783 },
-  { limit: Infinity, rate: 0.45, base: 666339 },
-];
+export interface TaxBracket { limit: number; rate: number; base: number }
+export interface RebateSchedule { primary: number; secondary: number; tertiary: number }
+export interface MedicalCreditRates {
+  taxpayerOrSoleDependant: number;  // monthly — taxpayer alone, or taxpayer + first dependant if no other member
+  taxpayerPlusOneDependant: number; // monthly — combined rate for taxpayer + one dependant
+  additionalDependant: number;      // monthly — each dependant beyond the first
+}
+export interface YearTaxData {
+  brackets: TaxBracket[];
+  rebates: RebateSchedule;
+  thresholds: { under65: number; from65: number; from75: number };
+  medicalCredit: MedicalCreditRates;
+  raDeductionAnnualCap: number; // absolute S11F cap, Rand
+}
+
+// Full SARS constants by tax year — brackets, rebates, thresholds, medical
+// scheme fees tax credit rates, and the S11F retirement annuity deduction
+// cap. Unlike TAX_YEAR above, none of this can be derived from the date —
+// SARS publishes new figures each year (usually around the February Budget
+// Speech) and this table must be updated by hand once they do, or estimates
+// for the new tax year will silently use the prior year's figures.
+// Source: sars.gov.za/tax-rates/income-tax/rates-of-tax-for-individuals and
+// sars.gov.za/tax-rates/medical-tax-credit-rates — verified 2 Aug 2026.
+// Re-verify against the live SARS pages and add the new year by hand after
+// each Budget Speech before relying on it in-app — do not carry figures
+// forward from memory once a new Speech has been delivered.
+export const TAX_DATA_BY_YEAR: Record<string, YearTaxData> = {
+  "2026/27": {
+    brackets: [
+      { limit: 245100,   rate: 0.18, base: 0      },
+      { limit: 383100,   rate: 0.26, base: 44118  },
+      { limit: 530200,   rate: 0.31, base: 79998  },
+      { limit: 695800,   rate: 0.36, base: 125599 },
+      { limit: 887000,   rate: 0.39, base: 185215 },
+      { limit: 1878600,  rate: 0.41, base: 259783 },
+      { limit: Infinity, rate: 0.45, base: 666339 },
+    ],
+    rebates: { primary: 17820, secondary: 9765, tertiary: 3249 },
+    thresholds: { under65: 99000, from65: 153250, from75: 171300 },
+    medicalCredit: { taxpayerOrSoleDependant: 376, taxpayerPlusOneDependant: 752, additionalDependant: 254 },
+    raDeductionAnnualCap: 430000,
+  },
+  "2025/26": {
+    brackets: [
+      { limit: 237100,   rate: 0.18, base: 0      },
+      { limit: 370500,   rate: 0.26, base: 42678  },
+      { limit: 512800,   rate: 0.31, base: 77362  },
+      { limit: 673000,   rate: 0.36, base: 121475 },
+      { limit: 857900,   rate: 0.39, base: 179147 },
+      { limit: 1817000,  rate: 0.41, base: 251258 },
+      { limit: Infinity, rate: 0.45, base: 644489 },
+    ],
+    rebates: { primary: 17235, secondary: 9444, tertiary: 3145 },
+    thresholds: { under65: 95750, from65: 148217, from75: 165689 },
+    medicalCredit: { taxpayerOrSoleDependant: 364, taxpayerPlusOneDependant: 728, additionalDependant: 246 },
+    raDeductionAnnualCap: 350000,
+  },
+};
+
+function latestKnownTaxYear(): string {
+  return Object.keys(TAX_DATA_BY_YEAR).sort().reverse()[0];
+}
+
+// Look up a year's full constants, falling back to the newest known year if
+// the requested year hasn't been added to the table yet (SARS brackets only
+// ever move in the taxpayer's favour year over year, so this is the
+// least-wrong guess — same fallback pattern as SARS_RATE_PER_KM below).
+export function taxDataForYear(taxYear: string): YearTaxData {
+  return TAX_DATA_BY_YEAR[taxYear] ?? TAX_DATA_BY_YEAR[latestKnownTaxYear()];
+}
+
+// Kept for backward compatibility — every existing caller of TAX_BRACKETS
+// wants "the current year's brackets" and none pass a tax year explicitly.
+// Physically derived from TAX_DATA_BY_YEAR so there is exactly one copy of
+// each year's figures, not two that can drift apart.
+export const TAX_BRACKETS = TAX_DATA_BY_YEAR["2026/27"].brackets;
 
 export function getMarginalRate(income: number): number {
   for (const bracket of TAX_BRACKETS) {
@@ -43,8 +104,40 @@ export function getMarginalRate(income: number): number {
   return 0.45;
 }
 
+// Per-year marginal rate — use this (not getMarginalRate) for any
+// calculation that must respect a specific, possibly-non-current tax year,
+// e.g. the tax liability engine in lib/taxLiability.ts.
+export function getMarginalRateForYear(income: number, taxYear: string): number {
+  const { brackets } = taxDataForYear(taxYear);
+  for (const bracket of brackets) {
+    if (income <= bracket.limit) return bracket.rate;
+  }
+  return brackets[brackets.length - 1].rate;
+}
+
 export function estimateTaxSaving(deductions: number, income: number): number {
   return Math.round(deductions * getMarginalRate(income));
+}
+
+// S6A medical scheme fees tax credit for a given tax year — a fixed monthly
+// amount for the taxpayer (or taxpayer + first dependant if there's exactly
+// one), a combined rate for taxpayer + one dependant, and a flat amount per
+// additional dependant, annualised (×12).
+export function medicalTaxCreditForYear(numDependants: number, taxYear: string): number {
+  const { medicalCredit } = taxDataForYear(taxYear);
+  const annual = (monthly: number) => monthly * 12;
+  if (numDependants <= 0) return annual(medicalCredit.taxpayerOrSoleDependant);
+  if (numDependants === 1) return annual(medicalCredit.taxpayerPlusOneDependant);
+  return annual(medicalCredit.taxpayerPlusOneDependant) + (numDependants - 1) * annual(medicalCredit.additionalDependant);
+}
+
+// S11F retirement annuity deduction cap for a given tax year: the lesser of
+// 27.5% of the greater of remuneration or taxable income, and the year's
+// absolute Rand cap. Caller is responsible for passing
+// max(remuneration, pre-RA taxable income) per SARS's own rule.
+export function raDeductionCap(incomeForCapPurposes: number, taxYear: string): number {
+  const { raDeductionAnnualCap } = taxDataForYear(taxYear);
+  return Math.min(Math.round(incomeForCapPurposes * 0.275), raDeductionAnnualCap);
 }
 
 // SARS deemed mileage rate per km, by tax year. A fixed regulated figure SARS

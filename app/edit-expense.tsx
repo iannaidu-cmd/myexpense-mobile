@@ -2,6 +2,7 @@ import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { SuccessModal } from "@/components/SuccessModal";
 import { CATEGORIES } from "@/constants/categories";
+import { displayDateToISO, formatDateInputDDMMYYYY, isoToDisplayDate } from "@/lib/dateInput";
 import {
   validateAmount,
   validateDate,
@@ -66,7 +67,7 @@ export default function EditExpenseScreen() {
       .then((expense) => {
         setAmount(String(expense.amount));
         setVendor(expense.vendor ?? "");
-        setDate(expense.expense_date ?? "");
+        setDate(expense.expense_date ? isoToDisplayDate(expense.expense_date) : "");
         setCategory(expense.category ?? "");
         setNotes(expense.notes ?? "");
         // Derive toggle state from saved is_deductible flag
@@ -94,7 +95,8 @@ export default function EditExpenseScreen() {
     const vendorErr = validateVendor(vendor);
     if (vendorErr) { setError(vendorErr); return; }
 
-    const dateErr = validateDate(date, { fieldName: "Expense date" });
+    const expenseDateIso = displayDateToISO(date);
+    const dateErr = validateDate(expenseDateIso, { fieldName: "Expense date" });
     if (dateErr) { setError(dateErr); return; }
 
     const noteErr = validateNote(notes);
@@ -107,7 +109,7 @@ export default function EditExpenseScreen() {
         id: id!,
         amount: parseFloat(amount),
         vendor: vendor.trim(),
-        expense_date: date,
+        expense_date: expenseDateIso,
         category: category,
         itr12_code:
           expenseType === "personal" ? null : (selectedCat?.section ?? null),
@@ -360,12 +362,13 @@ export default function EditExpenseScreen() {
             marginBottom: space.xs,
           }}
         >
-          Date (YYYY-MM-DD)
+          Date (DD/MM/YYYY)
         </Text>
         <TextInput
           value={date}
-          onChangeText={setDate}
-          placeholder="YYYY-MM-DD"
+          onChangeText={(t) => setDate(formatDateInputDDMMYYYY(t))}
+          placeholder="DD/MM/YYYY"
+          keyboardType="number-pad"
           placeholderTextColor={colour.textHint}
           style={{
             ...typography.bodyM,

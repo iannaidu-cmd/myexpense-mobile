@@ -3,6 +3,8 @@
 // Returns null on success, or an error string to show the user.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { CATEGORIES } from "@/constants/categories";
+
 // SARS max realistic annual expense — hard ceiling
 export const MAX_AMOUNT = 9_999_999.99;
 export const MAX_AMOUNT_CENTS = 999_999_999; // for cents-based keypad
@@ -66,6 +68,39 @@ export function validateDate(
   return null;
 }
 
+// ── Non-negative amount (can legitimately be 0, unlike validateAmount which
+// rejects <=0 for expense amounts — used for tax-liability inputs like
+// other taxable income, medical aid contributions, tax already paid) ─────────
+export function validateNonNegativeAmount(value: string, fieldName = "Amount"): string | null {
+  const trimmed = value.trim();
+  if (!trimmed) return `${fieldName} is required.`;
+
+  const num = parseFloat(trimmed);
+  if (isNaN(num)) return `Please enter a valid ${fieldName.toLowerCase()}.`;
+  if (num < 0) return `${fieldName} cannot be negative.`;
+  if (num > MAX_AMOUNT)
+    return `${fieldName} cannot exceed R ${MAX_AMOUNT.toLocaleString("en-ZA", { minimumFractionDigits: 2 })}.`;
+
+  const parts = trimmed.split(".");
+  if (parts[1] && parts[1].length > 2)
+    return `${fieldName} can have at most 2 decimal places.`;
+
+  return null;
+}
+
+// ── Date of birth (YYYY-MM-DD, no future dates, plausible age range) ──────────
+export function validateDateOfBirth(value: string): string | null {
+  const dateError = validateDate(value, { allowFuture: false, fieldName: "Date of birth" });
+  if (dateError) return dateError;
+
+  const dob = new Date(value.trim());
+  const ageInYears = (Date.now() - dob.getTime()) / (365.25 * 24 * 60 * 60 * 1000);
+  if (ageInYears < 16) return "Date of birth implies an age under 16.";
+  if (ageInYears > 120) return "Please check the date of birth.";
+
+  return null;
+}
+
 // ── Vendor / text fields ──────────────────────────────────────────────────────
 export function validateVendor(value: string): string | null {
   const trimmed = value.trim();
@@ -89,42 +124,13 @@ export function validateSource(value: string): string | null {
   return null;
 }
 
-// ── Category (must be from the known SARS list) ───────────────────────────────
-const VALID_EXPENSE_CATEGORIES = new Set([
-  "Travel & Transport",
-  "Home Office",
-  "Equipment & Tools",
-  "Software & Subscriptions",
-  "Meals & Entertainment",
-  "Professional Fees",
-  "Telephone & Cell",
-  "Marketing & Advertising",
-  "Bank Charges",
-  "Insurance",
-  "Rent",
-  "Repairs & Maintenance",
-  "Education",
-  "Medical Aid",
-  "Vehicle Expenses",
-  "Personal / Non-deductible",
-  // edit-expense.tsx categories
-  "Advertising & Marketing",
-  "Computer & IT Equipment",
-  "Courier & Delivery",
-  "Fuel & Oil",
-  "Insurance - Business",
-  "Legal & Professional Fees",
-  "Motor Vehicle Expenses",
-  "Office Rental",
-  "Phone & Internet",
-  "Printing & Stationery",
-  "Professional Development",
-  "Staff Costs",
-  "Travel - Business",
-  "Uniforms & Protective Clothing",
-  "Utilities - Business Share",
-  "Meals - Client Entertainment",
-]);
+// ── Category (must be from the canonical SARS list) ───────────────────────────
+// Derived from constants/categories.ts — the single source of truth — rather
+// than a separately hand-maintained list. This used to drift (missing
+// "Retirement Annuity" entirely, stale labels like "Telephone & Cell"
+// instead of "Telephone & Internet"), which silently blocked logging an RA
+// expense from the main Add Expense tab.
+const VALID_EXPENSE_CATEGORIES = new Set(CATEGORIES.map((c) => c.label));
 
 export function validateCategory(value: string): string | null {
   if (!value) return "Category is required.";

@@ -10,6 +10,7 @@ import {
   validateNote,
   validateVendor,
 } from "@/lib/validation";
+import { formatDateInputDDMMYYYY, isoToDisplayDate } from "@/lib/dateInput";
 import { expenseService } from "@/services/expenseService";
 import { scheduleReceiptReminder } from "@/services/notificationService";
 import { useAuthStore } from "@/stores/authStore";
@@ -90,7 +91,7 @@ export default function AddExpenseTab() {
 
   const [amount, setAmount] = useState("");
   const [vendor, setVendor] = useState("");
-  const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
+  const [date, setDate] = useState(isoToDisplayDate(new Date().toISOString().split("T")[0]));
   const [category, setCategory] = useState("");
   const [vatAmount, setVatAmount] = useState("");
   const [note, setNote] = useState("");
@@ -295,11 +296,12 @@ export default function AddExpenseTab() {
             placeholder="e.g. Engen, Microsoft, Checkers"
           />
 
-          <FieldLabel label="Date (YYYY-MM-DD)" />
+          <FieldLabel label="Date (DD/MM/YYYY)" />
           <UnderlineInput
             value={date}
-            onChangeText={setDate}
-            placeholder="YYYY-MM-DD"
+            onChangeText={(t) => setDate(formatDateInputDDMMYYYY(t))}
+            placeholder="DD/MM/YYYY"
+            keyboardType="number-pad"
           />
 
           {/* Category picker */}

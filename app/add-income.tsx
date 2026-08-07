@@ -8,6 +8,7 @@ import {
   validateIncomeSource,
   validateNote,
 } from "@/lib/validation";
+import { formatDateInputDDMMYYYY, isoToDisplayDate } from "@/lib/dateInput";
 import { taxYearForDate } from "@/lib/taxRules";
 import { incomeService } from "@/services/incomeService";
 import { useAuthStore } from "@/stores/authStore";
@@ -119,7 +120,7 @@ export default function AddIncomeScreen() {
   const [source, setSource] = useState("");
   const [category, setCategory] = useState("");
   const [description, setDescription] = useState("");
-  const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
+  const [date, setDate] = useState(isoToDisplayDate(new Date().toISOString().split("T")[0]));
   const [showFullList, setShowFullList] = useState(false);
   const [saving, setSaving] = useState(false);
   const [loadingExisting, setLoadingExisting] = useState(isEditing);
@@ -134,7 +135,7 @@ export default function AddIncomeScreen() {
       setSource(entry.source);
       setCategory(entry.category ?? "");
       setDescription(entry.description ?? "");
-      setDate(entry.date);
+      setDate(isoToDisplayDate(entry.date));
     }).catch(console.error).finally(() => setLoadingExisting(false));
   }, [id]);
 
@@ -191,7 +192,7 @@ export default function AddIncomeScreen() {
         setSource("");
         setCategory("");
         setDescription("");
-        setDate(new Date().toISOString().split("T")[0]);
+        setDate(isoToDisplayDate(new Date().toISOString().split("T")[0]));
         setSuccessMessage(`R ${parseFloat(amount).toLocaleString("en-ZA", { minimumFractionDigits: 2 })} from ${source} has been saved.`);
       }
       setSuccessVisible(true);
@@ -450,11 +451,12 @@ export default function AddIncomeScreen() {
             </View>
           )}
 
-          <FieldLabel label="Date (YYYY-MM-DD)" />
+          <FieldLabel label="Date (DD/MM/YYYY)" />
           <UnderlineInput
             value={date}
-            onChangeText={setDate}
-            placeholder="YYYY-MM-DD"
+            onChangeText={(t) => setDate(formatDateInputDDMMYYYY(t))}
+            placeholder="DD/MM/YYYY"
+            keyboardType="number-pad"
           />
 
           <FieldLabel label="Description (optional)" />

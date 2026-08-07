@@ -147,8 +147,12 @@ describe("validateCategory", () => {
     expect(validateCategory("Travel & Transport")).toBeNull();
   });
 
-  it("accepts Personal / Non-deductible", () => {
-    expect(validateCategory("Personal / Non-deductible")).toBeNull();
+  it("accepts Personal / Other", () => {
+    expect(validateCategory("Personal / Other")).toBeNull();
+  });
+
+  it("accepts Retirement Annuity", () => {
+    expect(validateCategory("Retirement Annuity")).toBeNull();
   });
 });
 

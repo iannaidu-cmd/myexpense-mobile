@@ -2,9 +2,12 @@
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { SuccessModal } from "@/components/SuccessModal";
+import { displayDateToISO, formatDateInputDDMMYYYY, isoToDisplayDate } from "@/lib/dateInput";
+import { validateDateOfBirth } from "@/lib/validation";
+import { medicalTaxCreditForYear } from "@/lib/taxRules";
 import { profileService } from "@/services/profileService";
 import { useAuthStore } from "@/stores/authStore";
-import { medicalTaxCredit, useTaxProfileStore } from "@/stores/taxProfileStore";
+import { useExpenseStore } from "@/stores/expenseStore";
 import { colour, radius, space, typography } from "@/tokens";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -29,6 +32,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 export default function ProfileScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
+  const { activeTaxYear } = useExpenseStore();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [successVisible, setSuccessVisible] = useState(false);
@@ -41,22 +45,12 @@ export default function ProfileScreen() {
   const [taxNumber, setTaxNumber] = useState("");
   const [subscription, setSubscription] = useState("free");
 
-  // Tax profile (persisted to AsyncStorage)
-  const { profile: taxProfile, isLoaded: taxProfileLoaded, load: loadTaxProfile, save: saveTaxProfile } = useTaxProfileStore();
-  const [taxAge, setTaxAge] = useState("");
+  // Tax profile (persisted to Supabase profiles — shared with the Tax
+  // Liability module's inputs screen, see app/tax-liability-inputs.tsx)
+  const [dateOfBirth, setDateOfBirth] = useState(""); // "DD/MM/YYYY" display
   const [taxDependants, setTaxDependants] = useState(0);
   const [taxDisability, setTaxDisability] = useState(false);
-  const [taxMedContrib, setTaxMedContrib] = useState("");
-
-  useEffect(() => { loadTaxProfile(); }, []);
-
-  useEffect(() => {
-    if (!taxProfileLoaded) return;
-    setTaxAge(taxProfile.age > 0 ? String(taxProfile.age) : "");
-    setTaxDependants(taxProfile.numMedDependants);
-    setTaxDisability(taxProfile.hasDisability);
-    setTaxMedContrib(taxProfile.medicalAidAnnualContrib > 0 ? String(taxProfile.medicalAidAnnualContrib) : "");
-  }, [taxProfileLoaded]);
+  const [taxMedMonthly, setTaxMedMonthly] = useState("");
 
   useEffect(() => {
     if (!user) { setLoading(false); return; }
@@ -70,6 +64,10 @@ export default function ProfileScreen() {
           setPhone(p.phone ?? "");
           setTaxNumber(p.tax_number ?? "");
           setSubscription(p.subscription ?? "free");
+          setDateOfBirth(p.date_of_birth ? isoToDisplayDate(p.date_of_birth) : "");
+          setTaxDependants(p.medical_aid_dependants ?? 0);
+          setTaxDisability(p.has_disability ?? false);
+          setTaxMedMonthly(p.medical_aid_monthly ? String(p.medical_aid_monthly) : "");
         }
         setLoading(false);
       })
@@ -78,22 +76,27 @@ export default function ProfileScreen() {
 
   const handleSave = async () => {
     if (!user) return;
+
+    if (dateOfBirth) {
+      const dobError = validateDateOfBirth(displayDateToISO(dateOfBirth));
+      if (dobError) {
+        Alert.alert("Error", dobError);
+        return;
+      }
+    }
+
     setSaving(true);
     try {
-      await Promise.all([
-        profileService.updateProfile(user.id, {
-          full_name: fullName.trim(),
-          business_name: businessName.trim(),
-          phone: phone.trim(),
-          tax_number: taxNumber.trim(),
-        }),
-        saveTaxProfile({
-          age: parseInt(taxAge) || 0,
-          numMedDependants: taxDependants,
-          hasDisability: taxDisability,
-          medicalAidAnnualContrib: parseFloat(taxMedContrib) || 0,
-        }),
-      ]);
+      await profileService.updateProfile(user.id, {
+        full_name: fullName.trim(),
+        business_name: businessName.trim(),
+        phone: phone.trim(),
+        tax_number: taxNumber.trim(),
+        date_of_birth: dateOfBirth ? displayDateToISO(dateOfBirth) : null,
+        medical_aid_monthly: parseFloat(taxMedMonthly) || null,
+        medical_aid_dependants: taxDependants,
+        has_disability: taxDisability,
+      });
       setSuccessVisible(true);
     } catch (e: any) {
       Alert.alert("Error", e.message ?? "Could not save profile.");
@@ -333,7 +336,7 @@ export default function ProfileScreen() {
                   marginBottom: space.md,
                 }}
               >
-                {/* Age */}
+                {/* Date of birth */}
                 <View
                   style={{
                     padding: space.md,
@@ -342,16 +345,19 @@ export default function ProfileScreen() {
                   }}
                 >
                   <Text style={{ ...typography.captionM, color: colour.textHint, letterSpacing: 0.5, marginBottom: 4 }}>
-                    Age
+                    Date of birth
                   </Text>
                   <TextInput
-                    value={taxAge}
-                    onChangeText={setTaxAge}
-                    placeholder="e.g. 34"
+                    value={dateOfBirth}
+                    onChangeText={(t) => setDateOfBirth(formatDateInputDDMMYYYY(t))}
+                    placeholder="DD/MM/YYYY"
                     placeholderTextColor={colour.textHint}
                     keyboardType="number-pad"
                     style={{ ...typography.bodyM, color: colour.text, paddingVertical: 4 }}
                   />
+                  <Text style={{ fontSize: 11, color: colour.textSub, marginTop: 4 }}>
+                    Used to apply the correct SARS age-based tax rebate
+                  </Text>
                 </View>
 
                 {/* Medical aid dependants */}
@@ -438,29 +444,32 @@ export default function ProfileScreen() {
                   </View>
                 </View>
 
-                {/* Medical aid annual contributions */}
+                {/* Medical aid monthly contributions */}
                 <View style={{ padding: space.md }}>
                   <Text style={{ ...typography.captionM, color: colour.textHint, letterSpacing: 0.5, marginBottom: 4 }}>
-                    Annual medical aid contributions (R)
+                    Monthly medical aid contribution (R)
                   </Text>
                   <TextInput
-                    value={taxMedContrib}
-                    onChangeText={setTaxMedContrib}
+                    value={taxMedMonthly}
+                    onChangeText={setTaxMedMonthly}
                     placeholder="0"
                     placeholderTextColor={colour.textHint}
                     keyboardType="decimal-pad"
                     style={{ ...typography.bodyM, color: colour.text, paddingVertical: 4 }}
                   />
                   <Text style={{ fontSize: 11, color: colour.textSub, marginTop: 4 }}>
-                    Total contributions you pay to your medical aid per year
+                    What you pay your medical aid each month
                   </Text>
                 </View>
               </View>
 
               {/* Live credit preview */}
               {(() => {
-                const credit = medicalTaxCredit(taxDependants);
-                const age = parseInt(taxAge) || 0;
+                const credit = medicalTaxCreditForYear(taxDependants, activeTaxYear);
+                const dobIso = dateOfBirth ? displayDateToISO(dateOfBirth) : null;
+                const age = dobIso && !validateDateOfBirth(dobIso)
+                  ? Math.floor((Date.now() - new Date(dobIso).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
+                  : 0;
                 return (
                   <View
                     style={{
@@ -471,7 +480,7 @@ export default function ProfileScreen() {
                     }}
                   >
                     <Text style={{ fontSize: 11, color: colour.onNoir2, marginBottom: space.sm }}>
-                      ESTIMATED MEDICAL TAX CREDIT (S6A)
+                      ESTIMATED MEDICAL TAX CREDIT (S6A) · {activeTaxYear}
                     </Text>
                     <Text style={{ fontSize: 26, fontWeight: "800", color: colour.onNoir, letterSpacing: -0.5, marginBottom: 2 }}>
                       {`R ${credit.toLocaleString("en-ZA")}`}
@@ -479,9 +488,9 @@ export default function ProfileScreen() {
                     </Text>
                     <Text style={{ fontSize: 11, color: colour.onNoir2, marginBottom: 6 }}>
                       {taxDependants === 0
-                        ? "Main member: R4,368"
+                        ? "Main member only"
                         : taxDependants === 1
-                          ? "Main member + 1 dependant: R4,368 + R4,368"
+                          ? "Main member + 1 dependant"
                           : `Main member + ${taxDependants} dependants`}
                     </Text>
                     {taxDisability && (
@@ -504,7 +513,7 @@ export default function ProfileScreen() {
 
               <InfoBanner
                 icon="info.circle.fill"
-                body="These details are used to compute your medical tax credit in the tax summary screen. They are stored locally on your device only."
+                body="These details are used to compute your medical tax credit and estimated tax liability in the Tax Summary screen."
                 style={{ marginBottom: space.md }}
               />
 

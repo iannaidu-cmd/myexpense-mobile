@@ -3,6 +3,7 @@ import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { expenseService } from "@/services/expenseService";
+import { taxLiabilityService } from "@/services/taxLiabilityService";
 import { useAuthStore } from "@/stores/authStore";
 import { useExpenseStore } from "@/stores/expenseStore";
 import { colour, radius, space, typography } from "@/tokens";
@@ -606,6 +607,37 @@ export default function CategoryBreakdownScreen() {
             )}
 
             {/* ── Footer nav ────────────────────────────────────────────────── */}
+            <TouchableOpacity
+              onPress={async () => {
+                if (!user) return;
+                const existing = await taxLiabilityService.getEstimate(user.id, activeTaxYear);
+                router.push((existing ? "/tax-liability-summary" : "/tax-liability-inputs") as any);
+              }}
+              style={{
+                margin: space.md,
+                marginBottom: 0,
+                backgroundColor: C.bgCard,
+                borderRadius: radius.md,
+                padding: space.md,
+                flexDirection: "row",
+                alignItems: "center",
+                borderWidth: 1,
+                borderColor: C.border,
+              }}
+            >
+              <IconSymbol name="dollarsign.circle.fill" size={18} color={C.primary} style={{ marginRight: space.sm } as any} />
+              <Text
+                style={{
+                  ...typography.labelM,
+                  color: C.textPrimary,
+                  flex: 1,
+                }}
+              >
+                Tax Refund or Bill
+              </Text>
+              <Text style={{ color: C.textSecondary, fontSize: 16 }}>›</Text>
+            </TouchableOpacity>
+
             <TouchableOpacity
               onPress={() => router.push("/deductibility-guide")}
               style={{

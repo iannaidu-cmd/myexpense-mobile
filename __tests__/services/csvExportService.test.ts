@@ -48,7 +48,7 @@ describe("generateCSV", () => {
     expect(header).toContain("Date");
     expect(header).toContain("Vendor");
     expect(header).toContain("Category");
-    expect(header).toContain("ITR12 Code");
+    expect(header).toContain("ITR12 Field (eFiling)");
     expect(header).toContain("Amount (ZAR)");
     expect(header).toContain("VAT Amount (ZAR)");
     expect(header).toContain("Deductible (Y/N)");
@@ -120,8 +120,13 @@ describe("generateCSV", () => {
     expect(lines).toHaveLength(1); // header only
   });
 
-  it("uses itr12_code when provided, ignores category lookup", () => {
-    const csv = generateCSV([makeExpense({ itr12_code: "4022" })]);
-    expect(csv).toContain("4022");
+  it("derives the ITR12 field from category, ignoring the stored itr12_code", () => {
+    // generateCSV always re-derives the eFiling field from the expense's
+    // current category via ITR12_CATEGORIES, rather than trusting the
+    // stored itr12_code — which could go stale if a category's mapping is
+    // corrected after the expense was saved.
+    const csv = generateCSV([makeExpense({ category: "Professional Fees", itr12_code: "4022" })]);
+    expect(csv).toContain("Consulting Fees Paid");
+    expect(csv).not.toContain("4022");
   });
 });

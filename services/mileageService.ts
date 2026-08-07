@@ -36,6 +36,24 @@ export const mileageService = {
     return (data ?? []).reduce((sum, t) => sum + Number(t.distance_km), 0);
   },
 
+  // Deliberately NOT cached — gates a write (starting a new trip), so it
+  // must always reflect the true current count. Mirrors
+  // expenseService.countThisMonth / receiptService.countThisMonth.
+  countThisMonth: async (userId: string): Promise<number> => {
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+
+    const { count, error } = await supabase
+      .from("mileage_trips")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .gte("created_at", startOfMonth.toISOString());
+
+    if (error) throw new Error(error.message);
+    return count ?? 0;
+  },
+
   deleteTrip: async (id: string, userId: string): Promise<void> => {
     const { error } = await supabase
       .from("mileage_trips")

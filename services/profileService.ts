@@ -17,6 +17,10 @@ export interface UpdateProfile {
   terms_accepted_at?: string;
   /** The user's own choice about their own account — set to request deletion, null to cancel. */
   deletion_requested_at?: string | null;
+  date_of_birth?: string | null;
+  medical_aid_monthly?: number | null;
+  medical_aid_dependants?: number;
+  has_disability?: boolean;
 }
 
 export const profileService = {

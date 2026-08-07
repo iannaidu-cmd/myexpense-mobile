@@ -77,6 +77,8 @@ interface AuthState {
   isPremium: boolean;
   /** True when a paid subscription's renewal failed 7+ days ago and hasn't recovered. */
   isAccessBlocked: boolean;
+  /** ISO timestamp of an unresolved billing issue still within its grace period — null otherwise. */
+  billingIssueDetectedAt: string | null;
   /** When the user requested account deletion — null if no pending request. */
   deletionRequestedAt: string | null;
   /** True while a deletion request is pending (i.e. deletionRequestedAt is set). */
@@ -103,13 +105,17 @@ interface AuthState {
 // isAccessBlocked flips true. Only applies to users who already have a paid
 // subscription with an unresolved billing issue — never to dev users or
 // active promo_expires_at grants (checked first, see below).
-const GRACE_PERIOD_DAYS = 7;
+export const GRACE_PERIOD_DAYS = 7;
 
 // ─── Helper: fetch premium status from profiles ───────────────────────────────
 async function fetchPremiumStatus(userId: string): Promise<{
   isDevUser: boolean;
   isPremium: boolean;
   isAccessBlocked: boolean;
+  /** ISO timestamp of an unresolved billing issue still within its grace
+   *  window (i.e. access hasn't been blocked yet) — null otherwise. Lets the
+   *  UI warn the user their card failed while access is still unaffected. */
+  billingIssueDetectedAt: string | null;
   deletionRequestedAt: string | null;
   isPendingDeletion: boolean;
   termsAccepted: boolean;
@@ -136,10 +142,14 @@ async function fetchPremiumStatus(userId: string): Promise<{
 
   const isPremium = isDevUser || promoActive || (hasPaidSubscription && !graceExpired);
   const isAccessBlocked = !isDevUser && !promoActive && hasPaidSubscription && graceExpired;
+  const billingIssueDetectedAt =
+    !isDevUser && !promoActive && hasPaidSubscription && data?.billing_issue_detected_at && !graceExpired
+      ? data.billing_issue_detected_at
+      : null;
   const deletionRequestedAt = data?.deletion_requested_at ?? null;
   const isPendingDeletion = deletionRequestedAt !== null;
   const termsAccepted = !!data?.terms_accepted_at;
-  return { isDevUser, isPremium, isAccessBlocked, deletionRequestedAt, isPendingDeletion, termsAccepted };
+  return { isDevUser, isPremium, isAccessBlocked, billingIssueDetectedAt, deletionRequestedAt, isPendingDeletion, termsAccepted };
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -150,6 +160,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   isDevUser: false,
   isPremium: false,
   isAccessBlocked: false,
+  billingIssueDetectedAt: null,
   deletionRequestedAt: null,
   isPendingDeletion: false,
   termsAccepted: false,
@@ -190,7 +201,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         // Start pre-fetching data in parallel with fetchPremiumStatus so the
         // query cache is warm by the time the splash fades.
         prefetchUserData(session.user.id);
-        const { isDevUser, isPremium, isAccessBlocked, deletionRequestedAt, isPendingDeletion, termsAccepted } =
+        const { isDevUser, isPremium, isAccessBlocked, billingIssueDetectedAt, deletionRequestedAt, isPendingDeletion, termsAccepted } =
           await fetchPremiumStatus(session.user.id);
         set({
           user: { id: session.user.id, email: session.user.email ?? "" },
@@ -199,6 +210,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           isDevUser,
           isPremium,
           isAccessBlocked,
+          billingIssueDetectedAt,
           deletionRequestedAt,
           isPendingDeletion,
           termsAccepted,
@@ -236,8 +248,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
               pendingEmailVerification: null,
             });
             fetchPremiumStatus(session.user.id)
-              .then(({ isDevUser, isPremium, isAccessBlocked, deletionRequestedAt, isPendingDeletion, termsAccepted }) => {
-                set({ isDevUser, isPremium, isAccessBlocked, deletionRequestedAt, isPendingDeletion, termsAccepted });
+              .then(({ isDevUser, isPremium, isAccessBlocked, billingIssueDetectedAt, deletionRequestedAt, isPendingDeletion, termsAccepted }) => {
+                set({ isDevUser, isPremium, isAccessBlocked, billingIssueDetectedAt, deletionRequestedAt, isPendingDeletion, termsAccepted });
               })
               .catch(() => {});
           } else {
@@ -251,6 +263,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             isDevUser: false,
             isPremium: false,
             isAccessBlocked: false,
+            billingIssueDetectedAt: null,
             deletionRequestedAt: null,
             isPendingDeletion: false,
             termsAccepted: false,
@@ -269,9 +282,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   refreshPremiumStatus: async () => {
     const { user } = get();
     if (!user) return;
-    const { isDevUser, isPremium, isAccessBlocked, deletionRequestedAt, isPendingDeletion, termsAccepted } =
+    const { isDevUser, isPremium, isAccessBlocked, billingIssueDetectedAt, deletionRequestedAt, isPendingDeletion, termsAccepted } =
       await fetchPremiumStatus(user.id);
-    set({ isDevUser, isPremium, isAccessBlocked, deletionRequestedAt, isPendingDeletion, termsAccepted });
+    set({ isDevUser, isPremium, isAccessBlocked, billingIssueDetectedAt, deletionRequestedAt, isPendingDeletion, termsAccepted });
   },
 
   // ── Request account deletion (starts the 30-day grace period) ─────────────
@@ -346,7 +359,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     // When email confirmation is required, session is null. Set
     // pendingEmailVerification so AuthGate routes to the verification screen.
     if (data.user && data.session) {
-      const { isDevUser, isPremium, isAccessBlocked, deletionRequestedAt, isPendingDeletion, termsAccepted } =
+      const { isDevUser, isPremium, isAccessBlocked, billingIssueDetectedAt, deletionRequestedAt, isPendingDeletion, termsAccepted } =
         await fetchPremiumStatus(data.user.id);
       set({
         user: { id: data.user.id, email: data.user.email ?? "" },
@@ -354,6 +367,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         isDevUser,
         isPremium,
         isAccessBlocked,
+        billingIssueDetectedAt,
         deletionRequestedAt,
         isPendingDeletion,
         termsAccepted,
@@ -407,6 +421,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       isDevUser: false,
       isPremium: false,
       isAccessBlocked: false,
+      billingIssueDetectedAt: null,
       deletionRequestedAt: null,
       isPendingDeletion: false,
       termsAccepted: false,

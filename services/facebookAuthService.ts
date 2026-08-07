@@ -1,11 +1,27 @@
-import * as WebBrowser from "expo-web-browser";
 import { generateAndStorePkce } from "@/lib/pkce";
 import { useAuthStore } from "@/stores/authStore";
-import { Linking } from "react-native";
+import { useFacebookOAuthStore } from "@/stores/facebookOAuthStore";
 
-WebBrowser.maybeCompleteAuthSession();
-
-const REDIRECT_URL = "myexpense://auth/callback";
+// Facebook's native Android app hijacks this flow when it runs inside a
+// Chrome Custom Tab (the previous WebBrowser.openAuthSessionAsync
+// implementation) — it intercepts the consent step and never hands back to
+// this app, because MyExpense has no native Facebook SDK integration for it
+// to resolve against. Confirmed root cause via a controlled uninstall/
+// reinstall test against Supabase auth logs: FB app installed → authorize
+// fires, zero callback; FB app uninstalled → full successful round-trip.
+// Two parameter-level attempts (an HTTPS App Link redirect_to, then
+// display=popup) were both proven ineffective — the interception happens at
+// the Android intent level, before Supabase's authorize response is ever
+// reached, so no parameter Supabase forwards can prevent it.
+//
+// The actual fix: run the flow in components/auth/FacebookOAuthModal.tsx, an
+// in-app WebView this app fully owns, which can block every non-http(s)
+// navigation via onShouldStartLoadWithRequest and deny the native app the
+// app-switch it needs. That modal is rendered once, globally, from
+// app/_layout.tsx; useFacebookOAuthStore is the bridge that lets this
+// function await its result without either screen that calls
+// signInWithFacebook() needing to change.
+const REDIRECT_URL = "https://www.myexpense.co.za/auth/callback";
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL!;
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
@@ -25,32 +41,14 @@ export async function signInWithFacebook(): Promise<{
     });
     const oauthUrl = `${SUPABASE_URL}/auth/v1/authorize?${params.toString()}`;
 
-    const result = await WebBrowser.openAuthSessionAsync(oauthUrl, REDIRECT_URL);
-
-    // dismissBrowser() is async and rejects if no session is open, but on
-    // Android the native module doesn't implement it at all — it returns
-    // undefined (not a Promise), so a bare .catch() throws. Promise.resolve()
-    // normalises both cases.
-    Promise.resolve(WebBrowser.dismissBrowser()).catch(() => {});
-
-    if (result.type === "cancel" || result.type === "dismiss") {
+    const { codeReceived } = await useFacebookOAuthStore.getState().request(oauthUrl);
+    if (!codeReceived) {
       return { success: false, error: "Sign-in was cancelled." };
     }
 
-    if (result.type !== "success") {
-      return { success: false, error: "Sign-in failed. Please try again." };
-    }
-
-    // openAuthSessionAsync intercepts the custom-scheme redirect and returns it
-    // as result.url, which means the system deep-link event may not fire.
-    // Manually re-fire it so auth/callback.tsx receives the code param.
-    if (result.url) {
-      const codeMatch = result.url.match(/[?&]code=([^&#]+)/);
-      if (codeMatch) {
-        await Linking.openURL(`myexpense://auth/callback?code=${codeMatch[1]}`);
-      }
-    }
-
+    // The modal already handed the code off to app/auth/callback.tsx, which
+    // performs the token exchange asynchronously. Poll for the resulting
+    // session rather than duplicating that exchange logic here.
     for (let i = 0; i < 120; i++) {
       await sleep(500);
       if (useAuthStore.getState().isAuthenticated) return { success: true };

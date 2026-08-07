@@ -2,14 +2,16 @@ import { InfoBanner } from "@/components/InfoBanner";
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { FREE_ITR12_EXPORT_LIMIT } from "@/constants/freeTier";
 import { exportExpensesCSV } from "@/services/csvExportService";
 import { expenseService } from "@/services/expenseService";
 import { incomeService } from "@/services/incomeService";
+import { countItr12ExportsThisMonth, logItr12Export } from "@/services/itr12ExportService";
 import { generateITR12PDF } from "@/services/pdfExportService";
 import { getMarginalRate } from "@/lib/taxRules";
 import { useAuthStore } from "@/stores/authStore";
 import { useExpenseStore } from "@/stores/expenseStore";
-import { colour, radius, space } from "@/tokens";
+import { colour, radius, space, typography } from "@/tokens";
 import { TAX_YEARS } from "@/types/database";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useAppForeground } from "@/hooks/use-app-foreground";
@@ -84,20 +86,33 @@ export default function ITR12ExportSetupScreen() {
   const { user, isPremium, isInitialised, refreshPremiumStatus } = useAuthStore();
   const { activeTaxYear } = useExpenseStore();
   const [premiumChecked, setPremiumChecked] = useState(false);
+  const [exportGateReady, setExportGateReady] = useState(false);
+  const [exportLimitReached, setExportLimitReached] = useState(false);
 
-  // Refresh premium status on mount before making the redirect decision.
+  // Refresh premium status on mount before deciding free-tier access.
   // This handles the case where fetchPremiumStatus failed silently on init.
   useEffect(() => {
     if (!isInitialised || !user) return;
     refreshPremiumStatus().finally(() => setPremiumChecked(true));
   }, [isInitialised, user]);
 
+  // Enforce the free-tier export cap (20/month) once premium status is
+  // known. One "use" = one successful export (any format), logged to
+  // itr12_export_log since exports don't otherwise write a row anywhere.
+  // Fails open on a count-check error — a network blip shouldn't block an export.
   useEffect(() => {
-    if (!premiumChecked) return;
-    if (!isPremium) {
-      router.replace("/paywall-upgrade" as any);
+    if (!premiumChecked || !user) return;
+    if (isPremium) {
+      setExportGateReady(true);
+      return;
     }
-  }, [premiumChecked, isPremium]);
+    countItr12ExportsThisMonth(user.id)
+      .then((count) => {
+        if (count >= FREE_ITR12_EXPORT_LIMIT) setExportLimitReached(true);
+      })
+      .catch(() => {})
+      .finally(() => setExportGateReady(true));
+  }, [premiumChecked, isPremium, user]);
 
   const [totalDeductions, setTotalDeductions] = useState(0);
   const [totalExpenses,   setTotalExpenses]   = useState(0);
@@ -181,6 +196,7 @@ export default function ITR12ExportSetupScreen() {
           includePersonal,
         });
       }
+      await logItr12Export(user.id).catch((e) => console.warn("logItr12Export failed:", e.message));
     } catch (e: any) {
       Alert.alert(
         "Export failed",
@@ -190,6 +206,40 @@ export default function ITR12ExportSetupScreen() {
       setExporting(false);
     }
   };
+
+  if (!exportGateReady) {
+    return (
+      <View style={{ flex: 1, backgroundColor: colour.background, alignItems: "center", justifyContent: "center" }}>
+        <ActivityIndicator color={colour.primary} size="large" />
+      </View>
+    );
+  }
+
+  if (exportLimitReached) {
+    return (
+      <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colour.background }}>
+        <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
+        <MXHeader title="Export setup" showBack />
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 32 }}>
+          <Text style={{ ...typography.bodyM, fontWeight: "800", fontSize: 20, color: colour.text, marginBottom: 12, textAlign: "center" }}>
+            Monthly Export Limit Reached
+          </Text>
+          <Text style={{ ...typography.bodyS, color: colour.textSub, textAlign: "center", marginBottom: 32 }}>
+            Free accounts get {FREE_ITR12_EXPORT_LIMIT} ITR12 exports a month. Upgrade to Pro for unlimited exports.
+          </Text>
+          <TouchableOpacity
+            onPress={() => router.replace("/paywall-upgrade" as any)}
+            style={{ backgroundColor: colour.primary, borderRadius: radius.pill, paddingVertical: 14, paddingHorizontal: 32 }}
+          >
+            <Text style={{ ...typography.btnL, color: colour.textOnPrimary }}>Upgrade to Pro</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => router.back()} style={{ marginTop: 16 }}>
+            <Text style={{ ...typography.bodyS, color: colour.textSub }}>Go back</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView

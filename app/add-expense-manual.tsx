@@ -9,6 +9,7 @@ import { expenseService } from "@/services/expenseService";
 import { useAuthStore } from "@/stores/authStore";
 import { floorRatio, useHomeOfficeStore } from "@/stores/homeOfficeStore";
 import { colour } from "@/tokens";
+import { formatDateInputDDMMYYYY } from "@/lib/dateInput";
 import { SARS_RATE_PER_KM, taxYearForDate } from "@/lib/taxRules";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
@@ -376,9 +377,9 @@ export default function AddExpenseScreen() {
           <FieldLabel label="Date" />
           <UnderlineInput
             value={date}
-            onChangeText={setDate}
+            onChangeText={(t) => setDate(formatDateInputDDMMYYYY(t))}
             placeholder="DD/MM/YYYY"
-            keyboardType="numeric"
+            keyboardType="number-pad"
           />
 
           {/* Category */}
@@ -430,7 +431,7 @@ export default function AddExpenseScreen() {
             </View>
           )}
           {/* Contextual notes per category */}
-          {category === "Telephone & Cell" && (
+          {(category === "Telephone & Cell" || category === "Telephone & Internet") && (
             <View>
               <View style={{ backgroundColor: colour.infoLight, borderRadius: 8, padding: 10, marginBottom: 10 }}>
                 <Text style={{ fontSize: 12, color: colour.info, lineHeight: 18 }}>
