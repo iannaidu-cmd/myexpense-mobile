@@ -1,3 +1,4 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { InfoBanner } from "@/components/InfoBanner";
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
@@ -7,6 +8,7 @@ import { CATEGORIES } from "@/constants/categories";
 import { FREE_EXPENSE_LIMIT } from "@/constants/freeTier";
 import { expenseService } from "@/services/expenseService";
 import { useAuthStore } from "@/stores/authStore";
+import { useExpenseStore } from "@/stores/expenseStore";
 import { floorRatio, useHomeOfficeStore } from "@/stores/homeOfficeStore";
 import { colour } from "@/tokens";
 import { formatDateInputDDMMYYYY } from "@/lib/dateInput";
@@ -114,6 +116,7 @@ const ITR12_CATEGORIES = CATEGORIES.map((c) => ({
 export default function AddExpenseScreen() {
   const router = useRouter();
   const { user, isPremium } = useAuthStore();
+  const { activeTaxYear } = useExpenseStore();
   const { setting: homeOfficeSetting, load: loadHomeOffice } = useHomeOfficeStore();
   React.useEffect(() => { if (user) loadHomeOffice(user.id); }, [user]);
   const [amount, setAmount] = useState("");
@@ -137,6 +140,17 @@ export default function AddExpenseScreen() {
   const [saving, setSaving] = useState(false);
   const [successVisible, setSuccessVisible] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
+
+  // Suggest the business-use % worked out on the Category Breakdown logbook
+  // calculator (GPS business km ÷ annual odometer) as the default when
+  // logging a Vehicle Expense — this is what actually feeds that ratio into
+  // real deduction totals, since it's applied at save time below.
+  React.useEffect(() => {
+    if (category !== "Vehicle Expenses") return;
+    AsyncStorage.getItem(`@mx_vehicle_business_pct:${activeTaxYear}`).then((v) => {
+      if (v) setBusinessUsePct(v);
+    });
+  }, [category, activeTaxYear]);
 
   const selectedCat = ITR12_CATEGORIES.find((c) => c.label === category);
   const canSave = !!amount && parseFloat(amount) > 0 && !!vendor && !!category;
@@ -192,6 +206,8 @@ export default function AddExpenseScreen() {
         } else if (interestSubType === "bond") {
           pct = ratio;
         }
+      } else if (category === "Vehicle Expenses") {
+        pct = Math.min(Math.max(parseFloat(businessUsePct) || 100, 0), 100) / 100;
       }
 
       const savedAmount = parseFloat((rawAmount * pct).toFixed(2));
@@ -471,11 +487,20 @@ export default function AddExpenseScreen() {
             </View>
           )}
           {category === "Vehicle Expenses" && (
-            <InfoBanner
-              icon="car.fill"
-              body={`Only the work portion counts. Divide your work km by your total km for the year to find the claimable percentage — your mileage logbook tracks this. A flat rate of R${SARS_RATE_PER_KM}/km is tracked separately under Mileage.`}
-              style={{ marginBottom: 10 }}
-            />
+            <View>
+              <InfoBanner
+                icon="car.fill"
+                body={`Only the work portion counts. We've suggested a % below based on your mileage logbook (business km ÷ total km) — adjust it if this expense doesn't match. A flat rate of R${SARS_RATE_PER_KM}/km is tracked separately under Mileage.`}
+                style={{ marginBottom: 10 }}
+              />
+              <FieldLabel label="Business use %" />
+              <UnderlineInput
+                value={businessUsePct}
+                onChangeText={setBusinessUsePct}
+                placeholder="e.g. 80"
+                keyboardType="decimal-pad"
+              />
+            </View>
           )}
           {category === "Retirement Annuity" && (
             <View style={{ backgroundColor: colour.noir, borderRadius: 8, padding: 10, marginBottom: 10 }}>
