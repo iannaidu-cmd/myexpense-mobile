@@ -6,6 +6,7 @@ import { expenseService } from "@/services/expenseService";
 import { taxLiabilityService } from "@/services/taxLiabilityService";
 import { useAuthStore } from "@/stores/authStore";
 import { useExpenseStore } from "@/stores/expenseStore";
+import { floorRatio, useHomeOfficeStore } from "@/stores/homeOfficeStore";
 import { colour, radius, space, typography } from "@/tokens";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useAppForeground } from "@/hooks/use-app-foreground";
@@ -74,22 +75,24 @@ export default function CategoryBreakdownScreen() {
   const [selected, setSelected] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>("All");
 
-  // Vehicle logbook
+  // Vehicle logbook — total km is a per-tax-year figure (the annual odometer
+  // reading), so it's namespaced by activeTaxYear to avoid last year's number
+  // leaking into this year's ratio.
   const [businessKm, setBusinessKm] = useState(0);
   const [totalKmStr, setTotalKmStr] = useState('');
+  const totalKmKey = `@mx_total_km:${activeTaxYear}`;
 
-  // Home office
-  const [officeSqmStr, setOfficeSqmStr] = useState('');
-  const [propertySqmStr, setPropertySqmStr] = useState('');
+  // Home office — the real, single source of truth (also used by
+  // add-expense-manual.tsx and home-office-setup.tsx). This panel used to
+  // keep its own separate AsyncStorage figures, which meant it showed a
+  // different ratio than the rest of the app and never affected real totals.
+  const { setting: homeOfficeSetting, load: loadHomeOffice } = useHomeOfficeStore();
+  useEffect(() => { if (user) loadHomeOffice(user.id); }, [user]);
 
-  // Load persisted values from AsyncStorage on mount
+  // Load persisted total km on mount / tax year change
   useEffect(() => {
-    AsyncStorage.multiGet(['@mx_total_km', '@mx_office_sqm', '@mx_property_sqm']).then(pairs => {
-      setTotalKmStr(pairs[0][1] ?? '');
-      setOfficeSqmStr(pairs[1][1] ?? '');
-      setPropertySqmStr(pairs[2][1] ?? '');
-    });
-  }, []);
+    AsyncStorage.getItem(totalKmKey).then((v) => setTotalKmStr(v ?? ''));
+  }, [totalKmKey]);
 
   // Fetch GPS business km when Vehicle Expenses is selected
   useEffect(() => {
@@ -102,6 +105,18 @@ export default function CategoryBreakdownScreen() {
       } catch { /* non-fatal */ }
     })();
   }, [selected, user, activeTaxYear]);
+
+  // Persist the computed business-use % so add-expense-manual.tsx can
+  // suggest it as a default when logging new Vehicle Expenses — this is
+  // what actually wires the calculator into real deduction totals, since
+  // the ratio is applied at entry time (same pattern as Telephone/Insurance/
+  // Home Office) rather than retroactively rewriting saved expense amounts.
+  useEffect(() => {
+    const totalKm = parseFloat(totalKmStr);
+    if (!totalKmStr || isNaN(totalKm) || totalKm <= 0 || businessKm <= 0) return;
+    const pct = Math.round(Math.min(businessKm / totalKm, 1) * 100);
+    AsyncStorage.setItem(`@mx_vehicle_business_pct:${activeTaxYear}`, String(pct));
+  }, [businessKm, totalKmStr, activeTaxYear]);
 
   const loadData = useCallback(async () => {
     if (!user) { setLoading(false); return; }
@@ -385,7 +400,7 @@ export default function CategoryBreakdownScreen() {
                     <TextInput
                       value={totalKmStr}
                       onChangeText={setTotalKmStr}
-                      onBlur={() => AsyncStorage.setItem('@mx_total_km', totalKmStr)}
+                      onBlur={() => AsyncStorage.setItem(totalKmKey, totalKmStr)}
                       keyboardType="numeric"
                       placeholder="e.g. 15000"
                       placeholderTextColor={C.textHint}
@@ -400,7 +415,10 @@ export default function CategoryBreakdownScreen() {
                   return (
                     <View style={{ backgroundColor: C.successBg, borderRadius: radius.sm, padding: space.sm }}>
                       <Text style={{ ...typography.micro, color: C.success }}>
-                        Business use: {(ratio * 100).toFixed(1)}% → Deductible: {fmt(selectedCat.amount * ratio)}
+                        Business use: {(ratio * 100).toFixed(1)}% → this year&apos;s total so far: {fmt(selectedCat.amount * ratio)}
+                      </Text>
+                      <Text style={{ ...typography.micro, color: C.textSecondary, marginTop: 4 }}>
+                        This % will be suggested automatically next time you log a Vehicle Expense — it only applies to expenses logged from now on, not ones already saved.
                       </Text>
                     </View>
                   );
@@ -412,50 +430,30 @@ export default function CategoryBreakdownScreen() {
             {selected === 'Home Office' && selectedCat && (
               <View style={{ marginHorizontal: space.md, backgroundColor: C.white, borderRadius: radius.md, padding: space.md, marginBottom: space.md, borderWidth: 1, borderColor: C.border }}>
                 <Text style={{ ...typography.labelM, color: C.textPrimary, marginBottom: space.xs }}>
-                  Home office deduction calculator
+                  Home office deduction
                 </Text>
                 <Text style={{ ...typography.micro, color: C.textSecondary, marginBottom: space.sm }}>
                   SARS S11(a): (office m² ÷ total property m²) × home costs
                 </Text>
-                <View style={{ flexDirection: 'row', gap: space.md, marginBottom: space.sm }}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ ...typography.micro, color: C.textHint, marginBottom: 4 }}>Office area (m²)</Text>
-                    <TextInput
-                      value={officeSqmStr}
-                      onChangeText={setOfficeSqmStr}
-                      onBlur={() => AsyncStorage.setItem('@mx_office_sqm', officeSqmStr)}
-                      keyboardType="numeric"
-                      placeholder="e.g. 15"
-                      placeholderTextColor={C.textHint}
-                      style={{ borderWidth: 1, borderColor: C.border, borderRadius: radius.sm, paddingHorizontal: space.sm, paddingVertical: 6, fontSize: 14, color: C.textPrimary }}
-                    />
+                {homeOfficeSetting && homeOfficeSetting.totalM2 > 0 ? (
+                  <View style={{ backgroundColor: C.successBg, borderRadius: radius.sm, padding: space.sm }}>
+                    <Text style={{ ...typography.micro, color: C.success }}>
+                      Home office: {(floorRatio(homeOfficeSetting) * 100).toFixed(1)}% ({homeOfficeSetting.officeM2}m² ÷ {homeOfficeSetting.totalM2}m²) → this year&apos;s total so far: {fmt(selectedCat.amount * floorRatio(homeOfficeSetting))}
+                    </Text>
+                    <TouchableOpacity onPress={() => router.push('/home-office-setup' as any)} style={{ marginTop: space.xs }}>
+                      <Text style={{ ...typography.micro, color: C.primary, fontWeight: '600' }}>Edit room sizes</Text>
+                    </TouchableOpacity>
                   </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ ...typography.micro, color: C.textHint, marginBottom: 4 }}>Total property (m²)</Text>
-                    <TextInput
-                      value={propertySqmStr}
-                      onChangeText={setPropertySqmStr}
-                      onBlur={() => AsyncStorage.setItem('@mx_property_sqm', propertySqmStr)}
-                      keyboardType="numeric"
-                      placeholder="e.g. 120"
-                      placeholderTextColor={C.textHint}
-                      style={{ borderWidth: 1, borderColor: C.border, borderRadius: radius.sm, paddingHorizontal: space.sm, paddingVertical: 6, fontSize: 14, color: C.textPrimary }}
-                    />
+                ) : (
+                  <View style={{ backgroundColor: C.warningLight, borderRadius: radius.sm, padding: space.sm }}>
+                    <Text style={{ ...typography.micro, color: C.textSecondary, marginBottom: space.xs }}>
+                      Home office size not set up yet.
+                    </Text>
+                    <TouchableOpacity onPress={() => router.push('/home-office-setup' as any)}>
+                      <Text style={{ ...typography.micro, color: C.primary, fontWeight: '600' }}>Set up home office →</Text>
+                    </TouchableOpacity>
                   </View>
-                </View>
-                {(() => {
-                  const officeSqm = parseFloat(officeSqmStr);
-                  const propertySqm = parseFloat(propertySqmStr);
-                  if (!officeSqmStr || !propertySqmStr || isNaN(officeSqm) || isNaN(propertySqm) || propertySqm <= 0 || officeSqm <= 0) return null;
-                  const ratio = Math.min(officeSqm / propertySqm, 1);
-                  return (
-                    <View style={{ backgroundColor: C.successBg, borderRadius: radius.sm, padding: space.sm }}>
-                      <Text style={{ ...typography.micro, color: C.success }}>
-                        Home office: {(ratio * 100).toFixed(1)}% → Deductible: {fmt(selectedCat.amount * ratio)}
-                      </Text>
-                    </View>
-                  );
-                })()}
+                )}
               </View>
             )}
 
