@@ -14,7 +14,7 @@ const config = {
   ios: {
     supportsTablet: true,
     bundleIdentifier: "co.za.myexpense",
-    buildNumber: "56",
+    buildNumber: "57",
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false,
       NSCameraUsageDescription:
