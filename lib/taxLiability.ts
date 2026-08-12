@@ -5,7 +5,13 @@
 // free of Supabase/React so it stays independently testable
 // (see __tests__/lib/taxLiability.test.ts).
 
-import { medicalTaxCreditForYear, raDeductionCap, taxDataForYear, TaxBracket } from "@/lib/taxRules";
+import {
+  medicalTaxCreditForYear,
+  raDeductionCap,
+  retirementSeveranceLumpSumTax,
+  taxDataForYear,
+  TaxBracket,
+} from "@/lib/taxRules";
 
 export interface TaxLiabilityInput {
   taxYear: string;
@@ -27,8 +33,25 @@ export interface TaxLiabilityInput {
    * add a new field/migration.
    */
   donationsYtd: number;
-  /** PAYE withheld or provisional tax paid to date for this tax year. */
+  /** PAYE withheld or provisional tax paid to date for this tax year — include
+   * any tax already withheld on the lump sum below (e.g. via a SARS tax
+   * directive), since taxAlreadyPaid is one combined "total tax paid" figure. */
   taxAlreadyPaid: number;
+  /**
+   * A retirement, death, or severance/retrenchment lump sum received this
+   * tax year (e.g. IRP5 source code 3901/3907/etc, or a tax directive).
+   * Taxed on its OWN separate SARS table (retirementSeveranceLumpSumTax) —
+   * never added to otherTaxableIncome, which would tax it at normal
+   * marginal rates and significantly overstate the liability.
+   */
+  retirementSeveranceLumpSum: number;
+  /**
+   * Rand total of qualifying retirement/severance lump sums already
+   * received in PRIOR tax years (since 1 Oct 2007), needed because the
+   * R550,000 tax-free amount is a lifetime total, not per payout. 0 if this
+   * is the person's first such lump sum.
+   */
+  priorRetirementSeveranceLumpSums: number;
 }
 
 export interface TaxLiabilityResult {
@@ -49,6 +72,9 @@ export interface TaxLiabilityResult {
   medicalCreditApplied: number;
   taxAfterCredits: number;
   taxAlreadyPaid: number;
+  retirementSeveranceLumpSum: number;
+  /** Tax on retirementSeveranceLumpSum only, from its own separate table — not part of grossTax/taxAfterCredits above. */
+  lumpSumTax: number;
   /** Positive = amount owing to SARS. Negative = refund due. Not floored at 0. */
   finalLiability: number;
 }
@@ -120,7 +146,12 @@ export function calculateTaxLiability(input: TaxLiabilityInput): TaxLiabilityRes
   const medicalCreditApplied = medicalTaxCreditForYear(input.medicalAidDependants, input.taxYear);
   const taxAfterCredits = Math.max(0, taxAfterRebates - medicalCreditApplied);
 
-  const finalLiability = taxAfterCredits - input.taxAlreadyPaid;
+  const lumpSumTax = retirementSeveranceLumpSumTax(
+    input.retirementSeveranceLumpSum,
+    input.priorRetirementSeveranceLumpSums,
+  );
+
+  const finalLiability = taxAfterCredits + lumpSumTax - input.taxAlreadyPaid;
 
   return {
     taxYear: input.taxYear,
@@ -138,6 +169,8 @@ export function calculateTaxLiability(input: TaxLiabilityInput): TaxLiabilityRes
     medicalCreditApplied,
     taxAfterCredits,
     taxAlreadyPaid: input.taxAlreadyPaid,
+    retirementSeveranceLumpSum: Math.max(0, input.retirementSeveranceLumpSum),
+    lumpSumTax,
     finalLiability,
   };
 }

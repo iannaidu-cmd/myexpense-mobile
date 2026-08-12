@@ -13,8 +13,9 @@ const config = {
   newArchEnabled: true,
   ios: {
     supportsTablet: true,
+    requiresFullScreen: true,
     bundleIdentifier: "co.za.myexpense",
-    buildNumber: "57",
+    buildNumber: "59",
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false,
       NSCameraUsageDescription:

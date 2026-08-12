@@ -1,5 +1,6 @@
 import { SA_MARGINAL_TAX_RATE } from "@/constants/tax";
 import { CATEGORY_PARTIAL_CAPS, CATEGORIES } from "@/constants/categories";
+import { retirementSeveranceLumpSumTax } from "@/lib/taxRules";
 
 // ─── SA_MARGINAL_TAX_RATE ─────────────────────────────────────────────────────
 
@@ -49,5 +50,50 @@ describe("CATEGORY_PARTIAL_CAPS", () => {
     const amount = 1_000;
     const cap = CATEGORY_PARTIAL_CAPS["Professional Fees"] ?? 1;
     expect(amount * cap).toBe(1_000);
+  });
+});
+
+// ─── retirementSeveranceLumpSumTax ────────────────────────────────────────────
+
+describe("retirementSeveranceLumpSumTax", () => {
+  it("is zero for a lump sum under the R550,000 tax-free amount", () => {
+    expect(retirementSeveranceLumpSumTax(400_000)).toBe(0);
+  });
+
+  it("is zero for a lump sum of exactly R550,000", () => {
+    expect(retirementSeveranceLumpSumTax(550_000)).toBe(0);
+  });
+
+  it("charges 18% on the amount between R550,000 and R770,000", () => {
+    // Ian's case: R707,919.65 severance pay, first lump sum ever.
+    // (707,919.65 - 550,000) * 0.18 = 28,425.537 -> rounds to 28,426
+    expect(retirementSeveranceLumpSumTax(707_919.65)).toBe(28_426);
+  });
+
+  it("matches SARS's published worked example (R900,000 lump sum)", () => {
+    // R550,000 @ 0% + R220,000 @ 18% (R39,600) + R130,000 @ 27% (R35,100) = R74,700
+    expect(retirementSeveranceLumpSumTax(900_000)).toBe(74_700);
+  });
+
+  it("charges the correct amount at the top marginal bracket", () => {
+    // R1,155,000 flat = R143,550 exactly, per the published table
+    expect(retirementSeveranceLumpSumTax(1_155_000)).toBe(143_550);
+  });
+
+  it("is zero for a zero or negative lump sum", () => {
+    expect(retirementSeveranceLumpSumTax(0)).toBe(0);
+    expect(retirementSeveranceLumpSumTax(-100)).toBe(0);
+  });
+
+  it("respects the lifetime R550,000 aggregation across prior lump sums", () => {
+    // Already used the full tax-free amount with an earlier R550,000 lump sum;
+    // this year's R100,000 lump sum should be taxed from the first rand at 18%.
+    expect(retirementSeveranceLumpSumTax(100_000, 550_000)).toBe(18_000);
+  });
+
+  it("splits the tax-free amount correctly when prior lump sums used only part of it", () => {
+    // R400,000 already used; R150,000 of the R550,000 tax-free amount remains.
+    // This year's R300,000 lump sum: R150,000 @ 0% + R150,000 @ 18% = R27,000
+    expect(retirementSeveranceLumpSumTax(300_000, 400_000)).toBe(27_000);
   });
 });

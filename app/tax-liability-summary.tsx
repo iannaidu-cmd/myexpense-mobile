@@ -81,6 +81,8 @@ export default function TaxLiabilitySummaryScreen() {
         medicalAidDependants: profile?.medical_aid_dependants ?? 0,
         donationsYtd: existing.donations_ytd ?? 0,
         taxAlreadyPaid: existing.tax_already_paid,
+        retirementSeveranceLumpSum: existing.retirement_severance_lump_sum,
+        priorRetirementSeveranceLumpSums: existing.prior_retirement_severance_lump_sums,
       };
 
       // Keep the persisted row fresh (same "recalculate on every view" habit
@@ -92,6 +94,8 @@ export default function TaxLiabilitySummaryScreen() {
         retirement_annuity_contributions: existing.retirement_annuity_contributions,
         tax_already_paid: existing.tax_already_paid,
         donations_ytd: existing.donations_ytd,
+        retirement_severance_lump_sum: existing.retirement_severance_lump_sum,
+        prior_retirement_severance_lump_sums: existing.prior_retirement_severance_lump_sums,
         businessTaxableIncome: income,
         dateOfBirth: profile?.date_of_birth ?? null,
         medicalAidDependants: profile?.medical_aid_dependants ?? 0,
@@ -170,7 +174,7 @@ export default function TaxLiabilitySummaryScreen() {
           <InfoBanner
             icon="exclamationmark.triangle.fill"
             title="This is only a guess"
-            body="This does not cover rare cases, like selling a house or a big retirement payout. This number will change as you add more information during the year."
+            body="This does not cover rare cases, like selling a house. This number will change as you add more information during the year."
             style={{ marginBottom: space.md }}
           />
 
@@ -212,7 +216,25 @@ export default function TaxLiabilitySummaryScreen() {
             />
             <Row label="Less: Medical aid discount" value={`− ${fmt(result.medicalCreditApplied)}`} />
             <View style={{ height: 1, backgroundColor: colour.borderLight, marginVertical: 8 }} />
-            <Row label="Tax you owe before payments" value={fmt(result.taxAfterCredits)} bold />
+            <Row label="Tax on your normal income" value={fmt(result.taxAfterCredits)} bold />
+
+            {result.retirementSeveranceLumpSum > 0 && (
+              <>
+                <View style={{ height: space.sm }} />
+                <Row label="Retirement / severance lump sum" value={fmt(result.retirementSeveranceLumpSum)} />
+                <Text style={{ fontSize: 11, color: colour.textHint, marginBottom: 8, lineHeight: 16 }}>
+                  Taxed separately from your normal income, with the first R550,000 (lifetime) tax-free.
+                </Text>
+                <Row label="Tax on the lump sum" value={fmt(result.lumpSumTax)} />
+              </>
+            )}
+
+            <View style={{ height: 1, backgroundColor: colour.borderLight, marginVertical: 8 }} />
+            <Row
+              label="Tax you owe before payments"
+              value={fmt(result.taxAfterCredits + result.lumpSumTax)}
+              bold
+            />
             <Text style={{ fontSize: 11, color: colour.textHint, marginBottom: 8, lineHeight: 16 }}>
               This is what you owe based on your income alone. If you already paid SARS more than this, you get the difference back as a refund.
             </Text>
