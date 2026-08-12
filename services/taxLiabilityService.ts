@@ -37,6 +37,8 @@ export const taxLiabilityService = {
       medicalAidDependants: inputs.medicalAidDependants,
       donationsYtd: inputs.donations_ytd ?? 0,
       taxAlreadyPaid: inputs.tax_already_paid,
+      retirementSeveranceLumpSum: inputs.retirement_severance_lump_sum,
+      priorRetirementSeveranceLumpSums: inputs.prior_retirement_severance_lump_sums,
     });
 
     const row = {
@@ -46,10 +48,13 @@ export const taxLiabilityService = {
       retirement_annuity_contributions: inputs.retirement_annuity_contributions,
       tax_already_paid: inputs.tax_already_paid,
       donations_ytd: inputs.donations_ytd ?? null,
+      retirement_severance_lump_sum: inputs.retirement_severance_lump_sum,
+      prior_retirement_severance_lump_sums: inputs.prior_retirement_severance_lump_sums,
       taxable_income: result.taxableIncome,
       gross_tax: result.grossTax,
       rebates_applied: result.rebatesApplied,
       medical_credit_applied: result.medicalCreditApplied,
+      lump_sum_tax: result.lumpSumTax,
       final_liability: result.finalLiability,
       last_calculated_at: new Date().toISOString(),
     };

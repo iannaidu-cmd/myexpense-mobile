@@ -11,6 +11,8 @@ function baseInput(overrides: Partial<TaxLiabilityInput> = {}): TaxLiabilityInpu
     medicalAidDependants: 0,
     donationsYtd: 0,
     taxAlreadyPaid: 0,
+    retirementSeveranceLumpSum: 0,
+    priorRetirementSeveranceLumpSums: 0,
     ...overrides,
   };
 }
@@ -167,5 +169,76 @@ describe("calculateTaxLiability", () => {
     const withoutDonations = calculateTaxLiability(baseInput({ businessTaxableIncome: 500000 }));
     expect(withDonations.donationsDeductible).toBe(0);
     expect(withDonations.taxableIncome).toBe(withoutDonations.taxableIncome);
+  });
+});
+
+// ─── calculateTaxLiability — retirement/severance lump sums ──────────────────
+// Regression coverage for the bug where a severance/retirement lump sum
+// entered as "other income" was taxed at normal marginal rates instead of
+// SARS's separate, more favourable lump-sum table.
+
+describe("calculateTaxLiability — retirement/severance lump sums", () => {
+  it("does NOT include the lump sum in taxableIncome or grossTax (normal brackets)", () => {
+    const withLumpSum = calculateTaxLiability(
+      baseInput({ businessTaxableIncome: 300000, retirementSeveranceLumpSum: 707919.65 }),
+    );
+    const withoutLumpSum = calculateTaxLiability(baseInput({ businessTaxableIncome: 300000 }));
+    expect(withLumpSum.taxableIncome).toBe(withoutLumpSum.taxableIncome);
+    expect(withLumpSum.grossTax).toBe(withoutLumpSum.grossTax);
+  });
+
+  it("adds lumpSumTax on top of normal tax when computing finalLiability", () => {
+    const result = calculateTaxLiability(
+      baseInput({
+        businessTaxableIncome: 300000,
+        retirementSeveranceLumpSum: 707919.65,
+        taxAlreadyPaid: 0,
+      }),
+    );
+    expect(result.lumpSumTax).toBeGreaterThan(0);
+    expect(result.finalLiability).toBe(result.taxAfterCredits + result.lumpSumTax);
+  });
+
+  it("Ian's case: R707,919.65 severance is taxed far more favourably than folding it into normal income would suggest", () => {
+    // Normal income for the year (salary/bonus/leave, excluding severance): R291,482.27
+    // Severance: R707,919.65, taxed separately, first lump sum ever
+    // Tax already paid (PAYE R94,073.26 + directive tax on the lump sum R30,654.09): R124,727.35
+    const result = calculateTaxLiability(
+      baseInput({
+        businessTaxableIncome: 0,
+        otherTaxableIncome: 291482.27,
+        retirementSeveranceLumpSum: 707919.65,
+        priorRetirementSeveranceLumpSums: 0,
+        taxAlreadyPaid: 124727.35,
+      }),
+    );
+    // Lump sum tax should match the R550,000 tax-free / 18% table, ~R28,426 —
+    // nowhere near what marginal-rate treatment on ~R1M combined income would produce.
+    expect(result.lumpSumTax).toBe(28426);
+    // Combining normal tax + lump sum tax should be well under what was
+    // already withheld, i.e. this should point toward a refund, not a bill.
+    expect(result.finalLiability).toBeLessThan(0);
+  });
+
+  it("a second lump sum in a later year respects how much of the R550,000 was already used", () => {
+    const firstLumpSumUsesWholeAllowance = calculateTaxLiability(
+      baseInput({ businessTaxableIncome: 0, retirementSeveranceLumpSum: 550000 }),
+    );
+    expect(firstLumpSumUsesWholeAllowance.lumpSumTax).toBe(0);
+
+    const secondLumpSumNextYear = calculateTaxLiability(
+      baseInput({
+        businessTaxableIncome: 0,
+        retirementSeveranceLumpSum: 100000,
+        priorRetirementSeveranceLumpSums: 550000,
+      }),
+    );
+    expect(secondLumpSumNextYear.lumpSumTax).toBe(18000); // taxed from the first rand at 18%
+  });
+
+  it("defaults to zero lump sum tax when no lump sum is entered", () => {
+    const result = calculateTaxLiability(baseInput({ businessTaxableIncome: 300000 }));
+    expect(result.lumpSumTax).toBe(0);
+    expect(result.retirementSeveranceLumpSum).toBe(0);
   });
 });

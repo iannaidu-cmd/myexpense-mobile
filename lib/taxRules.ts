@@ -140,6 +140,53 @@ export function raDeductionCap(incomeForCapPurposes: number, taxYear: string): n
   return Math.min(Math.round(incomeForCapPurposes * 0.275), raDeductionAnnualCap);
 }
 
+// Retirement fund lump sum benefit / severance benefit table (Second
+// Schedule to the Income Tax Act). Applies to lump sums taken AT retirement,
+// on death, or as a severance/retrenchment benefit — e.g. source code 3901
+// on an IRP5/tax directive. Does NOT apply to a pre-retirement withdrawal
+// (resigning and cashing out a fund), which uses a separate, much less
+// generous table starting at R27,500 tax-free — this app does not model
+// withdrawal benefits, only retirement/severance ones.
+// Confirmed unchanged from 2024/25 through 2027/28 — see SARS Budget 2026
+// FAQ (sars.gov.za) and sars.gov.za/tax-rates/income-tax/retirement-lump-sum-benefits.
+// Re-verify after each Budget Speech, same as TAX_DATA_BY_YEAR above.
+export const RETIREMENT_SEVERANCE_LUMP_SUM_TABLE: TaxBracket[] = [
+  { limit: 550000, rate: 0, base: 0 },
+  { limit: 770000, rate: 0.18, base: 0 },
+  { limit: 1155000, rate: 0.27, base: 39600 },
+  { limit: Infinity, rate: 0.36, base: 143550 },
+];
+
+function lumpSumBracketTax(amount: number): number {
+  const clamped = Math.max(0, amount);
+  for (let i = 0; i < RETIREMENT_SEVERANCE_LUMP_SUM_TABLE.length; i++) {
+    const bracket = RETIREMENT_SEVERANCE_LUMP_SUM_TABLE[i];
+    if (clamped <= bracket.limit) {
+      const lowerLimit = i === 0 ? 0 : RETIREMENT_SEVERANCE_LUMP_SUM_TABLE[i - 1].limit;
+      return bracket.base + (clamped - lowerLimit) * bracket.rate;
+    }
+  }
+  return 0; // unreachable — top bracket's limit is Infinity
+}
+
+// Tax on a retirement/severance lump sum, taxed entirely separately from
+// normal income (it must NOT be added to salary/other income and run
+// through the normal brackets — that was the bug this function replaces).
+// SARS applies the table to the *cumulative* total of all qualifying lump
+// sums received since 1 October 2007, then subtracts what the table would
+// have charged on lump sums already received, so the R550,000 tax-free
+// amount is a lifetime total, not a per-payout allowance.
+// `priorLumpSums` = Rand total of qualifying lump sums already received in
+// earlier years; pass 0 if this is the person's first one.
+export function retirementSeveranceLumpSumTax(thisLumpSum: number, priorLumpSums: number = 0): number {
+  const lumpSum = Math.max(0, thisLumpSum);
+  if (lumpSum === 0) return 0;
+  const prior = Math.max(0, priorLumpSums);
+  const taxOnCumulative = lumpSumBracketTax(prior + lumpSum);
+  const taxOnPrior = lumpSumBracketTax(prior);
+  return Math.max(0, Math.round(taxOnCumulative - taxOnPrior));
+}
+
 // SARS deemed mileage rate per km, by tax year. A fixed regulated figure SARS
 // gazettes each year — not derivable from a formula like TAX_YEAR. Add the
 // new year by hand once SARS publishes it, the same way TAX_BRACKETS above

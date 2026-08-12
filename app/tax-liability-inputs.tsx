@@ -71,6 +71,8 @@ export default function TaxLiabilityInputsScreen() {
   const [raPrefilled, setRaPrefilled] = useState(false);
   const [taxAlreadyPaid, setTaxAlreadyPaid] = useState("");
   const [paidPrefilled, setPaidPrefilled] = useState(false);
+  const [lumpSum, setLumpSum] = useState("");
+  const [priorLumpSums, setPriorLumpSums] = useState("");
 
   const { load: loadIRP5 } = useIRP5Store();
 
@@ -104,6 +106,10 @@ export default function TaxLiabilityInputsScreen() {
           existing.retirement_annuity_contributions ? String(existing.retirement_annuity_contributions) : "",
         );
         setTaxAlreadyPaid(existing.tax_already_paid ? String(existing.tax_already_paid) : "");
+        setLumpSum(existing.retirement_severance_lump_sum ? String(existing.retirement_severance_lump_sum) : "");
+        setPriorLumpSums(
+          existing.prior_retirement_severance_lump_sums ? String(existing.prior_retirement_severance_lump_sums) : "",
+        );
         setRaPrefilled(false);
         setPaidPrefilled(false);
       } else {
@@ -130,6 +136,8 @@ export default function TaxLiabilityInputsScreen() {
     const medMonthlyNorm = medicalAidMonthly.trim() || "0";
     const raNorm = raContributions.trim() || "0";
     const paidNorm = taxAlreadyPaid.trim() || "0";
+    const lumpSumNorm = lumpSum.trim() || "0";
+    const priorLumpSumsNorm = priorLumpSums.trim() || "0";
 
     const error = firstError(
       validateDateOfBirth(dobIso),
@@ -137,6 +145,8 @@ export default function TaxLiabilityInputsScreen() {
       validateNonNegativeAmount(medMonthlyNorm, "Medical aid monthly contribution"),
       validateNonNegativeAmount(raNorm, "Retirement annuity contributions"),
       validateNonNegativeAmount(paidNorm, "Tax already paid"),
+      validateNonNegativeAmount(lumpSumNorm, "Retirement or severance lump sum"),
+      validateNonNegativeAmount(priorLumpSumsNorm, "Earlier retirement or severance lump sums"),
     );
     if (error) {
       Alert.alert("Check your entries", error);
@@ -162,6 +172,8 @@ export default function TaxLiabilityInputsScreen() {
         retirement_annuity_contributions: parseFloat(raNorm),
         tax_already_paid: parseFloat(paidNorm),
         donations_ytd: null,
+        retirement_severance_lump_sum: parseFloat(lumpSumNorm),
+        prior_retirement_severance_lump_sums: parseFloat(priorLumpSumsNorm),
         businessTaxableIncome,
         dateOfBirth: dobIso,
         medicalAidDependants,
@@ -195,7 +207,7 @@ export default function TaxLiabilityInputsScreen() {
             <InfoBanner
               icon="exclamationmark.triangle.fill"
               title="This is only a guess"
-              body={`This shows what you may owe SARS, or what SARS may pay back to you, for ${activeTaxYear}. It does not cover rare cases, like selling a house or a big retirement payout. The number will change as you add more information.`}
+              body={`This shows what you may owe SARS, or what SARS may pay back to you, for ${activeTaxYear}. It does not cover rare cases, like selling a house. The number will change as you add more information.`}
               style={{ marginBottom: space.lg }}
             />
 
@@ -274,6 +286,25 @@ export default function TaxLiabilityInputsScreen() {
                     ? "We filled this in using your Retirement Annuity expenses. You can change it if it's wrong."
                     : "How much money you paid into your retirement annuity this year."
                 }
+              />
+            </SectionCard>
+
+            <SectionCard title="Retirement or severance lump sum">
+              <MXInput
+                label="Lump sum received this year"
+                value={lumpSum}
+                onChangeText={setLumpSum}
+                placeholder="0"
+                keyboardType="decimal-pad"
+                hint="A once-off payout from retirement, retrenchment (severance), or a death benefit — for example the 'Severance Pay' line on a payslip or a tax directive. SARS taxes this on its own separate table, with the first R550,000 tax-free, so keep it out of Other income above."
+              />
+              <MXInput
+                label="Earlier lump sums (if any)"
+                value={priorLumpSums}
+                onChangeText={setPriorLumpSums}
+                placeholder="0"
+                keyboardType="decimal-pad"
+                hint="Total of any retirement, retrenchment, or death benefit lump sums you received in previous years. The R550,000 tax-free amount is a lifetime total, not per payout, so this affects how much of it is left for this year's lump sum. Leave as 0 if this is your first."
               />
             </SectionCard>
 

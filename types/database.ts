@@ -91,10 +91,13 @@ export interface TaxLiabilityEstimate {
   retirement_annuity_contributions: number;
   tax_already_paid: number;
   donations_ytd: number | null;
+  retirement_severance_lump_sum: number;
+  prior_retirement_severance_lump_sums: number;
   taxable_income: number;
   gross_tax: number;
   rebates_applied: number;
   medical_credit_applied: number;
+  lump_sum_tax: number;
   final_liability: number; // positive = owing, negative = refund
   last_calculated_at: string;
   created_at: string;
@@ -107,6 +110,8 @@ export interface NewTaxLiabilityEstimate {
   retirement_annuity_contributions: number;
   tax_already_paid: number;
   donations_ytd?: number | null;
+  retirement_severance_lump_sum: number;
+  prior_retirement_severance_lump_sums: number;
 }
 
 // ─── Form / input types ───────────────────────────────────────────────────────
