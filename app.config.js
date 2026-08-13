@@ -15,15 +15,13 @@ const config = {
     supportsTablet: true,
     requiresFullScreen: true,
     bundleIdentifier: "co.za.myexpense",
-    buildNumber: "60",
+    buildNumber: "61",
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false,
       NSCameraUsageDescription:
         "MyExpense uses the camera to scan receipts for expense records.",
       NSPhotoLibraryUsageDescription:
         "MyExpense accesses your photo library to import receipt images.",
-      NSPhotoLibraryAddUsageDescription:
-        "MyExpense saves exported tax reports to your photo library.",
       NSFaceIDUsageDescription:
         "MyExpense uses Face ID to secure access to your financial data.",
       NSLocationWhenInUseUsageDescription:
@@ -34,7 +32,7 @@ const config = {
   },
   android: {
     package: "co.za.myexpense.myapp",
-    versionCode: 21,
+    versionCode: 22,
     config: {
       googleMaps: {
         apiKey: process.env.GOOGLE_MAPS_API_KEY,

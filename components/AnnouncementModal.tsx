@@ -4,7 +4,6 @@ import React, { useEffect, useRef } from "react";
 import {
   Animated,
   Modal,
-  ScrollView,
   Text,
   TouchableOpacity,
   TouchableWithoutFeedback,
@@ -79,7 +78,7 @@ export function AnnouncementModal({
                 transform: [{ translateY: sheetTranslateY }],
               }}
             >
-              <ScrollView showsVerticalScrollIndicator={false}>
+              <View>
                 {/* Grabber */}
                 <View
                   style={{
@@ -192,7 +191,7 @@ export function AnnouncementModal({
                     </Text>
                   </TouchableOpacity>
                 ) : null}
-              </ScrollView>
+              </View>
             </Animated.View>
           </TouchableWithoutFeedback>
         </Animated.View>
