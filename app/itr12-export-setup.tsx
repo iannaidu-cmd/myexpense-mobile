@@ -217,7 +217,7 @@ export default function ITR12ExportSetupScreen() {
 
   if (exportLimitReached) {
     return (
-      <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colour.background }}>
+      <SafeAreaView edges={["top", "bottom"]} style={{ flex: 1, backgroundColor: colour.background }}>
         <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
         <MXHeader title="Export setup" showBack />
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 32 }}>
@@ -243,7 +243,7 @@ export default function ITR12ExportSetupScreen() {
 
   return (
     <SafeAreaView
-      edges={["top"]}
+      edges={["top", "bottom"]}
       style={{ flex: 1, backgroundColor: colour.background }}
     >
       <StatusBar barStyle="dark-content" backgroundColor={colour.background} />

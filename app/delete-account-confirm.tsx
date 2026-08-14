@@ -39,7 +39,7 @@ export default function DeleteAccountConfirmScreen() {
   };
 
   return (
-    <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colour.white }}>
+    <SafeAreaView edges={["top", "bottom"]} style={{ flex: 1, backgroundColor: colour.white }}>
       <MXHeader title="Delete Account" showBack />
 
       <ScrollView

@@ -127,7 +127,7 @@ export default function EditExpenseScreen() {
   if (loadingExpense) {
     return (
       <SafeAreaView
-        edges={["top"]}
+        edges={["top", "bottom"]}
         style={{
           flex: 1,
           backgroundColor: colour.primary,
@@ -142,7 +142,7 @@ export default function EditExpenseScreen() {
 
   return (
     <SafeAreaView
-      edges={["top"]}
+      edges={["top", "bottom"]}
       style={{ flex: 1, backgroundColor: colour.background }}
     >
       <StatusBar barStyle="dark-content" backgroundColor={colour.background} />

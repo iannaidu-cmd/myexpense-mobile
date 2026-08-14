@@ -251,7 +251,7 @@ export default function ProvisionalTaxScreen() {
   const nextIdx = deadlines.findIndex((d) => new Date(d.isoDate) >= today);
 
   return (
-    <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colour.background }}>
+    <SafeAreaView edges={["top", "bottom"]} style={{ flex: 1, backgroundColor: colour.background }}>
       <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
       <MXHeader
         title="Provisional tax"

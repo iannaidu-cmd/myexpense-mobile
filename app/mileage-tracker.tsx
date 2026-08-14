@@ -501,7 +501,7 @@ export default function MileageTrackerScreen() {
 
   if (tripLimitReached) {
     return (
-      <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colour.background }}>
+      <SafeAreaView edges={["top", "bottom"]} style={{ flex: 1, backgroundColor: colour.background }}>
         <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
         <MXHeader title="Mileage Tracker" showBack />
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 32 }}>

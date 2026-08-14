@@ -156,7 +156,7 @@ export default function AddIRP5IncomeScreen() {
   const existingThisYear = entries.filter((e) => e.taxYear === taxYear);
 
   return (
-    <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colour.background }}>
+    <SafeAreaView edges={["top", "bottom"]} style={{ flex: 1, backgroundColor: colour.background }}>
       <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
       <MXHeader
         title="Add IRP5 income"

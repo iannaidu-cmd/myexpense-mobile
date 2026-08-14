@@ -205,7 +205,7 @@ export default function AddIncomeScreen() {
 
   if (loadingExisting) {
     return (
-      <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colour.background }}>
+      <SafeAreaView edges={["top", "bottom"]} style={{ flex: 1, backgroundColor: colour.background }}>
         <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
         <MXHeader title="Edit income" subtitle="Update your income entry" showBack />
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
@@ -217,7 +217,7 @@ export default function AddIncomeScreen() {
 
   return (
     <SafeAreaView
-      edges={["top"]}
+      edges={["top", "bottom"]}
       style={{ flex: 1, backgroundColor: colour.background }}
     >
       <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
