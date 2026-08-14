@@ -918,7 +918,7 @@ export default function TaxSummaryScreen() {
               >
                 <NavRow
                   icon="dollarsign.circle.fill"
-                  label="Tax Refund or Bill"
+                  label="Tax refund or bill"
                   sub="What you owe SARS or get back"
                   onPress={handleTaxLiabilityPress}
                 />

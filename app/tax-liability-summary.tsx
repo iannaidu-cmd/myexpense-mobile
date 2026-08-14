@@ -12,7 +12,7 @@ import { colour, radius, space } from "@/tokens";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
 import { ActivityIndicator, ScrollView, StatusBar, Text, TouchableOpacity, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 // ─── Tax Liability — Summary ──────────────────────────────────────────────────
 // Shows the calculation breakdown for the active tax year's estimate, ending
@@ -49,6 +49,7 @@ export default function TaxLiabilitySummaryScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
   const { activeTaxYear } = useExpenseStore();
+  const insets = useSafeAreaInsets();
 
   const [loading, setLoading] = useState(true);
   const [result, setResult] = useState<TaxLiabilityResult | null>(null);
@@ -120,7 +121,7 @@ export default function TaxLiabilitySummaryScreen() {
     <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colour.background }}>
       <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
       <MXHeader
-        title="Tax Refund or Bill"
+        title="Tax refund or bill"
         subtitle={`For ${activeTaxYear}`}
         showBack
         right={
@@ -137,7 +138,7 @@ export default function TaxLiabilitySummaryScreen() {
       ) : (
         <ScrollView
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ padding: space.lg, paddingBottom: space["5xl"] }}
+          contentContainerStyle={{ padding: space.lg, paddingBottom: insets.bottom + space["5xl"] }}
         >
           {/* Hero card */}
           <View
@@ -218,14 +219,35 @@ export default function TaxLiabilitySummaryScreen() {
             <View style={{ height: 1, backgroundColor: colour.borderLight, marginVertical: 8 }} />
             <Row label="Tax on your normal income" value={fmt(result.taxAfterCredits)} bold />
 
-            {result.retirementSeveranceLumpSum > 0 && (
+            {result.lumpSumEntries.length > 0 && (
               <>
                 <View style={{ height: space.sm }} />
-                <Row label="Retirement / severance lump sum" value={fmt(result.retirementSeveranceLumpSum)} />
-                <Text style={{ fontSize: 11, color: colour.textHint, marginBottom: 8, lineHeight: 16 }}>
-                  Taxed separately from your normal income, with the first R550,000 (lifetime) tax-free.
-                </Text>
-                <Row label="Tax on the lump sum" value={fmt(result.lumpSumTax)} />
+                {result.lumpSumEntries.length > 1 && (
+                  <Row label="Retirement / severance lump sums" value={fmt(result.retirementSeveranceLumpSum)} />
+                )}
+                {result.lumpSumEntries.map((entry, i) => (
+                  <React.Fragment key={i}>
+                    <Row
+                      label={result.lumpSumEntries.length > 1 ? `Lump sum ${i + 1}` : "Retirement / severance lump sum"}
+                      value={fmt(entry.grossAmount)}
+                    />
+                    <Text style={{ fontSize: 11, color: colour.textHint, marginBottom: 8, lineHeight: 16 }}>
+                      {entry.isActual
+                        ? "Taxed separately from your normal income, from your SARS tax directive."
+                        : "Taxed separately from your normal income, with the first R550,000 (lifetime) tax-free."}
+                    </Text>
+                    <Row
+                      label={result.lumpSumEntries.length > 1 ? `Tax on lump sum ${i + 1}` : "Tax on the lump sum"}
+                      value={fmt(entry.tax)}
+                    />
+                  </React.Fragment>
+                ))}
+                {result.lumpSumEntries.length > 1 && (
+                  <>
+                    <View style={{ height: 1, backgroundColor: colour.borderLight, marginVertical: 8 }} />
+                    <Row label="Total tax on the lump sums" value={fmt(result.lumpSumTax)} bold />
+                  </>
+                )}
               </>
             )}
 

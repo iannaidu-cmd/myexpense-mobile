@@ -13,7 +13,7 @@ import { useExpenseStore } from "@/stores/expenseStore";
 import { irp5TotalPAYE, useIRP5Store } from "@/stores/irp5Store";
 import { colour, radius, space, typography } from "@/tokens";
 import { useFocusEffect, useRouter } from "expo-router";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -21,11 +21,12 @@ import {
   Platform,
   ScrollView,
   StatusBar,
+  Switch,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 // ─── Tax Liability — Inputs ───────────────────────────────────────────────────
 // Collects everything lib/taxLiability.ts needs beyond logged income/expenses:
@@ -35,6 +36,15 @@ import { SafeAreaView } from "react-native-safe-area-context";
 // Supabase profile columns as My Profile's "Tax profile" section — editing
 // either place updates both.
 // ───────────────────────────────────────────────────────────────────────────
+
+interface LumpSumEntryState {
+  id: number;
+  amount: string;
+  useActualTax: boolean;
+  actualTax: string;
+}
+
+const emptyLumpSumEntry = (id: number): LumpSumEntryState => ({ id, amount: "", useActualTax: false, actualTax: "" });
 
 function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -59,6 +69,7 @@ export default function TaxLiabilityInputsScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
   const { activeTaxYear } = useExpenseStore();
+  const insets = useSafeAreaInsets();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -71,8 +82,19 @@ export default function TaxLiabilityInputsScreen() {
   const [raPrefilled, setRaPrefilled] = useState(false);
   const [taxAlreadyPaid, setTaxAlreadyPaid] = useState("");
   const [paidPrefilled, setPaidPrefilled] = useState(false);
-  const [lumpSum, setLumpSum] = useState("");
+  const [lumpSumEntries, setLumpSumEntries] = useState<LumpSumEntryState[]>([emptyLumpSumEntry(0)]);
+  const nextLumpSumId = useRef(1);
   const [priorLumpSums, setPriorLumpSums] = useState("");
+
+  const updateLumpSumEntry = useCallback((id: number, patch: Partial<LumpSumEntryState>) => {
+    setLumpSumEntries((entries) => entries.map((e) => (e.id === id ? { ...e, ...patch } : e)));
+  }, []);
+  const addLumpSumEntry = useCallback(() => {
+    setLumpSumEntries((entries) => [...entries, emptyLumpSumEntry(nextLumpSumId.current++)]);
+  }, []);
+  const removeLumpSumEntry = useCallback((id: number) => {
+    setLumpSumEntries((entries) => (entries.length <= 1 ? entries : entries.filter((e) => e.id !== id)));
+  }, []);
 
   const { load: loadIRP5 } = useIRP5Store();
 
@@ -106,7 +128,22 @@ export default function TaxLiabilityInputsScreen() {
           existing.retirement_annuity_contributions ? String(existing.retirement_annuity_contributions) : "",
         );
         setTaxAlreadyPaid(existing.tax_already_paid ? String(existing.tax_already_paid) : "");
-        setLumpSum(existing.retirement_severance_lump_sum ? String(existing.retirement_severance_lump_sum) : "");
+
+        const primaryEntry: LumpSumEntryState = {
+          id: 0,
+          amount: existing.retirement_severance_lump_sum ? String(existing.retirement_severance_lump_sum) : "",
+          useActualTax: existing.actual_lump_sum_tax != null,
+          actualTax: existing.actual_lump_sum_tax != null ? String(existing.actual_lump_sum_tax) : "",
+        };
+        const additionalEntries: LumpSumEntryState[] = (existing.additional_lump_sums ?? []).map((entry, i) => ({
+          id: i + 1,
+          amount: entry.grossAmount != null ? String(entry.grossAmount) : "",
+          useActualTax: entry.actualTax != null,
+          actualTax: entry.actualTax != null ? String(entry.actualTax) : "",
+        }));
+        nextLumpSumId.current = additionalEntries.length + 1;
+        setLumpSumEntries([primaryEntry, ...additionalEntries]);
+
         setPriorLumpSums(
           existing.prior_retirement_severance_lump_sums ? String(existing.prior_retirement_severance_lump_sums) : "",
         );
@@ -118,6 +155,8 @@ export default function TaxLiabilityInputsScreen() {
         setRaPrefilled(raFromExpenses > 0);
         setTaxAlreadyPaid(payeFromIRP5 > 0 ? String(payeFromIRP5) : "");
         setPaidPrefilled(payeFromIRP5 > 0);
+        nextLumpSumId.current = 1;
+        setLumpSumEntries([emptyLumpSumEntry(0)]);
       }
     } catch (e) {
       console.error("TaxLiabilityInputs load error:", e);
@@ -136,8 +175,27 @@ export default function TaxLiabilityInputsScreen() {
     const medMonthlyNorm = medicalAidMonthly.trim() || "0";
     const raNorm = raContributions.trim() || "0";
     const paidNorm = taxAlreadyPaid.trim() || "0";
-    const lumpSumNorm = lumpSum.trim() || "0";
     const priorLumpSumsNorm = priorLumpSums.trim() || "0";
+
+    const normalisedLumpSumEntries = lumpSumEntries.map((entry) => ({
+      ...entry,
+      amountNorm: entry.amount.trim() || "0",
+      actualTaxNorm: entry.actualTax.trim() || "0",
+    }));
+
+    const lumpSumErrors = normalisedLumpSumEntries.flatMap((entry, i) => {
+      const label = i === 0 ? "Lump sum received this year" : `Lump sum ${i + 1} amount`;
+      const errors = [validateNonNegativeAmount(entry.amountNorm, label)];
+      if (entry.useActualTax) {
+        errors.push(
+          validateNonNegativeAmount(
+            entry.actualTaxNorm,
+            i === 0 ? "Actual tax from the directive" : `Lump sum ${i + 1} actual tax`,
+          ),
+        );
+      }
+      return errors;
+    });
 
     const error = firstError(
       validateDateOfBirth(dobIso),
@@ -145,7 +203,7 @@ export default function TaxLiabilityInputsScreen() {
       validateNonNegativeAmount(medMonthlyNorm, "Medical aid monthly contribution"),
       validateNonNegativeAmount(raNorm, "Retirement annuity contributions"),
       validateNonNegativeAmount(paidNorm, "Tax already paid"),
-      validateNonNegativeAmount(lumpSumNorm, "Retirement or severance lump sum"),
+      ...lumpSumErrors,
       validateNonNegativeAmount(priorLumpSumsNorm, "Earlier retirement or severance lump sums"),
     );
     if (error) {
@@ -166,14 +224,23 @@ export default function TaxLiabilityInputsScreen() {
       ]);
       const businessTaxableIncome = Math.max(0, incomeTotals.totalIncome - expenseTotals.totalDeductions);
 
+      const [primaryLumpSum, ...additionalLumpSumEntries] = normalisedLumpSumEntries;
+
       await taxLiabilityService.recalculateEstimate(user.id, activeTaxYear, {
         tax_year: activeTaxYear,
         other_taxable_income: parseFloat(otherIncomeNorm),
         retirement_annuity_contributions: parseFloat(raNorm),
         tax_already_paid: parseFloat(paidNorm),
         donations_ytd: null,
-        retirement_severance_lump_sum: parseFloat(lumpSumNorm),
+        retirement_severance_lump_sum: parseFloat(primaryLumpSum.amountNorm),
         prior_retirement_severance_lump_sums: parseFloat(priorLumpSumsNorm),
+        actual_lump_sum_tax: primaryLumpSum.useActualTax ? parseFloat(primaryLumpSum.actualTaxNorm) : null,
+        additional_lump_sums: additionalLumpSumEntries
+          .filter((entry) => parseFloat(entry.amountNorm) > 0)
+          .map((entry) => ({
+            grossAmount: parseFloat(entry.amountNorm),
+            actualTax: entry.useActualTax ? parseFloat(entry.actualTaxNorm) : null,
+          })),
         businessTaxableIncome,
         dateOfBirth: dobIso,
         medicalAidDependants,
@@ -190,7 +257,7 @@ export default function TaxLiabilityInputsScreen() {
   return (
     <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colour.background }}>
       <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
-      <MXHeader title="Tax Refund or Bill" subtitle={`For ${activeTaxYear}`} showBack />
+      <MXHeader title="Tax refund or bill" subtitle={`For ${activeTaxYear}`} showBack />
 
       {loading ? (
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
@@ -200,7 +267,7 @@ export default function TaxLiabilityInputsScreen() {
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
           <ScrollView
             style={{ flex: 1 }}
-            contentContainerStyle={{ padding: space.lg, paddingBottom: space["5xl"] }}
+            contentContainerStyle={{ padding: space.lg, paddingBottom: insets.bottom + space["5xl"] }}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
@@ -290,21 +357,90 @@ export default function TaxLiabilityInputsScreen() {
             </SectionCard>
 
             <SectionCard title="Retirement or severance lump sum">
-              <MXInput
-                label="Lump sum received this year"
-                value={lumpSum}
-                onChangeText={setLumpSum}
-                placeholder="0"
-                keyboardType="decimal-pad"
-                hint="A once-off payout from retirement, retrenchment (severance), or a death benefit — for example the 'Severance Pay' line on a payslip or a tax directive. SARS taxes this on its own separate table, with the first R550,000 tax-free, so keep it out of Other income above."
-              />
+              <Text style={{ fontSize: 12, color: colour.textSub, lineHeight: 17 }}>
+                A once-off payout from retirement, retrenchment (severance), or a death benefit — for example the
+                &quot;Severance Pay&quot; line on a payslip or a tax directive. SARS taxes this on its own separate
+                table, with the first R550,000 (lifetime) tax-free, so keep it out of Other income above.
+              </Text>
+
+              {lumpSumEntries.map((entry, index) => (
+                <View
+                  key={entry.id}
+                  style={{
+                    gap: space.sm,
+                    paddingTop: index === 0 ? 0 : space.md,
+                    marginTop: index === 0 ? 0 : space.xs,
+                    borderTopWidth: index === 0 ? 0 : 1,
+                    borderTopColor: colour.borderLight,
+                  }}
+                >
+                  {lumpSumEntries.length > 1 && (
+                    <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+                      <Text style={{ fontSize: 12, fontWeight: "700", color: colour.textSub }}>
+                        Lump sum {index + 1}
+                      </Text>
+                      <TouchableOpacity onPress={() => removeLumpSumEntry(entry.id)}>
+                        <Text style={{ fontSize: 12, fontWeight: "600", color: colour.danger }}>Remove</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                  <MXInput
+                    label={index === 0 ? "Lump sum received this year" : "Amount"}
+                    value={entry.amount}
+                    onChangeText={(t) => updateLumpSumEntry(entry.id, { amount: t })}
+                    placeholder="0"
+                    keyboardType="decimal-pad"
+                  />
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      paddingVertical: space.xs,
+                    }}
+                  >
+                    <View style={{ flex: 1, marginRight: space.md }}>
+                      <Text style={{ fontSize: 13, fontWeight: "600", color: colour.text }}>
+                        I know the actual tax from a SARS directive
+                      </Text>
+                      <Text style={{ fontSize: 11, color: colour.textSub, marginTop: 2, lineHeight: 15 }}>
+                        If SARS (or your employer/fund) has already issued a formal tax directive for this lump sum,
+                        entering the actual tax amount here will be more accurate than our estimate.
+                      </Text>
+                    </View>
+                    <Switch
+                      value={entry.useActualTax}
+                      onValueChange={(v) => updateLumpSumEntry(entry.id, { useActualTax: v })}
+                      trackColor={{ false: colour.border, true: colour.accent }}
+                      thumbColor={colour.white}
+                    />
+                  </View>
+                  {entry.useActualTax && (
+                    <MXInput
+                      label="Actual tax from the directive"
+                      value={entry.actualTax}
+                      onChangeText={(t) => updateLumpSumEntry(entry.id, { actualTax: t })}
+                      placeholder="0"
+                      keyboardType="decimal-pad"
+                      hint="The tax amount SARS's directive actually charged on this lump sum — not the amount you received after tax."
+                    />
+                  )}
+                </View>
+              ))}
+
+              <TouchableOpacity onPress={addLumpSumEntry} style={{ paddingVertical: space.xs }}>
+                <Text style={{ fontSize: 13, fontWeight: "600", color: colour.primary }}>
+                  + Add another lump sum
+                </Text>
+              </TouchableOpacity>
+
               <MXInput
                 label="Earlier lump sums (if any)"
                 value={priorLumpSums}
                 onChangeText={setPriorLumpSums}
                 placeholder="0"
                 keyboardType="decimal-pad"
-                hint="Total of any retirement, retrenchment, or death benefit lump sums you received in previous years. The R550,000 tax-free amount is a lifetime total, not per payout, so this affects how much of it is left for this year's lump sum. Leave as 0 if this is your first."
+                hint="Total of any retirement, retrenchment, or death benefit lump sums you received in previous years. The R550,000 tax-free amount is a lifetime total, not per payout, so this affects how much of it is left for this year's lump sum(s). Leave as 0 if this is your first."
               />
             </SectionCard>
 
