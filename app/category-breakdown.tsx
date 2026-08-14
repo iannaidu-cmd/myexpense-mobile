@@ -631,7 +631,7 @@ export default function CategoryBreakdownScreen() {
                   flex: 1,
                 }}
               >
-                Tax Refund or Bill
+                Tax refund or bill
               </Text>
               <Text style={{ color: C.textSecondary, fontSize: 16 }}>›</Text>
             </TouchableOpacity>

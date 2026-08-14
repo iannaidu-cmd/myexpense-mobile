@@ -52,6 +52,30 @@ export interface TaxLiabilityInput {
    * is the person's first such lump sum.
    */
   priorRetirementSeveranceLumpSums: number;
+  /**
+   * The real, authoritative tax SARS charged on retirementSeveranceLumpSum,
+   * from an already-issued tax directive, if known. retirementSeveranceLumpSumTax
+   * (see lib/taxRules.ts) is only an ESTIMATE using the standard table — a
+   * real directive can differ because SARS's own calculation accounts for
+   * factors this app cannot see (e.g. the person's full lifetime lump sum
+   * history). When provided, this is used directly instead of the estimate.
+   */
+  actualLumpSumTax?: number;
+  /**
+   * Additional retirement/death/severance lump sums received in the SAME
+   * tax year beyond the primary one above — e.g. a severance payout plus a
+   * separately-directived share scheme vesting lump sum. Each is summed
+   * into the total lump sum gross amount and tax alongside the primary
+   * entry (see LumpSumEntry and TaxLiabilityResult.lumpSumEntries).
+   */
+  additionalLumpSums?: LumpSumEntry[];
+}
+
+/** One retirement/severance lump sum payout: its gross amount, and — if
+ * already known from an issued SARS directive — the real tax charged on it. */
+export interface LumpSumEntry {
+  grossAmount: number;
+  actualTax?: number;
 }
 
 export interface TaxLiabilityResult {
@@ -72,11 +96,47 @@ export interface TaxLiabilityResult {
   medicalCreditApplied: number;
   taxAfterCredits: number;
   taxAlreadyPaid: number;
+  /** Sum of every lump sum entry's gross amount (primary + additionalLumpSums). */
   retirementSeveranceLumpSum: number;
-  /** Tax on retirementSeveranceLumpSum only, from its own separate table — not part of grossTax/taxAfterCredits above. */
+  /** Sum of every lump sum entry's tax (primary + additionalLumpSums combined) — not part of grossTax/taxAfterCredits above. */
   lumpSumTax: number;
+  /** Per-entry breakdown behind retirementSeveranceLumpSum/lumpSumTax above, in the order given (primary first). Excludes zero-amount entries. */
+  lumpSumEntries: { grossAmount: number; tax: number; isActual: boolean }[];
   /** Positive = amount owing to SARS. Negative = refund due. Not floored at 0. */
   finalLiability: number;
+}
+
+// Builds the per-entry lump sum breakdown (primary + additionalLumpSums) and
+// their gross/tax totals. Each entry without an actualTax override is taxed
+// against the standard table cumulatively — the R550,000 lifetime exemption
+// is consumed in order, starting from priorRetirementSeveranceLumpSums and
+// growing by each entry's gross amount as we go, whether that entry's own
+// tax came from an actual directive or an estimate (SARS's lifetime
+// aggregation is based on amounts received, not on how the tax was sourced).
+function computeLumpSumBreakdown(
+  input: TaxLiabilityInput,
+): { totalGross: number; totalTax: number; entries: { grossAmount: number; tax: number; isActual: boolean }[] } {
+  const rawEntries: LumpSumEntry[] = [
+    { grossAmount: input.retirementSeveranceLumpSum, actualTax: input.actualLumpSumTax },
+    ...(input.additionalLumpSums ?? []),
+  ].filter((entry) => Math.max(0, entry.grossAmount) > 0);
+
+  let runningPrior = Math.max(0, input.priorRetirementSeveranceLumpSums);
+  let totalGross = 0;
+  let totalTax = 0;
+  const entries = rawEntries.map((entry) => {
+    const grossAmount = Math.max(0, entry.grossAmount);
+    const isActual = entry.actualTax !== undefined && entry.actualTax !== null;
+    const tax = isActual
+      ? Math.max(0, entry.actualTax as number)
+      : retirementSeveranceLumpSumTax(grossAmount, runningPrior);
+    totalGross += grossAmount;
+    totalTax += tax;
+    runningPrior += grossAmount;
+    return { grossAmount, tax, isActual };
+  });
+
+  return { totalGross, totalTax, entries };
 }
 
 // Age as at the end of the given tax year (28/29 February). Uses
@@ -146,10 +206,8 @@ export function calculateTaxLiability(input: TaxLiabilityInput): TaxLiabilityRes
   const medicalCreditApplied = medicalTaxCreditForYear(input.medicalAidDependants, input.taxYear);
   const taxAfterCredits = Math.max(0, taxAfterRebates - medicalCreditApplied);
 
-  const lumpSumTax = retirementSeveranceLumpSumTax(
-    input.retirementSeveranceLumpSum,
-    input.priorRetirementSeveranceLumpSums,
-  );
+  const { totalGross: lumpSumGrossTotal, totalTax: lumpSumTax, entries: lumpSumEntries } =
+    computeLumpSumBreakdown(input);
 
   const finalLiability = taxAfterCredits + lumpSumTax - input.taxAlreadyPaid;
 
@@ -169,8 +227,9 @@ export function calculateTaxLiability(input: TaxLiabilityInput): TaxLiabilityRes
     medicalCreditApplied,
     taxAfterCredits,
     taxAlreadyPaid: input.taxAlreadyPaid,
-    retirementSeveranceLumpSum: Math.max(0, input.retirementSeveranceLumpSum),
+    retirementSeveranceLumpSum: lumpSumGrossTotal,
     lumpSumTax,
+    lumpSumEntries,
     finalLiability,
   };
 }

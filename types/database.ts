@@ -93,6 +93,10 @@ export interface TaxLiabilityEstimate {
   donations_ytd: number | null;
   retirement_severance_lump_sum: number;
   prior_retirement_severance_lump_sums: number;
+  /** Real tax from an issued SARS directive for retirement_severance_lump_sum, if known — overrides the estimate. */
+  actual_lump_sum_tax: number | null;
+  /** Additional lump sums in the same tax year beyond the primary one above — see lib/taxLiability.ts LumpSumEntry. */
+  additional_lump_sums: { grossAmount: number; actualTax?: number | null }[];
   taxable_income: number;
   gross_tax: number;
   rebates_applied: number;
@@ -112,6 +116,8 @@ export interface NewTaxLiabilityEstimate {
   donations_ytd?: number | null;
   retirement_severance_lump_sum: number;
   prior_retirement_severance_lump_sums: number;
+  actual_lump_sum_tax?: number | null;
+  additional_lump_sums?: { grossAmount: number; actualTax?: number | null }[];
 }
 
 // ─── Form / input types ───────────────────────────────────────────────────────

@@ -1,5 +1,5 @@
 import { ageAtTaxYearEnd, calculateTaxLiability, TaxLiabilityInput } from "@/lib/taxLiability";
-import { medicalTaxCreditForYear, taxDataForYear } from "@/lib/taxRules";
+import { medicalTaxCreditForYear, retirementSeveranceLumpSumTax, taxDataForYear } from "@/lib/taxRules";
 
 function baseInput(overrides: Partial<TaxLiabilityInput> = {}): TaxLiabilityInput {
   return {
@@ -240,5 +240,87 @@ describe("calculateTaxLiability — retirement/severance lump sums", () => {
     const result = calculateTaxLiability(baseInput({ businessTaxableIncome: 300000 }));
     expect(result.lumpSumTax).toBe(0);
     expect(result.retirementSeveranceLumpSum).toBe(0);
+    expect(result.lumpSumEntries).toEqual([]);
+  });
+});
+
+// ─── calculateTaxLiability — actual SARS directive override ──────────────────
+// A retirement/severance lump sum directive is issued automatically and shows
+// the REAL tax SARS charged, which can differ from what
+// retirementSeveranceLumpSumTax's standard-table estimate alone would
+// predict (SARS's own calculation accounts for things this app cannot see,
+// e.g. the person's full lifetime lump sum history). actualLumpSumTax lets
+// that real figure override the estimate.
+
+describe("calculateTaxLiability — actual SARS directive override", () => {
+  it("actualLumpSumTax overrides the estimated calculation when provided", () => {
+    const result = calculateTaxLiability(
+      baseInput({ retirementSeveranceLumpSum: 707919.65, actualLumpSumTax: 30654.09 }),
+    );
+    // The estimate for this amount would be ~R28,426 (see the "Ian's case"
+    // test above) — the actual directive figure is used instead.
+    expect(result.lumpSumTax).toBe(30654.09);
+    expect(result.lumpSumEntries).toEqual([
+      { grossAmount: 707919.65, tax: 30654.09, isActual: true },
+    ]);
+  });
+
+  it("falls back to the estimated calculation when actualLumpSumTax is not provided", () => {
+    const result = calculateTaxLiability(baseInput({ retirementSeveranceLumpSum: 707919.65 }));
+    expect(result.lumpSumTax).toBe(retirementSeveranceLumpSumTax(707919.65, 0));
+    expect(result.lumpSumEntries).toEqual([
+      { grossAmount: 707919.65, tax: result.lumpSumTax, isActual: false },
+    ]);
+  });
+
+  it("sums multiple lump sums in the same tax year for both gross amount and tax", () => {
+    // First two entries have real directive amounts; the third falls back to
+    // the estimate, cumulative on top of the R700,000 the first two already
+    // used of the lifetime R550,000 tax-free allowance.
+    const result = calculateTaxLiability(
+      baseInput({
+        retirementSeveranceLumpSum: 400000,
+        actualLumpSumTax: 5000,
+        additionalLumpSums: [
+          { grossAmount: 300000, actualTax: 8000 },
+          { grossAmount: 200000 },
+        ],
+      }),
+    );
+    const estimateForThird = retirementSeveranceLumpSumTax(200000, 700000);
+
+    expect(result.retirementSeveranceLumpSum).toBe(900000);
+    expect(result.lumpSumTax).toBe(5000 + 8000 + estimateForThird);
+    expect(result.lumpSumEntries).toEqual([
+      { grossAmount: 400000, tax: 5000, isActual: true },
+      { grossAmount: 300000, tax: 8000, isActual: true },
+      { grossAmount: 200000, tax: estimateForThird, isActual: false },
+    ]);
+  });
+
+  it("Ian's case: three lump sums in the same year use their real SARS directive amounts, not the combined-estimate table", () => {
+    // Severance (R707,919.65) plus two further lump sums received the same
+    // tax year (e.g. share scheme vesting payouts), each with its own
+    // issued SARS directive.
+    const result = calculateTaxLiability(
+      baseInput({
+        businessTaxableIncome: 0,
+        retirementSeveranceLumpSum: 707919.65,
+        actualLumpSumTax: 30654.09,
+        additionalLumpSums: [
+          { grossAmount: 285317.12, actualTax: 102714.16 },
+          { grossAmount: 90183.0, actualTax: 32465.88 },
+        ],
+      }),
+    );
+
+    expect(result.retirementSeveranceLumpSum).toBeCloseTo(1083419.77, 2);
+    expect(result.lumpSumTax).toBeCloseTo(165834.13, 2);
+
+    // The standard table alone would estimate far less tax on the combined
+    // total than the sum of the three real directive amounts.
+    const combinedEstimate = retirementSeveranceLumpSumTax(1083419.77, 0);
+    expect(combinedEstimate).toBe(124223);
+    expect(result.lumpSumTax).toBeGreaterThan(combinedEstimate);
   });
 });

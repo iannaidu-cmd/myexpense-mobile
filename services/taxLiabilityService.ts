@@ -39,6 +39,11 @@ export const taxLiabilityService = {
       taxAlreadyPaid: inputs.tax_already_paid,
       retirementSeveranceLumpSum: inputs.retirement_severance_lump_sum,
       priorRetirementSeveranceLumpSums: inputs.prior_retirement_severance_lump_sums,
+      actualLumpSumTax: inputs.actual_lump_sum_tax ?? undefined,
+      additionalLumpSums: inputs.additional_lump_sums?.map((entry) => ({
+        grossAmount: entry.grossAmount,
+        actualTax: entry.actualTax ?? undefined,
+      })),
     });
 
     const row = {
@@ -50,6 +55,8 @@ export const taxLiabilityService = {
       donations_ytd: inputs.donations_ytd ?? null,
       retirement_severance_lump_sum: inputs.retirement_severance_lump_sum,
       prior_retirement_severance_lump_sums: inputs.prior_retirement_severance_lump_sums,
+      actual_lump_sum_tax: inputs.actual_lump_sum_tax ?? null,
+      additional_lump_sums: inputs.additional_lump_sums ?? [],
       taxable_income: result.taxableIncome,
       gross_tax: result.grossTax,
       rebates_applied: result.rebatesApplied,
