@@ -84,7 +84,7 @@ export default function DeleteConfirmationScreen() {
 
   return (
     <SafeAreaView
-      edges={["top"]}
+      edges={["top", "bottom"]}
       style={{ flex: 1, backgroundColor: colour.bgPage }}
     >
       <StatusBar barStyle="dark-content" backgroundColor={colour.bgPage} />

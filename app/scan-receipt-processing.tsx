@@ -225,7 +225,7 @@ export default function ScanReceiptProcessingScreen() {
   });
 
   return (
-    <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colour.background }}>
+    <SafeAreaView edges={["top", "bottom"]} style={{ flex: 1, backgroundColor: colour.background }}>
 
       {/* Header */}
       <View style={{

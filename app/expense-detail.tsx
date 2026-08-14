@@ -307,7 +307,7 @@ export default function ExpenseDetailScreen() {
   if (loading) {
     return (
       <SafeAreaView
-        edges={["top"]}
+        edges={["top", "bottom"]}
         style={{ flex: 1, backgroundColor: colour.background }}
       >
         <View
@@ -322,7 +322,7 @@ export default function ExpenseDetailScreen() {
   if (!expense) {
     return (
       <SafeAreaView
-        edges={["top"]}
+        edges={["top", "bottom"]}
         style={{ flex: 1, backgroundColor: colour.background }}
       >
         <View
@@ -350,7 +350,7 @@ export default function ExpenseDetailScreen() {
 
   return (
     <SafeAreaView
-      edges={["top"]}
+      edges={["top", "bottom"]}
       style={{ flex: 1, backgroundColor: colour.background }}
     >
       <StatusBar barStyle="dark-content" backgroundColor={colour.background} />

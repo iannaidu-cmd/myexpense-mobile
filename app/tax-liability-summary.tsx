@@ -12,7 +12,7 @@ import { colour, radius, space } from "@/tokens";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
 import { ActivityIndicator, ScrollView, StatusBar, Text, TouchableOpacity, View } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 // ─── Tax Liability — Summary ──────────────────────────────────────────────────
 // Shows the calculation breakdown for the active tax year's estimate, ending
@@ -49,7 +49,6 @@ export default function TaxLiabilitySummaryScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
   const { activeTaxYear } = useExpenseStore();
-  const insets = useSafeAreaInsets();
 
   const [loading, setLoading] = useState(true);
   const [result, setResult] = useState<TaxLiabilityResult | null>(null);
@@ -118,7 +117,7 @@ export default function TaxLiabilitySummaryScreen() {
   const refund = result ? result.finalLiability < 0 : false;
 
   return (
-    <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colour.background }}>
+    <SafeAreaView edges={["top", "bottom"]} style={{ flex: 1, backgroundColor: colour.background }}>
       <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
       <MXHeader
         title="Tax refund or bill"
@@ -138,7 +137,7 @@ export default function TaxLiabilitySummaryScreen() {
       ) : (
         <ScrollView
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ padding: space.lg, paddingBottom: insets.bottom + space["5xl"] }}
+          contentContainerStyle={{ padding: space.lg, paddingBottom: space["5xl"] }}
         >
           {/* Hero card */}
           <View

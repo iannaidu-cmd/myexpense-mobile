@@ -26,7 +26,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 // ─── Tax Liability — Inputs ───────────────────────────────────────────────────
 // Collects everything lib/taxLiability.ts needs beyond logged income/expenses:
@@ -69,7 +69,6 @@ export default function TaxLiabilityInputsScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
   const { activeTaxYear } = useExpenseStore();
-  const insets = useSafeAreaInsets();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -255,7 +254,7 @@ export default function TaxLiabilityInputsScreen() {
   };
 
   return (
-    <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colour.background }}>
+    <SafeAreaView edges={["top", "bottom"]} style={{ flex: 1, backgroundColor: colour.background }}>
       <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
       <MXHeader title="Tax refund or bill" subtitle={`For ${activeTaxYear}`} showBack />
 
@@ -267,7 +266,7 @@ export default function TaxLiabilityInputsScreen() {
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
           <ScrollView
             style={{ flex: 1 }}
-            contentContainerStyle={{ padding: space.lg, paddingBottom: insets.bottom + space["5xl"] }}
+            contentContainerStyle={{ padding: space.lg, paddingBottom: space["5xl"] }}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
@@ -358,9 +357,9 @@ export default function TaxLiabilityInputsScreen() {
 
             <SectionCard title="Retirement or severance lump sum">
               <Text style={{ fontSize: 12, color: colour.textSub, lineHeight: 17 }}>
-                A once-off payout from retirement, retrenchment (severance), or a death benefit — for example the
-                &quot;Severance Pay&quot; line on a payslip or a tax directive. SARS taxes this on its own separate
-                table, with the first R550,000 (lifetime) tax-free, so keep it out of Other income above.
+                A once-off payout from retirement, retrenchment (severance), or death — look for IRP5 source code
+                3901 (retirement), 3907 or 3922 (severance), or 3915 (death benefit). SARS taxes this on its own
+                separate table, with the first R550,000 (lifetime) tax-free, so keep it out of Other income above.
               </Text>
 
               {lumpSumEntries.map((entry, index) => (
@@ -390,6 +389,7 @@ export default function TaxLiabilityInputsScreen() {
                     onChangeText={(t) => updateLumpSumEntry(entry.id, { amount: t })}
                     placeholder="0"
                     keyboardType="decimal-pad"
+                    hint="The GROSS amount before tax was taken off — the figure next to the source code on your IRP5, not the amount that actually landed in your bank account."
                   />
                   <View
                     style={{
@@ -404,8 +404,11 @@ export default function TaxLiabilityInputsScreen() {
                         I know the actual tax from a SARS directive
                       </Text>
                       <Text style={{ fontSize: 11, color: colour.textSub, marginTop: 2, lineHeight: 15 }}>
-                        If SARS (or your employer/fund) has already issued a formal tax directive for this lump sum,
-                        entering the actual tax amount here will be more accurate than our estimate.
+                        Retirement/severance lump sums usually come with a SARS tax directive (form IRP3(a)) — a
+                        letter from SARS to your employer or fund saying exactly how much tax to deduct. If you have
+                        one, switch this on and enter that exact amount instead of using our R550,000-table estimate
+                        — the directive is more accurate because SARS can see things this app cannot, like every
+                        lump sum you have ever received.
                       </Text>
                     </View>
                     <Switch
@@ -422,7 +425,7 @@ export default function TaxLiabilityInputsScreen() {
                       onChangeText={(t) => updateLumpSumEntry(entry.id, { actualTax: t })}
                       placeholder="0"
                       keyboardType="decimal-pad"
-                      hint="The tax amount SARS's directive actually charged on this lump sum — not the amount you received after tax."
+                      hint="The exact 'tax on lump sum' figure shown on your SARS tax directive (IRP3(a)) or IRP5 — not the amount you received after tax was already deducted."
                     />
                   )}
                 </View>

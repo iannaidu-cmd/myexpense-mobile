@@ -241,7 +241,7 @@ export default function AddExpenseScreen() {
   };
 
   return (
-    <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colour.surface1 }}>
+    <SafeAreaView edges={["top", "bottom"]} style={{ flex: 1, backgroundColor: colour.surface1 }}>
       <StatusBar barStyle="dark-content" backgroundColor={colour.surface1} />
       <MXHeader title="Add expense" showBack />
       <PhoneShell>

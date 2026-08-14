@@ -710,7 +710,7 @@ export default function BankImportScreen() {
 
   if (importLimitReached) {
     return (
-      <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colour.background }}>
+      <SafeAreaView edges={["top", "bottom"]} style={{ flex: 1, backgroundColor: colour.background }}>
         <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
         <MXHeader title="Import transactions" showBack />
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 32 }}>
@@ -735,7 +735,7 @@ export default function BankImportScreen() {
   }
 
   return (
-    <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colour.background }}>
+    <SafeAreaView edges={["top", "bottom"]} style={{ flex: 1, backgroundColor: colour.background }}>
       <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
       <MXHeader title="Import transactions" showBack />
 
