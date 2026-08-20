@@ -15,7 +15,7 @@ const config = {
     supportsTablet: true,
     requiresFullScreen: true,
     bundleIdentifier: "co.za.myexpense",
-    buildNumber: "66",
+    buildNumber: "67",
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false,
       NSCameraUsageDescription:
@@ -32,7 +32,7 @@ const config = {
   },
   android: {
     package: "co.za.myexpense.myapp",
-    versionCode: 26,
+    versionCode: 27,
     config: {
       googleMaps: {
         apiKey: process.env.GOOGLE_MAPS_API_KEY,
