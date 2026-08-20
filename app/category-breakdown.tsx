@@ -165,7 +165,7 @@ export default function CategoryBreakdownScreen() {
 
   return (
     <SafeAreaView
-      edges={["top", "bottom"]}
+      edges={["top"]}
       style={{ flex: 1, backgroundColor: C.background }}
     >
       <StatusBar barStyle="dark-content" backgroundColor={C.background} />

@@ -155,7 +155,7 @@ export default function FilterSortScreen() {
 
   return (
     <SafeAreaView
-      edges={["top", "bottom"]}
+      edges={["top"]}
       style={{ flex: 1, backgroundColor: colour.bgPage }}
     >
       <StatusBar barStyle="dark-content" backgroundColor={colour.bgPage} />
