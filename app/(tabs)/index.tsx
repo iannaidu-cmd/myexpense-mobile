@@ -1,14 +1,14 @@
 import { AnnouncementModal } from "@/components/AnnouncementModal";
 import MXLogo from "@/components/MXLogo";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { SA_MARGINAL_TAX_RATE } from "@/constants/tax";
 import { expenseService } from "@/services/expenseService";
 import { incomeService } from "@/services/incomeService";
 import { profileService } from "@/services/profileService";
+import { taxLiabilityService } from "@/services/taxLiabilityService";
 import { GRACE_PERIOD_DAYS, useAuthStore } from "@/stores/authStore";
 import { useExpenseStore } from "@/stores/expenseStore";
 import { colour, radius, space, typography } from "@/tokens";
-import { Expense } from "@/types/database";
+import { Expense, TaxLiabilityEstimate } from "@/types/database";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -178,10 +178,10 @@ export default function HomeScreen() {
 
   const [firstName, setFirstName] = useState("");
   const [totalExpenses, setTotalExpenses] = useState(0);
-  const [totalDeductions, setTotalDeductions] = useState(0);
   const [totalIncome, setTotalIncome] = useState(0);
   const [recentExpenses, setRecentExpenses] = useState<Expense[]>([]);
   const [recentIncome, setRecentIncome] = useState<any[]>([]);
+  const [taxLiability, setTaxLiability] = useState<TaxLiabilityEstimate | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showRefreshHint, setShowRefreshHint] = useState(false);
@@ -194,7 +194,6 @@ export default function HomeScreen() {
   const hour = now.getHours();
   const dayName = DAY_NAMES[now.getDay()];
   const greeting = hour < 12 ? "Morning" : hour < 17 ? "Afternoon" : "Evening";
-  const estimatedSaving = Math.round(totalDeductions * SA_MARGINAL_TAX_RATE);
 
   const loadData = useCallback(async (silent = false) => {
     if (!user) { setLoading(false); setRefreshing(false); return; }
@@ -205,22 +204,23 @@ export default function HomeScreen() {
       setTimeout(() => reject(new Error("timeout")), 25_000),
     );
     try {
-      const [profile, totals, incomeTotals, recent, recentInc] = await Promise.race([
+      const [profile, totals, incomeTotals, recent, recentInc, liabilityEstimate] = await Promise.race([
         Promise.all([
           profileService.getProfile(user.id),
           expenseService.getTotals(user.id, activeTaxYear),
           incomeService.getTotals(user.id, activeTaxYear),
           expenseService.getRecentExpenses(user.id, 5),
           incomeService.getRecentIncome(user.id, 5, activeTaxYear),
+          taxLiabilityService.getEstimate(user.id, activeTaxYear).catch(() => null),
         ]),
         timeout,
       ]);
       if (profile?.full_name) setFirstName(profile.full_name.split(" ")[0]);
       setTotalExpenses(totals.totalExpenses);
-      setTotalDeductions(totals.totalDeductions);
       setTotalIncome(incomeTotals.totalIncome);
       setRecentExpenses(recent);
       setRecentIncome(recentInc);
+      setTaxLiability(liabilityEstimate);
       hasLoaded.current = true;
       setShowRefreshHint(false);
     } catch (e) {
@@ -449,21 +449,48 @@ export default function HomeScreen() {
                 backgroundColor: colour.primary, opacity: 0.25, bottom: -40, left: -20,
               }} />
 
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: colour.primary }} />
-                <Text style={{ fontSize: 12, color: colour.onNoir2, fontWeight: "500" }}>
-                  Tax saved so far
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() =>
+                  router.push((taxLiability ? "/tax-liability-summary" : "/tax-liability-inputs") as any)
+                }
+              >
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                  <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: colour.primary }} />
+                  <Text style={{ fontSize: 12, color: colour.onNoir2, fontWeight: "500" }}>
+                    {taxLiability
+                      ? taxLiability.final_liability > 0
+                        ? "You owe SARS"
+                        : taxLiability.final_liability < 0
+                          ? "SARS owes you"
+                          : "No amount owing or refund"
+                      : "Your tax position"}
+                  </Text>
+                </View>
+
+                {taxLiability ? (
+                  <Text style={{
+                    fontSize: 56, lineHeight: 58, letterSpacing: -2.5, fontWeight: "800", marginBottom: 6,
+                    color: taxLiability.final_liability > 0
+                      ? colour.danger
+                      : taxLiability.final_liability < 0
+                        ? colour.success
+                        : colour.onNoir,
+                  }}>
+                    R {Math.round(Math.abs(taxLiability.final_liability)).toLocaleString("en-ZA")}
+                  </Text>
+                ) : (
+                  <Text style={{ fontSize: 24, lineHeight: 30, letterSpacing: -0.5, fontWeight: "800", color: colour.onNoir, marginBottom: 6 }}>
+                    Add your info to see what you owe or get back
+                  </Text>
+                )}
+
+                <Text style={{ fontSize: 12, color: colour.onNoir2, fontWeight: "400", marginBottom: 20, opacity: 0.7 }}>
+                  {taxLiability
+                    ? `calculated from your Tax Liability inputs · ${activeTaxYear} · tap for details`
+                    : `tap to enter your income, rebates & tax paid · ${activeTaxYear}`}
                 </Text>
-              </View>
-
-              <Text style={{ fontSize: 56, lineHeight: 58, letterSpacing: -2.5, fontWeight: "800", color: colour.onNoir, marginBottom: 6 }}>
-                <Text style={{ color: colour.primary }}>R </Text>
-                {Math.round(estimatedSaving).toLocaleString("en-ZA")}
-              </Text>
-
-              <Text style={{ fontSize: 12, color: colour.onNoir2, fontWeight: "400", marginBottom: 20, opacity: 0.7 }}>
-                estimated tax refund · {activeTaxYear}
-              </Text>
+              </TouchableOpacity>
 
               <View style={{
                 flexDirection: "row", paddingTop: 16,

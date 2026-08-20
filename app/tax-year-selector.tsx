@@ -1,6 +1,5 @@
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { MXHeader } from "@/components/MXHeader";
-import { SA_MARGINAL_TAX_RATE } from "@/constants/tax";
 import { expenseService } from "@/services/expenseService";
 import { useAuthStore } from "@/stores/authStore";
 import { useExpenseStore } from "@/stores/expenseStore";
@@ -119,9 +118,6 @@ export default function TaxYearSelectorScreen() {
   // Active year data for hero
   const activeYear = TAX_YEARS.find((y) => y.id === selected);
   const activeData = totals[selected];
-  const activeSaving = activeData
-    ? Math.round(activeData.claimable * SA_MARGINAL_TAX_RATE)
-    : 0;
 
   return (
     <SafeAreaView
@@ -252,10 +248,6 @@ export default function TaxYearSelectorScreen() {
                   value: loadingTotals
                     ? "\u2014"
                     : fmt(activeData?.claimable ?? 0),
-                },
-                {
-                  label: "TAX SAVING",
-                  value: loadingTotals ? "\u2014" : fmt(activeSaving),
                 },
               ].map((stat) => (
                 <View

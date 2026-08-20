@@ -1,6 +1,5 @@
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { MXHeader } from "@/components/MXHeader";
-import { SA_MARGINAL_TAX_RATE } from "@/constants/tax";
 import { expenseService } from "@/services/expenseService";
 import { incomeService } from "@/services/incomeService";
 import { mileageService } from "@/services/mileageService";
@@ -307,7 +306,6 @@ export default function ReportsTabScreen() {
     }
   })();
 
-  const estRefund = Math.round(fyDeductions * SA_MARGINAL_TAX_RATE);
   const daysToDeadline = getDaysToDeadline(activeTaxYear);
   const hasChartData = periodMonths.some((m) => m.income > 0 || m.expense > 0);
 
@@ -494,7 +492,7 @@ export default function ReportsTabScreen() {
               ))}
             </View>
 
-            {/* ── 4. Est. tax refund strip (periwinkle) ──────────────────── */}
+            {/* ── 4. Total deductions strip (periwinkle) ──────────────────── */}
             <View style={{
               backgroundColor: colour.primary,
               borderRadius: radius.md,
@@ -512,10 +510,10 @@ export default function ReportsTabScreen() {
               }} />
               <View>
                 <Text style={{ fontSize: 10, fontWeight: "600", color: "rgba(255,255,255,0.6)", letterSpacing: 0.5, marginBottom: 4 }}>
-                  EST. TAX REFUND
+                  TOTAL DEDUCTIONS · {activeTaxYear}
                 </Text>
                 <Text style={{ fontSize: 24, fontWeight: "800", color: colour.white, letterSpacing: -1 }}>
-                  {fmtAmount(estRefund)}
+                  {fmtAmount(fyDeductions)}
                 </Text>
                 {daysToDeadline > 0 && (
                   <Text style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", marginTop: 2 }}>
