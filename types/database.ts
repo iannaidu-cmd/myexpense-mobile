@@ -120,6 +120,14 @@ export interface NewTaxLiabilityEstimate {
   additional_lump_sums?: { grossAmount: number; actualTax?: number | null }[];
 }
 
+export interface AppReleaseInfo {
+  platform: "ios" | "android";
+  latest_build: number;
+  latest_version: string;
+  store_url: string;
+  updated_at: string;
+}
+
 // ─── Form / input types ───────────────────────────────────────────────────────
 
 export interface NewExpense {

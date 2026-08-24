@@ -31,6 +31,7 @@ import {
 import { Stack, useRootNavigationState, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
+import * as Updates from "expo-updates";
 import { useEffect, useRef, useState } from "react";
 import { Animated, Image, Linking, LogBox, View } from "react-native";
 import "react-native-reanimated";
@@ -213,6 +214,28 @@ function OAuthHandler() {
   return null;
 }
 
+// ── OTA update check ──────────────────────────────────────────────────────────
+// Silently checks for and downloads a JS-only OTA update (published via
+// `eas update`) on cold start. Never applies mid-session — a fetched update
+// only takes effect the next time the app is cold-started, matching
+// expo-updates' own default semantics (app.config.js sets checkAutomatically
+// explicitly to the same behavior). isEnabled is false in Expo Go and dev
+// builds, where the updates module isn't active.
+function OTAUpdateCheck() {
+  useEffect(() => {
+    if (!Updates.isEnabled) return;
+    (async () => {
+      try {
+        const result = await Updates.checkForUpdateAsync();
+        if (result.isAvailable) await Updates.fetchUpdateAsync();
+      } catch (e) {
+        Sentry.captureException(e);
+      }
+    })();
+  }, []);
+  return null;
+}
+
 // ── RevenueCat setup ─────────────────────────────────────────────────────────
 function PurchasesSetup() {
   const { user } = useAuthStore();
@@ -329,6 +352,7 @@ function RootLayout() {
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
       <AuthGate />
       <OAuthHandler />
+      <OTAUpdateCheck />
       <PurchasesSetup />
       <NotificationSetup />
       <FacebookOAuthModal />
