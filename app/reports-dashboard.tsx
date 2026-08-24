@@ -232,13 +232,6 @@ const CATEGORY_COLOURS = [
 
 const QUICK_REPORTS = [
   {
-    id: "1",
-    icon: "chart.bar.fill",
-    title: "Income vs expenses",
-    sub: "Monthly comparison",
-    route: "/expense-history",
-  },
-  {
     id: "2",
     icon: "dollarsign.circle.fill",
     title: "Tax savings report",

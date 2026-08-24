@@ -27,7 +27,6 @@ type Period = "1M" | "3M" | "6M" | "YTD" | "FY";
 const PERIODS: Period[] = ["1M", "3M", "6M", "YTD", "FY"];
 
 const REPORT_LINKS: { icon: string; label: string; sub: string; route: string }[] = [
-  { icon: "chart.bar.fill",  label: "Income vs expenses",  sub: "Monthly comparison",       route: "/income-vs-expenses" },
   { icon: "checkmark",       label: "Tax savings",          sub: "Year-to-date breakdown",   route: "/tax-summary"        },
   { icon: "list.bullet",     label: "Category breakdown",   sub: "Where your money goes",    route: "/category-breakdown" },
   { icon: "doc.text.fill",   label: "VAT summary",          sub: "Input vs output VAT",      route: "/vat-summary"        },
