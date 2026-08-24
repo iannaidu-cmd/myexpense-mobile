@@ -219,20 +219,30 @@ export const SARS_RATE_PER_KM =
 // VAT rate
 export const VAT_RATE = 0.15;
 
-// TFSA (Tax Free Savings Account) limits — 2025/26
-export const TFSA_ANNUAL_CAP = 36_000;    // annual contribution limit (updated from R33,000)
-export const TFSA_LIFETIME_CAP = 500_000; // lifetime cap
+// TFSA (Tax Free Savings Account) limits — 2026/27, effective 1 March 2026
+// per the 25 Feb 2026 Budget Speech (raised from R36,000). Flat constants,
+// not year-keyed like TAX_DATA_BY_YEAR above — re-verify against
+// sars.gov.za/types-of-tax/personal-income-tax/tax-free-investments after
+// each Budget Speech, same as everything else in this file. Verified
+// against SARS's own site and National Treasury's 2026 Budget tax guide
+// 24 Aug 2026.
+export const TFSA_ANNUAL_CAP = 46_000;    // annual contribution limit (raised from R36,000 for 2026/27)
+export const TFSA_LIFETIME_CAP = 500_000; // lifetime cap — unchanged
 
-// SBC (Small Business Corporation) tax thresholds — 2024/25
-export const SBC_TURNOVER_LIMIT = 20_000_000; // qualifying turnover < R20M
+// SBC (Small Business Corporation) tax thresholds — years of assessment
+// ending 1 Apr 2026 to 31 Mar 2027 (i.e. the 2026/27 tax year). Verified
+// against SARS's Budget 2026 FAQ page 24 Aug 2026 — re-verify after each
+// Budget Speech, same as TAX_DATA_BY_YEAR above.
+export const SBC_TURNOVER_LIMIT = 20_000_000; // qualifying turnover < R20M — unchanged
 export const SBC_BRACKETS = [
-  { limit: 95_750,   rate: 0,    base: 0      },
+  { limit: 99_000,   rate: 0,    base: 0      },
   { limit: 365_000,  rate: 0.07, base: 0      },
-  { limit: 550_000,  rate: 0.21, base: 18_848 },
-  { limit: Infinity, rate: 0.27, base: 57_698 },
+  { limit: 550_000,  rate: 0.21, base: 18_620 },
+  { limit: Infinity, rate: 0.27, base: 57_470 },
 ];
 
-// S10(1)(o) foreign income exemption — 2025/26
+// S10(1)(o) foreign income exemption — verified unchanged for 2026/27
+// against multiple sources 24 Aug 2026.
 export const FOREIGN_INCOME_EXEMPTION = 1_250_000; // first R1.25M exempt for qualifying employees
 export const FOREIGN_DAYS_REQUIRED = 183;           // days outside SA in aggregate
 export const FOREIGN_CONTINUOUS_DAYS = 60;          // consecutive days required

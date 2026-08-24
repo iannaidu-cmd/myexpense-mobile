@@ -1,7 +1,7 @@
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { FOREIGN_INCOME_EXEMPTION, TFSA_ANNUAL_CAP } from "@/lib/taxRules";
+import { FOREIGN_INCOME_EXEMPTION, SBC_BRACKETS, TFSA_ANNUAL_CAP } from "@/lib/taxRules";
 import { colour, radius, space } from "@/tokens";
 import React from "react";
 import { ScrollView, StatusBar, Text, View } from "react-native";
@@ -138,7 +138,7 @@ export default function GovernmentConcessionsScreen() {
           <Text style={{ fontSize: 13, color: colour.text, lineHeight: 20 }}>
             Small registered companies (PTY Ltd or CC) with income under R20 million pay tax at lower rates than individuals — starting at 0% on the first portion of profit.
           </Text>
-          <Fact label="First R95,750 of profit" value="0% tax" />
+          <Fact label={`First ${fmtR(SBC_BRACKETS[0].limit)} of profit`} value="0% tax" />
           <Note text="This only applies to registered companies, not sole proprietors. If you're freelancing as an individual, you're already on the correct individual tax table." />
         </Card>
 
@@ -168,7 +168,7 @@ export default function GovernmentConcessionsScreen() {
           </Text>
           <Fact label="Maximum you can put in per year" value={fmtR(TFSA_ANNUAL_CAP)} />
           <View style={{ marginTop: space.sm, gap: space.xs }}>
-            <Note text="Going over R36,000 in a tax year triggers a 40% penalty on the excess — SARS is strict about this." />
+            <Note text={`Going over ${fmtR(TFSA_ANNUAL_CAP)} in a tax year triggers a 40% penalty on the excess — SARS is strict about this.`} />
             <Note text="Unlike a retirement annuity, TFSA contributions are not a tax deduction. The benefit is on the growth, not the contribution. Don't log it as a business expense." />
           </View>
         </Card>

@@ -92,7 +92,11 @@ const POPUP_CONTENT: Record<Exclude<PopupKind, "billingIssue">, PopupContent> = 
   taxSeasonOpen: {
     icon: "doc.text.fill",
     iconColour: colour.primary,
-    eyebrow: "Tax season 2026/27",
+    // Must match the year in the comment above (the already-completed year
+    // being filed, not the currently-running one) — previously drifted out
+    // of sync and said "2026/27" here while the trigger date/comment both
+    // meant 2025/26.
+    eyebrow: "Tax season 2025/26",
     title: "Tax season is open",
     subtitle: "SARS eFiling is open for manual submissions. Start on your ITR12 now, so October doesn't sneak up on you.",
     rows: [

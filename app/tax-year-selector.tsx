@@ -26,16 +26,31 @@ type TaxYear = {
 };
 
 // Built from ACTIVE_TAX_YEAR (derived from today's date, see lib/taxRules.ts)
-// instead of a static list \u2014 the list, labels, and "current"/"filing" status
-// now all roll forward automatically every 1 March instead of going stale.
+// instead of a static list \u2014 the list and labels roll forward automatically
+// every 1 March instead of going stale.
 const isLeapYear = (y: number) => (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
+
+// Whether TODAY falls inside the real SARS filing window for a tax year
+// ending in `endYear` \u2014 eFiling opens 13 Jul of endYear, non-provisional/
+// provisional/trust filing closes 22 Jan of endYear+1. Previously "filing"
+// was assigned to whichever year sat second in the list regardless of the
+// actual date, which showed "Filing open" for roughly 5 months a year
+// (late-Feb through mid-Jul, and again late-Jan through Feb) when no
+// filing window was actually open for that year at all.
+function isFilingOpen(endYear: number, today: Date): boolean {
+  const filingStart = new Date(endYear, 6, 13); // 13 Jul
+  const filingEnd = new Date(endYear + 1, 0, 22, 23, 59, 59, 999); // 22 Jan, end of day
+  return today >= filingStart && today <= filingEnd;
+}
 
 function generateTaxYears(count = 5): TaxYear[] {
   const startYear = parseInt(ACTIVE_TAX_YEAR.split("/")[0], 10);
+  const today = new Date();
   return Array.from({ length: count }, (_, i) => {
     const y = startYear - i;
     const endYear = y + 1;
-    const status: TaxYear["status"] = i === 0 ? "current" : i === 1 ? "filing" : "closed";
+    const status: TaxYear["status"] =
+      i === 0 ? "current" : isFilingOpen(endYear, today) ? "filing" : "closed";
     return {
       id: `fy${endYear}`,
       label: `${y}/${String(endYear).slice(-2)}`,

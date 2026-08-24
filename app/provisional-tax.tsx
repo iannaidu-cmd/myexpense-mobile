@@ -2,7 +2,7 @@ import { InfoBanner } from "@/components/InfoBanner";
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { taxDataForYear } from "@/lib/taxRules";
+import { getCurrentTaxYear, taxDataForYear } from "@/lib/taxRules";
 import { incomeService } from "@/services/incomeService";
 import { useAuthStore } from "@/stores/authStore";
 import { useExpenseStore } from "@/stores/expenseStore";
@@ -52,42 +52,62 @@ interface Deadline {
   desc: string;
 }
 
+// Local-calendar ISO formatter — deliberately not Date.toISOString(), which
+// converts to UTC and would shift a SAST (UTC+2) midnight date back a day.
+const toIsoDate = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const fmtDeadlineDate = (d: Date) =>
+  d.toLocaleDateString("en-ZA", { day: "numeric", month: "short", year: "numeric" });
+const lastDayOfFeb = (year: number) => new Date(year, 2, 0); // day 0 of March = leap-safe last day of Feb
+
+// Provisional tax payment calendar for the REAL current tax year (derived
+// from today's date via getCurrentTaxYear, not whichever year is selected
+// in the tax-year picker — these are actionable payment dates, so they
+// should always reflect what's actually due next, not a historical view).
+// Previously 4 literal hardcoded dates covering only 2025/26-2026/27; once
+// the last one (30 Sep 2027) passed, the list would have gone silently
+// blank with nothing new ever appearing until a developer noticed and
+// hand-edited it. Now rolls forward automatically every 1 March.
 function buildDeadlines(): Deadline[] {
-  const today = new Date();
-  const lines: Deadline[] = [
-    // 2025/26 top-up (previous tax year)
+  const currentTaxYear = getCurrentTaxYear();
+  const startYear = parseInt(currentTaxYear.split("/")[0], 10);
+  const endYear = startYear + 1;
+  const priorTaxYear = `${startYear - 1}/${String(startYear).slice(-2)}`;
+
+  const entries: { key: string; label: string; date: Date; desc: string }[] = [
     {
-      key: "2526-topup",
-      label: "Pay any leftover tax — 2025/26",
-      dateStr: "30 Sep 2026",
-      isoDate: "2026-09-30",
+      key: `${startYear - 1}${startYear}-topup`,
+      label: `Pay any leftover tax — ${priorTaxYear}`,
+      date: new Date(startYear, 8, 30), // 30 Sep
       desc: "Settle any remaining tax from last year to avoid a penalty",
     },
-    // 2026/27 first provisional
     {
-      key: "2627-irp6-1",
-      label: "1st payment — 2026/27",
-      dateStr: "31 Aug 2026",
-      isoDate: "2026-08-31",
+      key: `${startYear}${endYear}-irp6-1`,
+      label: `1st payment — ${currentTaxYear}`,
+      date: new Date(startYear, 7, 31), // 31 Aug
       desc: "Pay at least half your estimated tax for the year",
     },
-    // 2026/27 second provisional
     {
-      key: "2627-irp6-2",
-      label: "2nd payment — 2026/27",
-      dateStr: "28 Feb 2027",
-      isoDate: "2027-02-28",
+      key: `${startYear}${endYear}-irp6-2`,
+      label: `2nd payment — ${currentTaxYear}`,
+      date: lastDayOfFeb(endYear),
       desc: "Pay the rest of your estimated tax for the year",
     },
-    // 2026/27 top-up
     {
-      key: "2627-topup",
-      label: "Pay any leftover tax — 2026/27",
-      dateStr: "30 Sep 2027",
-      isoDate: "2027-09-30",
+      key: `${startYear}${endYear}-topup`,
+      label: `Pay any leftover tax — ${currentTaxYear}`,
+      date: new Date(endYear, 8, 30), // 30 Sep
       desc: "Optional — top up if you underpaid to avoid interest charges",
     },
   ];
+
+  const lines: Deadline[] = entries.map((e) => ({
+    key: e.key,
+    label: e.label,
+    dateStr: fmtDeadlineDate(e.date),
+    isoDate: toIsoDate(e.date),
+    desc: e.desc,
+  }));
   // Sort chronologically
   return lines.sort((a, b) => a.isoDate.localeCompare(b.isoDate));
 }
