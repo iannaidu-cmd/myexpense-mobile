@@ -168,15 +168,15 @@ export const ITR12_CATEGORIES: Record<
   Utilities:                    { field: "Electricity / Rates and Taxes",  code: "",     section: "S11(a) – Pg 11-12" },
   "Marketing & Advertising":    { field: "Other",                          code: "",     section: "S11(a) – Pg 11-12" },
   "Bank Charges":               { field: "Bank Charges",                   code: "",     section: "S11(a) – Pg 11-12" },
-  "Interest & Finance Charges": { field: "Interest Paid – Other",          code: "",     section: "S11(a) – Pg 11-12" },
+  "Interest & Finance Charges": { field: "Interest / Finance Charges",     code: "",     section: "S11(a) – Pg 11-12" },
   Insurance:                    { field: "Insurance",                      code: "",     section: "S11(a) – Pg 11-12" },
   Rent:                         { field: "Rental Paid",                    code: "",     section: "S11(a) – Pg 11-12" },
-  "Repairs & Maintenance":      { field: "Repairs",                        code: "",     section: "S11(a) – Pg 11-12" },
+  "Repairs & Maintenance":      { field: "Repairs / Maintenance",          code: "",     section: "S11(a) – Pg 11-12" },
   "Training & Education":       { field: "Other",                          code: "",     section: "S11(a) – Pg 11-12" },
   "Telephone & Internet":       { field: "Telephone",                      code: "",     section: "S11(a) – Pg 11-12" },
-  "Vehicle Expenses":           { field: "Motor Vehicle Expenses",         code: "",     section: "S11(a) – Pg 11-12" },
+  "Vehicle Expenses":           { field: "Travel Costs – Local",           code: "",     section: "S11(a) – Pg 11-12" },
   "Retirement Annuity":         { field: "Total contributions",            code: "4006", section: "RA – Pg 23" },
-  "Personal / Other":           { field: "",                               code: "",     section: "" },
+  "Personal / Other":           { field: "Not Deductible",                 code: "",     section: "" },
 };
 
 export const CATEGORY_LIST = Object.keys(ITR12_CATEGORIES);

@@ -735,7 +735,7 @@ export default function BankImportScreen() {
   }
 
   return (
-    <SafeAreaView edges={["top", "bottom"]} style={{ flex: 1, backgroundColor: colour.background }}>
+    <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colour.background }}>
       <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
       <MXHeader title="Import transactions" showBack />
 

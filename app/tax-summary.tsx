@@ -3,13 +3,14 @@ import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { expenseService } from "@/services/expenseService";
 import { incomeService } from "@/services/incomeService";
-import { getMarginalRate, medicalTaxCreditForYear, raDeductionCap } from "@/lib/taxRules";
+import { medicalTaxCreditForYear, raDeductionCap } from "@/lib/taxRules";
 import { profileService } from "@/services/profileService";
 import { taxLiabilityService } from "@/services/taxLiabilityService";
 import { taxService } from "@/services/taxService";
 import { useAuthStore } from "@/stores/authStore";
 import { useExpenseStore } from "@/stores/expenseStore";
 import { colour, radius, space } from "@/tokens";
+import { TaxLiabilityEstimate } from "@/types/database";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useAppForeground } from "@/hooks/use-app-foreground";
 import React, { useCallback, useState } from "react";
@@ -95,18 +96,20 @@ export default function TaxSummaryScreen() {
   const [medicalAidDependants, setMedicalAidDependants] = useState(0);
   const [medicalAidMonthly, setMedicalAidMonthly] = useState(0);
   const [hasDisability, setHasDisability] = useState(false);
+  const [taxLiability, setTaxLiability] = useState<TaxLiabilityEstimate | null>(null);
 
   const loadData = useCallback(async () => {
     if (!user) { setLoading(false); return; }
     setLoading(true);
     try {
-      const [expenseTotals, incomeTotals, breakdown, summary, profile] =
+      const [expenseTotals, incomeTotals, breakdown, summary, profile, liabilityEstimate] =
         await Promise.all([
           expenseService.getTotals(user.id, activeTaxYear),
           incomeService.getTotals(user.id, activeTaxYear),
           expenseService.getByCategory(user.id, activeTaxYear),
           taxService.recalculateSummary(user.id, activeTaxYear),
           profileService.getProfile(user.id),
+          taxLiabilityService.getEstimate(user.id, activeTaxYear).catch(() => null),
         ]);
 
       setTotalExpenses(expenseTotals.totalExpenses);
@@ -117,6 +120,7 @@ export default function TaxSummaryScreen() {
       setMedicalAidDependants(profile?.medical_aid_dependants ?? 0);
       setMedicalAidMonthly(profile?.medical_aid_monthly ?? 0);
       setHasDisability(profile?.has_disability ?? false);
+      setTaxLiability(liabilityEstimate);
     } catch (e) {
       console.error("TaxSummary load error:", e);
     } finally {
@@ -130,9 +134,6 @@ export default function TaxSummaryScreen() {
     }, [loadData]),
   );
   useAppForeground(loadData);
-
-  const marginalRate = getMarginalRate(totalIncome);
-  const estTaxSaving = Math.round(totalDeductions * marginalRate);
 
   // Medical Aid Tax Credit (MTC) — SARS S6A, persisted from tax profile
   const medAidInExpenses = categoryBreakdown["Medical Aid"] ?? 0;
@@ -187,15 +188,16 @@ export default function TaxSummaryScreen() {
     { label: "Provisional (auto)", date: fmtKeyDate(provisionalDate), done: today > provisionalDate },
   ];
 
-  // Format the large hero amount with space separator
-  const heroAmount = estTaxSaving.toLocaleString("en-ZA", {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  });
+  // Format the large hero amount with space separator — mirrors the real
+  // Tax Liability figure used on Home/Reports (final_liability), not a
+  // flat-rate guess, so this screen no longer disagrees with those.
+  const heroAmount = taxLiability
+    ? Math.round(Math.abs(taxLiability.final_liability)).toLocaleString("en-ZA")
+    : null;
 
   return (
     <SafeAreaView
-      edges={["top", "bottom"]}
+      edges={["top"]}
       style={{ flex: 1, backgroundColor: colour.background }}
     >
       <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
@@ -242,7 +244,9 @@ export default function TaxSummaryScreen() {
           ) : (
             <>
               {/* ── Hero card (periwinkle gradient) ─────────────────────── */}
-              <View
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={handleTaxLiabilityPress}
                 style={{
                   marginHorizontal: space.md,
                   marginTop: space.lg,
@@ -300,7 +304,13 @@ export default function TaxSummaryScreen() {
                         letterSpacing: 0.8,
                       }}
                     >
-                      ESTIMATED TAX SAVING
+                      {taxLiability
+                        ? taxLiability.final_liability > 0
+                          ? "YOU OWE SARS"
+                          : taxLiability.final_liability < 0
+                            ? "SARS OWES YOU"
+                            : "NO AMOUNT OWING OR REFUND"
+                        : "YOUR TAX POSITION"}
                     </Text>
                     <View
                       style={{
@@ -330,19 +340,34 @@ export default function TaxSummaryScreen() {
                   </View>
 
                   {/* Big amount */}
-                  <Text
-                    style={{
-                      fontSize: 52,
-                      fontFamily: "Inter_800ExtraBold",
-                      color: colour.onPrimary,
-                      letterSpacing: -2,
-                      lineHeight: 56,
-                      marginBottom: 6,
-                    }}
-                  >
-                    <Text style={{ fontSize: 32, fontFamily: "Inter_700Bold" }}>R</Text>
-                    {heroAmount}
-                  </Text>
+                  {heroAmount ? (
+                    <Text
+                      style={{
+                        fontSize: 52,
+                        fontFamily: "Inter_800ExtraBold",
+                        color: colour.onPrimary,
+                        letterSpacing: -2,
+                        lineHeight: 56,
+                        marginBottom: 6,
+                      }}
+                    >
+                      <Text style={{ fontSize: 32, fontFamily: "Inter_700Bold" }}>R</Text>
+                      {heroAmount}
+                    </Text>
+                  ) : (
+                    <Text
+                      style={{
+                        fontSize: 22,
+                        fontFamily: "Inter_800ExtraBold",
+                        color: colour.onPrimary,
+                        letterSpacing: -0.5,
+                        lineHeight: 28,
+                        marginBottom: 6,
+                      }}
+                    >
+                      Add your info to see what you owe or get back
+                    </Text>
+                  )}
 
                   <Text
                     style={{
@@ -352,7 +377,9 @@ export default function TaxSummaryScreen() {
                       marginBottom: space.xl,
                     }}
                   >
-                    Based on logged income, expenses and mileage - {activeTaxYear}
+                    {taxLiability
+                      ? `Calculated from your Tax Liability inputs - ${activeTaxYear} - tap for details`
+                      : `Tap to enter your income, rebates & tax paid - ${activeTaxYear}`}
                   </Text>
 
                   {/* Stat pills */}
@@ -452,7 +479,7 @@ export default function TaxSummaryScreen() {
                     </View>
                   </View>
                 </View>
-              </View>
+              </TouchableOpacity>
 
               {/* ── eFiling disclaimer (noir banner) ────────────────────── */}
               <View

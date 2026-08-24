@@ -6,10 +6,11 @@ import { expenseService } from "@/services/expenseService";
 import { incomeService } from "@/services/incomeService";
 import { generateITR12PDF } from "@/services/pdfExportService";
 import { profileService } from "@/services/profileService";
+import { taxLiabilityService } from "@/services/taxLiabilityService";
 import { useAuthStore } from "@/stores/authStore";
 import { colour, radius, space } from "@/tokens";
-import { ACTIVE_TAX_YEAR } from "@/types/database";
-import { useFocusEffect, useRouter } from "expo-router";
+import { ACTIVE_TAX_YEAR, TaxLiabilityEstimate } from "@/types/database";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useAppForeground } from "@/hooks/use-app-foreground";
 import React, { useCallback, useState } from "react";
 import {
@@ -57,12 +58,19 @@ const ITR12_FIELD: Record<string, string> = {
 export default function ITR12ExportPreviewScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
+  // Tax year selected on the Export setup screen — falls back to the current
+  // tax year only if this screen was somehow reached without that param, so
+  // it never silently previews/exports a different year than the one the
+  // user configured (previously always used ACTIVE_TAX_YEAR regardless).
+  const { taxYear: taxYearParam } = useLocalSearchParams<{ taxYear?: string }>();
+  const taxYear = taxYearParam || ACTIVE_TAX_YEAR;
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"summary" | "detail">("summary");
   const [profile, setProfile] = useState<any>(null);
   const [breakdown, setBreakdown] = useState<Record<string, number>>({});
   const [totalDeductions, setTotalDeductions] = useState(0);
   const [totalIncome, setTotalIncome] = useState(0);
+  const [taxLiability, setTaxLiability] = useState<TaxLiabilityEstimate | null>(null);
   const [sharing, setSharing] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
 
@@ -73,22 +81,24 @@ export default function ITR12ExportPreviewScreen() {
     }
     setLoading(true);
     try {
-      const [prof, byCategory, totals, incomeTotals] = await Promise.all([
+      const [prof, byCategory, totals, incomeTotals, liabilityEstimate] = await Promise.all([
         profileService.getProfile(user.id),
-        expenseService.getByCategory(user.id, ACTIVE_TAX_YEAR),
-        expenseService.getTotals(user.id, ACTIVE_TAX_YEAR),
-        incomeService.getTotals(user.id, ACTIVE_TAX_YEAR),
+        expenseService.getByCategory(user.id, taxYear),
+        expenseService.getTotals(user.id, taxYear),
+        incomeService.getTotals(user.id, taxYear),
+        taxLiabilityService.getEstimate(user.id, taxYear).catch(() => null),
       ]);
       setProfile(prof);
       setBreakdown(byCategory);
       setTotalDeductions(totals.totalDeductions);
       setTotalIncome(incomeTotals.totalIncome);
+      setTaxLiability(liabilityEstimate);
     } catch (e) {
       console.error("ITR12Preview load error:", e);
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, taxYear]);
 
   useFocusEffect(
     useCallback(() => {
@@ -98,8 +108,11 @@ export default function ITR12ExportPreviewScreen() {
   useAppForeground(loadData);
 
   const deductionRows = Object.entries(breakdown).sort(([, a], [, b]) => b - a);
+  // Prefer the real Tax Liability calculator result over a flat marginal-rate
+  // guess — same preference order as services/pdfExportService.ts, so the
+  // in-app preview never disagrees with the PDF it generates.
   const marginalRate = getMarginalRate(totalIncome);
-  const estTaxSaving = Math.round(totalDeductions * marginalRate);
+  const flatEstTaxSaving = Math.round(totalDeductions * marginalRate);
   const initials = (profile?.full_name ?? "??")
     .split(" ")
     .map((n: string) => n[0])
@@ -117,7 +130,7 @@ export default function ITR12ExportPreviewScreen() {
         "",
         `Taxpayer:        ${profile?.full_name ?? "—"}`,
         `Tax Number:      ${profile?.tax_number ?? "—"}`,
-        `Tax Year:        ${ACTIVE_TAX_YEAR}`,
+        `Tax Year:        ${taxYear}`,
         `Return Type:     ITR12`,
         `Work Type:       ${profile?.work_type ?? "Sole Proprietor"}`,
         "",
@@ -130,7 +143,9 @@ export default function ITR12ExportPreviewScreen() {
         "─────────────────────",
         `${"TOTAL ALLOWABLE DEDUCTIONS".padEnd(38)} ${fmt(totalDeductions)}`,
         "",
-        `EST. TAX SAVING (${Math.round(marginalRate * 100)}% marginal): ${fmt(estTaxSaving)}`,
+        taxLiability
+          ? `${(taxLiability.final_liability > 0 ? "AMOUNT OWING TO SARS" : "REFUND DUE").padEnd(38)} ${fmt(Math.abs(taxLiability.final_liability))}`
+          : `EST. TAX SAVING (${Math.round(marginalRate * 100)}% marginal): ${fmt(flatEstTaxSaving)}`,
         "",
         "Fields mapped to SARS ITR12 s6.6 (Local Business, Trade",
         "and Professional Income). Retirement Annuity per s9.3.",
@@ -140,7 +155,7 @@ export default function ITR12ExportPreviewScreen() {
       ].join("\n");
       await Share.share({
         message: lines,
-        title: `MyExpense ITR12 Preview ${ACTIVE_TAX_YEAR}`,
+        title: `MyExpense ITR12 Preview ${taxYear}`,
       });
     } catch (e) {
       Alert.alert("Share failed", "Could not share the export.");
@@ -151,13 +166,13 @@ export default function ITR12ExportPreviewScreen() {
 
   return (
     <SafeAreaView
-      edges={["top", "bottom"]}
+      edges={["top"]}
       style={{ flex: 1, backgroundColor: colour.background }}
     >
       <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
       <MXHeader
         title="Export preview"
-        subtitle={`Tax year ${ACTIVE_TAX_YEAR} · ITR12 format`}
+        subtitle={`Tax year ${taxYear} · ITR12 format`}
         showBack
         backLabel="Export setup"
       />
@@ -280,7 +295,7 @@ export default function ITR12ExportPreviewScreen() {
                 {
                   label: "Tax Period",
                   value: (() => {
-                    const y = parseInt(ACTIVE_TAX_YEAR.split("/")[0], 10);
+                    const y = parseInt(taxYear.split("/")[0], 10);
                     return `1 Mar ${y} \u2013 28 Feb ${y + 1}`;
                   })(),
                 },
@@ -349,7 +364,11 @@ export default function ITR12ExportPreviewScreen() {
                   fontWeight: "600",
                 }}
               >
-                Est. Tax Saving: {fmt(estTaxSaving)}
+                {taxLiability
+                  ? taxLiability.final_liability > 0
+                    ? `Amount Owing to SARS: ${fmt(Math.abs(taxLiability.final_liability))}`
+                    : `Refund Due: ${fmt(Math.abs(taxLiability.final_liability))}`
+                  : `Est. Tax Saving (${Math.round(marginalRate * 100)}% marginal): ${fmt(flatEstTaxSaving)}`}
               </Text>
             </View>
 
@@ -581,7 +600,7 @@ export default function ITR12ExportPreviewScreen() {
             try {
               await generateITR12PDF({
                 userId: user.id,
-                taxYear: ACTIVE_TAX_YEAR,
+                taxYear,
               });
             } catch (e: any) {
               Alert.alert(

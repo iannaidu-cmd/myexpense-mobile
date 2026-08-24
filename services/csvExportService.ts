@@ -54,7 +54,7 @@ export function generateCSV(expenses: Expense[]): string {
         csvField(e.expense_date),
         csvField(e.vendor),
         csvField(e.category),
-        csvField(getITR12Field(e.category)),
+        csvField(e.is_deductible ? getITR12Field(e.category) : "—"),
         csvField(Number(e.amount).toFixed(2)),
         csvField(e.vat_amount != null ? Number(e.vat_amount).toFixed(2) : ""),
         csvField(e.is_deductible ? "Y" : "N"),

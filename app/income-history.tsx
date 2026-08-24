@@ -115,7 +115,7 @@ export default function IncomeHistoryScreen() {
 
   return (
     <SafeAreaView
-      edges={["top", "bottom"]}
+      edges={["top"]}
       style={{ flex: 1, backgroundColor: colour.background }}
     >
       <StatusBar barStyle="dark-content" backgroundColor={colour.background} />

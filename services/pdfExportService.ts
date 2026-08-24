@@ -6,8 +6,9 @@
 import { expenseService } from "@/services/expenseService";
 import { incomeService } from "@/services/incomeService";
 import { profileService } from "@/services/profileService";
+import { taxLiabilityService } from "@/services/taxLiabilityService";
 import { colour } from "@/tokens";
-import type { Expense } from "@/types/database";
+import type { Expense, TaxLiabilityEstimate } from "@/types/database";
 import { ITR12_CATEGORIES } from "@/types/database";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
@@ -34,6 +35,7 @@ const CSS = {
   disclaimerText:   colour.textMid,
   vatBlue:          colour.primary,
   deductionGreen:   colour.success,
+  owingRed:         colour.danger,
   personalGray:     colour.navInactive,
 };
 
@@ -85,6 +87,7 @@ function buildHTML(opts: {
   includeVAT: boolean;
   includePersonal: boolean;
   summaryOnly: boolean;
+  taxLiabilityEstimate: TaxLiabilityEstimate | null;
 }): string {
   const {
     profile,
@@ -98,9 +101,9 @@ function buildHTML(opts: {
     includeVAT,
     includePersonal,
     summaryOnly,
+    taxLiabilityEstimate,
   } = opts;
 
-  const estTaxSaving = Math.round(totalDeductions * 0.31);
   const generatedDate = new Date().toLocaleDateString("en-ZA", {
     day: "2-digit",
     month: "long",
@@ -138,7 +141,7 @@ function buildHTML(opts: {
             <td>${fmtDate(e.expense_date)}</td>
             <td>${e.vendor}</td>
             <td>${e.category}</td>
-            <td style="text-align:center">${getITR12Field(e.category)}</td>
+            <td style="text-align:center">${e.is_deductible ? getITR12Field(e.category) : "—"}</td>
             <td style="text-align:right">${fmtZAR(e.amount)}</td>
             ${includeVAT ? `<td style="text-align:right">${e.vat_amount ? fmtZAR(e.vat_amount) : "—"}</td>` : ""}
             <td style="text-align:center">${e.is_deductible ? "✓" : "✗"}</td>
@@ -200,6 +203,40 @@ function buildHTML(opts: {
         </div>
       </div>`
     : "";
+
+  // Prefer the user's actual Tax Liability calculator result (real SARS
+  // brackets, age rebates, medical credits, RA cap, lump sums) over a flat
+  // marginal-rate guess — but only when they've completed that calculator
+  // for this tax year. Falls back to the old flat-31% deduction saving
+  // otherwise, since most users won't have filled it in.
+  const taxOutlookHTML = taxLiabilityEstimate
+    ? (() => {
+        const liability = taxLiabilityEstimate.final_liability;
+        const owing = liability > 0;
+        const refund = liability < 0;
+        const label = owing
+          ? "Estimated Amount Owing to SARS"
+          : refund
+            ? "Estimated Refund Due"
+            : "No Amount Owing or Refund";
+        const amountColor = owing ? CSS.owingRed : CSS.accentBlue;
+        return `
+    <div class="saving-box">
+      <div>
+        <div class="saving-box-label">${label}</div>
+        <div class="saving-box-sub">Based on your Tax Liability calculator — taxable income ${fmtZAR(taxLiabilityEstimate.taxable_income)}, updated ${fmtDate(taxLiabilityEstimate.last_calculated_at)}</div>
+      </div>
+      <div class="saving-box-amount" style="color:${amountColor}">${fmtZAR(Math.abs(liability))}</div>
+    </div>`;
+      })()
+    : `
+    <div class="saving-box">
+      <div>
+        <div class="saving-box-label">Estimated Tax Saving</div>
+        <div class="saving-box-sub">Based on 31% marginal tax rate — complete the Tax Liability calculator in-app for a figure based on your actual income and rebates</div>
+      </div>
+      <div class="saving-box-amount">${fmtZAR(Math.round(totalDeductions * 0.31))}</div>
+    </div>`;
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -401,14 +438,8 @@ function buildHTML(opts: {
     <!-- VAT section -->
     ${vatSection}
 
-    <!-- Tax saving callout -->
-    <div class="saving-box">
-      <div>
-        <div class="saving-box-label">Estimated Tax Saving</div>
-        <div class="saving-box-sub">Based on 31% marginal tax rate — consult a tax professional</div>
-      </div>
-      <div class="saving-box-amount">${fmtZAR(estTaxSaving)}</div>
-    </div>
+    <!-- Tax outlook callout -->
+    ${taxOutlookHTML}
 
     <!-- Deduction breakdown by category -->
     <div class="section-title">SECTION 11 DEDUCTIONS BY CATEGORY</div>
@@ -438,7 +469,7 @@ function buildHTML(opts: {
 
     <!-- Disclaimer -->
     <div class="disclaimer">
-      ⚠️ <strong>Important Disclaimer:</strong> This report is generated from your MyExpense records for reference purposes only. It does not constitute a submitted SARS return. Always have your ITR12 reviewed and submitted by a registered tax practitioner. Estimated tax savings are indicative only and based on a 31% marginal rate.
+      ⚠️ <strong>Important Disclaimer:</strong> This report is generated from your MyExpense records for reference purposes only. It does not constitute a submitted SARS return. Always have your ITR12 reviewed and submitted by a registered tax practitioner. ${taxLiabilityEstimate ? "The amount above is an estimate from the Tax Liability calculator and is indicative only — SARS calculates your final liability." : "Estimated tax savings are indicative only and based on a flat 31% marginal rate."}
     </div>
 
     <div class="footer">
@@ -473,14 +504,17 @@ export async function generateITR12PDF(opts: PDFExportOptions): Promise<void> {
     summaryOnly = false,
   } = opts;
 
-  // Fetch all data in parallel
-  const [profile, expenses, incomeTotals, expenseTotals, byCategory] =
+  // Fetch all data in parallel. The tax liability estimate is optional
+  // (most users won't have filled in the calculator yet) — a fetch failure
+  // there shouldn't block the rest of the export, so it falls back to null.
+  const [profile, expenses, incomeTotals, expenseTotals, byCategory, taxLiabilityEstimate] =
     await Promise.all([
       profileService.getProfile(userId),
       expenseService.getExpenses(userId, taxYear),
       incomeService.getTotals(userId, taxYear),
       expenseService.getTotals(userId, taxYear),
       expenseService.getByCategory(userId, taxYear),
+      taxLiabilityService.getEstimate(userId, taxYear).catch(() => null),
     ]);
 
   // Build category breakdown: amounts from byCategory (already filtered to
@@ -521,6 +555,7 @@ export async function generateITR12PDF(opts: PDFExportOptions): Promise<void> {
     includeVAT,
     includePersonal,
     summaryOnly,
+    taxLiabilityEstimate,
   });
 
   const { uri } = await Print.printToFileAsync({

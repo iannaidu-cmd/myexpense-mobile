@@ -2,6 +2,7 @@ import { InfoBanner } from "@/components/InfoBanner";
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { taxDataForYear } from "@/lib/taxRules";
 import { incomeService } from "@/services/incomeService";
 import { useAuthStore } from "@/stores/authStore";
 import { useExpenseStore } from "@/stores/expenseStore";
@@ -22,18 +23,24 @@ import { SafeAreaView } from "react-native-safe-area-context";
 const fmt = (n: number) =>
   `R ${Math.round(n).toLocaleString("en-ZA", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 
-// ── SARS 2025/26 individual tax table ─────────────────────────────────────────
-function computeTax(taxableIncome: number): number {
+// SARS individual tax table for a given tax year — brackets and primary
+// rebate looked up from lib/taxRules.ts (single source of truth, updated by
+// hand each Budget Speech) instead of a hardcoded duplicate. This screen
+// previously always used the 2025/26 figures regardless of the active tax
+// year, understating what's owed once brackets moved for 2026/27.
+function computeTax(taxableIncome: number, taxYear: string): number {
   if (taxableIncome <= 0) return 0;
+  const { brackets, rebates } = taxDataForYear(taxYear);
   let tax = 0;
-  if (taxableIncome <= 237_100)       tax = taxableIncome * 0.18;
-  else if (taxableIncome <= 370_500)  tax = 42_678  + (taxableIncome - 237_100) * 0.26;
-  else if (taxableIncome <= 512_800)  tax = 77_362  + (taxableIncome - 370_500) * 0.31;
-  else if (taxableIncome <= 673_000)  tax = 121_475 + (taxableIncome - 512_800) * 0.36;
-  else if (taxableIncome <= 857_900)  tax = 179_147 + (taxableIncome - 673_000) * 0.39;
-  else if (taxableIncome <= 1_817_000) tax = 251_258 + (taxableIncome - 857_900) * 0.41;
-  else                                tax = 644_489 + (taxableIncome - 1_817_000) * 0.45;
-  return Math.max(0, Math.round(tax - 17_235)); // subtract primary rebate
+  for (let i = 0; i < brackets.length; i++) {
+    const bracket = brackets[i];
+    if (taxableIncome <= bracket.limit) {
+      const lowerLimit = i === 0 ? 0 : brackets[i - 1].limit;
+      tax = bracket.base + (taxableIncome - lowerLimit) * bracket.rate;
+      break;
+    }
+  }
+  return Math.max(0, Math.round(tax - rebates.primary));
 }
 
 // ── Upcoming provisional deadlines ────────────────────────────────────────────
@@ -241,7 +248,7 @@ export default function ProvisionalTaxScreen() {
   // Simplified provisional tax estimate
   const estimatedDeductions = totals?.totalDeductions ?? 0;
   const taxableIncome = Math.max(0, totalIncome - estimatedDeductions);
-  const grossTax = computeTax(taxableIncome);
+  const grossTax = computeTax(taxableIncome, activeTaxYear);
   const provisionalTax = Math.max(0, grossTax - payeAlreadyPaid);
   const irp61 = Math.round(provisionalTax * 0.5);
   const irp62 = provisionalTax - irp61;
@@ -251,7 +258,7 @@ export default function ProvisionalTaxScreen() {
   const nextIdx = deadlines.findIndex((d) => new Date(d.isoDate) >= today);
 
   return (
-    <SafeAreaView edges={["top", "bottom"]} style={{ flex: 1, backgroundColor: colour.background }}>
+    <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colour.background }}>
       <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
       <MXHeader
         title="Provisional tax"
@@ -348,7 +355,7 @@ export default function ProvisionalTaxScreen() {
                     marginBottom: space.sm,
                   }}
                 >
-                  ESTIMATED TAX (2025/26)
+                  ESTIMATED TAX ({activeTaxYear})
                 </Text>
                 <View
                   style={{
