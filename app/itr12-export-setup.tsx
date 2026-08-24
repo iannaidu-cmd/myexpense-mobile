@@ -489,7 +489,12 @@ export default function ITR12ExportSetupScreen() {
 
             {/* ── Preview button ── */}
             <TouchableOpacity
-              onPress={() => router.push("/itr12-export-preview")}
+              onPress={() =>
+                router.push({
+                  pathname: "/itr12-export-preview",
+                  params: { taxYear },
+                })
+              }
               style={{
                 marginHorizontal: space.md,
                 backgroundColor: colour.primary,

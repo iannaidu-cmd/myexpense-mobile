@@ -3,9 +3,11 @@ import { MXTabBar } from "@/components/MXTabBar";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { expenseService } from "@/services/expenseService";
 import { incomeService } from "@/services/incomeService";
+import { taxLiabilityService } from "@/services/taxLiabilityService";
 import { useAuthStore } from "@/stores/authStore";
 import { useExpenseStore } from "@/stores/expenseStore";
 import { colour, radius, space, typography } from "@/tokens";
+import { TaxLiabilityEstimate } from "@/types/database";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useAppForeground } from "@/hooks/use-app-foreground";
 import React, { useCallback, useState } from "react";
@@ -271,8 +273,8 @@ const fmtShort = (n: number) => {
   if (n >= 1_000)     return `R ${(n / 1_000).toFixed(1)}k`;
   return `R ${n.toFixed(0)}`;
 };
-const fmt = (n: number) =>
-  `R ${n.toLocaleString("en-ZA", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+const fmtSignedAmount = (n: number) =>
+  `R ${Math.abs(n).toLocaleString("en-ZA", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 
 export default function ReportsDashboardScreen() {
   const router = useRouter();
@@ -289,23 +291,26 @@ export default function ReportsDashboardScreen() {
   const [categoryBreakdown, setCategoryBreakdown] = useState<
     { label: string; amount: number; color: string }[]
   >([]);
+  const [taxLiability, setTaxLiability] = useState<TaxLiabilityEstimate | null>(null);
 
   const loadData = useCallback(async () => {
     if (!user) { setLoading(false); return; }
     setLoading(true);
     try {
-      const [incomeTotals, expenseTotals, allExpenses, allIncome, byCategory] =
+      const [incomeTotals, expenseTotals, allExpenses, allIncome, byCategory, liabilityEstimate] =
         await Promise.all([
           incomeService.getTotals(user.id, activeTaxYear),
           expenseService.getTotals(user.id, activeTaxYear),
           expenseService.getExpenses(user.id, activeTaxYear),
           incomeService.getIncome(user.id, activeTaxYear),
           expenseService.getByCategory(user.id, activeTaxYear),
+          taxLiabilityService.getEstimate(user.id, activeTaxYear).catch(() => null),
         ]);
 
       setTotalIncome(incomeTotals.totalIncome);
       setTotalExpenses(expenseTotals.totalExpenses);
       setTotalDeductions(expenseTotals.totalDeductions);
+      setTaxLiability(liabilityEstimate);
 
       // Build last-6-months monthly data
       const now    = new Date();
@@ -360,8 +365,14 @@ export default function ReportsDashboardScreen() {
   );
   useAppForeground(loadData);
 
-  const maxVal       = Math.max(...monthlyData.flatMap((d) => [d.income, d.expense]), 1);
-  const estTaxSaving = Math.round(totalDeductions * 0.31);
+  const maxVal = Math.max(...monthlyData.flatMap((d) => [d.income, d.expense]), 1);
+
+  // Routes to the summary if an estimate already exists for this tax year,
+  // otherwise to the inputs screen to create one — same pattern as
+  // app/tax-summary.tsx and app/(tabs)/reports.tsx.
+  const handleTaxLiabilityPress = () => {
+    router.push((taxLiability ? "/tax-liability-summary" : "/tax-liability-inputs") as any);
+  };
 
   return (
     <SafeAreaView
@@ -489,8 +500,13 @@ export default function ReportsDashboardScreen() {
               </View>
             </View>
 
-            {/* ── Tax saving callout ───────────────────────────────────────── */}
-            <View
+            {/* ── Tax refund or bill callout — real calculateTaxLiability()
+                figure, matching app/(tabs)/reports.tsx and app/tax-summary.tsx.
+                Previously a flat 31% x deductions guess that disagreed with
+                the real "Tax refund or bill" card shown elsewhere. ────────── */}
+            <TouchableOpacity
+              onPress={handleTaxLiabilityPress}
+              activeOpacity={0.85}
               style={{
                 backgroundColor: colour.noir,
                 borderRadius: radius.md,
@@ -514,18 +530,40 @@ export default function ReportsDashboardScreen() {
                   right: -20,
                 }}
               />
-              <View>
+              <View style={{ flex: 1 }}>
                 <Text style={[typography.labelM, { color: colour.onNoir }]}>
-                  Estimated Tax Saving
+                  {taxLiability
+                    ? taxLiability.final_liability > 0
+                      ? "You owe SARS"
+                      : taxLiability.final_liability < 0
+                        ? "SARS owes you"
+                        : "Tax refund or bill"
+                    : "Tax refund or bill"}
                 </Text>
                 <Text style={[typography.caption, { color: colour.onNoir2 }]}>
-                  Based on 31% marginal rate
+                  {taxLiability ? "Tap to see the details" : "Tap to find out what you owe or get back"}
                 </Text>
               </View>
-              <Text style={[typography.amountM, { color: colour.accent }]}>
-                {fmt(estTaxSaving)}
-              </Text>
-            </View>
+              {taxLiability ? (
+                <Text
+                  style={[
+                    typography.amountM,
+                    {
+                      color:
+                        taxLiability.final_liability > 0
+                          ? colour.danger
+                          : taxLiability.final_liability < 0
+                            ? colour.success
+                            : colour.onNoir,
+                    },
+                  ]}
+                >
+                  {fmtSignedAmount(taxLiability.final_liability)}
+                </Text>
+              ) : (
+                <Text style={[typography.labelM, { color: colour.accent }]}>See details</Text>
+              )}
+            </TouchableOpacity>
 
             {/* ── Donut chart ──────────────────────────────────────────────── */}
             {categoryBreakdown.length > 0 && (
