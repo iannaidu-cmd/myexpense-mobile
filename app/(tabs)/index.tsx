@@ -1,6 +1,8 @@
 import { AnnouncementModal } from "@/components/AnnouncementModal";
 import MXLogo from "@/components/MXLogo";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { UpdateAvailableBanner } from "@/components/UpdateAvailableBanner";
+import { appVersionService } from "@/services/appVersionService";
 import { expenseService } from "@/services/expenseService";
 import { incomeService } from "@/services/incomeService";
 import { profileService } from "@/services/profileService";
@@ -8,8 +10,9 @@ import { taxLiabilityService } from "@/services/taxLiabilityService";
 import { GRACE_PERIOD_DAYS, useAuthStore } from "@/stores/authStore";
 import { useExpenseStore } from "@/stores/expenseStore";
 import { colour, radius, space, typography } from "@/tokens";
-import { Expense, TaxLiabilityEstimate } from "@/types/database";
+import { AppReleaseInfo, Expense, TaxLiabilityEstimate } from "@/types/database";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Application from "expo-application";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -186,6 +189,7 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [showRefreshHint, setShowRefreshHint] = useState(false);
   const [duePopup, setDuePopup] = useState<PopupKind | null>(null);
+  const [updateInfo, setUpdateInfo] = useState<AppReleaseInfo | null>(null);
   const isFetching = useRef(false);
   const hasLoaded = useRef(false);
   const appStateRef = useRef(AppState.currentState);
@@ -322,6 +326,41 @@ export default function HomeScreen() {
     if (kind === "billingIssue") router.push("/subscription-manage" as any);
   }, [duePopup, dismissPopup, router]);
 
+  // Soft "update available" nudge — compares the installed native build
+  // number (not the marketing version, since buildNumber/versionCode bump
+  // on every native release even when expo.version doesn't) against
+  // app_release_info. Checked once per app open, not on every focus, since
+  // the installed build can't change mid-session. Dismissal is keyed by
+  // latest_build so it re-appears once a newer release ships, but never
+  // nags again for the same one.
+  useEffect(() => {
+    if (!user || Platform.OS === "web") return;
+    (async () => {
+      try {
+        const platform = Platform.OS === "ios" ? "ios" : "android";
+        const release = await appVersionService.getLatestRelease(platform);
+        if (!release) return;
+        const installedBuild = parseInt(Application.nativeBuildVersion ?? "0", 10);
+        if (!installedBuild || installedBuild >= release.latest_build) return;
+        const dismissKey = `@myexpense:seen_update_${platform}_${release.latest_build}`;
+        const dismissed = await AsyncStorage.getItem(dismissKey);
+        if (!dismissed) setUpdateInfo(release);
+      } catch (e) {
+        console.warn("Update check failed:", e);
+      }
+    })();
+    // Same rationale as checkDuePopup above: depend on user?.id, not the
+    // user object, which changes identity on every auth event.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
+
+  const dismissUpdateBanner = useCallback(() => {
+    if (!updateInfo) return;
+    const platform = Platform.OS === "ios" ? "ios" : "android";
+    AsyncStorage.setItem(`@myexpense:seen_update_${platform}_${updateInfo.latest_build}`, "1");
+    setUpdateInfo(null);
+  }, [updateInfo]);
+
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     setShowRefreshHint(false);
@@ -408,6 +447,14 @@ export default function HomeScreen() {
             </View>
           </TouchableOpacity>
         </View>
+
+        {updateInfo && (
+          <UpdateAvailableBanner
+            version={updateInfo.latest_version}
+            storeUrl={updateInfo.store_url}
+            onDismiss={dismissUpdateBanner}
+          />
+        )}
 
         {showRefreshHint && !loading && (
           <TouchableOpacity

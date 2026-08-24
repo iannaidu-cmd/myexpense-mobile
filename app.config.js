@@ -136,6 +136,12 @@ const config = {
   },
   updates: {
     url: "https://u.expo.dev/3cc2675f-d248-4f36-ba9b-401f7d55d8be",
+    // Explicit even though it's the SDK default: check for a JS-only OTA
+    // update on every cold start, download it in the background, and apply
+    // it silently on the NEXT cold start — never mid-session. Publish via
+    // `eas update` for changes that don't touch native code/config; use
+    // `eas build` (which requires a store review) for anything that does.
+    checkAutomatically: "ON_LOAD",
   },
 };
 
