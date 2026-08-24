@@ -532,11 +532,11 @@ export default function HomeScreen() {
                   </Text>
                 )}
 
-                <Text style={{ fontSize: 12, color: colour.onNoir2, fontWeight: "400", marginBottom: 20, opacity: 0.7 }}>
-                  {taxLiability
-                    ? `calculated from your Tax Liability inputs · ${activeTaxYear} · tap for details`
-                    : `tap to enter your income, rebates & tax paid · ${activeTaxYear}`}
-                </Text>
+                {!taxLiability && (
+                  <Text style={{ fontSize: 12, color: colour.onNoir2, fontWeight: "400", marginBottom: 20, opacity: 0.7 }}>
+                    {`tap to enter your income, rebates & tax paid · ${activeTaxYear}`}
+                  </Text>
+                )}
               </TouchableOpacity>
 
               <View style={{

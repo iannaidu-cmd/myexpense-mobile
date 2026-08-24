@@ -27,7 +27,6 @@ type Period = "1M" | "3M" | "6M" | "YTD" | "FY";
 const PERIODS: Period[] = ["1M", "3M", "6M", "YTD", "FY"];
 
 const REPORT_LINKS: { icon: string; label: string; sub: string; route: string }[] = [
-  { icon: "chart.bar.fill",  label: "Income vs expenses",  sub: "Monthly comparison",       route: "/income-vs-expenses" },
   { icon: "checkmark",       label: "Tax savings",          sub: "Year-to-date breakdown",   route: "/tax-summary"        },
   { icon: "list.bullet",     label: "Category breakdown",   sub: "Where your money goes",    route: "/category-breakdown" },
   { icon: "doc.text.fill",   label: "VAT summary",          sub: "Input vs output VAT",      route: "/vat-summary"        },
@@ -47,12 +46,19 @@ const fmtShort = (n: number) => {
   return `R ${n.toFixed(0)}`;
 };
 
-function getDaysToDeadline(activeTaxYear: string): number {
-  const match = activeTaxYear.match(/\d{4}\/(\d{2})/);
-  const endYear = match ? 2000 + parseInt(match[1], 10) : new Date().getFullYear();
-  const deadline = new Date(endYear, 9, 23); // Oct 23 — SARS non-provisional filing deadline
+// Days to the NEXT real SARS non-provisional deadline — independent of
+// which tax year is selected in the picker. Previously derived from the
+// selected activeTaxYear's own end year, so viewing the still-open current
+// tax year showed a deadline over a year away instead of the one that's
+// actually imminent right now for whichever year is in its filing window.
+function getDaysToDeadline(): number {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+  const thisCalendarYearDeadline = new Date(today.getFullYear(), 9, 23); // Oct 23
+  const deadline =
+    today > thisCalendarYearDeadline
+      ? new Date(today.getFullYear() + 1, 9, 23)
+      : thisCalendarYearDeadline;
   return Math.ceil((deadline.getTime() - today.getTime()) / 86400000);
 }
 
@@ -306,7 +312,7 @@ export default function ReportsTabScreen() {
     }
   })();
 
-  const daysToDeadline = getDaysToDeadline(activeTaxYear);
+  const daysToDeadline = getDaysToDeadline();
   const hasChartData = periodMonths.some((m) => m.income > 0 || m.expense > 0);
 
   // Routes to the summary if an estimate already exists for this tax year,

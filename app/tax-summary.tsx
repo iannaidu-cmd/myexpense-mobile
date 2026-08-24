@@ -162,13 +162,27 @@ export default function TaxSummaryScreen() {
     router.push((existing ? "/tax-liability-summary" : "/tax-liability-inputs") as any);
   };
 
-  // Days to SARS non-provisional filing deadline, derived from the active tax year
+  // Deadline for the tax year being VIEWED (used by the Key Dates card below)
+  // — always that year's own future deadline, even while it's still open.
   const deadlineYear = parseInt(activeTaxYear.split("/")[0]) + 1;
   const deadlineDate = new Date(deadlineYear, 9, 23); // Oct 23 of the second year
   const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // Days to the NEXT real SARS non-provisional deadline — independent of
+  // which tax year is selected above. Previously reused deadlineDate, so
+  // viewing the still-open current tax year showed "425 days" (that year's
+  // own eventual deadline, over a year away) instead of the deadline that's
+  // actually imminent right now for whichever year is currently in its
+  // filing window.
+  const thisCalendarYearDeadline = new Date(today.getFullYear(), 9, 23);
+  const nextDeadline =
+    today > thisCalendarYearDeadline
+      ? new Date(today.getFullYear() + 1, 9, 23)
+      : thisCalendarYearDeadline;
   const daysToDeadline = Math.max(
     0,
-    Math.ceil((deadlineDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)),
+    Math.ceil((nextDeadline.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)),
   );
 
   // SARS key dates for the tax year being viewed — derived the same way as
