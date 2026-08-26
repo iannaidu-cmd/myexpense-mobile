@@ -63,13 +63,18 @@ export async function saveBiometricSession(
   accessToken: string,
   refreshToken: string,
 ): Promise<void> {
-  const session = JSON.stringify({
-    email,
-    accessToken,
-    refreshToken,
-    savedAt: Date.now(),
-  });
-  await SecureStore.setItemAsync(SESSION_KEY, session);
+  try {
+    const session = JSON.stringify({
+      email,
+      accessToken,
+      refreshToken,
+      savedAt: Date.now(),
+    });
+    await SecureStore.setItemAsync(SESSION_KEY, session);
+  } catch {
+    // Biometric login is an optional convenience — losing it must never
+    // break the sign-in flow that just succeeded.
+  }
 }
 
 // ─── Retrieve stored session ──────────────────────────────────────────────────

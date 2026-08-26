@@ -1,3 +1,4 @@
+import * as AppleAuthentication from "expo-apple-authentication";
 import { supabase } from "@/lib/supabase";
 import {
   authenticateWithBiometrics,
@@ -183,6 +184,7 @@ export function SigninScreen() {
   const [biometricAvailable, setBiometricAvailable] = useState(false);
   const [biometricEnabled, setBiometricEnabledState] = useState(false);
   const [biometricLabel, setBiometricLabel] = useState("Biometrics");
+  const [appleAvailable, setAppleAvailable] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -197,6 +199,9 @@ export function SigninScreen() {
         if (stored) handleBiometricLogin(true);
       }
     })();
+    if (Platform.OS === "ios") {
+      AppleAuthentication.isAvailableAsync().then(setAppleAvailable).catch(() => setAppleAvailable(false));
+    }
   }, []);
 
   const handleBiometricLogin = async (auto = false) => {
@@ -234,6 +239,16 @@ export function SigninScreen() {
     setLoading(true);
     try {
       await signIn(email, password);
+    } catch {
+      setErrors({ password: "Invalid email or password. Please try again." });
+      setLoading(false);
+      return;
+    }
+
+    // Sign-in succeeded — biometric enrollment is a nice-to-have from here on.
+    // A failure in this block (e.g. secure storage unavailable) must never be
+    // reported as a credentials error, since the user is already signed in.
+    try {
       const available = await isBiometricAvailable();
       const alreadyEnabled = await isBiometricEnabled();
       if (available) {
@@ -249,7 +264,7 @@ export function SigninScreen() {
         router.replace("/(tabs)");
       }
     } catch {
-      setErrors({ password: "Invalid email or password. Please try again." });
+      router.replace("/(tabs)");
     } finally {
       setLoading(false);
     }
@@ -388,7 +403,7 @@ export function SigninScreen() {
 
             {/* Social buttons */}
             <View style={{ flexDirection: "row", justifyContent: "center", gap: 16 }}>
-              {Platform.OS === "ios" && (
+              {Platform.OS === "ios" && appleAvailable && (
                 <SocialButton label="Apple" icon={<AppleLogo />} onPress={handleAppleSignIn} loading={appleLoading} disabled={socialDisabled} />
               )}
               <SocialButton label="Google" icon={<GoogleLogo />} onPress={handleGoogleSignIn} loading={googleLoading} disabled={socialDisabled} />
