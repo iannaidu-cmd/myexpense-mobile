@@ -1,10 +1,11 @@
+import * as AppleAuthentication from "expo-apple-authentication";
 import { signInWithApple } from "@/services/appleAuthService";
 import { signInWithFacebook } from "@/services/facebookAuthService";
 import { signInWithGoogle } from "@/services/googleAuthService";
 import { useAuthStore } from "@/stores/authStore";
 import { colour, radius } from "@/tokens";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -173,7 +174,14 @@ export function SignupScreen() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [fbLoading, setFbLoading] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
+  const [appleAvailable, setAppleAvailable] = useState(false);
   const [errors, setErrors] = useState<{ name?: string; email?: string; password?: string }>({});
+
+  useEffect(() => {
+    if (Platform.OS === "ios") {
+      AppleAuthentication.isAvailableAsync().then(setAppleAvailable).catch(() => setAppleAvailable(false));
+    }
+  }, []);
 
   const handleSubmit = async () => {
     const e: typeof errors = {};
@@ -342,7 +350,7 @@ export function SignupScreen() {
 
             {/* Social buttons */}
             <View style={{ flexDirection: "row", justifyContent: "center", gap: 16 }}>
-              {Platform.OS === "ios" && (
+              {Platform.OS === "ios" && appleAvailable && (
                 <SocialButton label="Apple" icon={<AppleLogo />} onPress={handleAppleSignIn} loading={appleLoading} disabled={!agreed || socialDisabled} />
               )}
               <SocialButton label="Google" icon={<GoogleLogo />} onPress={handleGoogleSignIn} loading={googleLoading} disabled={!agreed || socialDisabled} />

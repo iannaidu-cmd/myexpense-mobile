@@ -43,15 +43,22 @@ export async function signInWithApple(): Promise<{ success: boolean; error?: str
     if (error) return { success: false, error: error.message };
 
     // Apple only provides fullName on the very first sign-in — store it immediately.
+    // This is best-effort: the user is already signed in at this point, so a
+    // failure here (e.g. a network blip) must never be reported as a sign-in
+    // failure — that would strand an authenticated user on the sign-in screen.
     if (data.user && credential.fullName) {
       const fullName = [credential.fullName.givenName, credential.fullName.familyName]
         .filter(Boolean)
         .join(" ");
       if (fullName) {
-        await supabase
-          .from("profiles")
-          .upsert({ id: data.user.id, full_name: fullName })
-          .eq("id", data.user.id);
+        try {
+          await supabase
+            .from("profiles")
+            .upsert({ id: data.user.id, full_name: fullName })
+            .eq("id", data.user.id);
+        } catch {
+          // Non-critical — the name can be backfilled later. Sign-in already succeeded.
+        }
       }
     }
 
