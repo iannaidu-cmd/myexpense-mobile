@@ -15,7 +15,7 @@ const config = {
     supportsTablet: true,
     requiresFullScreen: true,
     bundleIdentifier: "co.za.myexpense",
-    buildNumber: "72",
+    buildNumber: "73",
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false,
       NSCameraUsageDescription:
@@ -28,6 +28,10 @@ const config = {
         "MyExpense records the GPS coordinates of your trip's start and end points when you start and stop mileage tracking, so it can calculate the distance travelled for your SARS business mileage deduction. Location is only recorded while you are actively tracking a trip.",
       UIBackgroundModes: ["remote-notification"],
       LSApplicationQueriesSchemes: ["myexpense"],
+      // Overrides Expo's default (['armv7'], a legacy 32-bit requirement).
+      // That stale value is a known cause of "will not install on the
+      // device used in review" rejections on newer Apple Silicon devices.
+      UIRequiredDeviceCapabilities: ["arm64"],
     },
   },
   android: {
