@@ -429,9 +429,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   // ── Reset Password (sends email) ──────────────────────────────────────────
+  // redirectTo points at the website, not the myexpense:// scheme directly —
+  // recovery links carry the session as access_token/refresh_token (Supabase's
+  // /verify endpoint always issues these for type=recovery, not a PKCE code),
+  // so a plain custom-scheme link can't be opened from a desktop mail client
+  // at all. The website's /auth/reset-password page detects mobile and hands
+  // off to the app, or falls back to an in-browser reset form otherwise.
   resetPassword: async (email) => {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: "myexpense://reset-password",
+      redirectTo: "https://www.myexpense.co.za/auth/reset-password",
     });
     if (error) throw new Error(error.message);
   },

@@ -141,8 +141,15 @@ function AuthGate() {
     const inProfileSetup = segments[0] === "profile-setup";
     const inOnboarding = segments[0] === "onboarding-step-1";
     const inLegal = segments[0] === "terms" || segments[0] === "privacy";
+    // Deep-linked from the reset-password email: stays reachable regardless of
+    // auth state. Establishing a session there is what proves the recovery
+    // link is valid, so it can't require being signed in first — and once
+    // that session lands, the screen must NOT get swept into the "user is
+    // authenticated, bounce to tabs" branch below like sign-in/sign-up do,
+    // or the password form disappears before the user can submit it.
+    const inResetPassword = segments[0] === "reset-password";
 
-    if (!user && !inAuthGroup && !inOnboarding && !inLegal && !inProfileSetup) {
+    if (!user && !inAuthGroup && !inOnboarding && !inLegal && !inProfileSetup && !inResetPassword) {
       router.replace("/onboarding-step-1");
     } else if (user && (inAuthGroup || inOnboarding)) {
       router.replace("/(tabs)");

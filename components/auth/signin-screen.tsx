@@ -352,7 +352,7 @@ export function SigninScreen() {
                   onTrailingPress={() => setShowPassword(s => !s)}
                   error={errors.password}
                 />
-                <TouchableOpacity onPress={() => router.push("/forgot-password")} activeOpacity={0.7} style={{ alignSelf: "flex-end" }}>
+                <TouchableOpacity onPress={() => router.push({ pathname: "/forgot-password", params: email ? { email } : undefined })} activeOpacity={0.7} style={{ alignSelf: "flex-end" }}>
                   <Text style={{ fontSize: 13, fontWeight: "600", color: colour.primary }}>Forgot your password?</Text>
                 </TouchableOpacity>
               </View>
