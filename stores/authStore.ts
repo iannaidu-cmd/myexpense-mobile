@@ -428,18 +428,39 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     });
   },
 
-  // ── Reset Password (sends email) ──────────────────────────────────────────
-  // redirectTo points at the website, not the myexpense:// scheme directly —
-  // recovery links carry the session as access_token/refresh_token (Supabase's
-  // /verify endpoint always issues these for type=recovery, not a PKCE code),
-  // so a plain custom-scheme link can't be opened from a desktop mail client
-  // at all. The website's /auth/reset-password page detects mobile and hands
-  // off to the app, or falls back to an in-browser reset form otherwise.
+  // ── Reset Password (sends email) ────────────────────────────────────────
+  // Deliberately bypasses supabase.auth.resetPasswordForEmail(): the client
+  // is configured flowType: "pkce", so the SDK attaches a code_challenge to
+  // every email-link request, including this one. A PKCE code can only be
+  // redeemed by whoever holds the matching code_verifier — which lives only
+  // in this exact app install's AsyncStorage — so a link opened on another
+  // device or in a browser can never complete the exchange. A raw request to
+  // /auth/v1/recover with no code_challenge makes GoTrue fall back to
+  // issuing a real access_token/refresh_token pair directly on redirect —
+  // self-contained bearer tokens any client can redeem, which is what makes
+  // the website's cross-device/desktop reset form possible at all.
   resetPassword: async (email) => {
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: "https://www.myexpense.co.za/auth/reset-password",
-    });
-    if (error) throw new Error(error.message);
+    const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!;
+    const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
+    const redirectTo = "https://www.myexpense.co.za/auth/reset-password";
+    const response = await fetch(
+      `${supabaseUrl}/auth/v1/recover?redirect_to=${encodeURIComponent(redirectTo)}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: anonKey,
+          Authorization: `Bearer ${anonKey}`,
+        },
+        body: JSON.stringify({ email }),
+      },
+    );
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({}));
+      throw new Error(
+        body.error_description ?? body.msg ?? body.error ?? "Failed to send reset email.",
+      );
+    }
   },
 
   // ── Update Password (after reset) ────────────────────────────────────────
