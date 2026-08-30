@@ -20,7 +20,10 @@ import {
 export default function ResetPasswordScreen() {
   const router = useRouter();
   const { updatePassword } = useAuthStore();
-  const { code } = useLocalSearchParams<{ code?: string }>();
+  const { access_token, refresh_token } = useLocalSearchParams<{
+    access_token?: string;
+    refresh_token?: string;
+  }>();
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [showPass, setShowPass] = useState(false);
@@ -28,16 +31,20 @@ export default function ResetPasswordScreen() {
   const [done, setDone] = useState(false);
   const [error, setError] = useState("");
 
-  // Exchange the PKCE recovery code from the deep-link for a Supabase session.
-  // Without this the updateUser call below has no auth context.
+  // Establish a Supabase session from the recovery tokens forwarded by the
+  // website's /auth/reset-password handoff (Supabase issues these directly
+  // for type=recovery — there's no PKCE code to exchange here). Without this
+  // the updateUser call below has no auth context.
   useEffect(() => {
-    if (!code) return;
+    if (!access_token || !refresh_token) return;
     supabase.auth
-      .exchangeCodeForSession(`myexpense://reset-password?code=${code}`)
-      .catch(() => {
-        setError("Reset link is invalid or has expired. Please request a new one.");
+      .setSession({ access_token, refresh_token })
+      .then(({ error: sessionError }) => {
+        if (sessionError) {
+          setError("Reset link is invalid or has expired. Please request a new one.");
+        }
       });
-  }, [code]);
+  }, [access_token, refresh_token]);
 
   const rules = [
     { label: "At least 8 characters", pass: password.length >= 8 },

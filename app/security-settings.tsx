@@ -244,7 +244,7 @@ export default function SecuritySettingsScreen() {
   };
 
   const handleChangePassword = () => {
-    router.push("/forgot-password");
+    router.push({ pathname: "/forgot-password", params: user?.email ? { email: user.email } : undefined });
   };
 
   const handleSignOutAllDevices = () => setShowSignOutAllConfirm(true);

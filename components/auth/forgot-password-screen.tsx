@@ -1,6 +1,7 @@
+import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useAuthStore } from "@/stores/authStore";
 import { colour, radius, space, typography } from "@/tokens";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
@@ -17,8 +18,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 export function ForgotPasswordScreen() {
   const router = useRouter();
   const { resetPassword } = useAuthStore();
+  const { email: prefilledEmail } = useLocalSearchParams<{ email?: string }>();
 
-  const [email, setEmail]     = useState("");
+  const [email, setEmail]     = useState(prefilledEmail ?? "");
   const [loading, setLoading] = useState(false);
   const [emailError, setEmailError] = useState("");
   const [sent, setSent]       = useState(false);
@@ -52,7 +54,7 @@ export function ForgotPasswordScreen() {
 
           {/* Icon */}
           <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: colour.primary50, alignItems: "center", justifyContent: "center", marginBottom: space.xl }}>
-            <Text style={{ fontSize: 32 }}>✉️</Text>
+            <IconSymbol name="envelope.fill" size={32} color={colour.primary} />
           </View>
 
           <Text style={{ ...typography.h2, fontWeight: "800", color: colour.text, marginBottom: space.sm }}>
