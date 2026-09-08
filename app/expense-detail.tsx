@@ -506,7 +506,10 @@ export default function ExpenseDetailScreen() {
             if (hasReceipt && storagePath) {
               setViewerVisible(true);
             } else {
-              router.push("/scan-receipt-camera" as any);
+              router.push({
+                pathname: "/scan-receipt-camera",
+                params: { expenseId: expense.id },
+              } as any);
             }
           }}
           style={{

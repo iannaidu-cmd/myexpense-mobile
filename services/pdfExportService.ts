@@ -83,7 +83,6 @@ function buildHTML(opts: {
     { amount: number; code: string; count: number }
   >;
   expenses: Expense[];
-  includeReceipts: boolean;
   includeVAT: boolean;
   includePersonal: boolean;
   summaryOnly: boolean;
@@ -487,9 +486,7 @@ function buildHTML(opts: {
 export interface PDFExportOptions {
   userId: string;
   taxYear: string;
-  includeReceipts?: boolean;
   includeVAT?: boolean;
-  includeTravel?: boolean;
   includePersonal?: boolean;
   summaryOnly?: boolean;
 }
@@ -498,7 +495,6 @@ export async function generateITR12PDF(opts: PDFExportOptions): Promise<void> {
   const {
     userId,
     taxYear,
-    includeReceipts = true,
     includeVAT = false,
     includePersonal = false,
     summaryOnly = false,
@@ -551,7 +547,6 @@ export async function generateITR12PDF(opts: PDFExportOptions): Promise<void> {
     totalVAT,
     categoryBreakdown,
     expenses,
-    includeReceipts,
     includeVAT,
     includePersonal,
     summaryOnly,

@@ -66,6 +66,27 @@ export const expenseService = {
     return result;
   },
 
+  // ── Get expenses with a receipt attached, within a date range ────────────
+  // Used by the bulk receipt export (ZIP) — deliberately NOT cached since
+  // date ranges are arbitrary and user-chosen, unlike the fixed tax-year keys above.
+  getExpensesWithReceiptsInRange: async (
+    userId: string,
+    startDate: string,
+    endDate: string,
+  ): Promise<Expense[]> => {
+    const { data, error } = await supabase
+      .from("expenses")
+      .select("*")
+      .eq("user_id", userId)
+      .not("storage_path", "is", null)
+      .gte("expense_date", startDate)
+      .lte("expense_date", endDate)
+      .order("expense_date", { ascending: true });
+
+    if (error) throw new Error(error.message);
+    return (data ?? []) as Expense[];
+  },
+
   // ── Get a single expense by id ────────────────────────────────────────────
   getExpenseById: async (id: string): Promise<Expense> => {
     const { data, error } = await supabase
