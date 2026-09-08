@@ -120,9 +120,7 @@ export default function ITR12ExportSetupScreen() {
   const [receiptCount,    setReceiptCount]    = useState(0);
   const [categoryCount,   setCategoryCount]   = useState(0);
   const [taxYear,         setTaxYear]         = useState(() => activeTaxYear);
-  const [includeReceipts, setIncludeReceipts] = useState(true);
   const [includeVAT,      setIncludeVAT]      = useState(false);
-  const [includeTravel,   setIncludeTravel]   = useState(true);
   const [includePersonal, setIncludePersonal] = useState(false);
   const [summaryOnly,     setSummaryOnly]     = useState(false);
   const [format,          setFormat]          = useState<FormatKey>("pdf");
@@ -183,7 +181,6 @@ export default function ITR12ExportSetupScreen() {
         await generateITR12PDF({
           userId: user.id,
           taxYear,
-          includeReceipts,
           includeVAT,
           includePersonal,
           summaryOnly,
@@ -402,22 +399,10 @@ export default function ITR12ExportSetupScreen() {
               }}
             >
               <ToggleRow
-                label="Receipt Images"
-                sub="Attach scanned receipts as evidence"
-                value={includeReceipts}
-                onToggle={() => setIncludeReceipts((v) => !v)}
-              />
-              <ToggleRow
                 label="VAT Details"
                 sub="Include VAT amounts and supplier VAT numbers"
                 value={includeVAT}
                 onToggle={() => setIncludeVAT((v) => !v)}
-              />
-              <ToggleRow
-                label="Travel Log"
-                sub="Odometer records and trip log"
-                value={includeTravel}
-                onToggle={() => setIncludeTravel((v) => !v)}
               />
               <ToggleRow
                 label="Personal Expenses"
@@ -460,10 +445,7 @@ export default function ITR12ExportSetupScreen() {
                 { label: "Format",                   value: FORMATS.find((f) => f.key === format)?.label ?? "" },
                 { label: "Total Allowable Deductions", value: fmt(totalDeductions) },
                 { label: "Categories",               value: `${categoryCount} deductible` },
-                {
-                  label: "Receipts",
-                  value: includeReceipts ? `${receiptCount} attached` : "Not included",
-                },
+                { label: "Receipts", value: `${receiptCount} attached` },
                 {
                   label: `Est. Tax Saving (${Math.round(getMarginalRate(totalIncome) * 100)}% marginal)`,
                   value: fmt(Math.round(totalDeductions * getMarginalRate(totalIncome))),

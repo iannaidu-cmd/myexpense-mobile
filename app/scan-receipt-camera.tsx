@@ -3,6 +3,8 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { FREE_SCAN_LIMIT, scanAllowanceNoticeKey } from "@/constants/freeTier";
 import { supabase } from "@/lib/supabase";
 import { receiptState } from "@/lib/receiptState";
+import { expenseService } from "@/services/expenseService";
+import { cancelReceiptReminder } from "@/services/notificationService";
 import { receiptService } from "@/services/receiptService";
 import { useAuthStore } from "@/stores/authStore";
 import { colour } from "@/tokens";
@@ -12,7 +14,7 @@ import * as Haptics from "expo-haptics";
 import * as ImageManipulator from "expo-image-manipulator";
 import * as ImagePicker from "expo-image-picker";
 import { useIsFocused } from "@react-navigation/native";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
     ActivityIndicator,
@@ -88,6 +90,7 @@ const toBase64 = async (uri: string): Promise<string> => {
 
 export default function ScanReceiptCameraScreen() {
   const router = useRouter();
+  const { expenseId } = useLocalSearchParams<{ expenseId?: string }>();
   const { user, isPremium, isInitialised, refreshPremiumStatus } = useAuthStore();
   const isFocused = useIsFocused();
   const { width: screenWidth } = useWindowDimensions();
@@ -190,12 +193,26 @@ export default function ScanReceiptCameraScreen() {
       // Insert receipt record (non-fatal if it fails — upload succeeded)
       const { error: insertError } = await supabase.from("receipts").insert({
         user_id: userId,
+        expense_id: expenseId ?? null,
         storage_path: storagePath,
         file_name: fileName,
-        ocr_status: "pending",
+        // Attaching to an existing expense skips OCR entirely (see below), so
+        // there's no further processing to do — "done" rather than "pending".
+        ocr_status: expenseId ? "done" : "pending",
       });
       if (insertError) {
         console.warn("Receipt record insert failed (non-fatal):", insertError.message);
+      }
+
+      // Attaching a receipt to an already-created expense (from the "add
+      // receipt" action on expense-detail) — link the image directly and
+      // skip OCR, since the expense's vendor/amount/date are already set
+      // and shouldn't be silently overwritten by an OCR guess.
+      if (expenseId) {
+        await expenseService.updateExpense({ id: expenseId, storage_path: storagePath });
+        await cancelReceiptReminder(expenseId).catch(() => {});
+        router.replace({ pathname: "/expense-detail", params: { id: expenseId } } as any);
+        return;
       }
 
       // Resize image and convert to base64 for OCR
@@ -206,17 +223,21 @@ export default function ScanReceiptCameraScreen() {
       router.push("/scan-receipt-processing" as any);
     } catch (e: any) {
       console.error("Upload error:", e.message);
-      Alert.alert(
-        "Upload failed",
-        "Could not upload receipt. You can still add the expense manually.",
-        [
-          {
-            text: "Add manually",
-            onPress: () => router.push("/(tabs)/add-expense" as any),
-          },
-          { text: "Try again", style: "cancel" },
-        ],
-      );
+      if (expenseId) {
+        Alert.alert("Upload failed", "Could not upload receipt. Please try again.");
+      } else {
+        Alert.alert(
+          "Upload failed",
+          "Could not upload receipt. You can still add the expense manually.",
+          [
+            {
+              text: "Add manually",
+              onPress: () => router.push("/(tabs)/add-expense" as any),
+            },
+            { text: "Try again", style: "cancel" },
+          ],
+        );
+      }
     } finally {
       setUploading(false);
     }
@@ -580,27 +601,33 @@ export default function ScanReceiptCameraScreen() {
               width: "100%",
             }}
           >
-            <TouchableOpacity
-              onPress={() => router.push("/(tabs)/add-expense" as any)}
-              style={{ alignItems: "center" }}
-            >
-              <View
-                style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: 12,
-                  backgroundColor: "rgba(255,255,255,0.15)",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  marginBottom: 4,
-                }}
+            {expenseId ? (
+              // Attaching to an existing expense — nothing to "manually add",
+              // just a same-sized spacer to keep the capture button centred.
+              <View style={{ width: 44 }} />
+            ) : (
+              <TouchableOpacity
+                onPress={() => router.push("/(tabs)/add-expense" as any)}
+                style={{ alignItems: "center" }}
               >
-                <IconSymbol name="pencil" size={20} color="#fff" />
-              </View>
-              <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 10 }}>
-                Manual
-              </Text>
-            </TouchableOpacity>
+                <View
+                  style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: 12,
+                    backgroundColor: "rgba(255,255,255,0.15)",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    marginBottom: 4,
+                  }}
+                >
+                  <IconSymbol name="pencil" size={20} color="#fff" />
+                </View>
+                <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 10 }}>
+                  Manual
+                </Text>
+              </TouchableOpacity>
+            )}
 
             <TouchableOpacity
               onPress={handleCapture}

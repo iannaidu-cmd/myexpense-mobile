@@ -224,23 +224,6 @@ export async function cancelReceiptReminder(expenseId: string): Promise<void> {
   await Notifications.cancelScheduledNotificationAsync(`receipt-${expenseId}`);
 }
 
-export async function scheduleSubscriptionReminder(renewalDate: Date): Promise<void> {
-  const reminderDate = new Date(renewalDate.getTime() - 3 * 24 * 60 * 60 * 1000); // 3 days before
-  if (reminderDate > new Date()) {
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title: "MyExpense subscription renewing soon",
-        body: "Your premium subscription renews in 3 days.",
-        data: { route: "/(tabs)/settings" },
-      },
-      trigger: {
-        type: Notifications.SchedulableTriggerInputTypes.DATE,
-        date: reminderDate,
-      },
-    });
-  }
-}
-
 export function setupNotificationResponseHandler(
   onNavigate: (route: string) => void,
 ): { remove: () => void } {

@@ -677,6 +677,37 @@ export default function ReportsTabScreen() {
                 <IconSymbol name="chevron.right" size={14} color={colour.white} />
               </View>
             </TouchableOpacity>
+
+            {/* ── 7. Export Receipts CTA ──────────────────────────────────── */}
+            <TouchableOpacity
+              onPress={() => router.push("/export-receipts" as any)}
+              activeOpacity={0.85}
+              style={{
+                backgroundColor: colour.white,
+                borderRadius: radius.lg,
+                padding: 16, paddingHorizontal: 18,
+                flexDirection: "row", alignItems: "center", gap: 14,
+                borderWidth: 1, borderColor: colour.borderLight,
+                marginTop: space.sm,
+              }}
+            >
+              <View style={{
+                width: 42, height: 42, borderRadius: 12,
+                backgroundColor: colour.surface1,
+                alignItems: "center", justifyContent: "center",
+              }}>
+                <IconSymbol name="doc.zipper" size={20} color={colour.primary} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 15, fontWeight: "700", color: colour.text, letterSpacing: -0.3 }}>
+                  Export receipts
+                </Text>
+                <Text style={{ fontSize: 11, color: colour.textSub, marginTop: 2 }}>
+                  ZIP of receipt images for a date range — proof for SARS
+                </Text>
+              </View>
+              <IconSymbol name="chevron.right" size={14} color={colour.textSub} />
+            </TouchableOpacity>
           </>
         )}
       </ScrollView>

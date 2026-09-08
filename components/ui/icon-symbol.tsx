@@ -98,6 +98,7 @@ const MAPPING = {
   "chevron.up": "keyboard-arrow-up",
   "crown.fill": "workspace-premium",
   "book.fill": "menu-book",
+  "doc.zipper": "folder-zip",
 } as unknown as IconMapping;
 
 /**
