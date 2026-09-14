@@ -1,6 +1,7 @@
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { MXHeader } from "@/components/MXHeader";
 import { expenseService } from "@/services/expenseService";
+import { profileService } from "@/services/profileService";
 import { useAuthStore } from "@/stores/authStore";
 import { useExpenseStore } from "@/stores/expenseStore";
 import { useTaxStore } from "@/stores/taxStore";
@@ -95,8 +96,10 @@ export default function TaxYearSelectorScreen() {
     }
     setLoadingTotals(true);
     try {
+      const profile = await profileService.getProfile(user.id);
+      const vatRegistered = profile?.vat_registered ?? false;
       const results = await Promise.all(
-        TAX_YEARS.map((y) => expenseService.getTotals(user.id, y.label)),
+        TAX_YEARS.map((y) => expenseService.getTotals(user.id, y.label, vatRegistered)),
       );
       const map: Record<string, { expenses: number; claimable: number }> = {};
       TAX_YEARS.forEach((y, i) => {

@@ -7,6 +7,7 @@ import { exportExpensesCSV } from "@/services/csvExportService";
 import { expenseService } from "@/services/expenseService";
 import { incomeService } from "@/services/incomeService";
 import { countItr12ExportsThisMonth, logItr12Export } from "@/services/itr12ExportService";
+import { profileService } from "@/services/profileService";
 import { generateITR12PDF } from "@/services/pdfExportService";
 import { getMarginalRate } from "@/lib/taxRules";
 import { useAuthStore } from "@/stores/authStore";
@@ -134,10 +135,12 @@ export default function ITR12ExportSetupScreen() {
       setTimeout(() => reject(new Error("Request timed out")), 20_000),
     );
     try {
+      const profile = await profileService.getProfile(user.id);
+      const vatRegistered = profile?.vat_registered ?? false;
       const [totals, byCategory, expenses, incomeTotals] = await Promise.race([
         Promise.all([
-          expenseService.getTotals(user.id, taxYear),
-          expenseService.getByCategory(user.id, taxYear),
+          expenseService.getTotals(user.id, taxYear, vatRegistered),
+          expenseService.getByCategory(user.id, taxYear, vatRegistered),
           expenseService.getExpenses(user.id, taxYear),
           incomeService.getTotals(user.id, taxYear),
         ]),

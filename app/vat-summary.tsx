@@ -5,6 +5,7 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { VAT_RATE } from "@/lib/taxRules";
 import { expenseService } from "@/services/expenseService";
 import { incomeService } from "@/services/incomeService";
+import { profileService } from "@/services/profileService";
 import { useAuthStore } from "@/stores/authStore";
 import { useExpenseStore } from "@/stores/expenseStore";
 import { colour, radius, space, typography } from "@/tokens";
@@ -50,6 +51,8 @@ export default function VATSummaryScreen() {
   const [expenses, setExpenses] = useState<any[]>([]);
   const [period, setPeriod] = useState<Period>("month");
   const [trailing12Revenue, setTrailing12Revenue] = useState(0);
+  const [vatRegistered, setVatRegistered] = useState(false);
+  const [vatNumber, setVatNumber] = useState<string | null>(null);
 
   const VAT_THRESHOLD = 1_000_000;
 
@@ -57,11 +60,14 @@ export default function VATSummaryScreen() {
     if (!user) { setLoading(false); return; }
     setLoading(true);
     try {
-      const [data, allIncome] = await Promise.all([
+      const [data, allIncome, profile] = await Promise.all([
         expenseService.getExpenses(user.id, activeTaxYear),
         incomeService.getIncome(user.id),
+        profileService.getProfile(user.id),
       ]);
       setExpenses(data.filter((e) => e.vat_amount && Number(e.vat_amount) > 0));
+      setVatRegistered(profile?.vat_registered ?? false);
+      setVatNumber(profile?.vat_number ?? null);
 
       // Rolling 12-month revenue for VAT threshold
       const cutoff = new Date();
@@ -101,10 +107,13 @@ export default function VATSummaryScreen() {
   });
 
   const totalVAT = filtered.reduce((s, e) => s + Number(e.vat_amount), 0);
-  const claimableVAT = filtered
-    .filter((e) => e.is_deductible)
-    .reduce((s, e) => s + Number(e.vat_amount), 0);
+  // Input tax can only be claimed back from SARS by a registered VAT vendor —
+  // an unregistered user's VAT is just a cost, regardless of is_deductible.
+  const claimableVAT = vatRegistered
+    ? filtered.filter((e) => e.is_deductible).reduce((s, e) => s + Number(e.vat_amount), 0)
+    : 0;
   const nonClaimable = totalVAT - claimableVAT;
+  const isEntryClaimable = (e: any) => vatRegistered && e.is_deductible;
 
   const handleExport = async () => {
     try {
@@ -126,7 +135,7 @@ export default function VATSummaryScreen() {
           csvField(Number(e.amount).toFixed(2)),
           csvField(Number(e.vat_amount).toFixed(2)),
           csvField(e.category),
-          csvField(e.is_deductible ? "Yes" : "No"),
+          csvField(isEntryClaimable(e) ? "Yes" : "No"),
         ].join(","),
       );
 
@@ -135,6 +144,9 @@ export default function VATSummaryScreen() {
         `Tax Year: ${activeTaxYear}`,
         `Period: ${periodLabel}`,
         `Generated: ${now.toLocaleDateString("en-ZA")}`,
+        vatRegistered
+          ? `VAT vendor status: Registered${vatNumber ? ` (${vatNumber})` : ""}`
+          : "VAT vendor status: Not registered — VAT below is a cost only, not claimable from SARS",
         "",
         header,
         ...rows,
@@ -164,7 +176,11 @@ export default function VATSummaryScreen() {
       <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
       <MXHeader
         title="VAT summary"
-        subtitle={`VAT at ${(VAT_RATE * 100).toFixed(0)}% · South Africa`}
+        subtitle={
+          vatRegistered
+            ? `VAT at ${(VAT_RATE * 100).toFixed(0)}% · Registered vendor${vatNumber ? ` · ${vatNumber}` : ""}`
+            : `VAT at ${(VAT_RATE * 100).toFixed(0)}% · Not registered`
+        }
         showBack
         backLabel="Reports"
       />
@@ -375,12 +391,21 @@ export default function VATSummaryScreen() {
               </View>
             )}
 
-            <InfoBanner
-              icon="percent"
-              title="Voluntary registration"
-              body="You may voluntarily register for VAT if your turnover exceeds R50,000 per year. VAT input claims only apply once you are a registered VAT vendor."
-              style={{ marginBottom: space.xl }}
-            />
+            {vatRegistered ? (
+              <InfoBanner
+                icon="checkmark.seal.fill"
+                title="Registered VAT vendor"
+                body={`You can claim input tax on qualifying business expenses above.${vatNumber ? ` VAT number: ${vatNumber}.` : ""} Update this in My Profile if it changes.`}
+                style={{ marginBottom: space.xl }}
+              />
+            ) : (
+              <InfoBanner
+                icon="percent"
+                title="Not VAT registered"
+                body="None of the VAT above is claimable from SARS while you're unregistered — it's shown here as a cost, not a refund. You may voluntarily register once your turnover exceeds R50,000 per year; it becomes compulsory above R1,000,000. Set your status in My Profile once registered."
+                style={{ marginBottom: space.xl }}
+              />
+            )}
 
             <Text
               style={{
@@ -452,7 +477,7 @@ export default function VATSummaryScreen() {
                     </Text>
                     <View
                       style={{
-                        backgroundColor: entry.is_deductible
+                        backgroundColor: isEntryClaimable(entry)
                           ? colour.successBg
                           : colour.dangerBg,
                         borderRadius: radius.full,
@@ -464,13 +489,13 @@ export default function VATSummaryScreen() {
                       <Text
                         style={{
                           ...typography.micro,
-                          color: entry.is_deductible
+                          color: isEntryClaimable(entry)
                             ? colour.success
                             : colour.danger,
                           fontWeight: "600",
                         }}
                       >
-                        {entry.is_deductible ? "Claimable" : "Not claimable"}
+                        {isEntryClaimable(entry) ? "Claimable" : "Not claimable"}
                       </Text>
                     </View>
                   </View>

@@ -3,6 +3,7 @@ import { MXTabBar } from "@/components/MXTabBar";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { expenseService } from "@/services/expenseService";
 import { incomeService } from "@/services/incomeService";
+import { profileService } from "@/services/profileService";
 import { taxLiabilityService } from "@/services/taxLiabilityService";
 import { useAuthStore } from "@/stores/authStore";
 import { useExpenseStore } from "@/stores/expenseStore";
@@ -290,13 +291,15 @@ export default function ReportsDashboardScreen() {
     if (!user) { setLoading(false); return; }
     setLoading(true);
     try {
+      const profile = await profileService.getProfile(user.id);
+      const vatRegistered = profile?.vat_registered ?? false;
       const [incomeTotals, expenseTotals, allExpenses, allIncome, byCategory, liabilityEstimate] =
         await Promise.all([
           incomeService.getTotals(user.id, activeTaxYear),
-          expenseService.getTotals(user.id, activeTaxYear),
+          expenseService.getTotals(user.id, activeTaxYear, vatRegistered),
           expenseService.getExpenses(user.id, activeTaxYear),
           incomeService.getIncome(user.id, activeTaxYear),
-          expenseService.getByCategory(user.id, activeTaxYear),
+          expenseService.getByCategory(user.id, activeTaxYear, vatRegistered),
           taxLiabilityService.getEstimate(user.id, activeTaxYear).catch(() => null),
         ]);
 

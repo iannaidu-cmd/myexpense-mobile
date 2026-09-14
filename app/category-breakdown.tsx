@@ -3,6 +3,7 @@ import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { expenseService } from "@/services/expenseService";
+import { profileService } from "@/services/profileService";
 import { taxLiabilityService } from "@/services/taxLiabilityService";
 import { useAuthStore } from "@/stores/authStore";
 import { useExpenseStore } from "@/stores/expenseStore";
@@ -122,9 +123,11 @@ export default function CategoryBreakdownScreen() {
     if (!user) { setLoading(false); return; }
     setLoading(true);
     try {
+      const profile = await profileService.getProfile(user.id);
+      const vatRegistered = profile?.vat_registered ?? false;
       const [byCategory, totals] = await Promise.all([
-        expenseService.getByCategory(user.id, activeTaxYear),
-        expenseService.getTotals(user.id, activeTaxYear),
+        expenseService.getByCategory(user.id, activeTaxYear, vatRegistered),
+        expenseService.getTotals(user.id, activeTaxYear, vatRegistered),
       ]);
       setBreakdown(byCategory);
       setTotalDeductions(totals.totalDeductions);

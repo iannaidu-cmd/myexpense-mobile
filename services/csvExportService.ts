@@ -4,6 +4,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { expenseService } from "@/services/expenseService";
+import { profileService } from "@/services/profileService";
 import type { Expense } from "@/types/database";
 import { ITR12_CATEGORIES } from "@/types/database";
 import { File, Paths } from "expo-file-system";
@@ -27,7 +28,10 @@ function getITR12Field(category: string): string {
 
 // ─── Core CSV generation ──────────────────────────────────────────────────────
 
-export function generateCSV(expenses: Expense[]): string {
+// `vatRegistered` mirrors the same rule as expenseService.getTotals: a
+// registered VAT vendor claims input VAT back separately via VAT201, so
+// their income-tax-deductible amount for ITR12 excludes vat_amount.
+export function generateCSV(expenses: Expense[], vatRegistered = false): string {
   // BOM for Excel to auto-detect UTF-8
   const BOM = "﻿";
 
@@ -38,6 +42,7 @@ export function generateCSV(expenses: Expense[]): string {
     "ITR12 Field (eFiling)",
     "Amount (ZAR)",
     "VAT Amount (ZAR)",
+    "Deductible Amount for ITR12 (ZAR)",
     "Deductible (Y/N)",
     "Notes",
     "Receipt Attached",
@@ -49,20 +54,26 @@ export function generateCSV(expenses: Expense[]): string {
       (a, b) =>
         new Date(b.expense_date).getTime() - new Date(a.expense_date).getTime(),
     )
-    .map((e) =>
-      [
+    .map((e) => {
+      const deductibleAmount = e.is_deductible
+        ? vatRegistered
+          ? Math.max(0, Number(e.amount) - Number(e.vat_amount ?? 0))
+          : Number(e.amount)
+        : 0;
+      return [
         csvField(e.expense_date),
         csvField(e.vendor),
         csvField(e.category),
         csvField(e.is_deductible ? getITR12Field(e.category) : "—"),
         csvField(Number(e.amount).toFixed(2)),
         csvField(e.vat_amount != null ? Number(e.vat_amount).toFixed(2) : ""),
+        csvField(deductibleAmount.toFixed(2)),
         csvField(e.is_deductible ? "Y" : "N"),
         csvField(e.notes),
         csvField(e.receipt_url ? "Y" : "N"),
         csvField(e.tax_year),
-      ].join(","),
-    );
+      ].join(",");
+    });
 
   return BOM + [HEADER, ...rows].join("\r\n");
 }
@@ -78,12 +89,15 @@ export interface CSVExportOptions {
 export async function exportExpensesCSV(opts: CSVExportOptions): Promise<void> {
   const { userId, taxYear, includePersonal = false } = opts;
 
-  const allExpenses = await expenseService.getExpenses(userId, taxYear);
+  const [allExpenses, profile] = await Promise.all([
+    expenseService.getExpenses(userId, taxYear),
+    profileService.getProfile(userId),
+  ]);
   const expenses = includePersonal
     ? allExpenses
     : allExpenses.filter((e) => e.is_deductible);
 
-  const csv = generateCSV(expenses);
+  const csv = generateCSV(expenses, profile?.vat_registered ?? false);
 
   const fileName = `MyExpense_ITR12_${taxYear.replace("/", "-")}_${Date.now()}.csv`;
   const file = new File(Paths.cache, fileName);

@@ -104,10 +104,11 @@ export default function TaxLiabilityInputsScreen() {
     setLoading(true);
     try {
       await loadIRP5();
-      const [profile, existing, breakdown] = await Promise.all([
-        profileService.getProfile(user.id),
+      const profile = await profileService.getProfile(user.id);
+      const vatRegistered = profile?.vat_registered ?? false;
+      const [existing, breakdown] = await Promise.all([
         taxLiabilityService.getEstimate(user.id, activeTaxYear),
-        expenseService.getByCategory(user.id, activeTaxYear),
+        expenseService.getByCategory(user.id, activeTaxYear, vatRegistered),
       ]);
 
       setDateOfBirth(profile?.date_of_birth ? isoToDisplayDate(profile.date_of_birth) : "");
@@ -218,7 +219,7 @@ export default function TaxLiabilityInputsScreen() {
     setSaving(true);
     try {
       const [expenseTotals, incomeTotals] = await Promise.all([
-        expenseService.getTotals(user.id, activeTaxYear),
+        expenseService.getTotals(user.id, activeTaxYear, vatRegistered),
         incomeService.getTotals(user.id, activeTaxYear),
         profileService.updateProfile(user.id, {
           date_of_birth: dobIso,
@@ -309,8 +310,9 @@ export default function TaxLiabilityInputsScreen() {
                     I am VAT registered
                   </Text>
                   <Text style={{ fontSize: 11, color: colour.textSub, marginTop: 2, lineHeight: 15 }}>
-                    This is also saved in My Profile. VAT is separate from income tax — it does not change the
-                    refund or bill estimate above, but SARS requires your VAT number on tax invoices once registered.
+                    This is also saved in My Profile. As a registered vendor you claim VAT back separately via
+                    VAT201, so your business expenses below are deducted excluding VAT — this changes the refund
+                    or bill estimate. SARS also requires your VAT number on tax invoices once registered.
                   </Text>
                 </View>
                 <Switch

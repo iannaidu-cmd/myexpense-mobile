@@ -81,10 +81,11 @@ export default function ITR12ExportPreviewScreen() {
     }
     setLoading(true);
     try {
-      const [prof, byCategory, totals, incomeTotals, liabilityEstimate] = await Promise.all([
-        profileService.getProfile(user.id),
-        expenseService.getByCategory(user.id, taxYear),
-        expenseService.getTotals(user.id, taxYear),
+      const prof = await profileService.getProfile(user.id);
+      const vatRegistered = prof?.vat_registered ?? false;
+      const [byCategory, totals, incomeTotals, liabilityEstimate] = await Promise.all([
+        expenseService.getByCategory(user.id, taxYear, vatRegistered),
+        expenseService.getTotals(user.id, taxYear, vatRegistered),
         incomeService.getTotals(user.id, taxYear),
         taxLiabilityService.getEstimate(user.id, taxYear).catch(() => null),
       ]);
@@ -133,15 +134,16 @@ export default function ITR12ExportPreviewScreen() {
         `Tax Year:        ${taxYear}`,
         `Return Type:     ITR12`,
         `Work Type:       ${profile?.work_type ?? "Sole Proprietor"}`,
+        `VAT Status:      ${profile?.vat_registered ? `Registered${profile?.vat_number ? ` (${profile.vat_number})` : ""}` : "Not registered"}`,
         "",
-        "ALLOWABLE DEDUCTIONS",
+        profile?.vat_registered ? "ALLOWABLE DEDUCTIONS (EXCL. VAT)" : "ALLOWABLE DEDUCTIONS",
         "─────────────────────",
         ...deductionRows.map(
           ([cat, amt]) =>
             `${(ITR12_FIELD[cat] ?? "Other Expenditure").padEnd(38)} ${fmt(amt)}`,
         ),
         "─────────────────────",
-        `${"TOTAL ALLOWABLE DEDUCTIONS".padEnd(38)} ${fmt(totalDeductions)}`,
+        `${(profile?.vat_registered ? "TOTAL ALLOWABLE DEDUCTIONS (EXCL. VAT)" : "TOTAL ALLOWABLE DEDUCTIONS").padEnd(38)} ${fmt(totalDeductions)}`,
         "",
         taxLiability
           ? `${(taxLiability.final_liability > 0 ? "AMOUNT OWING TO SARS" : "REFUND DUE").padEnd(38)} ${fmt(Math.abs(taxLiability.final_liability))}`
@@ -303,6 +305,12 @@ export default function ITR12ExportPreviewScreen() {
                   label: "Employment Type",
                   value: profile?.work_type ?? "Sole Proprietor",
                 },
+                {
+                  label: "VAT Status",
+                  value: profile?.vat_registered
+                    ? `Registered${profile?.vat_number ? ` (${profile.vat_number})` : ""}`
+                    : "Not registered",
+                },
               ].map((r, i) => (
                 <View
                   key={i}
@@ -345,7 +353,7 @@ export default function ITR12ExportPreviewScreen() {
                   marginBottom: 6,
                 }}
               >
-                Total Allowable Deductions
+                {profile?.vat_registered ? "Total Allowable Deductions (excl. VAT)" : "Total Allowable Deductions"}
               </Text>
               <Text
                 style={{
