@@ -15,6 +15,9 @@ export interface Profile {
   medical_aid_monthly: number | null;
   medical_aid_dependants: number;
   has_disability: boolean;
+  vat_registered: boolean;
+  /** SARS VAT registration number — 10 digits, only meaningful when vat_registered is true. */
+  vat_number: string | null;
   active_tax_year: string;
   subscription: "free" | "pro" | "business";
   is_dev_user: boolean;

@@ -101,6 +101,15 @@ export function validateDateOfBirth(value: string): string | null {
   return null;
 }
 
+// ── VAT registration number (SARS format: 10 digits, starts with 4) ───────────
+export function validateVATNumber(value: string): string | null {
+  const trimmed = value.trim();
+  if (!trimmed) return "VAT number is required.";
+  if (!/^4\d{9}$/.test(trimmed))
+    return "SARS VAT numbers are 10 digits starting with 4.";
+  return null;
+}
+
 // ── Vendor / text fields ──────────────────────────────────────────────────────
 export function validateVendor(value: string): string | null {
   const trimmed = value.trim();
