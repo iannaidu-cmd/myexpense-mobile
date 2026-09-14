@@ -21,6 +21,8 @@ export interface UpdateProfile {
   medical_aid_monthly?: number | null;
   medical_aid_dependants?: number;
   has_disability?: boolean;
+  vat_registered?: boolean;
+  vat_number?: string | null;
 }
 
 export const profileService = {
