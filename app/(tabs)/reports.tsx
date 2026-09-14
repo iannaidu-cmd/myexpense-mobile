@@ -3,6 +3,7 @@ import { MXHeader } from "@/components/MXHeader";
 import { expenseService } from "@/services/expenseService";
 import { incomeService } from "@/services/incomeService";
 import { mileageService } from "@/services/mileageService";
+import { profileService } from "@/services/profileService";
 import { taxLiabilityService } from "@/services/taxLiabilityService";
 import { useAuthStore } from "@/stores/authStore";
 import { useExpenseStore } from "@/stores/expenseStore";
@@ -188,13 +189,15 @@ export default function ReportsTabScreen() {
       isFetching.current = true;
       if (!silent) setLoading(true);
       try {
+        const profile = await profileService.getProfile(user.id);
+        const vatRegistered = profile?.vat_registered ?? false;
         const [expenseTotals, allExpenses, allIncome, mileageTrips, byCategory, liabilityEstimate] =
           await Promise.all([
-            expenseService.getTotals(user.id, activeTaxYear),
+            expenseService.getTotals(user.id, activeTaxYear, vatRegistered),
             expenseService.getExpenses(user.id, activeTaxYear),
             incomeService.getIncome(user.id, activeTaxYear),
             mileageService.getTrips(user.id, activeTaxYear),
-            expenseService.getByCategory(user.id, activeTaxYear),
+            expenseService.getByCategory(user.id, activeTaxYear, vatRegistered),
             taxLiabilityService.getEstimate(user.id, activeTaxYear).catch(() => null),
           ]);
 

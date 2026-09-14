@@ -72,6 +72,8 @@ function buildHTML(opts: {
     full_name: string | null;
     tax_number: string | null;
     work_type: string | null;
+    vat_registered: boolean;
+    vat_number: string | null;
   };
   taxYear: string;
   totalIncome: number;
@@ -196,9 +198,13 @@ function buildHTML(opts: {
   const vatSection = includeVAT
     ? `<div class="kpi-row">
         <div class="kpi-card">
-          <div class="kpi-label">Total VAT (Input Tax)</div>
+          <div class="kpi-label">Total VAT Paid</div>
           <div class="kpi-value" style="color:${CSS.vatBlue}">${fmtZAR(totalVAT)}</div>
-          <div class="kpi-sub">Potential VAT refund where registered</div>
+          <div class="kpi-sub">${
+            profile.vat_registered
+              ? "Claimable as input tax via VAT201 — already excluded from the income tax deductions above"
+              : "Not registered for VAT — this amount cannot be claimed back and is included in the deductions above"
+          }</div>
         </div>
       </div>`
     : "";
@@ -411,6 +417,10 @@ function buildHTML(opts: {
       <div class="taxpayer-label">Employment Type</div>
       <div class="taxpayer-value">${profile.work_type ?? "Sole Proprietor"}</div>
     </div>
+    <div class="taxpayer-field">
+      <div class="taxpayer-label">VAT Status</div>
+      <div class="taxpayer-value">${profile.vat_registered ? `Registered${profile.vat_number ? ` (${profile.vat_number})` : ""}` : "Not registered"}</div>
+    </div>
   </div>
 
   <div class="content">
@@ -430,7 +440,7 @@ function buildHTML(opts: {
       <div class="kpi-card">
         <div class="kpi-label">Total Deductions (S11)</div>
         <div class="kpi-value" style="color:${CSS.deductionGreen}">${fmtZAR(totalDeductions)}</div>
-        <div class="kpi-sub">Claimable under Section 11</div>
+        <div class="kpi-sub">${profile.vat_registered ? "Claimable under Section 11, excl. VAT (claimed separately via VAT201)" : "Claimable under Section 11"}</div>
       </div>
     </div>
 
@@ -441,7 +451,7 @@ function buildHTML(opts: {
     ${taxOutlookHTML}
 
     <!-- Deduction breakdown by category -->
-    <div class="section-title">SECTION 11 DEDUCTIONS BY CATEGORY</div>
+    <div class="section-title">SECTION 11 DEDUCTIONS BY CATEGORY${profile.vat_registered ? " (EXCL. VAT)" : ""}</div>
     <table>
       <thead>
         <tr>
@@ -500,16 +510,20 @@ export async function generateITR12PDF(opts: PDFExportOptions): Promise<void> {
     summaryOnly = false,
   } = opts;
 
-  // Fetch all data in parallel. The tax liability estimate is optional
+  // Profile is fetched first (cheap, 2-min cached) since the deduction
+  // totals below need to know vat_registered before they can be computed.
+  const profile = await profileService.getProfile(userId);
+  const vatRegistered = profile?.vat_registered ?? false;
+
+  // Fetch the rest in parallel. The tax liability estimate is optional
   // (most users won't have filled in the calculator yet) — a fetch failure
   // there shouldn't block the rest of the export, so it falls back to null.
-  const [profile, expenses, incomeTotals, expenseTotals, byCategory, taxLiabilityEstimate] =
+  const [expenses, incomeTotals, expenseTotals, byCategory, taxLiabilityEstimate] =
     await Promise.all([
-      profileService.getProfile(userId),
       expenseService.getExpenses(userId, taxYear),
       incomeService.getTotals(userId, taxYear),
-      expenseService.getTotals(userId, taxYear),
-      expenseService.getByCategory(userId, taxYear),
+      expenseService.getTotals(userId, taxYear, vatRegistered),
+      expenseService.getByCategory(userId, taxYear, vatRegistered),
       taxLiabilityService.getEstimate(userId, taxYear).catch(() => null),
     ]);
 
@@ -539,6 +553,8 @@ export async function generateITR12PDF(opts: PDFExportOptions): Promise<void> {
       full_name: profile?.full_name ?? null,
       tax_number: profile?.tax_number ?? null,
       work_type: profile?.work_type ?? null,
+      vat_registered: vatRegistered,
+      vat_number: profile?.vat_number ?? null,
     },
     taxYear,
     totalIncome: incomeTotals.totalIncome,

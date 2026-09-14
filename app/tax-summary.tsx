@@ -96,19 +96,21 @@ export default function TaxSummaryScreen() {
   const [medicalAidDependants, setMedicalAidDependants] = useState(0);
   const [medicalAidMonthly, setMedicalAidMonthly] = useState(0);
   const [hasDisability, setHasDisability] = useState(false);
+  const [vatRegistered, setVatRegistered] = useState(false);
   const [taxLiability, setTaxLiability] = useState<TaxLiabilityEstimate | null>(null);
 
   const loadData = useCallback(async () => {
     if (!user) { setLoading(false); return; }
     setLoading(true);
     try {
-      const [expenseTotals, incomeTotals, breakdown, summary, profile, liabilityEstimate] =
+      const profile = await profileService.getProfile(user.id);
+      const vatReg = profile?.vat_registered ?? false;
+      const [expenseTotals, incomeTotals, breakdown, summary, liabilityEstimate] =
         await Promise.all([
-          expenseService.getTotals(user.id, activeTaxYear),
+          expenseService.getTotals(user.id, activeTaxYear, vatReg),
           incomeService.getTotals(user.id, activeTaxYear),
-          expenseService.getByCategory(user.id, activeTaxYear),
+          expenseService.getByCategory(user.id, activeTaxYear, vatReg),
           taxService.recalculateSummary(user.id, activeTaxYear),
-          profileService.getProfile(user.id),
           taxLiabilityService.getEstimate(user.id, activeTaxYear).catch(() => null),
         ]);
 
@@ -120,6 +122,7 @@ export default function TaxSummaryScreen() {
       setMedicalAidDependants(profile?.medical_aid_dependants ?? 0);
       setMedicalAidMonthly(profile?.medical_aid_monthly ?? 0);
       setHasDisability(profile?.has_disability ?? false);
+      setVatRegistered(vatReg);
       setTaxLiability(liabilityEstimate);
     } catch (e) {
       console.error("TaxSummary load error:", e);
@@ -421,7 +424,7 @@ export default function TaxSummaryScreen() {
                           marginBottom: 4,
                         }}
                       >
-                        DEDUCTIONS
+                        {vatRegistered ? "DEDUCTIONS (EXCL. VAT)" : "DEDUCTIONS"}
                       </Text>
                       <Text
                         style={{

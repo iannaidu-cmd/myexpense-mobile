@@ -3,6 +3,7 @@ import { estimateTaxSaving } from '@/lib/taxRules';
 import type { TaxSummary } from '@/types/database';
 import { expenseService } from './expenseService';
 import { incomeService } from './incomeService';
+import { profileService } from './profileService';
 
 export const taxService = {
 
@@ -22,9 +23,11 @@ export const taxService = {
   // ── Recalculate and upsert tax summary ───────────────────────────────────
   recalculateSummary: async (userId: string, taxYear: string): Promise<TaxSummary> => {
     // Pull live data from expenses and income
+    const profile = await profileService.getProfile(userId);
+    const vatRegistered = profile?.vat_registered ?? false;
     const [totals, categoryBreakdown, incomeTotals] = await Promise.all([
-      expenseService.getTotals(userId, taxYear),
-      expenseService.getByCategory(userId, taxYear),
+      expenseService.getTotals(userId, taxYear, vatRegistered),
+      expenseService.getByCategory(userId, taxYear, vatRegistered),
       incomeService.getTotals(userId, taxYear),
     ]);
 

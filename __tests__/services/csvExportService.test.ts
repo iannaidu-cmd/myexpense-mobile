@@ -129,4 +129,28 @@ describe("generateCSV", () => {
     expect(csv).toContain("Consulting Fees Paid");
     expect(csv).not.toContain("4022");
   });
+
+  it("includes the Deductible Amount for ITR12 column header", () => {
+    const csv = generateCSV([makeExpense()]);
+    const header = csv.split("\r\n")[0];
+    expect(header).toContain("Deductible Amount for ITR12 (ZAR)");
+  });
+
+  it("deductible amount is the full gross amount when not VAT registered", () => {
+    const csv = generateCSV([makeExpense({ amount: 1000, vat_amount: 130.43, is_deductible: true })], false);
+    const dataRow = csv.split("\r\n")[1];
+    expect(dataRow).toContain("1000.00");
+  });
+
+  it("deductible amount excludes VAT when VAT registered", () => {
+    const csv = generateCSV([makeExpense({ amount: 1000, vat_amount: 130.43, is_deductible: true })], true);
+    const dataRow = csv.split("\r\n")[1];
+    expect(dataRow).toContain("869.57");
+  });
+
+  it("deductible amount is zero for non-deductible expenses regardless of VAT registration", () => {
+    const csv = generateCSV([makeExpense({ amount: 1000, vat_amount: 150, is_deductible: false })], true);
+    const dataRow = csv.split("\r\n")[1];
+    expect(dataRow).toContain("0.00");
+  });
 });

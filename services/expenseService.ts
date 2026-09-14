@@ -100,17 +100,24 @@ export const expenseService = {
   },
 
   // ── Get totals for a user + tax year ─────────────────────────────────────
+  // `vatRegistered` should be the caller's profiles.vat_registered flag. A
+  // registered VAT vendor claims input VAT back separately via VAT201, so
+  // their income-tax-deductible amount excludes vat_amount — deducting the
+  // gross figure would double-claim that VAT. An unregistered user cannot
+  // reclaim VAT anywhere, so the gross amount is correctly the full
+  // deduction for them (default/existing behaviour).
   getTotals: async (
     userId: string,
     taxYear: string,
+    vatRegistered = false,
   ): Promise<ExpenseTotals> => {
-    const key = `exp:totals:${userId}:${taxYear}`;
+    const key = `exp:totals:${userId}:${taxYear}:${vatRegistered ? 1 : 0}`;
     const cached = getCached<ExpenseTotals>(key);
     if (cached) return cached;
 
     const { data, error } = await supabase
       .from("expenses")
-      .select("amount, is_deductible, category")
+      .select("amount, is_deductible, category, vat_amount")
       .eq("user_id", userId)
       .eq("tax_year", taxYear);
 
@@ -123,7 +130,10 @@ export const expenseService = {
         .filter((e) => e.is_deductible)
         .reduce((sum, e) => {
           const cap = CATEGORY_PARTIAL_CAPS[e.category] ?? 1;
-          return sum + Number(e.amount) * cap;
+          const base = vatRegistered
+            ? Math.max(0, Number(e.amount) - Number(e.vat_amount ?? 0))
+            : Number(e.amount);
+          return sum + base * cap;
         }, 0),
       receiptCount: expenses.length,
     };
@@ -241,17 +251,19 @@ export const expenseService = {
   },
 
   // ── Get expenses grouped by category ─────────────────────────────────────
+  // See getTotals above for why `vatRegistered` changes the deductible base.
   getByCategory: async (
     userId: string,
     taxYear: string,
+    vatRegistered = false,
   ): Promise<Record<string, number>> => {
-    const key = `exp:bycat:${userId}:${taxYear}`;
+    const key = `exp:bycat:${userId}:${taxYear}:${vatRegistered ? 1 : 0}`;
     const cached = getCached<Record<string, number>>(key);
     if (cached) return cached;
 
     const { data, error } = await supabase
       .from("expenses")
-      .select("category, amount")
+      .select("category, amount, vat_amount")
       .eq("user_id", userId)
       .eq("tax_year", taxYear)
       .eq("is_deductible", true);
@@ -260,7 +272,10 @@ export const expenseService = {
 
     const result = (data ?? []).reduce<Record<string, number>>((acc, e) => {
       const cap = CATEGORY_PARTIAL_CAPS[e.category] ?? 1;
-      acc[e.category] = (acc[e.category] ?? 0) + Number(e.amount) * cap;
+      const base = vatRegistered
+        ? Math.max(0, Number(e.amount) - Number(e.vat_amount ?? 0))
+        : Number(e.amount);
+      acc[e.category] = (acc[e.category] ?? 0) + base * cap;
       return acc;
     }, {});
     setCached(key, result);

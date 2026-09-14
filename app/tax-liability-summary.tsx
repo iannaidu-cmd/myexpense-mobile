@@ -65,9 +65,9 @@ export default function TaxLiabilitySummaryScreen() {
         return;
       }
 
-      const [profile, expenseTotals, incomeTotals] = await Promise.all([
-        profileService.getProfile(user.id),
-        expenseService.getTotals(user.id, activeTaxYear),
+      const profile = await profileService.getProfile(user.id);
+      const [expenseTotals, incomeTotals] = await Promise.all([
+        expenseService.getTotals(user.id, activeTaxYear, profile?.vat_registered ?? false),
         incomeService.getTotals(user.id, activeTaxYear),
       ]);
       const income = Math.max(0, incomeTotals.totalIncome - expenseTotals.totalDeductions);
