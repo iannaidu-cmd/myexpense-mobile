@@ -209,7 +209,7 @@ export default function TaxYearSelectorScreen() {
                   borderRadius: 3,
                   backgroundColor:
                     activeYear.status === "current"
-                      ? colour.success
+                      ? colour.brandTeal
                       : activeYear.status === "filing"
                         ? colour.warning
                         : colour.textSub,

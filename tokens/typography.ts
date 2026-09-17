@@ -76,10 +76,14 @@ export const typography = {
   itemSub:     { fontFamily: F.medium,   fontSize: 11.5, lineHeight: 14 } satisfies TextStyle, // .item .t2
   itemAmount:  { fontFamily: F.bold,     fontSize: 14,   lineHeight: 17, letterSpacing: -0.28 } satisfies TextStyle, // .item .amt
   noteText:    { fontFamily: F.medium,   fontSize: 11.5, lineHeight: 17 } satisfies TextStyle, // .note .nt
-  heroAmount:  { fontFamily: F.extraBold, fontSize: 46,  lineHeight: 46, letterSpacing: -2.07 } satisfies TextStyle, // .amtbig
-  claimValue:  { fontFamily: F.extraBold, fontSize: 22,  lineHeight: 26, letterSpacing: -0.66 } satisfies TextStyle, // .claim .cv
+  // Line-heights below are given extra headroom over the mockup's CSS
+  // (which used line-height:1) — React Native Text clips glyph
+  // descenders (e.g. the tail on a "," in "0,00") when lineHeight is at
+  // or below fontSize, unlike a browser's line box.
+  heroAmount:  { fontFamily: F.extraBold, fontSize: 46,  lineHeight: 54, letterSpacing: -2.07 } satisfies TextStyle, // .amtbig
+  claimValue:  { fontFamily: F.extraBold, fontSize: 22,  lineHeight: 28, letterSpacing: -0.66 } satisfies TextStyle, // .claim .cv
   statLabel:   { fontFamily: F.bold,     fontSize: 10.5, lineHeight: 14, letterSpacing: 1.26 } satisfies TextStyle, // .stat .sk
-  statValue:   { fontFamily: F.extraBold, fontSize: 17,  lineHeight: 20, letterSpacing: -0.595 } satisfies TextStyle, // .stat .sv
+  statValue:   { fontFamily: F.extraBold, fontSize: 17,  lineHeight: 22, letterSpacing: -0.595 } satisfies TextStyle, // .stat .sv
   hintText:    { fontFamily: F.medium,   fontSize: 11,   lineHeight: 15 } satisfies TextStyle, // .hint
   groupKey:    { fontFamily: F.medium,   fontSize: 13,   lineHeight: 16 } satisfies TextStyle, // .group .grow .gk
   groupValue:  { fontFamily: F.semiBold, fontSize: 13.5, lineHeight: 16 } satisfies TextStyle, // .group .grow .gv

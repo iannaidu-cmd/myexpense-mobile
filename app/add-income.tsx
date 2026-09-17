@@ -286,6 +286,7 @@ export default function AddIncomeScreen() {
               style={{
                 ...typography.amountXL,
                 fontSize: 44,
+                lineHeight: 52,
                 fontWeight: "800",
                 letterSpacing: -2,
                 color: amount ? colour.text : colour.textHint,

@@ -652,12 +652,12 @@ export default function ExpenseHistoryScreen() {
                   gap: 4,
                   paddingVertical: 10,
                   borderRadius: radius.md,
-                  backgroundColor: selectedIds.size > 0 ? colour.success : colour.bgPage,
+                  backgroundColor: selectedIds.size > 0 ? colour.brandTeal : colour.bgPage,
                   opacity: selectedIds.size === 0 ? 0.4 : 1,
                 }}
               >
-                <IconSymbol name="briefcase.fill" size={12} color={selectedIds.size > 0 ? colour.white : colour.textHint} />
-                <Text style={{ fontSize: 13, fontWeight: "700", color: selectedIds.size > 0 ? colour.white : colour.textHint }}>
+                <IconSymbol name="briefcase.fill" size={12} color={selectedIds.size > 0 ? colour.text : colour.textHint} />
+                <Text style={{ fontSize: 13, fontWeight: "700", color: selectedIds.size > 0 ? colour.text : colour.textHint }}>
                   Business
                 </Text>
               </TouchableOpacity>

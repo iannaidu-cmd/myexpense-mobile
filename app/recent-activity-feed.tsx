@@ -172,11 +172,11 @@ const TYPE_META: Record<
   { icon: string; color: string; bg: string }
 > = {
   expense_added:    { icon: "doc.fill",                      color: C.primary,  bg: C.primary50  },
-  receipt_scanned:  { icon: "camera.fill",                   color: C.teal,     bg: C.tealLight  },
-  report_generated: { icon: "chart.bar.fill",                color: C.textSub,  bg: C.surface2   },
-  deadline:         { icon: "calendar",                      color: C.warning,  bg: C.warningBg  },
-  budget_alert:     { icon: "exclamationmark.triangle.fill", color: C.danger,   bg: C.dangerBg   },
-  export:           { icon: "square.and.arrow.up.fill",      color: C.success,  bg: C.successBg  },
+  receipt_scanned:  { icon: "camera.fill",                   color: C.brandTeal,  bg: C.brandTeal + "2E" },
+  report_generated: { icon: "chart.bar.fill",                color: C.textSub,    bg: C.surface2         },
+  deadline:         { icon: "calendar",                      color: C.warning,    bg: C.warningBg        },
+  budget_alert:     { icon: "exclamationmark.triangle.fill", color: C.danger,     bg: C.dangerBg         },
+  export:           { icon: "square.and.arrow.up.fill",      color: C.accentDeep, bg: C.primary100       },
   login:            { icon: "lock.fill",                     color: C.textSub,  bg: C.surface2   },
 };
 
@@ -223,7 +223,7 @@ function ActivityRow({
               width: 10,
               height: 10,
               borderRadius: 5,
-              backgroundColor: C.teal,
+              backgroundColor: C.brandTeal,
               borderWidth: 2,
               borderColor: C.white,
             }}
@@ -324,13 +324,13 @@ export default function RecentActivityFeedScreen({ navigation }: Props) {
           onPress={() => router.back()}
           style={{ marginBottom: 10 }}
         >
-          <Text style={{ color: C.teal, fontSize: 13 }}>‹ Home</Text>
+          <Text style={{ color: C.brandTeal, fontSize: 13 }}>‹ Home</Text>
         </TouchableOpacity>
         <View style={{ flexDirection: "row", alignItems: "center" }}>
           <View style={{ flex: 1 }}>
             <Text
               style={{
-                color: C.teal,
+                color: C.brandTeal,
                 fontSize: 12,
                 fontWeight: "600",
                 letterSpacing: 1,
@@ -352,7 +352,7 @@ export default function RecentActivityFeedScreen({ navigation }: Props) {
           {unreadCount > 0 && (
             <View
               style={{
-                backgroundColor: C.teal,
+                backgroundColor: C.brandTeal,
                 borderRadius: 12,
                 paddingHorizontal: 10,
                 paddingVertical: 4,
@@ -416,7 +416,7 @@ export default function RecentActivityFeedScreen({ navigation }: Props) {
         {/* Mark all read */}
         {unreadCount > 0 && (
           <TouchableOpacity style={{ paddingHorizontal: 16, marginBottom: 8 }}>
-            <Text style={{ fontSize: 12, color: C.teal, fontWeight: "600" }}>
+            <Text style={{ fontSize: 12, color: C.accentDeep, fontWeight: "600" }}>
               Mark all as read
             </Text>
           </TouchableOpacity>
