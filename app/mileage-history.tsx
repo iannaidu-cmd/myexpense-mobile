@@ -154,86 +154,52 @@ export default function MileageHistoryScreen() {
         contentContainerStyle={{ padding: space.lg, paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Summary cards */}
+        {/* Stats hero */}
         <View
           style={{
-            flexDirection: "row",
-            gap: space.sm,
+            backgroundColor: colour.noir,
+            borderRadius: radius.lg,
+            padding: space.lg,
             marginBottom: space.lg,
           }}
         >
-          <View
-            style={{
-              flex: 1,
-              backgroundColor: colour.primary,
-              borderRadius: radius.md,
-              padding: space.md,
-            }}
-          >
-            <Text
-              style={{ ...typography.caption, color: "rgba(255,255,255,0.7)" }}
-            >
-              Total Distance
-            </Text>
-            <Text
-              style={{
-                ...typography.amountS,
-                color: colour.onPrimary,
-                marginTop: 2,
-              }}
-            >
-              {totalKm.toFixed(1)} km
-            </Text>
-          </View>
-          <View
-            style={{
-              flex: 1,
-              backgroundColor: colour.white,
-              borderRadius: radius.md,
-              padding: space.md,
-              borderWidth: 1,
-              borderColor: colour.border,
-            }}
-          >
-            <Text
-              style={{ ...typography.caption, color: colour.textSecondary }}
-            >
-              Est. Deduction
-            </Text>
-            <Text
-              style={{
-                ...typography.amountS,
-                color: colour.success,
-                marginTop: 2,
-              }}
-            >
-              {mileageRate != null ? `R${totalDeductions.toFixed(0)}` : "—"}
-            </Text>
-          </View>
-          <View
-            style={{
-              flex: 1,
-              backgroundColor: colour.white,
-              borderRadius: radius.md,
-              padding: space.md,
-              borderWidth: 1,
-              borderColor: colour.border,
-            }}
-          >
-            <Text
-              style={{ ...typography.caption, color: colour.textSecondary }}
-            >
-              Trips
-            </Text>
-            <Text
-              style={{
-                ...typography.amountS,
-                color: colour.textPrimary,
-                marginTop: 2,
-              }}
-            >
-              {totalTrips}
-            </Text>
+          <View style={{ flexDirection: "row" }}>
+            <View style={{ flex: 1.1 }}>
+              <Text style={{ ...typography.caption, color: colour.onNoir2 }}>
+                Total distance
+              </Text>
+              <Text
+                style={{ ...typography.amountM, color: colour.onNoir, marginTop: 2 }}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.6}
+              >
+                {totalKm.toFixed(1)} km
+              </Text>
+            </View>
+            <View style={{ width: 1, backgroundColor: "rgba(255,255,255,0.14)" }} />
+            <View style={{ flex: 1, paddingLeft: space.md }}>
+              <Text style={{ ...typography.caption, color: colour.onNoir2 }}>
+                Est. deduction
+              </Text>
+              <Text
+                style={{ ...typography.amountM, color: colour.brandTeal, marginTop: 2 }}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.6}
+              >
+                {mileageRate != null ? `R${totalDeductions.toFixed(0)}` : "—"}
+              </Text>
+            </View>
+            <View style={{ width: 1, backgroundColor: "rgba(255,255,255,0.14)" }} />
+            <View style={{ flex: 0.7, paddingLeft: space.md }}>
+              <Text style={{ ...typography.caption, color: colour.onNoir2 }}>
+                Trips
+              </Text>
+              <Text style={{ ...typography.amountM, color: colour.onNoir, marginTop: 2 }}>
+                {totalTrips}
+              </Text>
+            </View>
           </View>
         </View>
 
@@ -342,7 +308,7 @@ export default function MileageHistoryScreen() {
                       {Number(trip.distance_km).toFixed(2)} km
                     </Text>
                     <Text
-                      style={{ ...typography.caption, color: colour.success }}
+                      style={{ ...typography.caption, color: colour.accentDeep }}
                     >
                       {fmtDeduction(Number(trip.distance_km))}
                     </Text>
@@ -413,7 +379,7 @@ export default function MileageHistoryScreen() {
                       Deduction
                     </Text>
                     <Text
-                      style={{ ...typography.labelS, color: colour.success }}
+                      style={{ ...typography.labelS, color: colour.accentDeep }}
                     >
                       {fmtDeduction(Number(trip.distance_km))}
                     </Text>
