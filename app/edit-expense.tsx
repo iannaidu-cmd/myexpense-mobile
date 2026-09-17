@@ -308,8 +308,8 @@ export default function EditExpenseScreen() {
           <View
             style={{
               backgroundColor: isDeductible
-                ? colour.successLight
-                : colour.dangerBg,
+                ? colour.primary50
+                : colour.warningBg,
               borderRadius: radius.sm,
               padding: space.sm,
               marginBottom: space.lg,
@@ -318,7 +318,7 @@ export default function EditExpenseScreen() {
             <Text
               style={{
                 ...typography.bodyS,
-                color: isDeductible ? colour.success : colour.danger,
+                color: isDeductible ? colour.accentDeep : colour.warning,
               }}
             >
               {isDeductible ? "Deductible" : "Non-deductible"}{" "}
