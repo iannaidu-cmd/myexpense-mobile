@@ -33,7 +33,7 @@ const formatDate = (dateStr: string) => {
   const d = new Date(dateStr);
   return d.toLocaleDateString("en-ZA", {
     day: "numeric",
-    month: "long",
+    month: "short",
     year: "numeric",
   });
 };
@@ -373,34 +373,7 @@ export default function ExpenseDetailScreen() {
             <Text style={{ ...typography.labelS, color: colour.accentDeep }}>Edit</Text>
           </TouchableOpacity>
         }
-      >
-        {/* Amount hero */}
-        <Text style={{ ...typography.amountXL, color: colour.text, marginTop: space.md }}>
-          {fmt(expense.amount)}
-        </Text>
-        <Text style={{ ...typography.bodyM, color: colour.textSub, marginTop: space.xs }}>
-          {expense.vendor}
-        </Text>
-        {/* Badges */}
-        <View style={{ flexDirection: "row", gap: space.sm, marginTop: space.md }}>
-          {itr12Code ? (
-            <View style={{
-              backgroundColor: colour.noir, borderRadius: radius.full,
-              paddingVertical: 4, paddingHorizontal: space.sm,
-            }}>
-              <Text style={{ ...typography.labelS, color: colour.onNoir2 }}>{itr12Code}</Text>
-            </View>
-          ) : null}
-          <View style={{
-            backgroundColor: expense.is_deductible ? colour.brandTeal : colour.danger,
-            borderRadius: radius.full, paddingVertical: 4, paddingHorizontal: space.sm,
-          }}>
-            <Text style={{ ...typography.labelS, color: expense.is_deductible ? colour.text : colour.white }}>
-              {expense.is_deductible ? "Deductible" : "Non-deductible"}
-            </Text>
-          </View>
-        </View>
-      </MXHeader>
+      />
 
       {/* Content */}
       <ScrollView
@@ -412,48 +385,73 @@ export default function ExpenseDetailScreen() {
         }}
         contentContainerStyle={{ padding: space.lg, paddingBottom: 100 }}
       >
-        {/* Claimable callout */}
-        {expense.is_deductible ? (
+        {/* Hero — amount, vendor, chips and the claimable/non-deductible line
+            all live in one dark card, matching the mockup's merged hero
+            rather than splitting the amount (header) from the claimable
+            figure (a separate card further down). */}
+        <View
+          style={{
+            backgroundColor: colour.noir,
+            borderRadius: radius.lg,
+            padding: space.lg,
+            marginBottom: space.xl,
+          }}
+        >
+          <Text style={{ fontSize: 10.5, fontWeight: "700", letterSpacing: 1.2, color: colour.onNoir2, textTransform: "uppercase" }}>
+            {(expense.category ?? "Expense")} · {formatDate(expense.expense_date)}
+          </Text>
+          <Text style={{ fontSize: 46, fontWeight: "800", letterSpacing: -2, lineHeight: 50, color: colour.onNoir, marginTop: 10 }}>
+            {fmt(expense.amount)}
+          </Text>
+          <Text style={{ fontSize: 14, fontWeight: "600", color: colour.onNoir2, marginTop: 6 }}>
+            {expense.vendor}
+          </Text>
+
+          <View style={{ flexDirection: "row", gap: space.sm, marginTop: space.md }}>
+            {itr12Code ? (
+              <View style={{
+                backgroundColor: "rgba(255,255,255,0.12)", borderRadius: radius.full,
+                paddingVertical: 5, paddingHorizontal: space.sm,
+              }}>
+                <Text style={{ fontSize: 11.5, fontWeight: "700", color: colour.onNoir }}>{itr12Code}</Text>
+              </View>
+            ) : null}
+            <View style={{
+              backgroundColor: expense.is_deductible ? colour.brandTeal : colour.danger,
+              borderRadius: radius.full, paddingVertical: 5, paddingHorizontal: space.sm,
+            }}>
+              <Text style={{ fontSize: 11.5, fontWeight: "700", color: expense.is_deductible ? colour.text : colour.white }}>
+                {expense.is_deductible ? "Deductible" : "Non-deductible"}
+              </Text>
+            </View>
+          </View>
+
           <View
             style={{
-              backgroundColor: colour.noir,
-              borderRadius: radius.md,
-              padding: space.md,
+              marginTop: space.lg,
+              paddingTop: space.md,
+              borderTopWidth: 1,
+              borderTopColor: "rgba(255,255,255,0.14)",
               flexDirection: "row",
+              alignItems: "flex-end",
               justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: space.xl,
             }}
           >
             <View>
-              <Text style={{ ...typography.labelM, color: colour.onNoir }}>
-                Tax claimable amount
+              <Text style={{ fontSize: 10.5, fontWeight: "700", letterSpacing: 1.2, color: colour.onNoir2, textTransform: "uppercase" }}>
+                {expense.is_deductible ? "Tax claimable" : "Not deductible"}
               </Text>
-              <Text style={{ ...typography.caption, color: colour.onNoir2 }}>
-                ITR12 · {itr12Code}
+              <Text style={{ fontSize: 11.5, color: "rgba(255,255,255,0.5)", marginTop: 4 }}>
+                {expense.is_deductible ? `ITR12 · full amount` : "Cannot be claimed on your ITR12"}
               </Text>
             </View>
-            <Text style={{ ...typography.amountM, color: colour.brandTeal }}>
-              {fmt(claimable)}
-            </Text>
+            {expense.is_deductible && (
+              <Text style={{ fontSize: 22, fontWeight: "800", letterSpacing: -0.5, color: colour.brandTeal }}>
+                {fmt(claimable)}
+              </Text>
+            )}
           </View>
-        ) : (
-          <View
-            style={{
-              backgroundColor: colour.noir,
-              borderRadius: radius.md,
-              padding: space.md,
-              marginBottom: space.xl,
-            }}
-          >
-            <Text style={{ ...typography.labelM, color: colour.danger }}>
-              Non-deductible expense
-            </Text>
-            <Text style={{ ...typography.caption, color: colour.onNoir2 }}>
-              This expense cannot be claimed on your ITR12
-            </Text>
-          </View>
-        )}
+        </View>
 
         {/* Details */}
         <Text
@@ -463,7 +461,7 @@ export default function ExpenseDetailScreen() {
             marginBottom: space.xs,
           }}
         >
-          EXPENSE DETAILS
+          DETAILS
         </Text>
         <View
           style={{
@@ -492,15 +490,6 @@ export default function ExpenseDetailScreen() {
         </View>
 
         {/* Receipt */}
-        <Text
-          style={{
-            ...typography.labelM,
-            color: colour.textSecondary,
-            marginBottom: space.xs,
-          }}
-        >
-          RECEIPT
-        </Text>
         <TouchableOpacity
           onPress={() => {
             if (hasReceipt && storagePath) {
