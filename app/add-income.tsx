@@ -63,9 +63,8 @@ function FieldLabel({ label }: { label: string }) {
   return (
     <Text
       style={{
-        ...typography.labelS,
+        ...typography.fieldLabel,
         color: colour.textSub,
-        letterSpacing: 0.5,
         marginBottom: space.xs,
       }}
     >
@@ -209,7 +208,7 @@ export default function AddIncomeScreen() {
         <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
         <MXHeader title="Edit income" subtitle="Update your income entry" showBack />
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-          <ActivityIndicator color={colour.success} size="large" />
+          <ActivityIndicator color={colour.primary} size="large" />
         </View>
       </SafeAreaView>
     );
@@ -254,9 +253,9 @@ export default function AddIncomeScreen() {
         >
           <Text
             style={{
-              ...typography.labelS,
+              ...typography.eyebrow,
               color: colour.textSub,
-              letterSpacing: 0.5,
+              textTransform: "uppercase",
             }}
           >
             Amount received
@@ -295,7 +294,7 @@ export default function AddIncomeScreen() {
               }}
             />
           </View>
-          <Text style={{ ...typography.caption, color: colour.textSub, marginTop: space.sm }}>
+          <Text style={{ ...typography.mSub, color: colour.textSub, marginTop: space.sm }}>
             Gross, before any tax was taken off
           </Text>
         </View>
@@ -310,8 +309,9 @@ export default function AddIncomeScreen() {
         >
           <Text
             style={{
-              ...typography.labelM,
+              ...typography.eyebrow,
               color: colour.textSub,
+              textTransform: "uppercase",
               marginBottom: space.sm,
             }}
           >
@@ -328,10 +328,10 @@ export default function AddIncomeScreen() {
                     paddingVertical: space.sm,
                     borderRadius: radius.pill,
                     backgroundColor:
-                      source === q.source ? colour.success : colour.surface2,
+                      source === q.source ? colour.primary : colour.surface2,
                     borderWidth: 1.5,
                     borderColor:
-                      source === q.source ? colour.success : colour.border,
+                      source === q.source ? colour.primary : colour.border,
                     flexDirection: "row",
                     alignItems: "center",
                     gap: space.xs,
@@ -339,8 +339,7 @@ export default function AddIncomeScreen() {
                 >
                   <Text
                     style={{
-                      ...typography.bodyS,
-                      fontWeight: "600",
+                      ...typography.fchipText,
                       color:
                         source === q.source ? colour.onPrimary : colour.text,
                     }}
@@ -367,8 +366,7 @@ export default function AddIncomeScreen() {
         >
           <Text
             style={{
-              ...typography.bodyM,
-              fontWeight: "700",
+              ...typography.cardTitle,
               color: colour.text,
               marginBottom: space.lg,
             }}
@@ -382,7 +380,7 @@ export default function AddIncomeScreen() {
             onPress={() => setShowFullList((v) => !v)}
             style={{
               borderBottomWidth: 1.5,
-              borderBottomColor: source ? colour.success : colour.border,
+              borderBottomColor: source ? colour.primary : colour.border,
               paddingBottom: space.sm,
               marginBottom: space.xs,
               flexDirection: "row",
@@ -406,8 +404,8 @@ export default function AddIncomeScreen() {
           {source ? (
             <View
               style={{
-                backgroundColor: colour.successBg,
-                borderRadius: radius.sm,
+                backgroundColor: colour.brandTeal + "2E",
+                borderRadius: radius.pill,
                 paddingHorizontal: space.sm,
                 paddingVertical: 4,
                 marginBottom: space.md,
@@ -416,9 +414,8 @@ export default function AddIncomeScreen() {
             >
               <Text
                 style={{
-                  ...typography.bodyXS,
-                  fontWeight: "700",
-                  color: colour.success,
+                  ...typography.chipText,
+                  color: colour.text,
                 }}
               >
                 ITR12 Income ✓
@@ -430,7 +427,7 @@ export default function AddIncomeScreen() {
             <View style={{ marginBottom: space.md }}>
               <Text
                 style={{
-                  ...typography.labelS,
+                  ...typography.fieldLabel,
                   color: colour.textSub,
                   marginBottom: space.sm,
                 }}
@@ -456,7 +453,7 @@ export default function AddIncomeScreen() {
                     {cat.label}
                   </Text>
                   {source === cat.label && (
-                    <Text style={{ color: colour.success, fontWeight: "800" }}>
+                    <Text style={{ color: colour.primary, fontWeight: "800" }}>
                       ✓
                     </Text>
                   )}
@@ -498,7 +495,7 @@ export default function AddIncomeScreen() {
             }}
           >
             <IconSymbol name="doc.text.fill" size={15} color={colour.primary} />
-            <Text style={{ ...typography.bodyS, color: colour.text, flex: 1, lineHeight: 18 }}>
+            <Text style={{ ...typography.noteText, color: colour.text, flex: 1 }}>
               <Text style={{ fontWeight: "700" }}>Adding IRP5 income? </Text>
               Use the IRP5 form instead so source codes and PAYE land on your ITR12.{" "}
               <Text
@@ -517,7 +514,7 @@ export default function AddIncomeScreen() {
           disabled={!canSave || saving}
           style={{
             marginHorizontal: space.lg,
-            backgroundColor: canSave ? colour.success : colour.surface2,
+            backgroundColor: canSave ? colour.primary : colour.surface2,
             borderRadius: radius.lg,
             height: 52,
             alignItems: "center",
@@ -530,7 +527,7 @@ export default function AddIncomeScreen() {
           ) : (
             <Text
               style={{
-                ...typography.btnL,
+                ...typography.mBtn,
                 color: canSave ? colour.onPrimary : colour.textSub,
               }}
             >
@@ -542,7 +539,8 @@ export default function AddIncomeScreen() {
         {!isEditing && !canSave && !saving && (
           <Text
             style={{
-              ...typography.bodyXS,
+              fontSize: 12,
+              fontWeight: "600",
               color: colour.textHint,
               textAlign: "center",
               marginBottom: space.sm,
