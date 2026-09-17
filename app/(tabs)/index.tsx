@@ -525,7 +525,7 @@ export default function HomeScreen() {
                     color: taxLiability.final_liability > 0
                       ? colour.danger
                       : taxLiability.final_liability < 0
-                        ? colour.success
+                        ? colour.brandTeal
                         : colour.onNoir,
                   }}>
                     R {Math.round(Math.abs(taxLiability.final_liability)).toLocaleString("en-ZA")}
@@ -587,9 +587,9 @@ export default function HomeScreen() {
               >
                 <View style={{
                   width: 28, height: 28, borderRadius: 8,
-                  backgroundColor: colour.successBg, alignItems: "center", justifyContent: "center",
+                  backgroundColor: colour.brandTeal + "2E", alignItems: "center", justifyContent: "center",
                 }}>
-                  <Text style={{ fontSize: 14, color: colour.success }}>+</Text>
+                  <Text style={{ fontSize: 14, color: colour.text }}>+</Text>
                 </View>
                 <Text style={{ fontSize: 13, fontWeight: "600", color: colour.text }}>Add income</Text>
               </TouchableOpacity>
@@ -710,11 +710,11 @@ export default function HomeScreen() {
                 >
                   <View style={{
                     width: 32, height: 32, borderRadius: 10,
-                    backgroundColor: item.type === 'income' ? colour.successBg : colour.surface1,
+                    backgroundColor: item.type === 'income' ? colour.brandTeal + "2E" : colour.surface1,
                     alignItems: "center", justifyContent: "center",
                   }}>
                     {item.type === 'income' ? (
-                      <IconSymbol name="arrow.down.circle.fill" size={16} color={colour.success} />
+                      <IconSymbol name="arrow.down.circle.fill" size={16} color={colour.text} />
                     ) : (
                       <Text style={{ fontSize: 13, fontWeight: "600", color: colour.textMid }}>
                         {item.sublabel?.charAt(0)?.toUpperCase() ?? "?"}
@@ -730,16 +730,16 @@ export default function HomeScreen() {
                     </Text>
                   </View>
                   <View style={{ alignItems: "flex-end" }}>
-                    <Text style={{ fontSize: 13, fontWeight: "700", color: item.type === 'income' ? colour.success : colour.text }}>
+                    <Text style={{ fontSize: 13, fontWeight: "700", color: colour.text }}>
                       {item.type === 'income' ? "+" : ""}{formatZAR(item.amount)}
                     </Text>
                     {item.type === 'expense' && item.isDeductible && (
-                      <Text style={{ fontSize: 11, color: colour.success, fontWeight: "500", marginTop: 1 }}>
+                      <Text style={{ fontSize: 11, color: colour.textSecondary, fontWeight: "500", marginTop: 1 }}>
                         deductible
                       </Text>
                     )}
                     {item.type === 'income' && (
-                      <Text style={{ fontSize: 11, color: colour.success, fontWeight: "500", marginTop: 1 }}>
+                      <Text style={{ fontSize: 11, color: colour.textSecondary, fontWeight: "500", marginTop: 1 }}>
                         income
                       </Text>
                     )}
