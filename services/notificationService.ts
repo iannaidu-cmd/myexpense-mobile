@@ -90,7 +90,7 @@ export async function scheduleMonthlyReportReminder(): Promise<void> {
     content: {
       title: "Your monthly expense report is ready",
       body: "Review last month's deductions and tax savings.",
-      data: { route: "/reports-dashboard" },
+      data: { route: "/(tabs)/reports" },
     },
     trigger: {
       type: Notifications.SchedulableTriggerInputTypes.MONTHLY,
