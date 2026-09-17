@@ -217,7 +217,7 @@ function CheckRow({ label, value, pass }: { label: string; value: string; pass: 
           width: 22,
           height: 22,
           borderRadius: 11,
-          backgroundColor: pass ? colour.successBg : colour.dangerBg,
+          backgroundColor: pass ? colour.brandTeal + "38" : colour.dangerBg,
           alignItems: "center",
           justifyContent: "center",
           flexShrink: 0,
@@ -226,7 +226,7 @@ function CheckRow({ label, value, pass }: { label: string; value: string; pass: 
         <IconSymbol
           name={pass ? "checkmark" : "xmark"}
           size={10}
-          color={pass ? colour.success : colour.danger}
+          color={pass ? colour.text : colour.danger}
         />
       </View>
       <Text style={{ flex: 1, fontSize: 13, color: colour.text }}>{label}</Text>
@@ -332,8 +332,10 @@ export default function ProvisionalTaxScreen() {
               <View style={{ paddingTop: space.md }}>
                 <View
                   style={{
-                    backgroundColor: needsProvisional ? colour.infoLight : colour.successBg,
-                    borderRadius: radius.sm,
+                    backgroundColor: colour.primary + "17",
+                    borderWidth: 1,
+                    borderColor: colour.primary + "29",
+                    borderRadius: radius.note,
                     padding: space.md,
                     flexDirection: "row",
                     alignItems: "center",
@@ -343,14 +345,14 @@ export default function ProvisionalTaxScreen() {
                   <IconSymbol
                     name={needsProvisional ? "exclamationmark.triangle.fill" : "checkmark.circle.fill"}
                     size={16}
-                    color={needsProvisional ? colour.info : colour.success}
+                    color={colour.primary}
                   />
                   <Text
                     style={{
                       flex: 1,
                       fontSize: 12,
                       fontWeight: "600",
-                      color: needsProvisional ? colour.info : colour.success,
+                      color: colour.text,
                     }}
                   >
                     {needsProvisional

@@ -155,7 +155,7 @@ export default function IncomeDetailScreen() {
 
       {loading ? (
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-          <ActivityIndicator color={colour.success} size="large" />
+          <ActivityIndicator color={colour.primary} size="large" />
         </View>
       ) : !income ? (
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>

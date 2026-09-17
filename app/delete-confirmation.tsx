@@ -50,13 +50,13 @@ export default function DeleteConfirmationScreen() {
             width: 72,
             height: 72,
             borderRadius: 36,
-            backgroundColor: colour.successLight,
+            backgroundColor: colour.brandTeal + "38",
             alignItems: "center",
             justifyContent: "center",
             marginBottom: space.xl,
           }}
         >
-          <IconSymbol name="checkmark" size={32} color={colour.success} />
+          <IconSymbol name="checkmark" size={32} color={colour.text} />
         </View>
         <Text
           style={[
@@ -226,13 +226,13 @@ export default function DeleteConfirmationScreen() {
 
           <View
             style={{
-              backgroundColor: colour.warningLight,
+              backgroundColor: colour.warning + "38",
               borderRadius: radius.sm,
               padding: space.md,
               marginTop: space.lg,
             }}
           >
-            <Text style={[typography.bodyS, { color: colour.warning }]}>
+            <Text style={[typography.bodyS, { color: colour.text }]}>
               ⚠️ Deleting this expense will affect your ITR12 deduction
               calculations for the current tax year.
             </Text>

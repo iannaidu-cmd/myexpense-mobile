@@ -64,11 +64,9 @@ export function MXBackHeader({
           {title ? (
             <Text
               style={{
-                fontSize: 14,
-                fontWeight: "600",
+                ...typography.navTitle,
                 color: colour.text,
                 textAlign: "center",
-                letterSpacing: -0.1,
               }}
               numberOfLines={1}
             >
@@ -78,7 +76,7 @@ export function MXBackHeader({
           {subtitle ? (
             <Text
               style={{
-                ...typography.bodyXS,
+                ...typography.navSubtitle,
                 color: colour.textSub,
                 textAlign: "center",
                 marginTop: 1,

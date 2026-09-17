@@ -47,7 +47,7 @@ export function MXInput({
       {label && (
         <Text
           style={{
-            ...typography.actionS,
+            ...typography.fieldLabel,
             color: hasError ? colour.danger : colour.text,
           }}
         >
@@ -99,11 +99,11 @@ export function MXInput({
 
       {/* Hint or error */}
       {error ? (
-        <Text style={{ ...typography.captionM, color: colour.danger }}>
+        <Text style={{ ...typography.hintText, color: colour.danger }}>
           {error}
         </Text>
       ) : hint ? (
-        <Text style={{ ...typography.captionM, color: colour.textHint }}>
+        <Text style={{ ...typography.hintText, color: colour.textHint }}>
           {hint}
         </Text>
       ) : null}

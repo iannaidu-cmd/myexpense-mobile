@@ -64,11 +64,13 @@ export function MXButton({
   };
 
   // ── Label style ───────────────────────────────────────────────────────────
+  // Size L matches the mockup's ".btn" class (15px/700/-0.15 tracking)
+  // exactly, since that's the primary-CTA size used throughout the redesign.
   const labelStyle: object = {
-    ...typography.actionM,
+    ...(size === "L" ? typography.mBtn : typography.actionM),
     color: variant === "primary" || variant === "danger" ? colour.onPrimary : colour.primary,
     fontWeight: "700",
-    letterSpacing: 0.2,
+    ...(size !== "L" && { letterSpacing: 0.2 }),
   };
 
   return (

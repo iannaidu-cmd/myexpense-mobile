@@ -518,7 +518,7 @@ export default function BankAccountsScreen() {
                       {bank}
                     </Text>
                     {bankName === bank && (
-                      <Text style={{ color: colour.success }}>✓</Text>
+                      <Text style={{ color: colour.primary }}>✓</Text>
                     )}
                   </TouchableOpacity>
                 ))}
@@ -667,7 +667,7 @@ export default function BankAccountsScreen() {
                       {type}
                     </Text>
                     {accountType === type && (
-                      <Text style={{ color: colour.success }}>✓</Text>
+                      <Text style={{ color: colour.primary }}>✓</Text>
                     )}
                   </TouchableOpacity>
                 ))}

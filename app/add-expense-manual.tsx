@@ -10,7 +10,7 @@ import { expenseService } from "@/services/expenseService";
 import { useAuthStore } from "@/stores/authStore";
 import { useExpenseStore } from "@/stores/expenseStore";
 import { floorRatio, useHomeOfficeStore } from "@/stores/homeOfficeStore";
-import { colour } from "@/tokens";
+import { colour, radius } from "@/tokens";
 import { formatDateInputDDMMYYYY } from "@/lib/dateInput";
 import { SARS_RATE_PER_KM, taxYearForDate } from "@/lib/taxRules";
 import { useRouter } from "expo-router";
@@ -449,8 +449,8 @@ export default function AddExpenseScreen() {
           {/* Contextual notes per category */}
           {(category === "Telephone & Cell" || category === "Telephone & Internet") && (
             <View>
-              <View style={{ backgroundColor: colour.infoLight, borderRadius: 8, padding: 10, marginBottom: 10 }}>
-                <Text style={{ fontSize: 12, color: colour.info, lineHeight: 18 }}>
+              <View style={{ backgroundColor: colour.primary + "17", borderWidth: 1, borderColor: colour.primary + "29", borderRadius: radius.note, padding: 10, marginBottom: 10 }}>
+                <Text style={{ fontSize: 12, color: colour.text, lineHeight: 18 }}>
                   What percentage of your phone is used for work? Enter that number below — we'll only claim that portion as a deduction.
                 </Text>
               </View>
@@ -480,8 +480,8 @@ export default function AddExpenseScreen() {
             />
           )}
           {category === "Equipment & Tools" && !!amount && parseFloat(amount) > 7000 && (
-            <View style={{ backgroundColor: colour.infoLight, borderRadius: 8, padding: 10, marginBottom: 10 }}>
-              <Text style={{ fontSize: 12, color: colour.info, lineHeight: 18 }}>
+            <View style={{ backgroundColor: colour.primary + "17", borderWidth: 1, borderColor: colour.primary + "29", borderRadius: radius.note, padding: 10, marginBottom: 10 }}>
+              <Text style={{ fontSize: 12, color: colour.text, lineHeight: 18 }}>
                 Big-ticket items like this may need to be claimed over a few years instead of all at once (e.g. 3 years for computers, 6 years for furniture). Check with your tax practitioner.
               </Text>
             </View>
@@ -503,15 +503,15 @@ export default function AddExpenseScreen() {
             </View>
           )}
           {category === "Retirement Annuity" && (
-            <View style={{ backgroundColor: colour.noir, borderRadius: 8, padding: 10, marginBottom: 10 }}>
-              <Text style={{ fontSize: 12, color: colour.onNoir2, lineHeight: 18 }}>
+            <View style={{ backgroundColor: colour.primary + "17", borderWidth: 1, borderColor: colour.primary + "29", borderRadius: radius.note, padding: 10, marginBottom: 10 }}>
+              <Text style={{ fontSize: 12, color: colour.text, lineHeight: 18 }}>
                 You can claim up to 27.5% of your income (max R350,000/year) for RA contributions. You'll need a certificate (IT3a) from your RA provider to submit with your tax return.
               </Text>
             </View>
           )}
           {category === "Meals & Entertainment" && (
-            <View style={{ backgroundColor: colour.infoLight, borderRadius: 8, padding: 10, marginBottom: 10 }}>
-              <Text style={{ fontSize: 12, color: colour.info, lineHeight: 18 }}>
+            <View style={{ backgroundColor: colour.primary + "17", borderWidth: 1, borderColor: colour.primary + "29", borderRadius: radius.note, padding: 10, marginBottom: 10 }}>
+              <Text style={{ fontSize: 12, color: colour.text, lineHeight: 18 }}>
                 SARS only allows 80% of meals and entertainment to be claimed. We apply this limit automatically when you save.
               </Text>
             </View>

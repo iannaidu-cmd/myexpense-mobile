@@ -336,8 +336,8 @@ export default function IncomeHistoryScreen() {
               <RefreshControl
                 refreshing={refreshing}
                 onRefresh={handleRefresh}
-                colors={[colour.success]}
-                tintColor={colour.success}
+                colors={[colour.primary]}
+                tintColor={colour.primary}
               />
             }
             ListFooterComponent={
@@ -386,14 +386,14 @@ export default function IncomeHistoryScreen() {
                   <TouchableOpacity
                     onPress={() => router.push("/add-income" as any)}
                     style={{
-                      backgroundColor: colour.success,
+                      backgroundColor: colour.primary,
                       borderRadius: radius.pill,
                       paddingVertical: space.md,
                       paddingHorizontal: space.xl,
                     }}
                   >
                     <Text
-                      style={{ ...typography.btnL, color: colour.text }}
+                      style={{ ...typography.btnL, color: colour.onPrimary }}
                     >
                       Add income
                     </Text>

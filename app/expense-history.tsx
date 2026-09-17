@@ -33,10 +33,10 @@ const formatDate = (dateStr: string) => {
 };
 
 const deductibleColour = (isDeductible: boolean) =>
-  isDeductible ? colour.accentDeep : colour.warning;
+  isDeductible ? colour.accentDeep : colour.text;
 
 const deductibleChipBg = (isDeductible: boolean) =>
-  isDeductible ? colour.primary50 : colour.warningBg;
+  isDeductible ? colour.primary50 : colour.warning + "38";
 
 type Filter = "all" | "deductible" | "non";
 

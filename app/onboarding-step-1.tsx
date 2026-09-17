@@ -24,9 +24,9 @@ const LOGO_H = 42;
 
 // ── Page 3 option card ────────────────────────────────────────────────────────
 const OPTIONS = [
-  { id: 'sole',       icon: 'building.2.fill' as const, label: 'Sole proprietor',        bg: colour.warningBg  },
+  { id: 'sole',       icon: 'building.2.fill' as const, label: 'Sole proprietor',        bg: colour.warning + '38'  },
   { id: 'freelancer', icon: 'briefcase.fill'  as const, label: 'Freelancer',              bg: colour.primary50  },
-  { id: 'contractor', icon: 'doc.text.fill'   as const, label: 'Independent contractor',  bg: colour.tealLight  },
+  { id: 'contractor', icon: 'doc.text.fill'   as const, label: 'Independent contractor',  bg: colour.brandTeal + '2E'  },
 ];
 
 function OptionCard({
@@ -199,7 +199,7 @@ export default function OnboardingScreen() {
             </View>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md }}>
-            <View style={{ width: 48, height: 48, borderRadius: radius.md, backgroundColor: colour.warningBg, alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <View style={{ width: 48, height: 48, borderRadius: radius.md, backgroundColor: colour.primary50, alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <IconSymbol name="car.fill" size={20} color={colour.primary} />
             </View>
             <View style={{ flex: 1 }}>

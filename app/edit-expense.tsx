@@ -212,13 +212,15 @@ export default function EditExpenseScreen() {
         {expenseType === "personal" && (
           <View
             style={{
-              backgroundColor: colour.warningBg,
-              borderRadius: radius.sm,
+              backgroundColor: colour.primary + "17",
+              borderWidth: 1,
+              borderColor: colour.primary + "29",
+              borderRadius: radius.note,
               padding: space.sm,
               marginBottom: space.lg,
             }}
           >
-            <Text style={{ ...typography.bodyXS, color: colour.warning }}>
+            <Text style={{ ...typography.bodyXS, color: colour.text }}>
               Personal expenses are not deductible and will not be included in
               your ITR12 calculations.
             </Text>
@@ -309,7 +311,7 @@ export default function EditExpenseScreen() {
             style={{
               backgroundColor: isDeductible
                 ? colour.primary50
-                : colour.warningBg,
+                : colour.warning + "38",
               borderRadius: radius.sm,
               padding: space.sm,
               marginBottom: space.lg,
@@ -318,7 +320,7 @@ export default function EditExpenseScreen() {
             <Text
               style={{
                 ...typography.bodyS,
-                color: isDeductible ? colour.accentDeep : colour.warning,
+                color: isDeductible ? colour.accentDeep : colour.text,
               }}
             >
               {isDeductible ? "Deductible" : "Non-deductible"}{" "}

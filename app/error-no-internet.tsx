@@ -116,7 +116,7 @@ function OfflineChip({ label }: { label: string }) {
       style={{
         flexDirection: "row",
         alignItems: "center",
-        backgroundColor: colour.successBg,
+        backgroundColor: colour.brandTeal + "2E",
         borderRadius: radius.pill,
         paddingVertical: space.xxs,
         paddingHorizontal: space.sm,
@@ -128,7 +128,7 @@ function OfflineChip({ label }: { label: string }) {
       <Text
         style={{
           ...typography.bodyXS,
-          color: colour.success,
+          color: colour.text,
           fontWeight: "600",
         }}
       >

@@ -102,26 +102,26 @@ export function OnboardingFeatureScene() {
       {/* Amount chip badge */}
       <View style={{
         position: "absolute", top: 22, right: 42,
-        backgroundColor: colour.success,
+        backgroundColor: colour.brandTeal,
         borderRadius: 20,
         paddingHorizontal: 10, paddingVertical: 5,
         flexDirection: "row", alignItems: "center", gap: 4,
-        shadowColor: colour.success, shadowOffset: { width: 0, height: 3 },
+        shadowColor: colour.brandTeal, shadowOffset: { width: 0, height: 3 },
         shadowOpacity: 0.3, shadowRadius: 8, elevation: 5,
       }}>
-        <Text style={{ fontSize: 11, fontWeight: "800", color: colour.white }}>R 37,492</Text>
+        <Text style={{ fontSize: 11, fontWeight: "800", color: colour.text }}>R 37,492</Text>
       </View>
 
       {/* Up-arrow badge */}
       <View style={{
         position: "absolute", top: 112, left: 20,
         width: 44, height: 44, borderRadius: 22,
-        backgroundColor: colour.success,
+        backgroundColor: colour.brandTeal,
         alignItems: "center", justifyContent: "center",
-        shadowColor: colour.success, shadowOffset: { width: 0, height: 4 },
+        shadowColor: colour.brandTeal, shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3, shadowRadius: 10, elevation: 5,
       }}>
-        <Text style={{ fontSize: 18, color: colour.white, fontWeight: "800", lineHeight: 22 }}>↑</Text>
+        <Text style={{ fontSize: 18, color: colour.text, fontWeight: "800", lineHeight: 22 }}>↑</Text>
       </View>
 
       {/* Sparkle dots */}

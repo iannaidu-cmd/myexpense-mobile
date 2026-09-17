@@ -590,7 +590,7 @@ export default function MileageTrackerScreen() {
               <Marker
                 coordinate={startPos}
                 title="Start"
-                pinColor={colour.success}
+                pinColor={colour.brandTeal}
               />
             )}
             {coords.length > 1 && (
@@ -629,7 +629,7 @@ export default function MileageTrackerScreen() {
                 top: space.sm,
                 left: space.sm,
                 backgroundColor:
-                  status === "running" ? colour.success : colour.warning,
+                  status === "running" ? colour.brandTeal : colour.warning,
                 borderRadius: radius.pill,
                 paddingHorizontal: space.sm,
                 paddingVertical: 4,
@@ -643,10 +643,10 @@ export default function MileageTrackerScreen() {
                   width: 7,
                   height: 7,
                   borderRadius: 4,
-                  backgroundColor: colour.onPrimary,
+                  backgroundColor: colour.text,
                 }}
               />
-              <Text style={{ ...typography.captionM, color: colour.onPrimary }}>
+              <Text style={{ ...typography.captionM, color: colour.text }}>
                 {status === "running" ? "TRACKING" : "PAUSED"}
               </Text>
             </View>
