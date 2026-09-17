@@ -213,15 +213,15 @@ function TransactionRow({
                 height: 14,
                 borderRadius: 3,
                 borderWidth: 1.5,
-                borderColor: !isPersonal ? colour.success : colour.borderLight,
-                backgroundColor: !isPersonal ? colour.success : colour.white,
+                borderColor: !isPersonal ? colour.primary : colour.borderLight,
+                backgroundColor: !isPersonal ? colour.primary : colour.white,
                 alignItems: "center",
                 justifyContent: "center",
               }}
             >
               {!isPersonal && <IconSymbol name="checkmark" size={8} color={colour.white} />}
             </View>
-            <Text style={{ fontSize: 11, fontWeight: "600", color: !isPersonal ? colour.success : colour.textSub }}>
+            <Text style={{ fontSize: 11, fontWeight: "600", color: !isPersonal ? colour.accentDeep : colour.textSub }}>
               Business
             </Text>
           </TouchableOpacity>
@@ -233,7 +233,7 @@ function TransactionRow({
         style={{
           fontSize: 13,
           fontWeight: "700",
-          color: tx.type === 'income' ? colour.success : colour.text,
+          color: colour.text,
           marginRight: space.sm,
           minWidth: 72,
           textAlign: "right",
@@ -246,14 +246,14 @@ function TransactionRow({
       {tx.type === 'income' ? (
         <View
           style={{
-            backgroundColor: colour.successBg,
+            backgroundColor: colour.brandTeal + "2E",
             borderRadius: radius.pill,
             paddingHorizontal: 8,
             paddingVertical: 4,
             maxWidth: 120,
           }}
         >
-          <Text style={{ fontSize: 10, fontWeight: "700", color: colour.success }}>
+          <Text style={{ fontSize: 10, fontWeight: "700", color: colour.text }}>
             Income
           </Text>
         </View>
