@@ -33,7 +33,10 @@ const formatDate = (dateStr: string) => {
 };
 
 const deductibleColour = (isDeductible: boolean) =>
-  isDeductible ? colour.success : colour.danger;
+  isDeductible ? colour.accentDeep : colour.warning;
+
+const deductibleChipBg = (isDeductible: boolean) =>
+  isDeductible ? colour.primary50 : colour.warningBg;
 
 type Filter = "all" | "deductible" | "non";
 
@@ -219,15 +222,25 @@ export default function ExpenseHistoryScreen() {
             </TouchableOpacity>
           )
         }
+      />
+
+      {/* Stats hero */}
+      <View
+        style={{
+          marginHorizontal: space.lg,
+          marginTop: space.md,
+          backgroundColor: colour.noir,
+          borderRadius: radius.lg,
+          padding: space.lg,
+        }}
       >
-        {/* Summary row */}
-        <View style={{ flexDirection: "row", gap: space.md, marginTop: space.md }}>
-          <View style={{ flex: 1 }}>
-            <Text style={{ ...typography.caption, color: colour.textSub }}>
-              Total Spent
+        <View style={{ flexDirection: "row" }}>
+          <View style={{ flex: 1.25 }}>
+            <Text style={{ ...typography.caption, color: colour.onNoir2 }}>
+              Total spent
             </Text>
             <Text
-              style={{ ...typography.amountM, color: colour.text }}
+              style={{ ...typography.amountM, color: colour.onNoir, marginTop: 2 }}
               numberOfLines={1}
               adjustsFontSizeToFit
               minimumFontScale={0.6}
@@ -235,12 +248,13 @@ export default function ExpenseHistoryScreen() {
               {fmt(total)}
             </Text>
           </View>
-          <View style={{ flex: 1 }}>
-            <Text style={{ ...typography.caption, color: colour.textSub }}>
+          <View style={{ width: 1, backgroundColor: "rgba(255,255,255,0.14)" }} />
+          <View style={{ flex: 1, paddingLeft: space.md }}>
+            <Text style={{ ...typography.caption, color: colour.onNoir2 }}>
               Claimable
             </Text>
             <Text
-              style={{ ...typography.amountM, color: colour.success }}
+              style={{ ...typography.amountM, color: colour.brandTeal, marginTop: 2 }}
               numberOfLines={1}
               adjustsFontSizeToFit
               minimumFontScale={0.6}
@@ -248,16 +262,33 @@ export default function ExpenseHistoryScreen() {
               {fmt(claimable)}
             </Text>
           </View>
-          <View style={{ flex: 1 }}>
-            <Text style={{ ...typography.caption, color: colour.textSub }}>
+          <View style={{ width: 1, backgroundColor: "rgba(255,255,255,0.14)" }} />
+          <View style={{ flex: 0.7, paddingLeft: space.md }}>
+            <Text style={{ ...typography.caption, color: colour.onNoir2 }}>
               Expenses
             </Text>
-            <Text style={{ ...typography.amountM, color: colour.text }}>
+            <Text style={{ ...typography.amountM, color: colour.onNoir, marginTop: 2 }}>
               {filtered.length}
             </Text>
           </View>
         </View>
-      </MXHeader>
+
+        {total > 0 && (
+          <View
+            style={{
+              flexDirection: "row",
+              height: 6,
+              borderRadius: 3,
+              overflow: "hidden",
+              backgroundColor: "rgba(255,255,255,0.14)",
+              marginTop: space.md,
+            }}
+          >
+            <View style={{ flex: claimable, backgroundColor: colour.brandTeal }} />
+            <View style={{ flex: Math.max(total - claimable, 0), backgroundColor: colour.primary }} />
+          </View>
+        )}
+      </View>
 
       {/* Card */}
       <View
@@ -539,7 +570,7 @@ export default function ExpenseHistoryScreen() {
                     </Text>
                     <View
                       style={{
-                        backgroundColor: deductibleColour(item.is_deductible) + "20",
+                        backgroundColor: deductibleChipBg(item.is_deductible),
                         borderRadius: radius.full,
                         paddingHorizontal: space.xs,
                         paddingVertical: 2,
