@@ -2,8 +2,9 @@ import { InfoBanner } from "@/components/InfoBanner";
 import { MXButton } from "@/components/MXButton";
 import { MXHeader } from "@/components/MXHeader";
 import { MXInput } from "@/components/MXInput";
+import { IconSymbol } from "@/components/ui/icon-symbol";
 import { displayDateToISO, formatDateInputDDMMYYYY, isoToDisplayDate } from "@/lib/dateInput";
-import { firstError, validateDateOfBirth, validateNonNegativeAmount, validateVATNumber } from "@/lib/validation";
+import { firstError, validateDateOfBirth, validateNonNegativeAmount } from "@/lib/validation";
 import { expenseService } from "@/services/expenseService";
 import { incomeService } from "@/services/incomeService";
 import { profileService } from "@/services/profileService";
@@ -78,7 +79,6 @@ export default function TaxLiabilityInputsScreen() {
   const [medicalAidMonthly, setMedicalAidMonthly] = useState("");
   const [medicalAidDependants, setMedicalAidDependants] = useState(0);
   const [vatRegistered, setVatRegistered] = useState(false);
-  const [vatNumber, setVatNumber] = useState("");
   const [raContributions, setRaContributions] = useState("");
   const [raPrefilled, setRaPrefilled] = useState(false);
   const [taxAlreadyPaid, setTaxAlreadyPaid] = useState("");
@@ -115,7 +115,6 @@ export default function TaxLiabilityInputsScreen() {
       setMedicalAidMonthly(profile?.medical_aid_monthly ? String(profile.medical_aid_monthly) : "");
       setMedicalAidDependants(profile?.medical_aid_dependants ?? 0);
       setVatRegistered(profile?.vat_registered ?? false);
-      setVatNumber(profile?.vat_number ?? "");
 
       // IRP5 gross salary is already counted automatically (it's saved into
       // the income table when logged via Add IRP5 Income — see
@@ -209,7 +208,6 @@ export default function TaxLiabilityInputsScreen() {
       validateNonNegativeAmount(paidNorm, "Tax already paid"),
       ...lumpSumErrors,
       validateNonNegativeAmount(priorLumpSumsNorm, "Earlier retirement or severance lump sums"),
-      vatRegistered ? validateVATNumber(vatNumber) : null,
     );
     if (error) {
       Alert.alert("Check your entries", error);
@@ -225,8 +223,6 @@ export default function TaxLiabilityInputsScreen() {
           date_of_birth: dobIso,
           medical_aid_monthly: parseFloat(medMonthlyNorm),
           medical_aid_dependants: medicalAidDependants,
-          vat_registered: vatRegistered,
-          vat_number: vatRegistered ? vatNumber.trim() : null,
         }),
       ]);
       const businessTaxableIncome = Math.max(0, incomeTotals.totalIncome - expenseTotals.totalDeductions);
@@ -297,7 +293,8 @@ export default function TaxLiabilityInputsScreen() {
             </SectionCard>
 
             <SectionCard title="VAT registration">
-              <View
+              <TouchableOpacity
+                onPress={() => router.push("/vat-summary" as any)}
                 style={{
                   flexDirection: "row",
                   alignItems: "center",
@@ -307,32 +304,16 @@ export default function TaxLiabilityInputsScreen() {
               >
                 <View style={{ flex: 1, marginRight: space.md }}>
                   <Text style={{ fontSize: 13, fontWeight: "600", color: colour.text }}>
-                    I am VAT registered
+                    {vatRegistered ? "VAT registered" : "Not VAT registered"}
                   </Text>
                   <Text style={{ fontSize: 11, color: colour.textSub, marginTop: 2, lineHeight: 15 }}>
-                    This is also saved in My Profile. As a registered vendor you claim VAT back separately via
-                    VAT201, so your business expenses below are deducted excluding VAT — this changes the refund
-                    or bill estimate. SARS also requires your VAT number on tax invoices once registered.
+                    As a registered vendor you claim VAT back separately via VAT201, so your business expenses are
+                    deducted excluding VAT — this changes the refund or bill estimate below. Manage your
+                    registration in the VAT area.
                   </Text>
                 </View>
-                <Switch
-                  value={vatRegistered}
-                  onValueChange={setVatRegistered}
-                  trackColor={{ false: colour.border, true: colour.accent }}
-                  thumbColor={colour.white}
-                />
-              </View>
-              {vatRegistered && (
-                <MXInput
-                  label="VAT registration number"
-                  value={vatNumber}
-                  onChangeText={setVatNumber}
-                  placeholder="e.g. 4123456789"
-                  keyboardType="numeric"
-                  maxLength={10}
-                  hint="10 digits, starting with 4 — as issued by SARS."
-                />
-              )}
+                <IconSymbol name="chevron.right" size={16} color={colour.textHint} />
+              </TouchableOpacity>
             </SectionCard>
 
             <SectionCard title="Other income">
