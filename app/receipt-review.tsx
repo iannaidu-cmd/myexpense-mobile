@@ -601,8 +601,8 @@ export default function ReceiptReviewScreen() {
             <View
               style={{
                 backgroundColor: isDeductible
-                  ? colour.successBg
-                  : colour.dangerBg,
+                  ? colour.primary50
+                  : colour.warningBg,
                 borderRadius: radius.sm,
                 paddingHorizontal: space.sm,
                 paddingVertical: 4,
@@ -614,7 +614,7 @@ export default function ReceiptReviewScreen() {
                 style={{
                   ...typography.bodyXS,
                   fontWeight: "700",
-                  color: isDeductible ? colour.success : colour.danger,
+                  color: isDeductible ? colour.accentDeep : colour.warning,
                 }}
               >
                 {expenseType === "personal" ? "N/A" : selectedCat.code} ·{" "}
