@@ -2,6 +2,7 @@ import { InfoBanner } from "@/components/InfoBanner";
 import { MXButton } from "@/components/MXButton";
 import { MXHeader } from "@/components/MXHeader";
 import { MXInput } from "@/components/MXInput";
+import { MXTabBar } from "@/components/MXTabBar";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { displayDateToISO, formatDateInputDDMMYYYY, isoToDisplayDate } from "@/lib/dateInput";
 import { firstError, validateDateOfBirth, validateNonNegativeAmount } from "@/lib/validation";
@@ -258,7 +259,7 @@ export default function TaxLiabilityInputsScreen() {
   };
 
   return (
-    <SafeAreaView edges={["top", "bottom"]} style={{ flex: 1, backgroundColor: colour.background }}>
+    <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colour.background }}>
       <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
       <MXHeader title="Tax refund or bill" subtitle={`For ${activeTaxYear}`} showBack />
 
@@ -500,6 +501,7 @@ export default function TaxLiabilityInputsScreen() {
           </ScrollView>
         </KeyboardAvoidingView>
       )}
+      <MXTabBar />
     </SafeAreaView>
   );
 }

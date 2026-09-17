@@ -37,6 +37,13 @@ const BASE_SECTIONS: {
     ],
   },
   {
+    title: "Tax guides",
+    items: [
+      { icon: "book.fill", label: "Deductibility guide", sub: "What qualifies as deductible", route: "/deductibility-guide" },
+      { icon: "crown.fill", label: "Government concessions", sub: "S12C · SBC · S10(1)(o) · TFSA", route: "/government-concessions" },
+    ],
+  },
+  {
     title: "Preferences",
     items: [
       { icon: "bell.fill",      label: "Notifications",   sub: "Push, email & filing reminders", route: "/notifications-settings" },

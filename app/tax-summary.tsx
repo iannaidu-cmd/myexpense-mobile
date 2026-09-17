@@ -157,14 +157,6 @@ export default function TaxSummaryScreen() {
     .slice(0, 8);
   const maxCatAmount = Math.max(...categoryRows.map(([, v]) => v), 1);
 
-  // Routes to the summary if an estimate already exists for this tax year,
-  // otherwise to the inputs screen to create one — see app/tax-liability-*.
-  const handleTaxLiabilityPress = async () => {
-    if (!user) return;
-    const existing = await taxLiabilityService.getEstimate(user.id, activeTaxYear);
-    router.push((existing ? "/tax-liability-summary" : "/tax-liability-inputs") as any);
-  };
-
   // Deadline for the tax year being VIEWED (used by the Key Dates card below)
   // — always that year's own future deadline, even while it's still open.
   const deadlineYear = parseInt(activeTaxYear.split("/")[0]) + 1;
@@ -261,9 +253,7 @@ export default function TaxSummaryScreen() {
           ) : (
             <>
               {/* ── Hero card (periwinkle gradient) ─────────────────────── */}
-              <TouchableOpacity
-                activeOpacity={0.85}
-                onPress={handleTaxLiabilityPress}
+              <View
                 style={{
                   marginHorizontal: space.md,
                   marginTop: space.lg,
@@ -395,8 +385,8 @@ export default function TaxSummaryScreen() {
                     }}
                   >
                     {taxLiability
-                      ? `Calculated from your Tax Liability inputs - ${activeTaxYear} - tap for details`
-                      : `Tap to enter your income, rebates & tax paid - ${activeTaxYear}`}
+                      ? `Calculated from your Tax Liability inputs - ${activeTaxYear}`
+                      : `Add your income, rebates & tax paid to see this - ${activeTaxYear}`}
                   </Text>
 
                   {/* Stat pills */}
@@ -496,7 +486,7 @@ export default function TaxSummaryScreen() {
                     </View>
                   </View>
                 </View>
-              </TouchableOpacity>
+              </View>
 
               {/* ── eFiling disclaimer (noir banner) ────────────────────── */}
               <View
@@ -960,12 +950,6 @@ export default function TaxSummaryScreen() {
                   overflow: "hidden",
                 }}
               >
-                <NavRow
-                  icon="dollarsign.circle.fill"
-                  label="Tax refund or bill"
-                  sub="What you owe SARS or get back"
-                  onPress={handleTaxLiabilityPress}
-                />
                 <NavRow
                   icon="square.and.arrow.up"
                   label="ITR12 export setup"
