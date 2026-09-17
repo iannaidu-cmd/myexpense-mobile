@@ -269,7 +269,13 @@ export default function AddIncomeScreen() {
               marginTop: space.sm,
             }}
           >
-            <Text style={{ ...typography.h2, color: amount ? colour.text : colour.textHint }}>
+            <Text
+              style={{
+                fontSize: 24,
+                fontWeight: "600",
+                color: amount ? colour.text : colour.textHint,
+              }}
+            >
               R
             </Text>
             <TextInput
@@ -281,6 +287,8 @@ export default function AddIncomeScreen() {
               style={{
                 ...typography.amountXL,
                 fontSize: 44,
+                fontWeight: "800",
+                letterSpacing: -2,
                 color: amount ? colour.text : colour.textHint,
                 minWidth: 120,
                 textAlign: "center",
@@ -291,45 +299,6 @@ export default function AddIncomeScreen() {
             Gross, before any tax was taken off
           </Text>
         </View>
-
-        {/* IRP5 / employment income shortcut */}
-        {!isEditing && (
-          <TouchableOpacity
-            onPress={() => router.push("/add-irp5-income" as any)}
-            style={{
-              marginHorizontal: space.lg,
-              marginBottom: space.md,
-              backgroundColor: colour.noir,
-              borderRadius: radius.lg,
-              padding: space.md,
-              flexDirection: "row",
-              alignItems: "center",
-              gap: space.md,
-            }}
-          >
-            <View
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: 10,
-                backgroundColor: colour.primary,
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <IconSymbol name="doc.text.fill" size={16} color={colour.white} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 13, fontWeight: "700", color: colour.onNoir }}>
-                Adding IRP5 / employment income?
-              </Text>
-              <Text style={{ fontSize: 11, color: colour.onNoir2, marginTop: 1 }}>
-                Use the IRP5 form to capture source codes, PAYE and ITR12 data
-              </Text>
-            </View>
-            <IconSymbol name="chevron.right" size={13} color={colour.onNoir2} />
-          </TouchableOpacity>
-        )}
 
         {/* Quick pick */}
         <View
@@ -513,6 +482,35 @@ export default function AddIncomeScreen() {
           />
         </View>
 
+        {/* IRP5 / employment income note */}
+        {!isEditing && (
+          <View
+            style={{
+              flexDirection: "row",
+              gap: space.sm,
+              marginHorizontal: space.lg,
+              marginBottom: space.md,
+              backgroundColor: colour.primary50,
+              borderWidth: 1,
+              borderColor: colour.accentSoft,
+              borderRadius: radius.md,
+              padding: space.md,
+            }}
+          >
+            <IconSymbol name="doc.text.fill" size={15} color={colour.primary} />
+            <Text style={{ ...typography.bodyS, color: colour.text, flex: 1, lineHeight: 18 }}>
+              <Text style={{ fontWeight: "700" }}>Adding IRP5 income? </Text>
+              Use the IRP5 form instead so source codes and PAYE land on your ITR12.{" "}
+              <Text
+                style={{ fontWeight: "700", color: colour.accentDeep }}
+                onPress={() => router.push("/add-irp5-income" as any)}
+              >
+                Open IRP5 form
+              </Text>
+            </Text>
+          </View>
+        )}
+
         {/* Save */}
         <TouchableOpacity
           onPress={handleSave}
@@ -524,7 +522,7 @@ export default function AddIncomeScreen() {
             height: 52,
             alignItems: "center",
             justifyContent: "center",
-            marginBottom: space.sm,
+            marginBottom: !canSave && !isEditing ? space.xxs : space.sm,
           }}
         >
           {saving ? (
@@ -536,10 +534,23 @@ export default function AddIncomeScreen() {
                 color: canSave ? colour.onPrimary : colour.textSub,
               }}
             >
-              {canSave ? (isEditing ? "Save changes" : "Save income") : "Fill in required fields"}
+              {isEditing ? "Save changes" : "Add income"}
             </Text>
           )}
         </TouchableOpacity>
+
+        {!isEditing && !canSave && !saving && (
+          <Text
+            style={{
+              ...typography.bodyXS,
+              color: colour.textHint,
+              textAlign: "center",
+              marginBottom: space.sm,
+            }}
+          >
+            Enter an amount and pick a source
+          </Text>
+        )}
 
         <TouchableOpacity
           onPress={() => router.back()}
