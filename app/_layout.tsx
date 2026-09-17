@@ -399,7 +399,6 @@ function RootLayout() {
         />
         {/* ── Expense Management ── */}
         <Stack.Screen name="add-expense-manual" options={{ headerShown: false }} />
-        <Stack.Screen name="quick-add-expense" options={{ headerShown: false }} />
         <Stack.Screen name="expense-detail" options={{ headerShown: false }} />
         <Stack.Screen name="expense-history" options={{ headerShown: false }} />
         <Stack.Screen name="edit-expense" options={{ headerShown: false }} />
@@ -430,10 +429,6 @@ function RootLayout() {
           options={{ headerShown: false }}
         />
         <Stack.Screen
-          name="itr12-pdf-report"
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
           name="itr12-efiling-guide"
           options={{ headerShown: false }}
         />
@@ -451,10 +446,6 @@ function RootLayout() {
           options={{ headerShown: false }}
         />
         {/* ── Reports ── */}
-        <Stack.Screen
-          name="reports-dashboard"
-          options={{ headerShown: false }}
-        />
         <Stack.Screen name="mileage-tracker" options={{ headerShown: false }} />
         <Stack.Screen name="mileage-history" options={{ headerShown: false }} />
         <Stack.Screen

@@ -12,7 +12,7 @@ const TAB_CONFIG: {
   isFab?: boolean;
 }[] = [
   { name: "index",       label: "Home",    icon: "house.fill"            },
-  { name: "add-expense", label: "Track",   icon: "car.fill"              },
+  { name: "add-expense", label: "Add",     icon: "creditcard.fill"       },
   { name: "scan",        label: null,      icon: "plus",       isFab: true },
   { name: "reports",     label: "Reports", icon: "chart.bar.fill"        },
   { name: "settings",    label: "Me",      icon: "person.fill"           },
@@ -71,7 +71,7 @@ function CustomTabBar({
               return;
             }
             if (tab.name === "add-expense") {
-              router.push("/mileage-tracker" as any);
+              router.push("/add-expense-manual" as any);
               return;
             }
             const event = navigation.emit({
