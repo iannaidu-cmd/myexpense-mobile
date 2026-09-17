@@ -27,13 +27,71 @@ import Svg, { G, Rect, Text as SvgText } from "react-native-svg";
 type Period = "1M" | "3M" | "6M" | "YTD" | "FY";
 const PERIODS: Period[] = ["1M", "3M", "6M", "YTD", "FY"];
 
-const REPORT_LINKS: { icon: string; label: string; sub: string; route: string }[] = [
-  { icon: "checkmark",       label: "Tax savings",          sub: "Year-to-date breakdown",   route: "/tax-summary"        },
-  { icon: "list.bullet",     label: "Category breakdown",   sub: "Where your money goes",    route: "/category-breakdown" },
-  { icon: "doc.text.fill",   label: "VAT summary",          sub: "Input vs output VAT",      route: "/vat-summary"        },
-  { icon: "calendar",        label: "Provisional tax",        sub: "IRP6 deadlines & estimate",    route: "/provisional-tax"          },
-  { icon: "crown.fill",     label: "Government concessions", sub: "S12C · SBC · S10(1)(o) · TFSA", route: "/government-concessions" },
+const TRANSACTIONS_LINKS: { icon: string; label: string; sub: string; route: string }[] = [
+  { icon: "list.bullet",             label: "Expense history", sub: "Full expense list", route: "/expense-history" },
+  { icon: "dollarsign.circle.fill",  label: "Income history",  sub: "Full income list",  route: "/income-history"  },
 ];
+
+const MILEAGE_LINKS: { icon: string; label: string; sub: string; route: string }[] = [
+  { icon: "car.fill", label: "Mileage tracker", sub: "Trips, history & log", route: "/mileage-tracker" },
+];
+
+function LinkGroup({
+  links,
+  onPress,
+}: {
+  links: { icon: string; label: string; sub: string; route: string }[];
+  onPress: (route: string) => void;
+}) {
+  return (
+    <View style={{
+      backgroundColor: colour.white,
+      borderRadius: radius.md,
+      borderWidth: 1,
+      borderColor: colour.borderLight,
+      overflow: "hidden",
+      marginBottom: 14,
+    }}>
+      {links.map((r, i) => (
+        <TouchableOpacity
+          key={r.label}
+          onPress={() => onPress(r.route)}
+          activeOpacity={0.7}
+          style={{
+            flexDirection: "row", alignItems: "center",
+            padding: 13, paddingHorizontal: 14,
+            borderBottomWidth: i < links.length - 1 ? 1 : 0,
+            borderBottomColor: colour.borderLight,
+          }}
+        >
+          <View style={{
+            width: 32, height: 32, borderRadius: 10,
+            backgroundColor: colour.primary50,
+            alignItems: "center", justifyContent: "center", marginRight: 12,
+          }}>
+            <IconSymbol name={r.icon as any} size={14} color={colour.accentDeep} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 13.5, fontWeight: "600", color: colour.text }}>{r.label}</Text>
+            <Text style={{ fontSize: 11, color: colour.textSub, marginTop: 1 }}>{r.sub}</Text>
+          </View>
+          <IconSymbol name="chevron.right" size={13} color={colour.textSub} />
+        </TouchableOpacity>
+      ))}
+    </View>
+  );
+}
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <Text style={{
+      fontSize: 11, color: colour.textSub,
+      letterSpacing: 0.8, marginBottom: 10, marginLeft: 2, fontWeight: "600",
+    }}>
+      {children}
+    </Text>
+  );
+}
 
 const fmtSignedAmount = (n: number) =>
   `R ${Math.abs(n).toLocaleString("en-ZA", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
@@ -178,6 +236,8 @@ export default function ReportsTabScreen() {
   const [tripCount, setTripCount] = useState(0);
   const [categoryCount, setCategoryCount] = useState(0);
   const [taxLiability, setTaxLiability] = useState<TaxLiabilityEstimate | null>(null);
+  const [vatRegistered, setVatRegistered] = useState(false);
+  const [vatClaimable, setVatClaimable] = useState(0);
 
   const isFetching = useRef(false);
   const hasLoaded = useRef(false);
@@ -209,6 +269,16 @@ export default function ReportsTabScreen() {
           Object.keys(byCategory).filter((k) => k !== "Personal / Non-deductible").length,
         );
         setTaxLiability(liabilityEstimate);
+        setVatRegistered(vatRegistered);
+        // Same claimable-VAT rule as app/vat-summary.tsx: input tax can only
+        // be claimed back by a registered vendor, regardless of is_deductible.
+        setVatClaimable(
+          vatRegistered
+            ? allExpenses
+                .filter((e) => e.vat_amount && Number(e.vat_amount) > 0 && e.is_deductible)
+                .reduce((s, e) => s + Number(e.vat_amount), 0)
+            : 0,
+        );
 
         const now = new Date();
         const months: MonthRow[] = Array.from({ length: 12 }, (_, k) => {
@@ -598,50 +668,64 @@ export default function ReportsTabScreen() {
               </View>
             </TouchableOpacity>
 
-            {/* ── 5. Quick links ──────────────────────────────────────────── */}
-            <Text style={{
-              fontSize: 11, color: colour.textSub,
-              letterSpacing: 0.8, marginBottom: 10, marginLeft: 2, fontWeight: "600",
-            }}>
-              Quick links
-            </Text>
-            <View style={{
-              backgroundColor: colour.white,
-              borderRadius: radius.md,
-              borderWidth: 1,
-              borderColor: colour.borderLight,
-              overflow: "hidden",
-              marginBottom: 14,
-            }}>
-              {REPORT_LINKS.map((r, i) => (
-                <TouchableOpacity
-                  key={r.label}
-                  onPress={() => router.push(r.route as any)}
-                  activeOpacity={0.7}
-                  style={{
-                    flexDirection: "row", alignItems: "center",
-                    padding: 13, paddingHorizontal: 14,
-                    borderBottomWidth: i < REPORT_LINKS.length - 1 ? 1 : 0,
-                    borderBottomColor: colour.borderLight,
-                  }}
-                >
-                  <View style={{
-                    width: 32, height: 32, borderRadius: 10,
-                    backgroundColor: colour.primary50,
-                    alignItems: "center", justifyContent: "center", marginRight: 12,
-                  }}>
-                    <IconSymbol name={r.icon as any} size={14} color={colour.accentDeep} />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 13.5, fontWeight: "600", color: colour.text }}>{r.label}</Text>
-                    <Text style={{ fontSize: 11, color: colour.textSub, marginTop: 1 }}>{r.sub}</Text>
-                  </View>
-                  <IconSymbol name="chevron.right" size={13} color={colour.textSub} />
-                </TouchableOpacity>
-              ))}
-            </View>
+            {/* ── 4c. VAT (noir, elevated) ─────────────────────────────────── */}
+            <TouchableOpacity
+              onPress={() => router.push("/vat-summary" as any)}
+              activeOpacity={0.85}
+              style={{
+                backgroundColor: colour.noir,
+                borderRadius: radius.md,
+                padding: 16,
+                paddingHorizontal: 18,
+                marginBottom: 14,
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                overflow: "hidden",
+              }}
+            >
+              <View style={{
+                position: "absolute", width: 100, height: 100, borderRadius: 50,
+                backgroundColor: colour.brandTeal, opacity: 0.35, top: -30, right: -20,
+              }} />
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 10, fontWeight: "600", color: colour.onNoir2, letterSpacing: 0.5, marginBottom: 4 }}>
+                  VAT
+                </Text>
+                {vatRegistered ? (
+                  <Text style={{ fontSize: 24, fontWeight: "800", letterSpacing: -1, color: colour.onNoir }}>
+                    {fmtAmount(vatClaimable)} claimable
+                  </Text>
+                ) : (
+                  <Text style={{ fontSize: 15, fontWeight: "700", color: colour.onNoir, letterSpacing: -0.3 }}>
+                    Not VAT registered
+                  </Text>
+                )}
+                <Text style={{ fontSize: 10, color: colour.onNoir2, marginTop: 4 }}>
+                  {vatRegistered ? "Tap to see input vs output VAT" : "Tap to register or see the VAT report"}
+                </Text>
+              </View>
+              <View style={{
+                width: 32, height: 32, borderRadius: 16,
+                backgroundColor: "rgba(255,255,255,0.15)",
+                alignItems: "center", justifyContent: "center",
+              }}>
+                <IconSymbol name="chevron.right" size={14} color={colour.white} />
+              </View>
+            </TouchableOpacity>
 
-            {/* ── 6. Export ITR12 CTA ─────────────────────────────────────── */}
+            {/* ── 5. Transactions ──────────────────────────────────────────── */}
+            <SectionLabel>Transactions</SectionLabel>
+            <LinkGroup links={TRANSACTIONS_LINKS} onPress={(route) => router.push(route as any)} />
+
+            {/* ── 5b. Mileage log ──────────────────────────────────────────── */}
+            <SectionLabel>Mileage log</SectionLabel>
+            <LinkGroup links={MILEAGE_LINKS} onPress={(route) => router.push(route as any)} />
+
+            {/* ── 6. Export & SARS filing ─────────────────────────────────── */}
+            <SectionLabel>Export & SARS filing</SectionLabel>
+
+            {/* ── 6a. Export ITR12 CTA ────────────────────────────────────── */}
             <TouchableOpacity
               onPress={() => router.push("/itr12-export-setup" as any)}
               activeOpacity={0.85}
@@ -681,7 +765,7 @@ export default function ReportsTabScreen() {
               </View>
             </TouchableOpacity>
 
-            {/* ── 7. Export Receipts CTA ──────────────────────────────────── */}
+            {/* ── 6b. Export Receipts CTA ─────────────────────────────────── */}
             <TouchableOpacity
               onPress={() => router.push("/export-receipts" as any)}
               activeOpacity={0.85}
