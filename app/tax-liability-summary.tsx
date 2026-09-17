@@ -166,7 +166,7 @@ export default function TaxLiabilitySummaryScreen() {
                 fontSize: 44,
                 fontWeight: "800",
                 letterSpacing: -1.5,
-                color: owing ? colour.danger : refund ? colour.success : colour.onNoir,
+                color: owing ? colour.danger : refund ? colour.brandTeal : colour.onNoir,
                 marginBottom: 4,
               }}
             >
