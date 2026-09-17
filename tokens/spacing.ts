@@ -33,6 +33,12 @@ export const radius = {
   pill: 100,
   /** 100px – alias for pill, fully rounded */
   full: 100,
+  /** 26px – mockup ".dark" hero card corner radius */
+  hero: 26,
+  /** 24px – mockup ".card" / ".list" corner radius */
+  card: 24,
+  /** 16px – mockup ".note" corner radius */
+  note: 16,
 } as const;
 
 export type RadiusKey = keyof typeof radius;

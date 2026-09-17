@@ -51,10 +51,13 @@ export const colour = {
   onPrimary: "#FFFFFF", // text/icon on primary
 
   // ── Noir (Hero Cards) ─────────────────────────────────────────────────────
-  noir: "#171629", // hero card background
+  noir: "#171629", // dark chrome (modal sheets, compliance callouts) — NOT the mockup hero
   noir2: "#1F1D34", // hero card secondary surface
   onNoir: "#FFFFFF", // primary text on noir
   onNoir2: "#A9A5BD", // secondary text on noir
+
+  // ── Hero Dark (mockup ".dark" hero cards) ─────────────────────────────────
+  heroDark: "#292561", // exact ".dark" background from the MyExpense Screens Redesign mockup
 
   // ── Info ──────────────────────────────────────────────────────────────────
   info: "#6B6AD8", // info (periwinkle)

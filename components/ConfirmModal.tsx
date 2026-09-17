@@ -20,6 +20,8 @@ interface ConfirmModalProps {
   onCancel: () => void;
   destructive?: boolean;
   icon?: string;
+  /** Hide the secondary button — for a single-action info popup (e.g. "Got it"). */
+  hideCancel?: boolean;
 }
 
 export function ConfirmModal({
@@ -32,6 +34,7 @@ export function ConfirmModal({
   onCancel,
   destructive = true,
   icon,
+  hideCancel = false,
 }: ConfirmModalProps) {
   const backdropOpacity = useRef(new Animated.Value(0)).current;
   const cardScale = useRef(new Animated.Value(0.9)).current;
@@ -172,7 +175,7 @@ export function ConfirmModal({
                     height: 52,
                     alignItems: "center",
                     justifyContent: "center",
-                    marginBottom: 8,
+                    marginBottom: hideCancel ? 0 : 8,
                   }}
                 >
                   <Text style={{ ...typography.btnL, color: colour.white }}>
@@ -181,20 +184,22 @@ export function ConfirmModal({
                 </TouchableOpacity>
 
                 {/* Cancel button */}
-                <TouchableOpacity
-                  onPress={onCancel}
-                  activeOpacity={0.7}
-                  style={{
-                    width: "100%",
-                    height: 44,
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <Text style={{ ...typography.btnL, color: colour.textSecondary }}>
-                    {cancelLabel}
-                  </Text>
-                </TouchableOpacity>
+                {!hideCancel && (
+                  <TouchableOpacity
+                    onPress={onCancel}
+                    activeOpacity={0.7}
+                    style={{
+                      width: "100%",
+                      height: 44,
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <Text style={{ ...typography.btnL, color: colour.textSecondary }}>
+                      {cancelLabel}
+                    </Text>
+                  </TouchableOpacity>
+                )}
               </Animated.View>
             </Animated.View>
           </Animated.View>

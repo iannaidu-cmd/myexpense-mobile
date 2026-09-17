@@ -52,7 +52,7 @@ function SectionCard({ title, children }: { title: string; children: React.React
     <View
       style={{
         backgroundColor: colour.white,
-        borderRadius: radius.md,
+        borderRadius: radius.card,
         padding: space.md,
         borderWidth: 1,
         borderColor: colour.borderLight,
@@ -60,7 +60,7 @@ function SectionCard({ title, children }: { title: string; children: React.React
         gap: space.sm,
       }}
     >
-      <Text style={{ fontSize: 13, fontWeight: "700", color: colour.text }}>{title}</Text>
+      <Text style={{ fontSize: 15, fontWeight: "700", letterSpacing: -0.3, color: colour.text }}>{title}</Text>
       {children}
     </View>
   );
@@ -91,7 +91,7 @@ function AccordionSection({
     <View
       style={{
         backgroundColor: colour.white,
-        borderRadius: radius.md,
+        borderRadius: radius.card,
         borderWidth: 1,
         borderColor: colour.borderLight,
         marginBottom: space.md,
@@ -128,7 +128,7 @@ function AccordionSection({
             )}
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 13.5, fontWeight: "700", color: colour.text }}>{title}</Text>
+            <Text style={{ fontSize: 15, fontWeight: "700", letterSpacing: -0.3, color: colour.text }}>{title}</Text>
             {!expanded && summary ? (
               <Text style={{ fontSize: 12, fontWeight: "600", color: colour.textSub, marginTop: 2 }}>
                 {summary}

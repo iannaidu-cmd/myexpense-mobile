@@ -245,7 +245,7 @@ export default function AddIncomeScreen() {
             marginTop: space.lg,
             marginBottom: space.md,
             backgroundColor: colour.white,
-            borderRadius: radius.lg,
+            borderRadius: radius.card,
             borderWidth: 1,
             borderColor: colour.border,
             padding: space.xl,
@@ -358,7 +358,7 @@ export default function AddIncomeScreen() {
           style={{
             marginHorizontal: space.lg,
             backgroundColor: colour.white,
-            borderRadius: radius.lg,
+            borderRadius: radius.card,
             padding: space.lg,
             borderWidth: 1,
             borderColor: colour.border,
@@ -490,10 +490,10 @@ export default function AddIncomeScreen() {
               gap: space.sm,
               marginHorizontal: space.lg,
               marginBottom: space.md,
-              backgroundColor: colour.primary50,
+              backgroundColor: colour.primary + "17",
               borderWidth: 1,
-              borderColor: colour.accentSoft,
-              borderRadius: radius.md,
+              borderColor: colour.primary + "29",
+              borderRadius: radius.note,
               padding: space.md,
             }}
           >

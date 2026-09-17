@@ -391,8 +391,8 @@ export default function ExpenseDetailScreen() {
             figure (a separate card further down). */}
         <View
           style={{
-            backgroundColor: colour.noir,
-            borderRadius: radius.lg,
+            backgroundColor: colour.heroDark,
+            borderRadius: radius.hero,
             padding: space.lg,
             marginBottom: space.xl,
           }}
@@ -466,7 +466,7 @@ export default function ExpenseDetailScreen() {
         <View
           style={{
             backgroundColor: colour.bgCard,
-            borderRadius: radius.md,
+            borderRadius: radius.card,
             borderWidth: 1,
             borderColor: colour.border,
             paddingHorizontal: space.lg,
@@ -502,10 +502,10 @@ export default function ExpenseDetailScreen() {
             }
           }}
           style={{
-            backgroundColor: hasReceipt ? colour.noir : colour.bgPage,
-            borderRadius: radius.md,
+            backgroundColor: hasReceipt ? colour.heroDark : colour.bgPage,
+            borderRadius: radius.card,
             borderWidth: 1,
-            borderColor: hasReceipt ? colour.noir : colour.border,
+            borderColor: hasReceipt ? colour.heroDark : colour.border,
             padding: space.lg,
             flexDirection: "row",
             alignItems: "center",
@@ -539,8 +539,8 @@ export default function ExpenseDetailScreen() {
         {/* SARS compliance note */}
         <View
           style={{
-            backgroundColor: colour.noir,
-            borderRadius: radius.md,
+            backgroundColor: colour.heroDark,
+            borderRadius: radius.card,
             padding: space.md,
             marginBottom: space.xl,
           }}

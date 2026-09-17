@@ -9,10 +9,11 @@ import { profileService } from "@/services/profileService";
 import { taxLiabilityService } from "@/services/taxLiabilityService";
 import { useAuthStore } from "@/stores/authStore";
 import { useExpenseStore } from "@/stores/expenseStore";
+import { ConfirmModal } from "@/components/ConfirmModal";
 import { colour, radius, space } from "@/tokens";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
-import { ActivityIndicator, Alert, ScrollView, StatusBar, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, ScrollView, StatusBar, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 // ─── Tax Liability — Summary ──────────────────────────────────────────────────
@@ -55,6 +56,7 @@ export default function TaxLiabilitySummaryScreen() {
   const [result, setResult] = useState<TaxLiabilityResult | null>(null);
   const [businessTaxableIncome, setBusinessTaxableIncome] = useState(0);
   const [otherIncome, setOtherIncome] = useState(0);
+  const [showWhyModal, setShowWhyModal] = useState(false);
 
   const loadData = useCallback(async () => {
     if (!user) { setLoading(false); return; }
@@ -143,8 +145,8 @@ export default function TaxLiabilitySummaryScreen() {
           {/* Hero card */}
           <View
             style={{
-              backgroundColor: colour.noir,
-              borderRadius: radius.lg,
+              backgroundColor: colour.heroDark,
+              borderRadius: radius.hero,
               padding: space.xl,
               marginBottom: space.md,
             }}
@@ -187,12 +189,7 @@ export default function TaxLiabilitySummaryScreen() {
                 Estimate only. It moves as you add more.
               </Text>
               <TouchableOpacity
-                onPress={() =>
-                  Alert.alert(
-                    "Why this is an estimate",
-                    "This figure is based on everything you've logged in MyExpense so far. It updates automatically as you add more income, expenses, or details to your Tax refund or bill inputs.",
-                  )
-                }
+                onPress={() => setShowWhyModal(true)}
                 style={{
                   backgroundColor: "rgba(255,255,255,0.12)",
                   borderRadius: radius.pill,
@@ -209,14 +206,23 @@ export default function TaxLiabilitySummaryScreen() {
           <View
             style={{
               backgroundColor: colour.white,
-              borderRadius: radius.md,
+              borderRadius: radius.card,
               padding: space.md,
               borderWidth: 1,
               borderColor: colour.borderLight,
               marginBottom: space.md,
             }}
           >
-            <Text style={{ fontSize: 13, fontWeight: "700", color: colour.text, marginBottom: 12 }}>
+            <Text
+              style={{
+                fontSize: 10.5,
+                fontWeight: "700",
+                letterSpacing: 1.8,
+                textTransform: "uppercase",
+                color: colour.textSub,
+                marginBottom: 14,
+              }}
+            >
               How this was calculated
             </Text>
 
@@ -304,10 +310,10 @@ export default function TaxLiabilitySummaryScreen() {
               gap: space.sm,
               alignItems: "flex-start",
               padding: space.md,
-              borderRadius: radius.md,
-              backgroundColor: colour.primary50,
+              borderRadius: radius.note,
+              backgroundColor: colour.primary + "17",
               borderWidth: 1,
-              borderColor: colour.accentSoft,
+              borderColor: colour.primary + "29",
               marginBottom: space.md,
             }}
           >
@@ -334,6 +340,17 @@ export default function TaxLiabilitySummaryScreen() {
           />
         </ScrollView>
       )}
+      <ConfirmModal
+        visible={showWhyModal}
+        title="Why this is an estimate"
+        message="This figure is based on everything you've logged in MyExpense so far. It updates automatically as you add more income, expenses, or details to your Tax refund or bill inputs."
+        confirmLabel="Got it"
+        destructive={false}
+        icon="info.circle.fill"
+        hideCancel
+        onConfirm={() => setShowWhyModal(false)}
+        onCancel={() => setShowWhyModal(false)}
+      />
       <MXTabBar />
     </SafeAreaView>
   );

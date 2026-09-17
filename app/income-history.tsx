@@ -172,8 +172,8 @@ export default function IncomeHistoryScreen() {
         style={{
           marginHorizontal: space.lg,
           marginTop: space.md,
-          backgroundColor: colour.noir,
-          borderRadius: radius.lg,
+          backgroundColor: colour.heroDark,
+          borderRadius: radius.hero,
           padding: space.lg,
         }}
       >
@@ -348,10 +348,10 @@ export default function IncomeHistoryScreen() {
                     gap: space.sm,
                     alignItems: "flex-start",
                     padding: space.md,
-                    borderRadius: radius.md,
-                    backgroundColor: colour.primary50,
+                    borderRadius: radius.note,
+                    backgroundColor: colour.primary + "17",
                     borderWidth: 1,
-                    borderColor: colour.accentSoft,
+                    borderColor: colour.primary + "29",
                     marginTop: space.sm,
                   }}
                 >

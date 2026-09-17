@@ -229,8 +229,8 @@ export default function ExpenseHistoryScreen() {
         style={{
           marginHorizontal: space.lg,
           marginTop: space.md,
-          backgroundColor: colour.noir,
-          borderRadius: radius.lg,
+          backgroundColor: colour.heroDark,
+          borderRadius: radius.hero,
           padding: space.lg,
         }}
       >
