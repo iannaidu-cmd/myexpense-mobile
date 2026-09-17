@@ -2,7 +2,6 @@ import { InfoBanner } from "@/components/InfoBanner";
 import { MXButton } from "@/components/MXButton";
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
-import { IconSymbol } from "@/components/ui/icon-symbol";
 import { calculateTaxLiability, TaxLiabilityResult } from "@/lib/taxLiability";
 import { expenseService } from "@/services/expenseService";
 import { incomeService } from "@/services/incomeService";
@@ -25,12 +24,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 const fmt = (n: number) =>
   `R ${Math.abs(n).toLocaleString("en-ZA", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
-
-const RELATED_LINKS: { icon: string; label: string; sub: string; route: string }[] = [
-  { icon: "checkmark",       label: "Tax summary",            sub: "Year-to-date breakdown",         route: "/tax-summary" },
-  { icon: "calendar",        label: "Provisional tax",        sub: "IRP6 deadlines & estimate",       route: "/provisional-tax" },
-  { icon: "list.bullet",     label: "Category breakdown",     sub: "Where your money goes",           route: "/category-breakdown" },
-];
 
 function Row({ label, value, bold = false }: { label: string; value: string; bold?: boolean }) {
   return (
@@ -276,49 +269,6 @@ export default function TaxLiabilitySummaryScreen() {
               value={fmt(result.finalLiability)}
               bold
             />
-          </View>
-
-          {/* ── More about your tax ─────────────────────────────────── */}
-          <Text style={{
-            fontSize: 11, color: colour.textSub,
-            letterSpacing: 0.8, marginBottom: 10, marginLeft: 2, fontWeight: "600",
-          }}>
-            More about your tax
-          </Text>
-          <View style={{
-            backgroundColor: colour.white,
-            borderRadius: radius.md,
-            borderWidth: 1,
-            borderColor: colour.borderLight,
-            overflow: "hidden",
-            marginBottom: space.md,
-          }}>
-            {RELATED_LINKS.map((link, i) => (
-              <TouchableOpacity
-                key={link.route}
-                onPress={() => router.push(link.route as any)}
-                activeOpacity={0.7}
-                style={{
-                  flexDirection: "row", alignItems: "center",
-                  padding: 13, paddingHorizontal: 14,
-                  borderBottomWidth: i < RELATED_LINKS.length - 1 ? 1 : 0,
-                  borderBottomColor: colour.borderLight,
-                }}
-              >
-                <View style={{
-                  width: 32, height: 32, borderRadius: 10,
-                  backgroundColor: colour.primary50,
-                  alignItems: "center", justifyContent: "center", marginRight: 12,
-                }}>
-                  <IconSymbol name={link.icon as any} size={14} color={colour.accentDeep} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 13.5, fontWeight: "600", color: colour.text }}>{link.label}</Text>
-                  <Text style={{ fontSize: 11, color: colour.textSub, marginTop: 1 }}>{link.sub}</Text>
-                </View>
-                <IconSymbol name="chevron.right" size={13} color={colour.textSub} />
-              </TouchableOpacity>
-            ))}
           </View>
 
           <MXButton

@@ -27,6 +27,12 @@ import Svg, { G, Rect, Text as SvgText } from "react-native-svg";
 type Period = "1M" | "3M" | "6M" | "YTD" | "FY";
 const PERIODS: Period[] = ["1M", "3M", "6M", "YTD", "FY"];
 
+const TAX_TOOLS_LINKS: { icon: string; label: string; sub: string; route: string }[] = [
+  { icon: "checkmark",       label: "Tax summary",        sub: "Year-to-date breakdown",     route: "/tax-summary"        },
+  { icon: "calendar",        label: "Provisional tax",    sub: "IRP6 deadlines & estimate",   route: "/provisional-tax"    },
+  { icon: "list.bullet",     label: "Category breakdown", sub: "Where your money goes",       route: "/category-breakdown" },
+];
+
 const TRANSACTIONS_LINKS: { icon: string; label: string; sub: string; route: string }[] = [
   { icon: "list.bullet",             label: "Expense history", sub: "Full expense list", route: "/expense-history" },
   { icon: "dollarsign.circle.fill",  label: "Income history",  sub: "Full income list",  route: "/income-history"  },
@@ -663,6 +669,10 @@ export default function ReportsTabScreen() {
                 <IconSymbol name="chevron.right" size={14} color={colour.white} />
               </View>
             </TouchableOpacity>
+
+            {/* ── 4b2. Tax tools ───────────────────────────────────────────── */}
+            <SectionLabel>Tax tools</SectionLabel>
+            <LinkGroup links={TAX_TOOLS_LINKS} onPress={(route) => router.push(route as any)} />
 
             {/* ── 4c. VAT (noir, elevated) ─────────────────────────────────── */}
             <TouchableOpacity
