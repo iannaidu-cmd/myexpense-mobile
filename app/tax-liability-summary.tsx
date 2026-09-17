@@ -1,6 +1,7 @@
 import { InfoBanner } from "@/components/InfoBanner";
 import { MXButton } from "@/components/MXButton";
 import { MXHeader } from "@/components/MXHeader";
+import { MXTabBar } from "@/components/MXTabBar";
 import { calculateTaxLiability, TaxLiabilityResult } from "@/lib/taxLiability";
 import { expenseService } from "@/services/expenseService";
 import { incomeService } from "@/services/incomeService";
@@ -117,7 +118,7 @@ export default function TaxLiabilitySummaryScreen() {
   const refund = result ? result.finalLiability < 0 : false;
 
   return (
-    <SafeAreaView edges={["top", "bottom"]} style={{ flex: 1, backgroundColor: colour.background }}>
+    <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colour.background }}>
       <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
       <MXHeader
         title="Tax refund or bill"
@@ -278,6 +279,7 @@ export default function TaxLiabilitySummaryScreen() {
           />
         </ScrollView>
       )}
+      <MXTabBar />
     </SafeAreaView>
   );
 }
