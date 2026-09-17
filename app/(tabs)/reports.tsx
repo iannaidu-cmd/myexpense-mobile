@@ -32,10 +32,6 @@ const TRANSACTIONS_LINKS: { icon: string; label: string; sub: string; route: str
   { icon: "dollarsign.circle.fill",  label: "Income history",  sub: "Full income list",  route: "/income-history"  },
 ];
 
-const MILEAGE_LINKS: { icon: string; label: string; sub: string; route: string }[] = [
-  { icon: "car.fill", label: "Mileage tracker", sub: "Trips, history & log", route: "/mileage-tracker" },
-];
-
 function LinkGroup({
   links,
   onPress,
@@ -718,14 +714,40 @@ export default function ReportsTabScreen() {
             <SectionLabel>Transactions</SectionLabel>
             <LinkGroup links={TRANSACTIONS_LINKS} onPress={(route) => router.push(route as any)} />
 
-            {/* ── 5b. Mileage log ──────────────────────────────────────────── */}
-            <SectionLabel>Mileage log</SectionLabel>
-            <LinkGroup links={MILEAGE_LINKS} onPress={(route) => router.push(route as any)} />
-
             {/* ── 6. Export & SARS filing ─────────────────────────────────── */}
             <SectionLabel>Export & SARS filing</SectionLabel>
 
-            {/* ── 6a. Export ITR12 CTA ────────────────────────────────────── */}
+            {/* ── 6a. Export Receipts CTA ─────────────────────────────────── */}
+            <TouchableOpacity
+              onPress={() => router.push("/export-receipts" as any)}
+              activeOpacity={0.85}
+              style={{
+                backgroundColor: colour.white,
+                borderRadius: radius.lg,
+                padding: 16, paddingHorizontal: 18,
+                flexDirection: "row", alignItems: "center", gap: 14,
+                borderWidth: 1, borderColor: colour.borderLight,
+              }}
+            >
+              <View style={{
+                width: 42, height: 42, borderRadius: 12,
+                backgroundColor: colour.surface1,
+                alignItems: "center", justifyContent: "center",
+              }}>
+                <IconSymbol name="doc.zipper" size={20} color={colour.primary} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 15, fontWeight: "700", color: colour.text, letterSpacing: -0.3 }}>
+                  Export receipts
+                </Text>
+                <Text style={{ fontSize: 11, color: colour.textSub, marginTop: 2 }}>
+                  ZIP of receipt images for a date range — proof for SARS
+                </Text>
+              </View>
+              <IconSymbol name="chevron.right" size={14} color={colour.textSub} />
+            </TouchableOpacity>
+
+            {/* ── 6b. Export ITR12 CTA ────────────────────────────────────── */}
             <TouchableOpacity
               onPress={() => router.push("/itr12-export-setup" as any)}
               activeOpacity={0.85}
@@ -735,6 +757,7 @@ export default function ReportsTabScreen() {
                 padding: 16, paddingHorizontal: 18,
                 flexDirection: "row", alignItems: "center", gap: 14,
                 overflow: "hidden",
+                marginTop: space.sm,
               }}
             >
               <View style={{
@@ -763,37 +786,6 @@ export default function ReportsTabScreen() {
               }}>
                 <IconSymbol name="chevron.right" size={14} color={colour.white} />
               </View>
-            </TouchableOpacity>
-
-            {/* ── 6b. Export Receipts CTA ─────────────────────────────────── */}
-            <TouchableOpacity
-              onPress={() => router.push("/export-receipts" as any)}
-              activeOpacity={0.85}
-              style={{
-                backgroundColor: colour.white,
-                borderRadius: radius.lg,
-                padding: 16, paddingHorizontal: 18,
-                flexDirection: "row", alignItems: "center", gap: 14,
-                borderWidth: 1, borderColor: colour.borderLight,
-                marginTop: space.sm,
-              }}
-            >
-              <View style={{
-                width: 42, height: 42, borderRadius: 12,
-                backgroundColor: colour.surface1,
-                alignItems: "center", justifyContent: "center",
-              }}>
-                <IconSymbol name="doc.zipper" size={20} color={colour.primary} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 15, fontWeight: "700", color: colour.text, letterSpacing: -0.3 }}>
-                  Export receipts
-                </Text>
-                <Text style={{ fontSize: 11, color: colour.textSub, marginTop: 2 }}>
-                  ZIP of receipt images for a date range — proof for SARS
-                </Text>
-              </View>
-              <IconSymbol name="chevron.right" size={14} color={colour.textSub} />
             </TouchableOpacity>
           </>
         )}

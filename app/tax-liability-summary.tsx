@@ -27,7 +27,7 @@ const fmt = (n: number) =>
   `R ${Math.abs(n).toLocaleString("en-ZA", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 
 const RELATED_LINKS: { icon: string; label: string; sub: string; route: string }[] = [
-  { icon: "checkmark",       label: "Tax savings",            sub: "Year-to-date breakdown",         route: "/tax-summary" },
+  { icon: "checkmark",       label: "Tax summary",            sub: "Year-to-date breakdown",         route: "/tax-summary" },
   { icon: "calendar",        label: "Provisional tax",        sub: "IRP6 deadlines & estimate",       route: "/provisional-tax" },
   { icon: "list.bullet",     label: "Category breakdown",     sub: "Where your money goes",           route: "/category-breakdown" },
   { icon: "doc.text.fill",   label: "Deductibility guide",    sub: "What qualifies as deductible",    route: "/deductibility-guide" },
