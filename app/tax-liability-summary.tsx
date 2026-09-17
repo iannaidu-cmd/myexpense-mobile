@@ -30,8 +30,6 @@ const RELATED_LINKS: { icon: string; label: string; sub: string; route: string }
   { icon: "checkmark",       label: "Tax summary",            sub: "Year-to-date breakdown",         route: "/tax-summary" },
   { icon: "calendar",        label: "Provisional tax",        sub: "IRP6 deadlines & estimate",       route: "/provisional-tax" },
   { icon: "list.bullet",     label: "Category breakdown",     sub: "Where your money goes",           route: "/category-breakdown" },
-  { icon: "doc.text.fill",   label: "Deductibility guide",    sub: "What qualifies as deductible",    route: "/deductibility-guide" },
-  { icon: "crown.fill",      label: "Government concessions", sub: "S12C · SBC · S10(1)(o) · TFSA",   route: "/government-concessions" },
 ];
 
 function Row({ label, value, bold = false }: { label: string; value: string; bold?: boolean }) {
