@@ -188,7 +188,7 @@ const GUIDE: GuideEntry[] = [
 
 function getDeductBadge(pct: string) {
   if (pct === "0%") return { bg: colour.dangerBg, text: colour.danger };
-  if (pct === "100%") return { bg: colour.successBg, text: colour.success };
+  if (pct === "100%") return { bg: colour.brandTeal + "2E", text: colour.text };
   return { bg: colour.warningBg, text: colour.warning };
 }
 
