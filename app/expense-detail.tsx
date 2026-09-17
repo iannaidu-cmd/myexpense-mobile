@@ -392,10 +392,10 @@ export default function ExpenseDetailScreen() {
             </View>
           ) : null}
           <View style={{
-            backgroundColor: expense.is_deductible ? colour.success : colour.danger,
+            backgroundColor: expense.is_deductible ? colour.brandTeal : colour.danger,
             borderRadius: radius.full, paddingVertical: 4, paddingHorizontal: space.sm,
           }}>
-            <Text style={{ ...typography.labelS, color: colour.white }}>
+            <Text style={{ ...typography.labelS, color: expense.is_deductible ? colour.text : colour.white }}>
               {expense.is_deductible ? "Deductible" : "Non-deductible"}
             </Text>
           </View>
@@ -433,7 +433,7 @@ export default function ExpenseDetailScreen() {
                 ITR12 · {itr12Code}
               </Text>
             </View>
-            <Text style={{ ...typography.amountM, color: colour.primary }}>
+            <Text style={{ ...typography.amountM, color: colour.brandTeal }}>
               {fmt(claimable)}
             </Text>
           </View>
