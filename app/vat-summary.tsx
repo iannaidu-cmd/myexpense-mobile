@@ -3,6 +3,7 @@ import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { VAT_RATE } from "@/lib/taxRules";
+import { validateVATNumber } from "@/lib/validation";
 import { expenseService } from "@/services/expenseService";
 import { incomeService } from "@/services/incomeService";
 import { profileService } from "@/services/profileService";
@@ -19,6 +20,7 @@ import {
     Share,
     StatusBar,
     Text,
+    TextInput,
     TouchableOpacity,
     View,
 } from "react-native";
@@ -52,7 +54,8 @@ export default function VATSummaryScreen() {
   const [period, setPeriod] = useState<Period>("month");
   const [trailing12Revenue, setTrailing12Revenue] = useState(0);
   const [vatRegistered, setVatRegistered] = useState(false);
-  const [vatNumber, setVatNumber] = useState<string | null>(null);
+  const [vatNumber, setVatNumber] = useState("");
+  const [savingVat, setSavingVat] = useState(false);
 
   const VAT_THRESHOLD = 1_000_000;
 
@@ -67,7 +70,7 @@ export default function VATSummaryScreen() {
       ]);
       setExpenses(data.filter((e) => e.vat_amount && Number(e.vat_amount) > 0));
       setVatRegistered(profile?.vat_registered ?? false);
-      setVatNumber(profile?.vat_number ?? null);
+      setVatNumber(profile?.vat_number ?? "");
 
       // Rolling 12-month revenue for VAT threshold
       const cutoff = new Date();
@@ -90,6 +93,29 @@ export default function VATSummaryScreen() {
     }, [loadData]),
   );
   useAppForeground(loadData);
+
+  const handleSaveVatRegistration = async () => {
+    if (!user) return;
+    if (vatRegistered) {
+      const vatError = validateVATNumber(vatNumber);
+      if (vatError) {
+        Alert.alert("Error", vatError);
+        return;
+      }
+    }
+    setSavingVat(true);
+    try {
+      await profileService.updateProfile(user.id, {
+        vat_registered: vatRegistered,
+        vat_number: vatRegistered ? vatNumber.trim() : null,
+      });
+      Alert.alert("Saved", "Your VAT registration status has been updated.");
+    } catch (e: any) {
+      Alert.alert("Error", e.message ?? "Could not save VAT registration.");
+    } finally {
+      setSavingVat(false);
+    }
+  };
 
   const now = new Date();
   const filtered = expenses.filter((e) => {
@@ -197,6 +223,98 @@ export default function VATSummaryScreen() {
           paddingBottom: space["4xl"],
         }}
       >
+        {/* ── VAT registration ──────────────────────────────────────── */}
+        <View
+          style={{
+            backgroundColor: colour.white,
+            borderRadius: radius.lg,
+            borderWidth: 1,
+            borderColor: colour.borderLight,
+            padding: space.md,
+            marginBottom: space.xl,
+          }}
+        >
+          <Text
+            style={{
+              ...typography.captionM,
+              color: colour.textHint,
+              letterSpacing: 0.5,
+              marginBottom: space.sm,
+            }}
+          >
+            VAT registered vendor
+          </Text>
+          <View style={{ flexDirection: "row", gap: space.sm }}>
+            {[
+              { label: "Not registered", value: false },
+              { label: "Yes — registered", value: true },
+            ].map((opt) => (
+              <TouchableOpacity
+                key={String(opt.value)}
+                onPress={() => setVatRegistered(opt.value)}
+                style={{
+                  flex: 1,
+                  paddingVertical: 10,
+                  borderRadius: radius.md,
+                  borderWidth: 1.5,
+                  borderColor: vatRegistered === opt.value ? colour.primary : colour.borderLight,
+                  backgroundColor: vatRegistered === opt.value ? colour.primary50 : colour.white,
+                  alignItems: "center",
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 12,
+                    fontWeight: "600",
+                    color: vatRegistered === opt.value ? colour.accentDeep : colour.textSub,
+                  }}
+                >
+                  {opt.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {vatRegistered && (
+            <View style={{ marginTop: space.md }}>
+              <Text style={{ ...typography.captionM, color: colour.textHint, letterSpacing: 0.5, marginBottom: 4 }}>
+                VAT registration number
+              </Text>
+              <TextInput
+                value={vatNumber}
+                onChangeText={setVatNumber}
+                placeholder="e.g. 4123456789"
+                placeholderTextColor={colour.textHint}
+                keyboardType="numeric"
+                maxLength={10}
+                style={{ ...typography.bodyM, color: colour.text, paddingVertical: 4 }}
+              />
+              <Text style={{ fontSize: 11, color: colour.textSub, marginTop: 4 }}>
+                10 digits, starting with 4 — as issued by SARS
+              </Text>
+            </View>
+          )}
+
+          <TouchableOpacity
+            onPress={handleSaveVatRegistration}
+            disabled={savingVat}
+            style={{
+              marginTop: space.md,
+              height: 44,
+              borderRadius: radius.pill,
+              backgroundColor: colour.primary,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            {savingVat ? (
+              <ActivityIndicator color={colour.onPrimary} size="small" />
+            ) : (
+              <Text style={{ ...typography.btnM, color: colour.onPrimary }}>Save</Text>
+            )}
+          </TouchableOpacity>
+        </View>
+
         {/* ── VAT threshold tracker ─────────────────────────────────── */}
         {(() => {
           const pct = Math.min(trailing12Revenue / VAT_THRESHOLD, 1);
@@ -395,14 +513,14 @@ export default function VATSummaryScreen() {
               <InfoBanner
                 icon="checkmark.seal.fill"
                 title="Registered VAT vendor"
-                body={`You can claim input tax on qualifying business expenses above.${vatNumber ? ` VAT number: ${vatNumber}.` : ""} Update this in My Profile if it changes.`}
+                body={`You can claim input tax on qualifying business expenses above.${vatNumber ? ` VAT number: ${vatNumber}.` : ""} Update this above if it changes.`}
                 style={{ marginBottom: space.xl }}
               />
             ) : (
               <InfoBanner
                 icon="percent"
                 title="Not VAT registered"
-                body="None of the VAT above is claimable from SARS while you're unregistered — it's shown here as a cost, not a refund. You may voluntarily register once your turnover exceeds R50,000 per year; it becomes compulsory above R1,000,000. Set your status in My Profile once registered."
+                body="None of the VAT above is claimable from SARS while you're unregistered — it's shown here as a cost, not a refund. You may voluntarily register once your turnover exceeds R50,000 per year; it becomes compulsory above R1,000,000. Set your status above once registered."
                 style={{ marginBottom: space.xl }}
               />
             )}

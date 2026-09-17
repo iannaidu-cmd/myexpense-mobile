@@ -2,8 +2,9 @@
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { SuccessModal } from "@/components/SuccessModal";
+import { IconSymbol } from "@/components/ui/icon-symbol";
 import { displayDateToISO, formatDateInputDDMMYYYY, isoToDisplayDate } from "@/lib/dateInput";
-import { validateDateOfBirth, validateVATNumber } from "@/lib/validation";
+import { validateDateOfBirth } from "@/lib/validation";
 import { medicalTaxCreditForYear } from "@/lib/taxRules";
 import { profileService } from "@/services/profileService";
 import { useAuthStore } from "@/stores/authStore";
@@ -52,7 +53,6 @@ export default function ProfileScreen() {
   const [taxDisability, setTaxDisability] = useState(false);
   const [taxMedMonthly, setTaxMedMonthly] = useState("");
   const [vatRegistered, setVatRegistered] = useState(false);
-  const [vatNumber, setVatNumber] = useState("");
 
   useEffect(() => {
     if (!user) { setLoading(false); return; }
@@ -71,7 +71,6 @@ export default function ProfileScreen() {
           setTaxDisability(p.has_disability ?? false);
           setTaxMedMonthly(p.medical_aid_monthly ? String(p.medical_aid_monthly) : "");
           setVatRegistered(p.vat_registered ?? false);
-          setVatNumber(p.vat_number ?? "");
         }
         setLoading(false);
       })
@@ -89,14 +88,6 @@ export default function ProfileScreen() {
       }
     }
 
-    if (vatRegistered) {
-      const vatError = validateVATNumber(vatNumber);
-      if (vatError) {
-        Alert.alert("Error", vatError);
-        return;
-      }
-    }
-
     setSaving(true);
     try {
       await profileService.updateProfile(user.id, {
@@ -108,8 +99,6 @@ export default function ProfileScreen() {
         medical_aid_monthly: parseFloat(taxMedMonthly) || null,
         medical_aid_dependants: taxDependants,
         has_disability: taxDisability,
-        vat_registered: vatRegistered,
-        vat_number: vatRegistered ? vatNumber.trim() : null,
       });
       setSuccessVisible(true);
     } catch (e: any) {
@@ -482,69 +471,25 @@ export default function ProfileScreen() {
                   </Text>
                 </View>
 
-                {/* VAT registration */}
-                <View
+                {/* VAT registration — moved to its own VAT area */}
+                <TouchableOpacity
+                  onPress={() => router.push("/vat-summary" as any)}
                   style={{
                     padding: space.md,
-                    borderBottomWidth: vatRegistered ? 1 : 0,
-                    borderBottomColor: colour.borderLight,
+                    flexDirection: "row",
+                    alignItems: "center",
                   }}
                 >
-                  <Text style={{ ...typography.captionM, color: colour.textHint, letterSpacing: 0.5, marginBottom: space.sm }}>
-                    VAT registered vendor
-                  </Text>
-                  <View style={{ flexDirection: "row", gap: space.sm }}>
-                    {[
-                      { label: "Not registered", value: false },
-                      { label: "Yes — registered", value: true },
-                    ].map((opt) => (
-                      <TouchableOpacity
-                        key={String(opt.value)}
-                        onPress={() => setVatRegistered(opt.value)}
-                        style={{
-                          flex: 1,
-                          paddingVertical: 10,
-                          borderRadius: radius.md,
-                          borderWidth: 1.5,
-                          borderColor: vatRegistered === opt.value ? colour.primary : colour.borderLight,
-                          backgroundColor: vatRegistered === opt.value ? colour.primary50 : colour.white,
-                          alignItems: "center",
-                        }}
-                      >
-                        <Text
-                          style={{
-                            fontSize: 12,
-                            fontWeight: "600",
-                            color: vatRegistered === opt.value ? colour.accentDeep : colour.textSub,
-                          }}
-                        >
-                          {opt.label}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </View>
-
-                {/* VAT number — only shown once registered */}
-                {vatRegistered && (
-                  <View style={{ padding: space.md }}>
+                  <View style={{ flex: 1 }}>
                     <Text style={{ ...typography.captionM, color: colour.textHint, letterSpacing: 0.5, marginBottom: 4 }}>
-                      VAT registration number
+                      VAT
                     </Text>
-                    <TextInput
-                      value={vatNumber}
-                      onChangeText={setVatNumber}
-                      placeholder="e.g. 4123456789"
-                      placeholderTextColor={colour.textHint}
-                      keyboardType="numeric"
-                      maxLength={10}
-                      style={{ ...typography.bodyM, color: colour.text, paddingVertical: 4 }}
-                    />
-                    <Text style={{ fontSize: 11, color: colour.textSub, marginTop: 4 }}>
-                      10 digits, starting with 4 — as issued by SARS
+                    <Text style={{ ...typography.bodyM, color: colour.text }}>
+                      {vatRegistered ? "VAT registered" : "Not VAT registered"}
                     </Text>
                   </View>
-                )}
+                  <IconSymbol name="chevron.right" size={16} color={colour.textHint} />
+                </TouchableOpacity>
               </View>
 
               {/* Live credit preview */}

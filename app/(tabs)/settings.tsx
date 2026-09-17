@@ -25,6 +25,7 @@ const BASE_SECTIONS: {
     items: [
       { icon: "person.fill",    label: "My profile",      sub: "Name, email, business details",  route: "/profile"                },
       { icon: "creditcard.fill",label: "Subscription",    sub: "Free plan · Upgrade to Pro",     route: "/paywall-upgrade"        },
+      { icon: "doc.text.fill",  label: "VAT",              sub: "Registration & VAT summary",     route: "/vat-summary"            },
       { icon: "folder.fill",    label: "Bank accounts",   sub: "Manage your banking details",    route: "/bank-accounts"          },
       { icon: "tray.and.arrow.up.fill", label: "Import transactions", sub: "Import from a bank statement (CSV / OFX)", route: "/bank-import" },
     ],
