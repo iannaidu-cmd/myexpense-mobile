@@ -68,7 +68,7 @@ const STATUS_BADGE: Record<
   { label: string; bg: string; text: string } | null
 > = {
   current: null, // shown in hero, not in list
-  filing: { label: "Filing open", bg: colour.warningBg, text: colour.warning },
+  filing: { label: "Filing open", bg: colour.warning + "38", text: colour.text },
   closed: { label: "Closed", bg: colour.surface2, text: colour.textSub },
 };
 
@@ -209,7 +209,7 @@ export default function TaxYearSelectorScreen() {
                   borderRadius: 3,
                   backgroundColor:
                     activeYear.status === "current"
-                      ? colour.success
+                      ? colour.brandTeal
                       : activeYear.status === "filing"
                         ? colour.warning
                         : colour.textSub,

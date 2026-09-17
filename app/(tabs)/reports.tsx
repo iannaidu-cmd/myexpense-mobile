@@ -529,7 +529,7 @@ export default function ReportsTabScreen() {
                   label: "Net",
                   amount: periodNet,
                   trend: netTrend,
-                  amountColour: periodNet >= 0 ? colour.success : colour.danger,
+                  amountColour: periodNet >= 0 ? colour.accentDeep : colour.danger,
                   trendGood: (t: number) => t >= 0,
                 },
               ].map((card) => (
@@ -557,13 +557,13 @@ export default function ReportsTabScreen() {
                   {card.trend !== null && (
                     <View style={{
                       flexDirection: "row", alignItems: "center",
-                      backgroundColor: card.trendGood(card.trend!) ? colour.successBg : colour.dangerBg,
+                      backgroundColor: card.trendGood(card.trend!) ? colour.brandTeal + "2E" : colour.dangerBg,
                       paddingHorizontal: 5, paddingVertical: 2, borderRadius: 6,
                       alignSelf: "flex-start",
                     }}>
                       <Text style={{
                         fontSize: 9, fontWeight: "700",
-                        color: card.trendGood(card.trend!) ? colour.success : colour.danger,
+                        color: card.trendGood(card.trend!) ? colour.text : colour.danger,
                       }}>
                         {card.trend! >= 0 ? "\u25B2" : "\u25BC"} {Math.abs(card.trend!)}%
                       </Text>
@@ -648,7 +648,7 @@ export default function ReportsTabScreen() {
                 {taxLiability ? (
                   <Text style={{
                     fontSize: 24, fontWeight: "800", letterSpacing: -1,
-                    color: taxLiability.final_liability > 0 ? colour.danger : taxLiability.final_liability < 0 ? colour.success : colour.onNoir,
+                    color: taxLiability.final_liability > 0 ? colour.danger : taxLiability.final_liability < 0 ? colour.brandTeal : colour.onNoir,
                   }}>
                     {fmtSignedAmount(taxLiability.final_liability)}
                   </Text>

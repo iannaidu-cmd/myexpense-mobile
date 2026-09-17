@@ -29,8 +29,8 @@ interface GuideEntry {
 const GUIDE: GuideEntry[] = [
   {
     icon: "car.fill",
-    iconBg: colour.warningBg,
-    iconColor: colour.warning,
+    iconBg: colour.brandTeal + "2E",
+    iconColor: colour.text,
     category: "Travel & Vehicle",
     section: "S11(a)",
     itr12Field: "Travel Costs – Local",
@@ -40,8 +40,8 @@ const GUIDE: GuideEntry[] = [
   },
   {
     icon: "house.fill",
-    iconBg: colour.tealLight,
-    iconColor: colour.teal,
+    iconBg: colour.warning + "38",
+    iconColor: colour.text,
     category: "Home Office",
     section: "S11(a)",
     itr12Field: "Rental Paid",
@@ -64,8 +64,8 @@ const GUIDE: GuideEntry[] = [
   },
   {
     icon: "key.fill",
-    iconBg: colour.successBg,
-    iconColor: colour.success,
+    iconBg: colour.warning + "38",
+    iconColor: colour.text,
     category: "Home Office — Rent",
     section: "S11(a)",
     itr12Field: "Rental Paid",
@@ -98,8 +98,8 @@ const GUIDE: GuideEntry[] = [
   },
   {
     icon: "fork.knife",
-    iconBg: colour.warningBg,
-    iconColor: colour.warning,
+    iconBg: colour.warning + "38",
+    iconColor: colour.text,
     category: "Meals & Entertain.",
     section: "S23(o)",
     itr12Field: "Entertainment",
@@ -120,8 +120,8 @@ const GUIDE: GuideEntry[] = [
   },
   {
     icon: "bolt.fill",
-    iconBg: colour.warningBg,
-    iconColor: colour.warning,
+    iconBg: colour.warning + "38",
+    iconColor: colour.text,
     category: "Utilities",
     section: "S11(a)",
     itr12Field: "Electricity / Rates and Taxes",
@@ -131,8 +131,8 @@ const GUIDE: GuideEntry[] = [
   },
   {
     icon: "megaphone.fill",
-    iconBg: colour.dangerBg,
-    iconColor: colour.danger,
+    iconBg: colour.brandTeal + "2E",
+    iconColor: colour.text,
     category: "Marketing & Adverts",
     section: "S11(a)",
     itr12Field: "Other",
@@ -164,8 +164,8 @@ const GUIDE: GuideEntry[] = [
   },
   {
     icon: "graduationcap.fill",
-    iconBg: colour.successBg,
-    iconColor: colour.success,
+    iconBg: colour.brandTeal + "2E",
+    iconColor: colour.text,
     category: "Training & CPD",
     section: "S11(a)",
     itr12Field: "Other",
@@ -188,8 +188,8 @@ const GUIDE: GuideEntry[] = [
 
 function getDeductBadge(pct: string) {
   if (pct === "0%") return { bg: colour.dangerBg, text: colour.danger };
-  if (pct === "100%") return { bg: colour.brandTeal + "2E", text: colour.text };
-  return { bg: colour.warningBg, text: colour.warning };
+  if (pct === "100%") return { bg: colour.brandTeal, text: colour.text };
+  return { bg: colour.warning + "38", text: colour.text };
 }
 
 function GuideCard({

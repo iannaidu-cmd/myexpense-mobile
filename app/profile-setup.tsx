@@ -401,19 +401,21 @@ export default function ProfileSetupScreen() {
             {/* SARS info callout */}
             <View
               style={{
-                backgroundColor: colour.infoLight,
-                borderRadius: radius.md,
+                backgroundColor: colour.primary + "17",
+                borderWidth: 1,
+                borderColor: colour.primary + "29",
+                borderRadius: radius.note,
                 padding: space.md,
                 marginBottom: space["2xl"],
                 flexDirection: "row",
                 gap: space.sm,
               }}
             >
-              <IconSymbol name="lock.fill" size={18} color={colour.info ?? colour.primary} />
+              <IconSymbol name="lock.fill" size={18} color={colour.primary} />
               <Text
                 style={{
                   ...typography.bodyXS,
-                  color: colour.info ?? colour.primary,
+                  color: colour.text,
                   flex: 1,
                   lineHeight: 18,
                 }}

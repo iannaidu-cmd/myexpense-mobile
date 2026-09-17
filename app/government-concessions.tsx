@@ -48,13 +48,13 @@ function Card({
           <Text style={{ fontSize: 11, color: colour.textSub, marginTop: 1 }}>{subtitle}</Text>
         </View>
         <View style={{
-          backgroundColor: appliesToMe ? colour.successBg : colour.surface2,
+          backgroundColor: appliesToMe ? colour.primary50 : colour.surface2,
           borderRadius: radius.pill,
           paddingHorizontal: 8, paddingVertical: 3,
         }}>
           <Text style={{
             fontSize: 10, fontWeight: "700",
-            color: appliesToMe ? colour.success : colour.textSub,
+            color: appliesToMe ? colour.accentDeep : colour.textSub,
           }}>
             {appliesToMe ? "May apply" : "Unlikely to apply"}
           </Text>
@@ -85,12 +85,13 @@ function Fact({ label, value }: { label: string; value: string }) {
 function Note({ text }: { text: string }) {
   return (
     <View style={{
-      backgroundColor: colour.infoLight, borderRadius: radius.sm,
+      backgroundColor: colour.primary + "17", borderWidth: 1, borderColor: colour.primary + "29",
+      borderRadius: radius.note,
       padding: space.sm, marginTop: space.sm,
       flexDirection: "row", gap: space.xs, alignItems: "flex-start",
     }}>
-      <IconSymbol name="info.circle.fill" size={13} color={colour.info} style={{ marginTop: 1 } as any} />
-      <Text style={{ flex: 1, fontSize: 12, color: colour.info, lineHeight: 17 }}>{text}</Text>
+      <IconSymbol name="info.circle.fill" size={13} color={colour.primary} style={{ marginTop: 1 } as any} />
+      <Text style={{ flex: 1, fontSize: 12, color: colour.text, lineHeight: 17 }}>{text}</Text>
     </View>
   );
 }

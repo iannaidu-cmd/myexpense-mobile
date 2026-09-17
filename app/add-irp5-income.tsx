@@ -184,16 +184,18 @@ export default function AddIRP5IncomeScreen() {
           {existingThisYear.length > 0 && (
             <View
               style={{
-                backgroundColor: colour.warningBg,
-                borderRadius: radius.md,
+                backgroundColor: colour.primary + "17",
+                borderWidth: 1,
+                borderColor: colour.primary + "29",
+                borderRadius: radius.note,
                 padding: space.md,
                 marginBottom: space.xl,
               }}
             >
-              <Text style={{ fontSize: 12, fontWeight: "600", color: colour.warning, marginBottom: 2 }}>
+              <Text style={{ ...typography.rowValue, color: colour.text, marginBottom: 2 }}>
                 {existingThisYear.length} IRP5 {existingThisYear.length === 1 ? "entry" : "entries"} already recorded for {taxYear}
               </Text>
-              <Text style={{ fontSize: 11, color: colour.warning }}>
+              <Text style={{ ...typography.noteText, color: colour.text }}>
                 Total gross: {fmt(irp5TotalGross(existingThisYear))}. Add another employer below if applicable.
               </Text>
             </View>
@@ -342,7 +344,7 @@ export default function AddIRP5IncomeScreen() {
                 { label: "Gross income (3601)", value: fmt(gross), colour: colour.onNoir },
                 { label: "PAYE deducted (4102)", value: paye > 0 ? `−${fmt(paye)}` : "—", colour: paye > 0 ? colour.danger : colour.onNoir2 },
                 ...(uif > 0 ? [{ label: "UIF (4141)", value: `−${fmt(uif)}`, colour: colour.onNoir2 }] : []),
-                ...(pension > 0 ? [{ label: "Pension (4001)", value: `−${fmt(pension)}`, colour: colour.success }] : []),
+                ...(pension > 0 ? [{ label: "Pension (4001)", value: `−${fmt(pension)}`, colour: colour.brandTeal }] : []),
               ].map((row) => (
                 <View
                   key={row.label}

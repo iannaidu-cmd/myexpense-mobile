@@ -418,13 +418,15 @@ export default function ReceiptReviewScreen() {
           {expenseType === "personal" && (
             <View
               style={{
-                backgroundColor: colour.infoLight,
-                borderRadius: radius.sm,
+                backgroundColor: colour.primary + "17",
+                borderWidth: 1,
+                borderColor: colour.primary + "29",
+                borderRadius: radius.note,
                 padding: space.sm,
                 marginBottom: space.lg,
               }}
             >
-              <Text style={{ ...typography.bodyXS, color: colour.primary }}>
+              <Text style={{ ...typography.bodyXS, color: colour.text }}>
                 Personal expenses are not deductible and will not be included in
                 your ITR12 calculations.
               </Text>
@@ -602,7 +604,7 @@ export default function ReceiptReviewScreen() {
               style={{
                 backgroundColor: isDeductible
                   ? colour.primary50
-                  : colour.warningBg,
+                  : colour.warning + "38",
                 borderRadius: radius.sm,
                 paddingHorizontal: space.sm,
                 paddingVertical: 4,
@@ -614,7 +616,7 @@ export default function ReceiptReviewScreen() {
                 style={{
                   ...typography.bodyXS,
                   fontWeight: "700",
-                  color: isDeductible ? colour.accentDeep : colour.warning,
+                  color: isDeductible ? colour.accentDeep : colour.text,
                 }}
               >
                 {expenseType === "personal" ? "N/A" : selectedCat.code} ·{" "}
@@ -673,7 +675,7 @@ export default function ReceiptReviewScreen() {
                     </Text>
                   </View>
                   {category === cat.name && (
-                    <Text style={{ color: colour.success }}>✓</Text>
+                    <Text style={{ color: colour.primary }}>✓</Text>
                   )}
                 </TouchableOpacity>
               ))}

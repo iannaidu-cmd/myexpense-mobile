@@ -147,13 +147,13 @@ export default function ResetPasswordScreen() {
                     width: 72,
                     height: 72,
                     borderRadius: 36,
-                    backgroundColor: colour.successLight,
+                    backgroundColor: colour.brandTeal + "38",
                     alignItems: "center",
                     justifyContent: "center",
                     marginBottom: space.xl,
                   }}
                 >
-                  <IconSymbol name="lock.fill" size={32} color={colour.success} />
+                  <IconSymbol name="lock.fill" size={32} color={colour.text} />
                 </View>
                 <Text
                   style={[
@@ -262,7 +262,7 @@ export default function ResetPasswordScreen() {
                           height: 16,
                           borderRadius: 8,
                           backgroundColor: r.pass
-                            ? colour.success
+                            ? colour.brandTeal
                             : colour.border,
                           alignItems: "center",
                           justifyContent: "center",
@@ -272,7 +272,7 @@ export default function ResetPasswordScreen() {
                         {r.pass && (
                           <Text
                             style={{
-                              color: "#fff",
+                              color: colour.text,
                               fontSize: 10,
                               fontWeight: "700",
                             }}
@@ -286,7 +286,7 @@ export default function ResetPasswordScreen() {
                           typography.caption,
                           {
                             color: r.pass
-                              ? colour.success
+                              ? colour.accentDeep
                               : colour.textSecondary,
                           },
                         ]}

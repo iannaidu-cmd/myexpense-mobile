@@ -322,11 +322,11 @@ export default function VATSummaryScreen() {
           const barColour =
             pctDisplay >= 95 ? colour.danger
             : pctDisplay >= 80 ? colour.warning
-            : colour.success;
+            : colour.brandTeal;
           const bgColour =
             pctDisplay >= 95 ? colour.dangerBg
-            : pctDisplay >= 80 ? colour.warningBg
-            : colour.successBg;
+            : pctDisplay >= 80 ? colour.warning + "38"
+            : colour.brandTeal + "38";
           const remaining = VAT_THRESHOLD - trailing12Revenue;
 
           return (
@@ -461,7 +461,7 @@ export default function VATSummaryScreen() {
                   borderRadius: radius.md,
                   padding: space.md,
                   borderLeftWidth: 3,
-                  borderLeftColor: colour.success,
+                  borderLeftColor: colour.brandTeal,
                 }}
               >
                 <Text
@@ -472,7 +472,7 @@ export default function VATSummaryScreen() {
                 <Text
                   style={{
                     ...typography.amountS,
-                    color: colour.success,
+                    color: colour.accentDeep,
                     marginTop: 2,
                   }}
                 >
@@ -484,7 +484,7 @@ export default function VATSummaryScreen() {
             {nonClaimable > 0 && (
               <View
                 style={{
-                  backgroundColor: colour.warningBg,
+                  backgroundColor: colour.warning + "38",
                   borderRadius: radius.md,
                   padding: space.md,
                   flexDirection: "row",
@@ -494,16 +494,16 @@ export default function VATSummaryScreen() {
                 }}
               >
                 <View>
-                  <Text style={{ ...typography.labelM, color: colour.warning }}>
+                  <Text style={{ ...typography.labelM, color: colour.text }}>
                     Non-claimable VAT
                   </Text>
                   <Text
-                    style={{ ...typography.caption, color: colour.warning }}
+                    style={{ ...typography.caption, color: colour.text }}
                   >
                     VAT on non-business expenses
                   </Text>
                 </View>
-                <Text style={{ ...typography.amountS, color: colour.warning }}>
+                <Text style={{ ...typography.amountS, color: colour.text }}>
                   {fmt(nonClaimable)}
                 </Text>
               </View>
@@ -596,7 +596,7 @@ export default function VATSummaryScreen() {
                     <View
                       style={{
                         backgroundColor: isEntryClaimable(entry)
-                          ? colour.successBg
+                          ? colour.brandTeal + "2E"
                           : colour.dangerBg,
                         borderRadius: radius.full,
                         paddingHorizontal: space.xs,
@@ -608,7 +608,7 @@ export default function VATSummaryScreen() {
                         style={{
                           ...typography.micro,
                           color: isEntryClaimable(entry)
-                            ? colour.success
+                            ? colour.text
                             : colour.danger,
                           fontWeight: "600",
                         }}

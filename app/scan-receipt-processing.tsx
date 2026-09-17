@@ -267,12 +267,12 @@ export default function ScanReceiptProcessingScreen() {
               width: 80,
               height: 80,
               borderRadius: 40,
-              backgroundColor: colour.successBg,
+              backgroundColor: colour.brandTeal + "38",
               alignItems: "center",
               justifyContent: "center",
               marginBottom: space.xxl,
             }}>
-              <IconSymbol name="checkmark" size={40} color={colour.success} />
+              <IconSymbol name="checkmark" size={40} color={colour.text} />
             </View>
             <Text style={{ ...typography.h2, color: colour.text, marginBottom: space.sm, textAlign: "center" }}>
               Receipt Ready!
@@ -371,7 +371,7 @@ export default function ScanReceiptProcessingScreen() {
                       height: 24,
                       borderRadius: 12,
                       backgroundColor: isComplete
-                        ? colour.success
+                        ? colour.brandTeal
                         : isActive
                           ? colour.primary
                           : colour.surface1,
@@ -380,7 +380,7 @@ export default function ScanReceiptProcessingScreen() {
                       marginRight: space.md,
                     }}>
                       {isComplete ? (
-                        <IconSymbol name="checkmark" size={12} color={colour.white} />
+                        <IconSymbol name="checkmark" size={12} color={colour.text} />
                       ) : isActive ? (
                         <ActivityIndicator size="small" color={colour.white} />
                       ) : (

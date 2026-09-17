@@ -665,7 +665,7 @@ export default function ITR12ExportPreviewScreen() {
           onPress={() => router.push("/itr12-efiling-guide" as any)}
           style={{
             marginHorizontal: space.md,
-            backgroundColor: colour.successBg,
+            backgroundColor: colour.primary50,
             borderRadius: radius.md,
             padding: 14,
             alignItems: "center",
@@ -675,9 +675,9 @@ export default function ITR12ExportPreviewScreen() {
             gap: space.sm,
           }}
         >
-          <IconSymbol name="doc.text.fill" size={18} color={colour.success} />
+          <IconSymbol name="doc.text.fill" size={18} color={colour.accentDeep} />
           <Text
-            style={{ color: colour.success, fontSize: 15, fontWeight: "700" }}
+            style={{ color: colour.accentDeep, fontSize: 15, fontWeight: "700" }}
           >
             eFiling Submission Guide
           </Text>

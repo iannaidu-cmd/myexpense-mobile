@@ -29,12 +29,10 @@ export const colour = {
 
   // ── Support – Success ─────────────────────────────────────────────────────
   success: "#4CAF7A", // dark success text/icon
-  successMid: "#4CAF7A", // green accent
   successBg: "#DDF0E4", // success chip / banner background
 
   // ── Support – Warning ─────────────────────────────────────────────────────
   warning: "#E8B16A", // warm warning
-  warningMid: "#E8B16A", // soft warm
   warningBg: "#FCEAD9", // warning banner background
 
   // ── Support – Error ───────────────────────────────────────────────────────
@@ -51,18 +49,13 @@ export const colour = {
   onPrimary: "#FFFFFF", // text/icon on primary
 
   // ── Noir (Hero Cards) ─────────────────────────────────────────────────────
-  noir: "#171629", // hero card background
+  noir: "#171629", // dark chrome (modal sheets, compliance callouts) — NOT the mockup hero
   noir2: "#1F1D34", // hero card secondary surface
   onNoir: "#FFFFFF", // primary text on noir
   onNoir2: "#A9A5BD", // secondary text on noir
 
-  // ── Info ──────────────────────────────────────────────────────────────────
-  info: "#6B6AD8", // info (periwinkle)
-  infoLight: "#E8E7FA", // info background
-
-  // ── Teal (legacy — mapped to green) ───────────────────────────────────────
-  teal: "#4CAF7A", // mapped to success green
-  tealLight: "#DDF0E4", // mapped to successBg
+  // ── Hero Dark (mockup ".dark" hero cards) ─────────────────────────────────
+  heroDark: "#292561", // exact ".dark" background from the MyExpense Screens Redesign mockup
 
   // ── Semantic aliases (used across screens) ────────────────────────────────
   textPrimary: "#0F0F1E", // alias for text
@@ -71,7 +64,6 @@ export const colour = {
   bgCard: "#FFFFFF", // card backgrounds
   bgPage: "#F2EDE3", // screen backgrounds
   primaryLight: "#E8E7FA", // alias for primary50
-  successLight: "#DDF0E4", // alias for successBg
   dangerLight: "#FFE2E5", // alias for dangerBg
   warningLight: "#FCEAD9", // alias for warningBg
 

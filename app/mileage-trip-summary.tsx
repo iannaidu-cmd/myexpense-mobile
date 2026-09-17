@@ -131,13 +131,13 @@ export default function MileageTripSummaryScreen() {
               width: 56,
               height: 56,
               borderRadius: 28,
-              backgroundColor: colour.successBg,
+              backgroundColor: colour.brandTeal + "38",
               alignItems: "center",
               justifyContent: "center",
               marginBottom: space.sm,
             }}
           >
-            <IconSymbol name="checkmark" size={28} color={colour.success} />
+            <IconSymbol name="checkmark" size={28} color={colour.text} />
           </View>
           <Text style={{ ...typography.h4, color: colour.text }}>
             Trip saved!
@@ -189,7 +189,7 @@ export default function MileageTripSummaryScreen() {
           <View
             style={{
               marginTop: space.md,
-              backgroundColor: colour.successBg,
+              backgroundColor: colour.brandTeal + "2E",
               borderRadius: radius.md,
               paddingHorizontal: space.md,
               paddingVertical: space.xs,
@@ -198,11 +198,11 @@ export default function MileageTripSummaryScreen() {
               gap: space.xs,
             }}
           >
-            <IconSymbol name="checkmark.circle.fill" size={12} color={colour.success} />
+            <IconSymbol name="checkmark.circle.fill" size={12} color={colour.text} />
             <Text
               style={{
                 ...typography.bodyXS,
-                color: colour.success,
+                color: colour.text,
                 fontWeight: "600",
               }}
             >
@@ -361,12 +361,14 @@ export default function MileageTripSummaryScreen() {
           style={{
             marginHorizontal: space.md,
             marginTop: space.md,
-            backgroundColor: colour.warningBg,
-            borderRadius: radius.md,
+            backgroundColor: colour.primary + "17",
+            borderWidth: 1,
+            borderColor: colour.primary + "29",
+            borderRadius: radius.note,
             padding: space.sm,
           }}
         >
-          <Text style={{ ...typography.bodyXS, color: colour.warning }}>
+          <Text style={{ ...typography.bodyXS, color: colour.text }}>
             The deduction estimate uses the SARS deemed cost rate of R{SARS_RATE_PER_KM}/km.
             Actual deductibility depends on your total business km vs private km
             ratio. Consult a tax professional for your ITR12 submission.

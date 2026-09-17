@@ -9,10 +9,11 @@ import { profileService } from "@/services/profileService";
 import { taxLiabilityService } from "@/services/taxLiabilityService";
 import { useAuthStore } from "@/stores/authStore";
 import { useExpenseStore } from "@/stores/expenseStore";
-import { colour, radius, space } from "@/tokens";
+import { ConfirmModal } from "@/components/ConfirmModal";
+import { colour, radius, space, typography } from "@/tokens";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
-import { ActivityIndicator, Alert, ScrollView, StatusBar, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, ScrollView, StatusBar, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 // ─── Tax Liability — Summary ──────────────────────────────────────────────────
@@ -25,13 +26,12 @@ import { SafeAreaView } from "react-native-safe-area-context";
 const fmt = (n: number) =>
   `R ${Math.abs(n).toLocaleString("en-ZA", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 
-function Row({ label, value, bold = false }: { label: string; value: string; bold?: boolean }) {
+function Row({ label, value, bold = false, neg = false }: { label: string; value: string; bold?: boolean; neg?: boolean }) {
   return (
     <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 8 }}>
       <Text
         style={{
-          fontSize: bold ? 13 : 12,
-          fontWeight: bold ? "700" : "400",
+          ...(bold ? typography.totalKey : typography.groupKey),
           color: bold ? colour.text : colour.textSub,
           flex: 1,
           marginRight: space.sm,
@@ -39,7 +39,12 @@ function Row({ label, value, bold = false }: { label: string; value: string; bol
       >
         {label}
       </Text>
-      <Text style={{ fontSize: bold ? 13 : 12, fontWeight: "700", color: bold ? colour.text : colour.primary }}>
+      <Text
+        style={{
+          ...(bold ? typography.totalValue : typography.groupValue),
+          color: bold ? colour.text : neg ? colour.primary : colour.text,
+        }}
+      >
         {value}
       </Text>
     </View>
@@ -55,6 +60,7 @@ export default function TaxLiabilitySummaryScreen() {
   const [result, setResult] = useState<TaxLiabilityResult | null>(null);
   const [businessTaxableIncome, setBusinessTaxableIncome] = useState(0);
   const [otherIncome, setOtherIncome] = useState(0);
+  const [showWhyModal, setShowWhyModal] = useState(false);
 
   const loadData = useCallback(async () => {
     if (!user) { setLoading(false); return; }
@@ -143,28 +149,28 @@ export default function TaxLiabilitySummaryScreen() {
           {/* Hero card */}
           <View
             style={{
-              backgroundColor: colour.noir,
-              borderRadius: radius.lg,
+              backgroundColor: colour.heroDark,
+              borderRadius: radius.hero,
               padding: space.xl,
               marginBottom: space.md,
             }}
           >
-            <Text style={{ fontSize: 11, color: colour.onNoir2, letterSpacing: 0.8, marginBottom: space.sm }}>
+            <Text style={{ ...typography.eyebrow, color: colour.onNoir2, textTransform: "uppercase", marginBottom: space.sm }}>
               {owing ? "YOU OWE SARS" : refund ? "SARS OWES YOU" : "YOU DON'T OWE ANYTHING"}
             </Text>
             <Text
               style={{
                 fontSize: 54,
                 fontWeight: "800",
-                letterSpacing: -2,
-                lineHeight: 58,
+                letterSpacing: -2.43,
+                lineHeight: 62,
                 color: owing ? colour.danger : refund ? colour.brandTeal : colour.onNoir,
                 marginBottom: 4,
               }}
             >
               {fmt(result.finalLiability)}
             </Text>
-            <Text style={{ fontSize: 13, color: colour.onNoir2, lineHeight: 18 }}>
+            <Text style={{ fontSize: 13, fontWeight: "500", color: colour.onNoir2, lineHeight: 19 }}>
               {owing
                 ? "This is based on what you've added so far for " + activeTaxYear
                 : refund
@@ -183,16 +189,11 @@ export default function TaxLiabilitySummaryScreen() {
                 justifyContent: "space-between",
               }}
             >
-              <Text style={{ fontSize: 11, color: colour.onNoir2, flex: 1, marginRight: space.sm }}>
+              <Text style={{ fontSize: 11.5, fontWeight: "500", color: colour.onNoir2, flex: 1, marginRight: space.sm }}>
                 Estimate only. It moves as you add more.
               </Text>
               <TouchableOpacity
-                onPress={() =>
-                  Alert.alert(
-                    "Why this is an estimate",
-                    "This figure is based on everything you've logged in MyExpense so far. It updates automatically as you add more income, expenses, or details to your Tax refund or bill inputs.",
-                  )
-                }
+                onPress={() => setShowWhyModal(true)}
                 style={{
                   backgroundColor: "rgba(255,255,255,0.12)",
                   borderRadius: radius.pill,
@@ -200,7 +201,7 @@ export default function TaxLiabilitySummaryScreen() {
                   paddingVertical: 4,
                 }}
               >
-                <Text style={{ fontSize: 11, fontWeight: "700", color: colour.onNoir }}>Why</Text>
+                <Text style={{ ...typography.chipText, color: colour.onNoir }}>Why</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -209,23 +210,30 @@ export default function TaxLiabilitySummaryScreen() {
           <View
             style={{
               backgroundColor: colour.white,
-              borderRadius: radius.md,
+              borderRadius: radius.card,
               padding: space.md,
               borderWidth: 1,
               borderColor: colour.borderLight,
               marginBottom: space.md,
             }}
           >
-            <Text style={{ fontSize: 13, fontWeight: "700", color: colour.text, marginBottom: 12 }}>
+            <Text
+              style={{
+                ...typography.eyebrow,
+                textTransform: "uppercase",
+                color: colour.textSub,
+                marginBottom: 14,
+              }}
+            >
               How this was calculated
             </Text>
 
             <Row label="Income added in MyExpense" value={fmt(businessTaxableIncome)} />
-            <Text style={{ fontSize: 11, color: colour.textHint, marginBottom: 8, lineHeight: 16 }}>
+            <Text style={{ ...typography.hintText, color: colour.textHint, marginBottom: 8 }}>
               Your freelance income and expenses, plus any salary you added using Add Income or Add IRP5 Income.
             </Text>
             <Row label="Other income" value={fmt(otherIncome)} />
-            <Row label="Less: Retirement annuity" value={`− ${fmt(result.retirementAnnuityDeductible)}`} />
+            <Row label="Less: Retirement annuity" value={`− ${fmt(result.retirementAnnuityDeductible)}`} neg />
             <View style={{ height: 1, backgroundColor: colour.borderLight, marginVertical: 8 }} />
             <Row label="Income SARS will tax" value={fmt(result.taxableIncome)} bold />
 
@@ -240,8 +248,9 @@ export default function TaxLiabilitySummaryScreen() {
                     : "Less: Standard discount"
               }
               value={`− ${fmt(result.rebatesApplied)}`}
+              neg
             />
-            <Row label="Less: Medical aid discount" value={`− ${fmt(result.medicalCreditApplied)}`} />
+            <Row label="Less: Medical aid discount" value={`− ${fmt(result.medicalCreditApplied)}`} neg />
             <View style={{ height: 1, backgroundColor: colour.borderLight, marginVertical: 8 }} />
             <Row label="Tax on your normal income" value={fmt(result.taxAfterCredits)} bold />
 
@@ -257,7 +266,7 @@ export default function TaxLiabilitySummaryScreen() {
                       label={result.lumpSumEntries.length > 1 ? `Lump sum ${i + 1}` : "Retirement / severance lump sum"}
                       value={fmt(entry.grossAmount)}
                     />
-                    <Text style={{ fontSize: 11, color: colour.textHint, marginBottom: 8, lineHeight: 16 }}>
+                    <Text style={{ ...typography.hintText, color: colour.textHint, marginBottom: 8 }}>
                       {entry.isActual
                         ? "Taxed separately from your normal income, from your SARS tax directive."
                         : "Taxed separately from your normal income, with the first R550,000 (lifetime) tax-free."}
@@ -283,12 +292,12 @@ export default function TaxLiabilitySummaryScreen() {
               value={fmt(result.taxAfterCredits + result.lumpSumTax)}
               bold
             />
-            <Text style={{ fontSize: 11, color: colour.textHint, marginBottom: 8, lineHeight: 16 }}>
+            <Text style={{ ...typography.hintText, color: colour.textHint, marginBottom: 8 }}>
               This is what you owe based on your income alone. If you already paid SARS more than this, you get the difference back as a refund.
             </Text>
 
             <View style={{ height: space.sm }} />
-            <Row label="Less: Tax you already paid" value={`− ${fmt(result.taxAlreadyPaid)}`} />
+            <Row label="Less: Tax you already paid" value={`− ${fmt(result.taxAlreadyPaid)}`} neg />
             <View style={{ height: 1, backgroundColor: colour.borderLight, marginVertical: 8 }} />
             <Row
               label={owing ? "You owe SARS" : refund ? "You get back" : "No amount owing or refund"}
@@ -304,15 +313,15 @@ export default function TaxLiabilitySummaryScreen() {
               gap: space.sm,
               alignItems: "flex-start",
               padding: space.md,
-              borderRadius: radius.md,
-              backgroundColor: colour.primary50,
+              borderRadius: radius.note,
+              backgroundColor: colour.primary + "17",
               borderWidth: 1,
-              borderColor: colour.accentSoft,
+              borderColor: colour.primary + "29",
               marginBottom: space.md,
             }}
           >
             <IconSymbol name="exclamationmark.triangle.fill" size={15} color={colour.primary} style={{ marginTop: 1 } as any} />
-            <Text style={{ fontSize: 11.5, lineHeight: 16, color: colour.text, flex: 1 }}>
+            <Text style={{ ...typography.noteText, color: colour.text, flex: 1 }}>
               Rare cases, like selling a house, are not covered here. Speak to a practitioner before you file if one applies.
             </Text>
           </View>
@@ -334,6 +343,17 @@ export default function TaxLiabilitySummaryScreen() {
           />
         </ScrollView>
       )}
+      <ConfirmModal
+        visible={showWhyModal}
+        title="Why this is an estimate"
+        message="This figure is based on everything you've logged in MyExpense so far. It updates automatically as you add more income, expenses, or details to your Tax refund or bill inputs."
+        confirmLabel="Got it"
+        destructive={false}
+        icon="info.circle.fill"
+        hideCancel
+        onConfirm={() => setShowWhyModal(false)}
+        onCancel={() => setShowWhyModal(false)}
+      />
       <MXTabBar />
     </SafeAreaView>
   );

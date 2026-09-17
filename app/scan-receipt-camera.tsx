@@ -30,7 +30,7 @@ import {
 const C = colour;
 
 function CornerBrackets({
-  color = C.teal,
+  color = C.brandTeal,
   size = 28,
   thickness = 3,
 }: {
@@ -270,7 +270,7 @@ export default function ScanReceiptCameraScreen() {
   if (!scanGateReady) {
     return (
       <View style={{ flex: 1, backgroundColor: "#000", alignItems: "center", justifyContent: "center" }}>
-        <ActivityIndicator color={C.teal} size="large" />
+        <ActivityIndicator color={C.brandTeal} size="large" />
       </View>
     );
   }
@@ -489,7 +489,7 @@ export default function ScanReceiptCameraScreen() {
               width: 38,
               height: 38,
               borderRadius: 10,
-              backgroundColor: torchOn ? C.teal : "rgba(255,255,255,0.15)",
+              backgroundColor: torchOn ? C.brandTeal : "rgba(255,255,255,0.15)",
               alignItems: "center",
               justifyContent: "center",
               marginRight: 10,
@@ -544,10 +544,10 @@ export default function ScanReceiptCameraScreen() {
           >
             {uploading ? (
               <View style={{ alignItems: "center" }}>
-                <ActivityIndicator color={C.teal} size="large" />
+                <ActivityIndicator color={C.brandTeal} size="large" />
                 <Text
                   style={{
-                    color: C.teal,
+                    color: C.brandTeal,
                     fontSize: 14,
                     fontWeight: "700",
                     marginTop: 8,
@@ -640,7 +640,7 @@ export default function ScanReceiptCameraScreen() {
                   height: 78,
                   borderRadius: 39,
                   borderWidth: 4,
-                  borderColor: uploading ? C.teal : "#fff",
+                  borderColor: uploading ? C.brandTeal : "#fff",
                   alignItems: "center",
                   justifyContent: "center",
                 }}
@@ -655,7 +655,7 @@ export default function ScanReceiptCameraScreen() {
                     justifyContent: "center",
                   }}
                 >
-                  {uploading && <ActivityIndicator color={C.teal} />}
+                  {uploading && <ActivityIndicator color={C.brandTeal} />}
                 </View>
               </View>
             </TouchableOpacity>

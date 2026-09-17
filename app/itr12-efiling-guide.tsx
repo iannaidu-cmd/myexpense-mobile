@@ -278,7 +278,7 @@ export default function ITR12EFilingGuideScreen() {
                     borderRadius: radius.md,
                     padding: space.md,
                     borderWidth: 1.5,
-                    borderColor: isComplete ? colour.success : colour.borderLight,
+                    borderColor: isComplete ? colour.brandTeal : colour.borderLight,
                   }}
                   activeOpacity={0.8}
                 >
@@ -288,7 +288,7 @@ export default function ITR12EFilingGuideScreen() {
                         width: 36,
                         height: 36,
                         borderRadius: 18,
-                        backgroundColor: isComplete ? colour.success : colour.primary,
+                        backgroundColor: isComplete ? colour.brandTeal : colour.primary,
                         alignItems: "center",
                         justifyContent: "center",
                         marginRight: space.md,
@@ -296,7 +296,7 @@ export default function ITR12EFilingGuideScreen() {
                       }}
                     >
                       {isComplete ? (
-                        <IconSymbol name="checkmark" size={16} color={colour.onPrimary} />
+                        <IconSymbol name="checkmark" size={16} color={colour.text} />
                       ) : (
                         <Text
                           style={{
@@ -320,13 +320,13 @@ export default function ITR12EFilingGuideScreen() {
                         <IconSymbol
                           name={step.icon as any}
                           size={16}
-                          color={isComplete ? colour.success : colour.primary}
+                          color={isComplete ? colour.accentDeep : colour.primary}
                           style={{ marginRight: space.xs } as any}
                         />
                         <Text
                           style={{
                             ...typography.labelM,
-                            color: isComplete ? colour.success : colour.textPrimary,
+                            color: isComplete ? colour.accentDeep : colour.textPrimary,
                             flex: 1,
                           }}
                         >
@@ -397,7 +397,7 @@ export default function ITR12EFilingGuideScreen() {
                   <Text
                     style={{
                       ...typography.micro,
-                      color: isComplete ? colour.success : colour.textHint,
+                      color: isComplete ? colour.accentDeep : colour.textHint,
                       textAlign: "right",
                       marginTop: space.xs,
                     }}

@@ -59,15 +59,14 @@ function Row({
       }}
     >
       <Text
-        style={{ ...typography.bodyS, color: colour.textSecondary, flex: 1 }}
+        style={{ ...typography.rowKey, color: colour.textSecondary, flex: 1 }}
       >
         {label}
       </Text>
       <Text
         style={{
-          ...typography.bodyM,
+          ...typography.rowValue,
           color: accent ? colour.primary : colour.textPrimary,
-          fontWeight: accent ? "600" : "400",
           textAlign: "right",
           flex: 1.5,
         }}
@@ -391,16 +390,16 @@ export default function ExpenseDetailScreen() {
             figure (a separate card further down). */}
         <View
           style={{
-            backgroundColor: colour.noir,
-            borderRadius: radius.lg,
+            backgroundColor: colour.heroDark,
+            borderRadius: radius.hero,
             padding: space.lg,
             marginBottom: space.xl,
           }}
         >
-          <Text style={{ fontSize: 10.5, fontWeight: "700", letterSpacing: 1.2, color: colour.onNoir2, textTransform: "uppercase" }}>
+          <Text style={{ ...typography.eyebrow, color: colour.onNoir2, textTransform: "uppercase" }}>
             {(expense.category ?? "Expense")} · {formatDate(expense.expense_date)}
           </Text>
-          <Text style={{ fontSize: 46, fontWeight: "800", letterSpacing: -2, lineHeight: 50, color: colour.onNoir, marginTop: 10 }}>
+          <Text style={{ ...typography.heroAmount, color: colour.onNoir, marginTop: 10 }}>
             {fmt(expense.amount)}
           </Text>
           <Text style={{ fontSize: 14, fontWeight: "600", color: colour.onNoir2, marginTop: 6 }}>
@@ -413,14 +412,14 @@ export default function ExpenseDetailScreen() {
                 backgroundColor: "rgba(255,255,255,0.12)", borderRadius: radius.full,
                 paddingVertical: 5, paddingHorizontal: space.sm,
               }}>
-                <Text style={{ fontSize: 11.5, fontWeight: "700", color: colour.onNoir }}>{itr12Code}</Text>
+                <Text style={{ ...typography.chipText, color: colour.onNoir }}>{itr12Code}</Text>
               </View>
             ) : null}
             <View style={{
               backgroundColor: expense.is_deductible ? colour.brandTeal : colour.danger,
               borderRadius: radius.full, paddingVertical: 5, paddingHorizontal: space.sm,
             }}>
-              <Text style={{ fontSize: 11.5, fontWeight: "700", color: expense.is_deductible ? colour.text : colour.white }}>
+              <Text style={{ ...typography.chipText, color: expense.is_deductible ? colour.text : colour.white }}>
                 {expense.is_deductible ? "Deductible" : "Non-deductible"}
               </Text>
             </View>
@@ -438,15 +437,15 @@ export default function ExpenseDetailScreen() {
             }}
           >
             <View>
-              <Text style={{ fontSize: 10.5, fontWeight: "700", letterSpacing: 1.2, color: colour.onNoir2, textTransform: "uppercase" }}>
+              <Text style={{ ...typography.eyebrow, color: colour.onNoir2, textTransform: "uppercase" }}>
                 {expense.is_deductible ? "Tax claimable" : "Not deductible"}
               </Text>
-              <Text style={{ fontSize: 11.5, color: "rgba(255,255,255,0.5)", marginTop: 4 }}>
+              <Text style={{ fontSize: 11.5, fontWeight: "500", color: "rgba(255,255,255,0.5)", marginTop: 4 }}>
                 {expense.is_deductible ? `ITR12 · full amount` : "Cannot be claimed on your ITR12"}
               </Text>
             </View>
             {expense.is_deductible && (
-              <Text style={{ fontSize: 22, fontWeight: "800", letterSpacing: -0.5, color: colour.brandTeal }}>
+              <Text style={{ ...typography.claimValue, color: colour.brandTeal }}>
                 {fmt(claimable)}
               </Text>
             )}
@@ -456,9 +455,10 @@ export default function ExpenseDetailScreen() {
         {/* Details */}
         <Text
           style={{
-            ...typography.labelM,
+            ...typography.eyebrow,
             color: colour.textSecondary,
-            marginBottom: space.xs,
+            textTransform: "uppercase",
+            marginBottom: space.sm,
           }}
         >
           DETAILS
@@ -466,7 +466,7 @@ export default function ExpenseDetailScreen() {
         <View
           style={{
             backgroundColor: colour.bgCard,
-            borderRadius: radius.md,
+            borderRadius: radius.card,
             borderWidth: 1,
             borderColor: colour.border,
             paddingHorizontal: space.lg,
@@ -502,10 +502,10 @@ export default function ExpenseDetailScreen() {
             }
           }}
           style={{
-            backgroundColor: hasReceipt ? colour.noir : colour.bgPage,
-            borderRadius: radius.md,
+            backgroundColor: hasReceipt ? colour.heroDark : colour.bgPage,
+            borderRadius: radius.card,
             borderWidth: 1,
-            borderColor: hasReceipt ? colour.noir : colour.border,
+            borderColor: hasReceipt ? colour.heroDark : colour.border,
             padding: space.lg,
             flexDirection: "row",
             alignItems: "center",
@@ -520,14 +520,14 @@ export default function ExpenseDetailScreen() {
             <View>
               <Text
                 style={{
-                  ...typography.labelM,
+                  ...typography.cardTitle,
                   color: hasReceipt ? colour.onNoir : colour.textSecondary,
                 }}
               >
                 {hasReceipt ? "Receipt attached" : "No receipt uploaded"}
               </Text>
               <Text
-                style={{ ...typography.caption, color: hasReceipt ? colour.onNoir2 : colour.textSecondary }}
+                style={{ ...typography.mSub, marginTop: 3, color: hasReceipt ? colour.onNoir2 : colour.textSecondary }}
               >
                 {hasReceipt ? "Tap to view full screen" : "Tap to add receipt"}
               </Text>
@@ -539,8 +539,8 @@ export default function ExpenseDetailScreen() {
         {/* SARS compliance note */}
         <View
           style={{
-            backgroundColor: colour.noir,
-            borderRadius: radius.md,
+            backgroundColor: colour.heroDark,
+            borderRadius: radius.card,
             padding: space.md,
             marginBottom: space.xl,
           }}
@@ -569,7 +569,7 @@ export default function ExpenseDetailScreen() {
             marginBottom: space.md,
           }}
         >
-          <Text style={{ ...typography.btnL, color: colour.textOnPrimary }}>
+          <Text style={{ ...typography.mBtn, color: colour.textOnPrimary }}>
             Edit expense
           </Text>
         </TouchableOpacity>
@@ -593,7 +593,7 @@ export default function ExpenseDetailScreen() {
           ) : (
             <>
               <IconSymbol name="arrow.left.arrow.right" size={16} color={colour.primary} />
-              <Text style={{ ...typography.btnL, color: colour.primary }}>
+              <Text style={{ ...typography.mBtn, color: colour.primary }}>
                 Reclassify as income
               </Text>
             </>
@@ -614,7 +614,7 @@ export default function ExpenseDetailScreen() {
           {deleting ? (
             <ActivityIndicator color={colour.danger} />
           ) : (
-            <Text style={{ ...typography.btnL, color: colour.danger }}>
+            <Text style={{ ...typography.mBtn, color: colour.danger }}>
               Delete expense
             </Text>
           )}

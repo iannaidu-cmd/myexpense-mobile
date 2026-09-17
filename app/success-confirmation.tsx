@@ -37,7 +37,7 @@ const CONTEXT_CONFIG: Record<
   },
   report: {
     icon: "chart.bar.fill",
-    accentColour: colour.teal,
+    accentColour: colour.brandTeal,
     defaultTitle: "Report exported",
     defaultSubtitle: "Your tax summary report is ready to share with your accountant.",
   },

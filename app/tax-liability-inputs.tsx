@@ -52,7 +52,7 @@ function SectionCard({ title, children }: { title: string; children: React.React
     <View
       style={{
         backgroundColor: colour.white,
-        borderRadius: radius.md,
+        borderRadius: radius.card,
         padding: space.md,
         borderWidth: 1,
         borderColor: colour.borderLight,
@@ -60,7 +60,7 @@ function SectionCard({ title, children }: { title: string; children: React.React
         gap: space.sm,
       }}
     >
-      <Text style={{ fontSize: 13, fontWeight: "700", color: colour.text }}>{title}</Text>
+      <Text style={{ ...typography.cardTitle, color: colour.text }}>{title}</Text>
       {children}
     </View>
   );
@@ -91,7 +91,7 @@ function AccordionSection({
     <View
       style={{
         backgroundColor: colour.white,
-        borderRadius: radius.md,
+        borderRadius: radius.card,
         borderWidth: 1,
         borderColor: colour.borderLight,
         marginBottom: space.md,
@@ -128,9 +128,9 @@ function AccordionSection({
             )}
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 13.5, fontWeight: "700", color: colour.text }}>{title}</Text>
+            <Text style={{ ...typography.cardTitle, color: colour.text }}>{title}</Text>
             {!expanded && summary ? (
-              <Text style={{ fontSize: 12, fontWeight: "600", color: colour.textSub, marginTop: 2 }}>
+              <Text style={{ ...typography.aminiText, color: colour.textSub, marginTop: 2 }}>
                 {summary}
               </Text>
             ) : null}
@@ -145,7 +145,7 @@ function AccordionSection({
               paddingVertical: 4,
             }}
           >
-            <Text style={{ fontSize: 11, fontWeight: "700", color: colour.accentDeep }}>Open</Text>
+            <Text style={{ ...typography.chipText, color: colour.accentDeep }}>Open</Text>
           </View>
         ) : (
           <IconSymbol name="chevron.right" size={14} color={colour.textHint} />
@@ -415,7 +415,7 @@ export default function TaxLiabilityInputsScreen() {
               }}
             />
           </View>
-          <Text style={{ ...typography.labelS, color: colour.textSub }} numberOfLines={1}>
+          <Text style={{ ...typography.progressLabel, color: colour.textSub }} numberOfLines={1}>
             {sectionsDone} of {totalSections} done
           </Text>
         </View>
@@ -465,7 +465,7 @@ export default function TaxLiabilityInputsScreen() {
                   <Text style={{ fontSize: 13, fontWeight: "600", color: colour.text }}>
                     {vatRegistered ? "VAT registered" : "Not VAT registered"}
                   </Text>
-                  <Text style={{ fontSize: 11, color: colour.textSub, marginTop: 2, lineHeight: 15 }}>
+                  <Text style={{ ...typography.hintText, color: colour.textSub, marginTop: 2 }}>
                     As a registered vendor you claim VAT back separately via VAT201, so your business expenses are
                     deducted excluding VAT — this changes the refund or bill estimate below. Manage your
                     registration in the VAT area.
@@ -510,7 +510,7 @@ export default function TaxLiabilityInputsScreen() {
                 hint="How much you pay each month. This is also saved in My Profile."
               />
               <View>
-                <Text style={{ ...typography.actionS, color: colour.text, marginBottom: space.xs }}>
+                <Text style={{ fontSize: 13.5, fontWeight: "700", color: colour.text, marginBottom: space.xs }}>
                   People on your medical aid (not counting you)
                 </Text>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: space.md }}>
@@ -571,7 +571,7 @@ export default function TaxLiabilityInputsScreen() {
               expanded={!!expanded.lumpSum}
               onToggle={() => toggleSection("lumpSum")}
             >
-              <Text style={{ fontSize: 12, color: colour.textSub, lineHeight: 17 }}>
+              <Text style={{ ...typography.hintText, color: colour.textSub }}>
                 A once-off payout from retirement, retrenchment (severance), or death — look for IRP5 source code
                 3901 (retirement), 3907 or 3922 (severance), or 3915 (death benefit). SARS taxes this on its own
                 separate table, with the first R550,000 (lifetime) tax-free, so keep it out of Other income above.
@@ -618,7 +618,7 @@ export default function TaxLiabilityInputsScreen() {
                       <Text style={{ fontSize: 13, fontWeight: "600", color: colour.text }}>
                         I know the actual tax from a SARS directive
                       </Text>
-                      <Text style={{ fontSize: 11, color: colour.textSub, marginTop: 2, lineHeight: 15 }}>
+                      <Text style={{ ...typography.hintText, color: colour.textSub, marginTop: 2 }}>
                         Retirement/severance lump sums usually come with a SARS tax directive (form IRP3(a)) — a
                         letter from SARS to your employer or fund saying exactly how much tax to deduct. If you have
                         one, switch this on and enter that exact amount instead of using our R550,000-table estimate

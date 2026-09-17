@@ -244,7 +244,7 @@ export default function SettingsTabScreen() {
           }}>
             {[
               { label: "Version",       value: "1.0.0" },
-              { label: "Compliance",    value: "POPIA ✓", valueColor: colour.success },
+              { label: "Compliance",    value: "POPIA ✓", valueColor: colour.accentDeep },
               { label: "Tax standard",  value: "SARS ITR12 2024/25" },
             ].map((row, i, arr) => (
               <View key={row.label} style={{

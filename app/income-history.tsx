@@ -172,18 +172,18 @@ export default function IncomeHistoryScreen() {
         style={{
           marginHorizontal: space.lg,
           marginTop: space.md,
-          backgroundColor: colour.noir,
-          borderRadius: radius.lg,
+          backgroundColor: colour.heroDark,
+          borderRadius: radius.hero,
           padding: space.lg,
         }}
       >
         <View style={{ flexDirection: "row" }}>
           <View style={{ flex: 1 }}>
-            <Text style={{ ...typography.caption, color: colour.onNoir2 }}>
+            <Text style={{ ...typography.statLabel, color: colour.onNoir2, textTransform: "uppercase" }}>
               Total income
             </Text>
             <Text
-              style={{ ...typography.amountM, fontWeight: "800", color: colour.brandTeal, marginTop: 2 }}
+              style={{ ...typography.statValue, color: colour.brandTeal, marginTop: 6 }}
               numberOfLines={1}
               adjustsFontSizeToFit
               minimumFontScale={0.6}
@@ -193,10 +193,10 @@ export default function IncomeHistoryScreen() {
           </View>
           <View style={{ width: 1, backgroundColor: "rgba(255,255,255,0.14)" }} />
           <View style={{ flex: 0.6, paddingLeft: space.md }}>
-            <Text style={{ ...typography.caption, color: colour.onNoir2 }}>
+            <Text style={{ ...typography.statLabel, color: colour.onNoir2, textTransform: "uppercase" }}>
               Entries
             </Text>
-            <Text style={{ ...typography.amountM, fontWeight: "800", color: colour.onNoir, marginTop: 2 }}>
+            <Text style={{ ...typography.statValue, color: colour.onNoir, marginTop: 6 }}>
               {filtered.length}
             </Text>
           </View>
@@ -214,7 +214,7 @@ export default function IncomeHistoryScreen() {
               borderTopColor: "rgba(255,255,255,0.14)",
             }}
           >
-            <Text style={{ ...typography.caption, color: colour.onNoir2, flex: 1 }}>
+            <Text style={{ fontSize: 11.5, fontWeight: "500", color: colour.onNoir2, flex: 1 }}>
               All {filtered.length} {filtered.length === 1 ? "entry is" : "entries are"} flagged for ITR12
             </Text>
             <View
@@ -225,7 +225,7 @@ export default function IncomeHistoryScreen() {
                 paddingVertical: 4,
               }}
             >
-              <Text style={{ ...typography.labelS, color: colour.onNoir }}>Ready</Text>
+              <Text style={{ ...typography.chipText, color: colour.onNoir }}>Ready</Text>
             </View>
           </View>
         )}
@@ -258,7 +258,7 @@ export default function IncomeHistoryScreen() {
             onChangeText={setSearch}
             placeholder="Search income..."
             placeholderTextColor={colour.textHint}
-            style={{ ...typography.bodyM, flex: 1, color: colour.textPrimary }}
+            style={{ ...typography.searchText, flex: 1, color: colour.textPrimary }}
           />
           {search ? (
             <TouchableOpacity onPress={() => setSearch("")}>
@@ -293,7 +293,7 @@ export default function IncomeHistoryScreen() {
             >
               <Text
                 style={{
-                  ...typography.labelS,
+                  ...typography.fchipText,
                   color: activeFilter === f.key ? colour.textOnPrimary : colour.textSecondary,
                 }}
               >
@@ -336,8 +336,8 @@ export default function IncomeHistoryScreen() {
               <RefreshControl
                 refreshing={refreshing}
                 onRefresh={handleRefresh}
-                colors={[colour.success]}
-                tintColor={colour.success}
+                colors={[colour.primary]}
+                tintColor={colour.primary}
               />
             }
             ListFooterComponent={
@@ -348,15 +348,15 @@ export default function IncomeHistoryScreen() {
                     gap: space.sm,
                     alignItems: "flex-start",
                     padding: space.md,
-                    borderRadius: radius.md,
-                    backgroundColor: colour.primary50,
+                    borderRadius: radius.note,
+                    backgroundColor: colour.primary + "17",
                     borderWidth: 1,
-                    borderColor: colour.accentSoft,
+                    borderColor: colour.primary + "29",
                     marginTop: space.sm,
                   }}
                 >
                   <IconSymbol name="info.circle.fill" size={15} color={colour.primary} style={{ marginTop: 1 } as any} />
-                  <Text style={{ fontSize: 11.5, lineHeight: 16, color: colour.text, flex: 1 }}>
+                  <Text style={{ ...typography.noteText, color: colour.text, flex: 1 }}>
                     <Text style={{ fontWeight: "700" }}>Missing something? </Text>
                     Import a bank statement to pull deposits in automatically, or add an IRP5 to capture source codes and PAYE.
                   </Text>
@@ -386,14 +386,14 @@ export default function IncomeHistoryScreen() {
                   <TouchableOpacity
                     onPress={() => router.push("/add-income" as any)}
                     style={{
-                      backgroundColor: colour.success,
+                      backgroundColor: colour.primary,
                       borderRadius: radius.pill,
                       paddingVertical: space.md,
                       paddingHorizontal: space.xl,
                     }}
                   >
                     <Text
-                      style={{ ...typography.btnL, color: colour.text }}
+                      style={{ ...typography.btnL, color: colour.onPrimary }}
                     >
                       Add income
                     </Text>
@@ -431,15 +431,16 @@ export default function IncomeHistoryScreen() {
                 {/* Details */}
                 <View style={{ flex: 1 }}>
                   <Text
-                    style={{ ...typography.labelM, fontWeight: "700", color: colour.textPrimary }}
+                    style={{ ...typography.itemTitle, color: colour.textPrimary }}
                     numberOfLines={1}
                   >
                     {item.source}
                   </Text>
                   <Text
                     style={{
-                      ...typography.caption,
+                      ...typography.itemSub,
                       color: colour.textSecondary,
+                      marginTop: 2,
                     }}
                   >
                     {item.description ? `${item.description} · ` : ""}
@@ -448,25 +449,27 @@ export default function IncomeHistoryScreen() {
                 </View>
 
                 {/* Amount */}
-                <View style={{ alignItems: "flex-end" }}>
+                <View style={{ alignItems: "flex-end", gap: 5 }}>
                   <Text
                     style={{
-                      ...typography.amountS,
+                      ...typography.itemAmount,
                       color: colour.text,
-                      fontWeight: "700",
                     }}
                   >
                     {fmt(item.amount)}
                   </Text>
-                  <Text
+                  <View
                     style={{
-                      ...typography.micro,
-                      color: colour.textSecondary,
-                      marginTop: 2,
+                      backgroundColor: colour.primary + "24",
+                      borderRadius: radius.pill,
+                      paddingHorizontal: space.sm,
+                      paddingVertical: 2,
                     }}
                   >
-                    ITR12
-                  </Text>
+                    <Text style={{ ...typography.chipText, color: colour.primary }}>
+                      ITR12
+                    </Text>
+                  </View>
                 </View>
               </TouchableOpacity>
             )}

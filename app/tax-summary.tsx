@@ -331,7 +331,7 @@ export default function TaxSummaryScreen() {
                           width: 6,
                           height: 6,
                           borderRadius: 3,
-                          backgroundColor: colour.success,
+                          backgroundColor: colour.brandTeal,
                         }}
                       />
                       <Text
@@ -629,7 +629,7 @@ export default function TaxSummaryScreen() {
                     style={{
                       fontSize: 13,
                       fontWeight: "700",
-                      color: colour.success,
+                      color: colour.accentDeep,
                     }}
                   >
                     {fmtPct(itr12Readiness)}
@@ -647,7 +647,7 @@ export default function TaxSummaryScreen() {
                     style={{
                       width: `${itr12Readiness}%`,
                       height: 8,
-                      backgroundColor: colour.success,
+                      backgroundColor: colour.brandTeal,
                       borderRadius: 4,
                     }}
                   />
@@ -740,7 +740,7 @@ export default function TaxSummaryScreen() {
                         height: 8,
                         borderRadius: 4,
                         backgroundColor: d.done
-                          ? colour.successMid
+                          ? colour.brandTeal
                           : colour.primary200,
                         marginRight: 10,
                       }}
@@ -817,14 +817,14 @@ export default function TaxSummaryScreen() {
                   <Text style={{ fontSize: 13, fontWeight: "700", color: colour.text, marginBottom: 4 }}>
                     Medical Aid Tax Credits (S6A)
                   </Text>
-                  <Text style={{ fontSize: 11, color: colour.success, marginBottom: 12, backgroundColor: colour.successBg, borderRadius: 6, padding: 8 }}>
+                  <Text style={{ fontSize: 11, color: colour.text, marginBottom: 12, backgroundColor: colour.primary + "17", borderRadius: 6, padding: 8 }}>
                     Medical Aid is a tax credit (reduces your tax bill directly), not a deduction from income. It is NOT included in your total deductions above.
                   </Text>
                   <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 6 }}>
                     <Text style={{ fontSize: 12, color: colour.textSub, flex: 1, marginRight: 8 }} numberOfLines={2}>
                       Annual MTC · {medicalAidDependants === 0 ? "main member only" : `${medicalAidDependants} dependant${medicalAidDependants > 1 ? "s" : ""}`}
                     </Text>
-                    <Text style={{ fontSize: 14, fontWeight: "800", color: colour.success }}>{fmt(annualMTC)}</Text>
+                    <Text style={{ fontSize: 14, fontWeight: "800", color: colour.accentDeep }}>{fmt(annualMTC)}</Text>
                   </View>
                   {hasDisability && (
                     <View style={{ backgroundColor: colour.primary50, borderRadius: 6, padding: 8, marginBottom: 6 }}>

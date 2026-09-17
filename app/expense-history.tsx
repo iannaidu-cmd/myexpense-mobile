@@ -33,10 +33,10 @@ const formatDate = (dateStr: string) => {
 };
 
 const deductibleColour = (isDeductible: boolean) =>
-  isDeductible ? colour.accentDeep : colour.warning;
+  isDeductible ? colour.accentDeep : colour.text;
 
 const deductibleChipBg = (isDeductible: boolean) =>
-  isDeductible ? colour.primary50 : colour.warningBg;
+  isDeductible ? colour.primary50 : colour.warning + "38";
 
 type Filter = "all" | "deductible" | "non";
 
@@ -229,18 +229,18 @@ export default function ExpenseHistoryScreen() {
         style={{
           marginHorizontal: space.lg,
           marginTop: space.md,
-          backgroundColor: colour.noir,
-          borderRadius: radius.lg,
+          backgroundColor: colour.heroDark,
+          borderRadius: radius.hero,
           padding: space.lg,
         }}
       >
         <View style={{ flexDirection: "row" }}>
           <View style={{ flex: 1.25 }}>
-            <Text style={{ ...typography.caption, color: colour.onNoir2 }}>
+            <Text style={{ ...typography.statLabel, color: colour.onNoir2, textTransform: "uppercase" }}>
               Total spent
             </Text>
             <Text
-              style={{ ...typography.amountM, fontWeight: "800", color: colour.onNoir, marginTop: 2 }}
+              style={{ ...typography.statValue, color: colour.onNoir, marginTop: 6 }}
               numberOfLines={1}
               adjustsFontSizeToFit
               minimumFontScale={0.6}
@@ -250,11 +250,11 @@ export default function ExpenseHistoryScreen() {
           </View>
           <View style={{ width: 1, backgroundColor: "rgba(255,255,255,0.14)" }} />
           <View style={{ flex: 1, paddingLeft: space.md }}>
-            <Text style={{ ...typography.caption, color: colour.onNoir2 }}>
+            <Text style={{ ...typography.statLabel, color: colour.onNoir2, textTransform: "uppercase" }}>
               Claimable
             </Text>
             <Text
-              style={{ ...typography.amountM, fontWeight: "800", color: colour.brandTeal, marginTop: 2 }}
+              style={{ ...typography.statValue, color: colour.brandTeal, marginTop: 6 }}
               numberOfLines={1}
               adjustsFontSizeToFit
               minimumFontScale={0.6}
@@ -264,10 +264,10 @@ export default function ExpenseHistoryScreen() {
           </View>
           <View style={{ width: 1, backgroundColor: "rgba(255,255,255,0.14)" }} />
           <View style={{ flex: 0.7, paddingLeft: space.md }}>
-            <Text style={{ ...typography.caption, color: colour.onNoir2 }}>
+            <Text style={{ ...typography.statLabel, color: colour.onNoir2, textTransform: "uppercase" }}>
               Expenses
             </Text>
-            <Text style={{ ...typography.amountM, fontWeight: "800", color: colour.onNoir, marginTop: 2 }}>
+            <Text style={{ ...typography.statValue, color: colour.onNoir, marginTop: 6 }}>
               {filtered.length}
             </Text>
           </View>
@@ -323,7 +323,7 @@ export default function ExpenseHistoryScreen() {
             onChangeText={setSearch}
             placeholder={`Search ${expenses.length} expense${expenses.length === 1 ? "" : "s"}`}
             placeholderTextColor={colour.textHint}
-            style={{ ...typography.bodyM, flex: 1, color: colour.textPrimary }}
+            style={{ ...typography.searchText, flex: 1, color: colour.textPrimary }}
           />
           {search ? (
             <TouchableOpacity onPress={() => setSearch("")}>
@@ -357,7 +357,7 @@ export default function ExpenseHistoryScreen() {
             >
               <Text
                 style={{
-                  ...typography.labelS,
+                  ...typography.fchipText,
                   color: activeFilter === f.key ? colour.textOnPrimary : colour.textSecondary,
                 }}
               >
@@ -376,7 +376,7 @@ export default function ExpenseHistoryScreen() {
               borderColor: colour.border,
             }}
           >
-            <Text style={{ ...typography.labelS, color: colour.textSecondary }}>
+            <Text style={{ ...typography.fchipText, color: colour.textSecondary }}>
               Category
             </Text>
           </TouchableOpacity>
@@ -399,7 +399,7 @@ export default function ExpenseHistoryScreen() {
               }}
             >
               <IconSymbol name="tag.fill" size={11} color={colour.primary} />
-              <Text style={{ ...typography.labelS, color: colour.primary }}>
+              <Text style={{ ...typography.fchipText, color: colour.primary }}>
                 Edit types
               </Text>
             </TouchableOpacity>
@@ -567,36 +567,34 @@ export default function ExpenseHistoryScreen() {
 
                   <View style={{ flex: 1 }}>
                     <Text
-                      style={{ ...typography.labelM, fontWeight: "700", color: colour.textPrimary }}
+                      style={{ ...typography.itemTitle, color: colour.textPrimary }}
                       numberOfLines={1}
                     >
                       {item.vendor}
                     </Text>
                     <Text
-                      style={{ ...typography.caption, color: colour.textSecondary }}
+                      style={{ ...typography.itemSub, color: colour.textSecondary, marginTop: 2 }}
                     >
                       {item.category} · {formatDate(item.expense_date)}
                     </Text>
                   </View>
 
-                  <View style={{ alignItems: "flex-end" }}>
-                    <Text style={{ ...typography.amountS, fontWeight: "700", color: colour.textPrimary }}>
+                  <View style={{ alignItems: "flex-end", gap: 5 }}>
+                    <Text style={{ ...typography.itemAmount, color: colour.textPrimary }}>
                       {fmt(item.amount)}
                     </Text>
                     <View
                       style={{
                         backgroundColor: deductibleChipBg(item.is_deductible),
                         borderRadius: radius.full,
-                        paddingHorizontal: space.xs,
+                        paddingHorizontal: space.sm,
                         paddingVertical: 2,
-                        marginTop: 2,
                       }}
                     >
                       <Text
                         style={{
-                          ...typography.micro,
+                          ...typography.chipText,
                           color: deductibleColour(item.is_deductible),
-                          fontWeight: "600",
                         }}
                       >
                         {item.is_deductible ? "Business" : "Personal"}
@@ -654,12 +652,12 @@ export default function ExpenseHistoryScreen() {
                   gap: 4,
                   paddingVertical: 10,
                   borderRadius: radius.md,
-                  backgroundColor: selectedIds.size > 0 ? colour.success : colour.bgPage,
+                  backgroundColor: selectedIds.size > 0 ? colour.brandTeal : colour.bgPage,
                   opacity: selectedIds.size === 0 ? 0.4 : 1,
                 }}
               >
-                <IconSymbol name="briefcase.fill" size={12} color={selectedIds.size > 0 ? colour.white : colour.textHint} />
-                <Text style={{ fontSize: 13, fontWeight: "700", color: selectedIds.size > 0 ? colour.white : colour.textHint }}>
+                <IconSymbol name="briefcase.fill" size={12} color={selectedIds.size > 0 ? colour.text : colour.textHint} />
+                <Text style={{ fontSize: 13, fontWeight: "700", color: selectedIds.size > 0 ? colour.text : colour.textHint }}>
                   Business
                 </Text>
               </TouchableOpacity>

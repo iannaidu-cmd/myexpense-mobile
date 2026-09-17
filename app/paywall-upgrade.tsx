@@ -113,7 +113,7 @@ function PlanRow({
             {!!savingPercent && savingPercent > 0 && (
               <View
                 style={{
-                  backgroundColor: colour.success,
+                  backgroundColor: colour.brandTeal,
                   borderRadius: 100,
                   paddingHorizontal: space.sm,
                   paddingVertical: 2,

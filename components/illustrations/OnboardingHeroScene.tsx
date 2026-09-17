@@ -116,12 +116,12 @@ export function OnboardingHeroScene() {
       <View style={{
         position: "absolute", top: 122, right: 34,
         width: 52, height: 52, borderRadius: 26,
-        backgroundColor: colour.success,
+        backgroundColor: colour.brandTeal,
         alignItems: "center", justifyContent: "center",
-        shadowColor: colour.success, shadowOffset: { width: 0, height: 4 },
+        shadowColor: colour.brandTeal, shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.35, shadowRadius: 12, elevation: 6,
       }}>
-        <Text style={{ fontSize: 22, color: colour.white, fontWeight: "800", lineHeight: 26 }}>✓</Text>
+        <Text style={{ fontSize: 22, color: colour.text, fontWeight: "800", lineHeight: 26 }}>✓</Text>
       </View>
 
       {/* Sparkle dots */}
