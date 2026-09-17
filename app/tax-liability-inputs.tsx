@@ -258,10 +258,50 @@ export default function TaxLiabilityInputsScreen() {
     }
   };
 
+  // Simple completion heuristic for the progress indicator — VAT registration
+  // is read-only/informational here (see app/vat-summary.tsx) so it always
+  // counts as done; every other section counts once its value is non-empty.
+  const sectionsDone = [
+    !!dateOfBirth,
+    true,
+    otherIncome.trim() !== "",
+    medicalAidMonthly.trim() !== "",
+    raContributions.trim() !== "",
+    lumpSumEntries.some((e) => e.amount.trim() !== "") || priorLumpSums.trim() !== "",
+    taxAlreadyPaid.trim() !== "",
+  ].filter(Boolean).length;
+  const totalSections = 7;
+
   return (
     <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colour.background }}>
       <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
       <MXHeader title="Tax refund or bill" subtitle={`For ${activeTaxYear}`} showBack />
+
+      {!loading && (
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: space.md,
+            paddingHorizontal: space.lg,
+            paddingBottom: space.sm,
+          }}
+        >
+          <View style={{ flex: 1, height: 6, borderRadius: 3, backgroundColor: colour.borderLight, overflow: "hidden" }}>
+            <View
+              style={{
+                width: `${(sectionsDone / totalSections) * 100}%`,
+                height: "100%",
+                backgroundColor: colour.brandTeal,
+                borderRadius: 3,
+              }}
+            />
+          </View>
+          <Text style={{ ...typography.labelS, color: colour.textSub }} numberOfLines={1}>
+            {sectionsDone} of {totalSections} done
+          </Text>
+        </View>
+      )}
 
       {loading ? (
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
