@@ -31,6 +31,31 @@ const formatDate = (dateStr: string) => {
   });
 };
 
+type SourceFilter = "all" | "salary" | "freelance" | "imported";
+
+const FILTERS: { key: SourceFilter; label: string }[] = [
+  { key: "all", label: "All" },
+  { key: "salary", label: "Salary" },
+  { key: "freelance", label: "Freelance" },
+  { key: "imported", label: "Imported" },
+];
+
+const matchesSourceFilter = (item: any, filter: SourceFilter): boolean => {
+  if (filter === "all") return true;
+  const s = (item.source ?? "").toLowerCase();
+  const desc = (item.description ?? "").toLowerCase();
+  if (filter === "imported") return desc.includes("imported from bank");
+  if (filter === "salary") return s.includes("salary") || s.includes("wage") || s.includes("employment");
+  // freelance — fees for services rendered, consulting, commission, etc.
+  return (
+    s.includes("consult") ||
+    s.includes("fees") ||
+    s.includes("services") ||
+    s.includes("commission") ||
+    s.includes("freelance")
+  );
+};
+
 const sourceIcon = (source: string): any => {
   const s = source.toLowerCase();
   if (s.includes("salary") || s.includes("wage") || s.includes("employment"))
@@ -60,6 +85,7 @@ export default function IncomeHistoryScreen() {
   const [error, setError] = useState<string | null>(null);
   const [income, setIncome] = useState<any[]>([]);
   const [search, setSearch] = useState("");
+  const [activeFilter, setActiveFilter] = useState<SourceFilter>("all");
 
   const loadData = useCallback(async () => {
     if (!user) { setLoading(false); return; }
@@ -101,12 +127,13 @@ export default function IncomeHistoryScreen() {
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
-    return income.filter(
-      (e) =>
+    return income.filter((e) => {
+      const matchSearch =
         (e.source ?? "").toLowerCase().includes(q) ||
-        (e.description ?? "").toLowerCase().includes(q),
-    );
-  }, [income, search]);
+        (e.description ?? "").toLowerCase().includes(q);
+      return matchSearch && matchesSourceFilter(e, activeFilter);
+    });
+  }, [income, search, activeFilter]);
 
   const totalIncome = useMemo(
     () => filtered.reduce((s, e) => s + Number(e.amount), 0),
@@ -156,7 +183,7 @@ export default function IncomeHistoryScreen() {
               Total income
             </Text>
             <Text
-              style={{ ...typography.amountM, color: colour.brandTeal, marginTop: 2 }}
+              style={{ ...typography.amountM, fontWeight: "800", color: colour.brandTeal, marginTop: 2 }}
               numberOfLines={1}
               adjustsFontSizeToFit
               minimumFontScale={0.6}
@@ -169,7 +196,7 @@ export default function IncomeHistoryScreen() {
             <Text style={{ ...typography.caption, color: colour.onNoir2 }}>
               Entries
             </Text>
-            <Text style={{ ...typography.amountM, color: colour.onNoir, marginTop: 2 }}>
+            <Text style={{ ...typography.amountM, fontWeight: "800", color: colour.onNoir, marginTop: 2 }}>
               {filtered.length}
             </Text>
           </View>
@@ -242,6 +269,40 @@ export default function IncomeHistoryScreen() {
           ) : null}
         </View>
 
+        {/* Filter chips */}
+        <View
+          style={{
+            flexDirection: "row",
+            paddingHorizontal: space.lg,
+            gap: space.sm,
+            marginBottom: space.sm,
+          }}
+        >
+          {FILTERS.map((f) => (
+            <TouchableOpacity
+              key={f.key}
+              onPress={() => setActiveFilter(f.key)}
+              style={{
+                borderRadius: radius.full,
+                paddingVertical: space.xs,
+                paddingHorizontal: space.md,
+                backgroundColor: activeFilter === f.key ? colour.primary : colour.bgPage,
+                borderWidth: 1,
+                borderColor: activeFilter === f.key ? colour.primary : colour.border,
+              }}
+            >
+              <Text
+                style={{
+                  ...typography.labelS,
+                  color: activeFilter === f.key ? colour.textOnPrimary : colour.textSecondary,
+                }}
+              >
+                {f.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
         {loading ? (
           <View style={{ alignItems: "center", paddingTop: space["4xl"] }}>
             <ActivityIndicator color={colour.primary} size="large" />
@@ -278,6 +339,29 @@ export default function IncomeHistoryScreen() {
                 colors={[colour.success]}
                 tintColor={colour.success}
               />
+            }
+            ListFooterComponent={
+              filtered.length > 0 ? (
+                <View
+                  style={{
+                    flexDirection: "row",
+                    gap: space.sm,
+                    alignItems: "flex-start",
+                    padding: space.md,
+                    borderRadius: radius.md,
+                    backgroundColor: colour.primary50,
+                    borderWidth: 1,
+                    borderColor: colour.accentSoft,
+                    marginTop: space.sm,
+                  }}
+                >
+                  <IconSymbol name="info.circle.fill" size={15} color={colour.primary} style={{ marginTop: 1 } as any} />
+                  <Text style={{ fontSize: 11.5, lineHeight: 16, color: colour.text, flex: 1 }}>
+                    <Text style={{ fontWeight: "700" }}>Missing something? </Text>
+                    Import a bank statement to pull deposits in automatically, or add an IRP5 to capture source codes and PAYE.
+                  </Text>
+                </View>
+              ) : null
             }
             ListEmptyComponent={
               <View style={{ alignItems: "center", paddingTop: space["4xl"] }}>
@@ -347,7 +431,7 @@ export default function IncomeHistoryScreen() {
                 {/* Details */}
                 <View style={{ flex: 1 }}>
                   <Text
-                    style={{ ...typography.labelM, color: colour.textPrimary }}
+                    style={{ ...typography.labelM, fontWeight: "700", color: colour.textPrimary }}
                     numberOfLines={1}
                   >
                     {item.source}
