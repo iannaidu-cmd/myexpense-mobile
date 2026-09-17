@@ -43,7 +43,7 @@ type Filter = "all" | "deductible" | "non";
 const FILTERS: { key: Filter; label: string }[] = [
   { key: "all", label: "All" },
   { key: "deductible", label: "Deductible" },
-  { key: "non", label: "Non-deductible" },
+  { key: "non", label: "Personal" },
 ];
 
 export default function ExpenseHistoryScreen() {
@@ -240,7 +240,7 @@ export default function ExpenseHistoryScreen() {
               Total spent
             </Text>
             <Text
-              style={{ ...typography.amountM, color: colour.onNoir, marginTop: 2 }}
+              style={{ ...typography.amountM, fontWeight: "800", color: colour.onNoir, marginTop: 2 }}
               numberOfLines={1}
               adjustsFontSizeToFit
               minimumFontScale={0.6}
@@ -254,7 +254,7 @@ export default function ExpenseHistoryScreen() {
               Claimable
             </Text>
             <Text
-              style={{ ...typography.amountM, color: colour.brandTeal, marginTop: 2 }}
+              style={{ ...typography.amountM, fontWeight: "800", color: colour.brandTeal, marginTop: 2 }}
               numberOfLines={1}
               adjustsFontSizeToFit
               minimumFontScale={0.6}
@@ -267,7 +267,7 @@ export default function ExpenseHistoryScreen() {
             <Text style={{ ...typography.caption, color: colour.onNoir2 }}>
               Expenses
             </Text>
-            <Text style={{ ...typography.amountM, color: colour.onNoir, marginTop: 2 }}>
+            <Text style={{ ...typography.amountM, fontWeight: "800", color: colour.onNoir, marginTop: 2 }}>
               {filtered.length}
             </Text>
           </View>
@@ -321,7 +321,7 @@ export default function ExpenseHistoryScreen() {
           <TextInput
             value={search}
             onChangeText={setSearch}
-            placeholder="Search expenses..."
+            placeholder={`Search ${expenses.length} expense${expenses.length === 1 ? "" : "s"}`}
             placeholderTextColor={colour.textHint}
             style={{ ...typography.bodyM, flex: 1, color: colour.textPrimary }}
           />
@@ -365,6 +365,21 @@ export default function ExpenseHistoryScreen() {
               </Text>
             </TouchableOpacity>
           ))}
+          <TouchableOpacity
+            onPress={() => router.push("/filter-sort" as any)}
+            style={{
+              borderRadius: radius.full,
+              paddingVertical: space.xs,
+              paddingHorizontal: space.md,
+              backgroundColor: colour.bgPage,
+              borderWidth: 1,
+              borderColor: colour.border,
+            }}
+          >
+            <Text style={{ ...typography.labelS, color: colour.textSecondary }}>
+              Category
+            </Text>
+          </TouchableOpacity>
 
           <View style={{ flex: 1 }} />
 
@@ -552,7 +567,7 @@ export default function ExpenseHistoryScreen() {
 
                   <View style={{ flex: 1 }}>
                     <Text
-                      style={{ ...typography.labelM, color: colour.textPrimary }}
+                      style={{ ...typography.labelM, fontWeight: "700", color: colour.textPrimary }}
                       numberOfLines={1}
                     >
                       {item.vendor}
@@ -565,7 +580,7 @@ export default function ExpenseHistoryScreen() {
                   </View>
 
                   <View style={{ alignItems: "flex-end" }}>
-                    <Text style={{ ...typography.amountS, color: colour.textPrimary }}>
+                    <Text style={{ ...typography.amountS, fontWeight: "700", color: colour.textPrimary }}>
                       {fmt(item.amount)}
                     </Text>
                     <View
