@@ -238,13 +238,66 @@ export default function AddIncomeScreen() {
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ paddingBottom: space.xxxl }}
       >
+        {/* Amount received hero */}
+        <View
+          style={{
+            marginHorizontal: space.lg,
+            marginTop: space.lg,
+            marginBottom: space.md,
+            backgroundColor: colour.white,
+            borderRadius: radius.lg,
+            borderWidth: 1,
+            borderColor: colour.border,
+            padding: space.xl,
+            alignItems: "center",
+          }}
+        >
+          <Text
+            style={{
+              ...typography.labelS,
+              color: colour.textSub,
+              letterSpacing: 0.5,
+            }}
+          >
+            Amount received
+          </Text>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "baseline",
+              gap: space.xs,
+              marginTop: space.sm,
+            }}
+          >
+            <Text style={{ ...typography.h2, color: amount ? colour.text : colour.textHint }}>
+              R
+            </Text>
+            <TextInput
+              value={amount}
+              onChangeText={setAmount}
+              placeholder="0,00"
+              placeholderTextColor={colour.textHint}
+              keyboardType="decimal-pad"
+              style={{
+                ...typography.amountXL,
+                fontSize: 44,
+                color: amount ? colour.text : colour.textHint,
+                minWidth: 120,
+                textAlign: "center",
+              }}
+            />
+          </View>
+          <Text style={{ ...typography.caption, color: colour.textSub, marginTop: space.sm }}>
+            Gross, before any tax was taken off
+          </Text>
+        </View>
+
         {/* IRP5 / employment income shortcut */}
         {!isEditing && (
           <TouchableOpacity
             onPress={() => router.push("/add-irp5-income" as any)}
             style={{
               marginHorizontal: space.lg,
-              marginTop: space.lg,
               marginBottom: space.md,
               backgroundColor: colour.noir,
               borderRadius: radius.lg,
@@ -353,14 +406,6 @@ export default function AddIncomeScreen() {
           >
             Income details
           </Text>
-
-          <FieldLabel label="Amount (ZAR)" />
-          <UnderlineInput
-            value={amount}
-            onChangeText={setAmount}
-            placeholder="0.00"
-            keyboardType="decimal-pad"
-          />
 
           {/* Income source */}
           <FieldLabel label="Income source" />
