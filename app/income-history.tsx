@@ -138,33 +138,71 @@ export default function IncomeHistoryScreen() {
             </Text>
           </TouchableOpacity>
         }
+      />
+
+      {/* Stats hero */}
+      <View
+        style={{
+          marginHorizontal: space.lg,
+          marginTop: space.md,
+          backgroundColor: colour.noir,
+          borderRadius: radius.lg,
+          padding: space.lg,
+        }}
       >
-        {/* Summary row */}
-        <View
-          style={{ flexDirection: "row", gap: space.md, marginTop: space.md }}
-        >
+        <View style={{ flexDirection: "row" }}>
           <View style={{ flex: 1 }}>
-            <Text
-              style={{ ...typography.caption, color: colour.textSub }}
-            >
+            <Text style={{ ...typography.caption, color: colour.onNoir2 }}>
               Total income
             </Text>
-            <Text style={{ ...typography.amountM, color: colour.text }}>
+            <Text
+              style={{ ...typography.amountM, color: colour.brandTeal, marginTop: 2 }}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.6}
+            >
               {fmt(totalIncome)}
             </Text>
           </View>
-          <View style={{ flex: 1 }}>
-            <Text
-              style={{ ...typography.caption, color: colour.textSub }}
-            >
+          <View style={{ width: 1, backgroundColor: "rgba(255,255,255,0.14)" }} />
+          <View style={{ flex: 0.6, paddingLeft: space.md }}>
+            <Text style={{ ...typography.caption, color: colour.onNoir2 }}>
               Entries
             </Text>
-            <Text style={{ ...typography.amountM, color: colour.text }}>
+            <Text style={{ ...typography.amountM, color: colour.onNoir, marginTop: 2 }}>
               {filtered.length}
             </Text>
           </View>
         </View>
-      </MXHeader>
+
+        {filtered.length > 0 && (
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginTop: space.md,
+              paddingTop: space.md,
+              borderTopWidth: 1,
+              borderTopColor: "rgba(255,255,255,0.14)",
+            }}
+          >
+            <Text style={{ ...typography.caption, color: colour.onNoir2, flex: 1 }}>
+              All {filtered.length} {filtered.length === 1 ? "entry is" : "entries are"} flagged for ITR12
+            </Text>
+            <View
+              style={{
+                backgroundColor: "rgba(255,255,255,0.12)",
+                borderRadius: radius.pill,
+                paddingHorizontal: space.sm,
+                paddingVertical: 4,
+              }}
+            >
+              <Text style={{ ...typography.labelS, color: colour.onNoir }}>Ready</Text>
+            </View>
+          </View>
+        )}
+      </View>
 
       {/* Card */}
       <View
@@ -297,13 +335,13 @@ export default function IncomeHistoryScreen() {
                     width: 44,
                     height: 44,
                     borderRadius: 22,
-                    backgroundColor: colour.successBg,
+                    backgroundColor: colour.brandTeal + "2E",
                     alignItems: "center",
                     justifyContent: "center",
                     marginRight: space.md,
                   }}
                 >
-                  <IconSymbol name={sourceIcon(item.source)} size={20} color={colour.success} />
+                  <IconSymbol name={sourceIcon(item.source)} size={20} color={colour.text} />
                 </View>
 
                 {/* Details */}
@@ -330,7 +368,7 @@ export default function IncomeHistoryScreen() {
                   <Text
                     style={{
                       ...typography.amountS,
-                      color: colour.success,
+                      color: colour.text,
                       fontWeight: "700",
                     }}
                   >
