@@ -6,7 +6,7 @@
 const config = {
   name: "MyExpense",
   slug: "MyExpense",
-  version: "1.0.9",
+  version: "1.1.0",
   orientation: "portrait",
   icon: "./assets/images/icon.png",
   scheme: "myexpense",
@@ -15,7 +15,7 @@ const config = {
     supportsTablet: true,
     requiresFullScreen: true,
     bundleIdentifier: "co.za.myexpense",
-    buildNumber: "78",
+    buildNumber: "79",
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false,
       NSCameraUsageDescription:
@@ -36,7 +36,7 @@ const config = {
   },
   android: {
     package: "co.za.myexpense.myapp",
-    versionCode: 37,
+    versionCode: 38,
     config: {
       googleMaps: {
         apiKey: process.env.GOOGLE_MAPS_API_KEY,
