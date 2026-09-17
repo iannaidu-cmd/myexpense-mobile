@@ -179,7 +179,7 @@ export default function IncomeDetailScreen() {
           >
             <View style={{
               position: "absolute", width: 160, height: 160, borderRadius: 80,
-              backgroundColor: colour.success, opacity: 0.18, top: -50, right: -40,
+              backgroundColor: colour.brandTeal, opacity: 0.18, top: -50, right: -40,
             }} />
             <Text style={{ fontSize: 12, color: colour.onNoir2, fontWeight: "500", marginBottom: 8 }}>
               Amount received
