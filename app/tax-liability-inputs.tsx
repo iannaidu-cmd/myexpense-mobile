@@ -1,4 +1,3 @@
-import { InfoBanner } from "@/components/InfoBanner";
 import { MXButton } from "@/components/MXButton";
 import { MXHeader } from "@/components/MXHeader";
 import { MXInput } from "@/components/MXInput";
@@ -15,7 +14,7 @@ import { useExpenseStore } from "@/stores/expenseStore";
 import { irp5TotalPAYE, useIRP5Store } from "@/stores/irp5Store";
 import { colour, radius, space, typography } from "@/tokens";
 import { useFocusEffect, useRouter } from "expo-router";
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -67,6 +66,100 @@ function SectionCard({ title, children }: { title: string; children: React.React
   );
 }
 
+// Collapsed-by-default accordion step, matching the mockup's staged wizard:
+// a compact summary row (checkmark once filled, step number while empty) that
+// expands to the full fields/hint on tap. Sections start expanded if empty,
+// collapsed if already filled — same "done" signal the progress bar uses.
+function AccordionSection({
+  title,
+  summary,
+  done,
+  stepNumber,
+  expanded,
+  onToggle,
+  children,
+}: {
+  title: string;
+  summary?: string;
+  done: boolean;
+  stepNumber: number;
+  expanded: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <View
+      style={{
+        backgroundColor: colour.white,
+        borderRadius: radius.md,
+        borderWidth: 1,
+        borderColor: colour.borderLight,
+        marginBottom: space.md,
+        overflow: "hidden",
+      }}
+    >
+      <TouchableOpacity
+        onPress={onToggle}
+        activeOpacity={0.7}
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: space.md,
+          gap: space.sm,
+        }}
+      >
+        <View style={{ flexDirection: "row", alignItems: "center", gap: space.sm, flex: 1 }}>
+          <View
+            style={{
+              width: 26,
+              height: 26,
+              borderRadius: 13,
+              backgroundColor: done ? colour.brandTeal + "38" : colour.surface2,
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+            }}
+          >
+            {done ? (
+              <IconSymbol name="checkmark" size={12} color={colour.text} />
+            ) : (
+              <Text style={{ fontSize: 11, fontWeight: "800", color: colour.textSub }}>{stepNumber}</Text>
+            )}
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 13.5, fontWeight: "700", color: colour.text }}>{title}</Text>
+            {!expanded && summary ? (
+              <Text style={{ fontSize: 12, fontWeight: "600", color: colour.textSub, marginTop: 2 }}>
+                {summary}
+              </Text>
+            ) : null}
+          </View>
+        </View>
+        {expanded ? (
+          <View
+            style={{
+              backgroundColor: colour.primary50,
+              borderRadius: radius.pill,
+              paddingHorizontal: space.sm,
+              paddingVertical: 4,
+            }}
+          >
+            <Text style={{ fontSize: 11, fontWeight: "700", color: colour.accentDeep }}>Open</Text>
+          </View>
+        ) : (
+          <IconSymbol name="chevron.right" size={14} color={colour.textHint} />
+        )}
+      </TouchableOpacity>
+      {expanded && (
+        <View style={{ paddingHorizontal: space.md, paddingBottom: space.md, gap: space.sm }}>
+          {children}
+        </View>
+      )}
+    </View>
+  );
+}
+
 export default function TaxLiabilityInputsScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
@@ -87,6 +180,15 @@ export default function TaxLiabilityInputsScreen() {
   const [lumpSumEntries, setLumpSumEntries] = useState<LumpSumEntryState[]>([emptyLumpSumEntry(0)]);
   const nextLumpSumId = useRef(1);
   const [priorLumpSums, setPriorLumpSums] = useState("");
+
+  // Accordion state for the staged wizard — starts expanded for whichever
+  // sections are still empty, collapsed for ones already filled. Set once
+  // after the initial load, not recomputed on every keystroke, so a section
+  // doesn't collapse under the user's finger while they're still typing.
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const expansionInitialised = useRef(false);
+  const toggleSection = (key: string) =>
+    setExpanded((prev) => ({ ...prev, [key]: !prev[key] }));
 
   const updateLumpSumEntry = useCallback((id: number, patch: Partial<LumpSumEntryState>) => {
     setLumpSumEntries((entries) => entries.map((e) => (e.id === id ? { ...e, ...patch } : e)));
@@ -261,16 +363,32 @@ export default function TaxLiabilityInputsScreen() {
   // Simple completion heuristic for the progress indicator — VAT registration
   // is read-only/informational here (see app/vat-summary.tsx) so it always
   // counts as done; every other section counts once its value is non-empty.
-  const sectionsDone = [
-    !!dateOfBirth,
-    true,
-    otherIncome.trim() !== "",
-    medicalAidMonthly.trim() !== "",
-    raContributions.trim() !== "",
-    lumpSumEntries.some((e) => e.amount.trim() !== "") || priorLumpSums.trim() !== "",
-    taxAlreadyPaid.trim() !== "",
-  ].filter(Boolean).length;
+  const personalDone = !!dateOfBirth;
+  const otherIncomeDone = otherIncome.trim() !== "";
+  const medicalAidDone = medicalAidMonthly.trim() !== "";
+  const retirementAnnuityDone = raContributions.trim() !== "";
+  const lumpSumDone = lumpSumEntries.some((e) => e.amount.trim() !== "") || priorLumpSums.trim() !== "";
+  const taxPaidDone = taxAlreadyPaid.trim() !== "";
+  const sectionsDone = [personalDone, true, otherIncomeDone, medicalAidDone, retirementAnnuityDone, lumpSumDone, taxPaidDone]
+    .filter(Boolean).length;
   const totalSections = 7;
+
+  // Expand whatever's still empty, collapse whatever's already filled — once,
+  // right after the initial load finishes (see the accordion state comment
+  // above for why this doesn't run on every render).
+  useEffect(() => {
+    if (loading || expansionInitialised.current) return;
+    expansionInitialised.current = true;
+    setExpanded({
+      personal: !personalDone,
+      otherIncome: !otherIncomeDone,
+      medicalAid: !medicalAidDone,
+      retirementAnnuity: !retirementAnnuityDone,
+      lumpSum: !lumpSumDone,
+      taxPaid: !taxPaidDone,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading]);
 
   return (
     <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colour.background }}>
@@ -315,14 +433,14 @@ export default function TaxLiabilityInputsScreen() {
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
-            <InfoBanner
-              icon="exclamationmark.triangle.fill"
-              title="This is only a guess"
-              body={`This shows what you may owe SARS, or what SARS may pay back to you, for ${activeTaxYear}. It does not cover rare cases, like selling a house. The number will change as you add more information.`}
-              style={{ marginBottom: space.lg }}
-            />
-
-            <SectionCard title="Personal details">
+            <AccordionSection
+              title="Personal details"
+              summary={dateOfBirth ? `Born ${dateOfBirth}` : undefined}
+              done={personalDone}
+              stepNumber={1}
+              expanded={!!expanded.personal}
+              onToggle={() => toggleSection("personal")}
+            >
               <MXInput
                 label="Date of birth"
                 value={dateOfBirth}
@@ -331,7 +449,7 @@ export default function TaxLiabilityInputsScreen() {
                 keyboardType="number-pad"
                 hint="Older people pay less tax. This is also saved in My Profile."
               />
-            </SectionCard>
+            </AccordionSection>
 
             <SectionCard title="VAT registration">
               <TouchableOpacity
@@ -357,7 +475,14 @@ export default function TaxLiabilityInputsScreen() {
               </TouchableOpacity>
             </SectionCard>
 
-            <SectionCard title="Other income">
+            <AccordionSection
+              title="Other income"
+              summary={`R ${otherIncome.trim() || "0"}`}
+              done={otherIncomeDone}
+              stepNumber={3}
+              expanded={!!expanded.otherIncome}
+              onToggle={() => toggleSection("otherIncome")}
+            >
               <MXInput
                 label="Other income"
                 value={otherIncome}
@@ -366,9 +491,16 @@ export default function TaxLiabilityInputsScreen() {
                 keyboardType="decimal-pad"
                 hint="Money you earned that is NOT already in this app — for example rental income, or money from another country. If you already added a salary using Add Income or Add IRP5 Income, do not add it again here."
               />
-            </SectionCard>
+            </AccordionSection>
 
-            <SectionCard title="Medical aid">
+            <AccordionSection
+              title="Medical aid"
+              summary={medicalAidMonthly.trim() ? `R ${medicalAidMonthly}/month` : undefined}
+              done={medicalAidDone}
+              stepNumber={4}
+              expanded={!!expanded.medicalAid}
+              onToggle={() => toggleSection("medicalAid")}
+            >
               <MXInput
                 label="Monthly medical aid contribution"
                 value={medicalAidMonthly}
@@ -407,9 +539,16 @@ export default function TaxLiabilityInputsScreen() {
                   </TouchableOpacity>
                 </View>
               </View>
-            </SectionCard>
+            </AccordionSection>
 
-            <SectionCard title="Retirement annuity">
+            <AccordionSection
+              title="Retirement annuity"
+              summary={raContributions.trim() ? `R ${raContributions} this year` : undefined}
+              done={retirementAnnuityDone}
+              stepNumber={5}
+              expanded={!!expanded.retirementAnnuity}
+              onToggle={() => toggleSection("retirementAnnuity")}
+            >
               <MXInput
                 label="Retirement annuity contributions"
                 value={raContributions}
@@ -422,9 +561,16 @@ export default function TaxLiabilityInputsScreen() {
                     : "How much money you paid into your retirement annuity this year."
                 }
               />
-            </SectionCard>
+            </AccordionSection>
 
-            <SectionCard title="Retirement or severance lump sum">
+            <AccordionSection
+              title="Retirement or severance lump sum"
+              summary={lumpSumEntries[0]?.amount.trim() ? `R ${lumpSumEntries[0].amount}` : undefined}
+              done={lumpSumDone}
+              stepNumber={6}
+              expanded={!!expanded.lumpSum}
+              onToggle={() => toggleSection("lumpSum")}
+            >
               <Text style={{ fontSize: 12, color: colour.textSub, lineHeight: 17 }}>
                 A once-off payout from retirement, retrenchment (severance), or death — look for IRP5 source code
                 3901 (retirement), 3907 or 3922 (severance), or 3915 (death benefit). SARS taxes this on its own
@@ -514,9 +660,16 @@ export default function TaxLiabilityInputsScreen() {
                 keyboardType="decimal-pad"
                 hint="Total of any retirement, retrenchment, or death benefit lump sums you received in previous years. The R550,000 tax-free amount is a lifetime total, not per payout, so this affects how much of it is left for this year's lump sum(s). Leave as 0 if this is your first."
               />
-            </SectionCard>
+            </AccordionSection>
 
-            <SectionCard title="Tax already paid">
+            <AccordionSection
+              title="Tax already paid"
+              summary={taxAlreadyPaid.trim() ? `R ${taxAlreadyPaid} paid` : undefined}
+              done={taxPaidDone}
+              stepNumber={7}
+              expanded={!!expanded.taxPaid}
+              onToggle={() => toggleSection("taxPaid")}
+            >
               <MXInput
                 label="Tax already paid"
                 value={taxAlreadyPaid}
@@ -529,10 +682,10 @@ export default function TaxLiabilityInputsScreen() {
                     : "Tax already taken from your pay, or tax you paid to SARS yourself. This is not VAT — VAT is shown in VAT Summary."
                 }
               />
-            </SectionCard>
+            </AccordionSection>
 
             <MXButton
-              label="Calculate"
+              label="Calculate my estimate"
               onPress={handleCalculate}
               loading={saving}
               fullWidth
