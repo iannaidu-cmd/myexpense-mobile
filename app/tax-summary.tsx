@@ -963,18 +963,6 @@ export default function TaxSummaryScreen() {
                   onPress={() => router.push("/category-breakdown")}
                 />
                 <NavRow
-                  icon="book.fill"
-                  label="Deductibility guide"
-                  sub="Which expenses qualify under SARS"
-                  onPress={() => router.push("/deductibility-guide")}
-                />
-                <NavRow
-                  icon="crown.fill"
-                  label="Government concessions"
-                  sub="S12C · SBC · S10(1)(o) · TFSA"
-                  onPress={() => router.push("/government-concessions" as any)}
-                />
-                <NavRow
                   icon="calendar"
                   label="Tax year selector"
                   sub="Switch between tax years"
