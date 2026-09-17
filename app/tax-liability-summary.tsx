@@ -1,7 +1,7 @@
-import { InfoBanner } from "@/components/InfoBanner";
 import { MXButton } from "@/components/MXButton";
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
+import { IconSymbol } from "@/components/ui/icon-symbol";
 import { calculateTaxLiability, TaxLiabilityResult } from "@/lib/taxLiability";
 import { expenseService } from "@/services/expenseService";
 import { incomeService } from "@/services/incomeService";
@@ -12,7 +12,7 @@ import { useExpenseStore } from "@/stores/expenseStore";
 import { colour, radius, space } from "@/tokens";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
-import { ActivityIndicator, ScrollView, StatusBar, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, ScrollView, StatusBar, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 // ─── Tax Liability — Summary ──────────────────────────────────────────────────
@@ -154,30 +154,56 @@ export default function TaxLiabilitySummaryScreen() {
             </Text>
             <Text
               style={{
-                fontSize: 44,
+                fontSize: 54,
                 fontWeight: "800",
-                letterSpacing: -1.5,
+                letterSpacing: -2,
+                lineHeight: 58,
                 color: owing ? colour.danger : refund ? colour.brandTeal : colour.onNoir,
                 marginBottom: 4,
               }}
             >
               {fmt(result.finalLiability)}
             </Text>
-            <Text style={{ fontSize: 12, color: colour.onNoir2 }}>
+            <Text style={{ fontSize: 13, color: colour.onNoir2, lineHeight: 18 }}>
               {owing
                 ? "This is based on what you've added so far for " + activeTaxYear
                 : refund
                   ? "You should get this money back from SARS for " + activeTaxYear
                   : "You don't owe anything, and there's no refund, based on what you've added so far"}
             </Text>
-          </View>
 
-          <InfoBanner
-            icon="exclamationmark.triangle.fill"
-            title="This is only a guess"
-            body="This does not cover rare cases, like selling a house. This number will change as you add more information during the year."
-            style={{ marginBottom: space.md }}
-          />
+            <View
+              style={{
+                marginTop: space.md,
+                paddingTop: space.md,
+                borderTopWidth: 1,
+                borderTopColor: "rgba(255,255,255,0.14)",
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              <Text style={{ fontSize: 11, color: colour.onNoir2, flex: 1, marginRight: space.sm }}>
+                Estimate only. It moves as you add more.
+              </Text>
+              <TouchableOpacity
+                onPress={() =>
+                  Alert.alert(
+                    "Why this is an estimate",
+                    "This figure is based on everything you've logged in MyExpense so far. It updates automatically as you add more income, expenses, or details to your Tax refund or bill inputs.",
+                  )
+                }
+                style={{
+                  backgroundColor: "rgba(255,255,255,0.12)",
+                  borderRadius: radius.pill,
+                  paddingHorizontal: space.sm,
+                  paddingVertical: 4,
+                }}
+              >
+                <Text style={{ fontSize: 11, fontWeight: "700", color: colour.onNoir }}>Why</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
 
           {/* Breakdown */}
           <View
@@ -271,10 +297,39 @@ export default function TaxLiabilitySummaryScreen() {
             />
           </View>
 
+          {/* Disclaimer note */}
+          <View
+            style={{
+              flexDirection: "row",
+              gap: space.sm,
+              alignItems: "flex-start",
+              padding: space.md,
+              borderRadius: radius.md,
+              backgroundColor: colour.primary50,
+              borderWidth: 1,
+              borderColor: colour.accentSoft,
+              marginBottom: space.md,
+            }}
+          >
+            <IconSymbol name="exclamationmark.triangle.fill" size={15} color={colour.primary} style={{ marginTop: 1 } as any} />
+            <Text style={{ fontSize: 11.5, lineHeight: 16, color: colour.text, flex: 1 }}>
+              Rare cases, like selling a house, are not covered here. Speak to a practitioner before you file if one applies.
+            </Text>
+          </View>
+
           <MXButton
-            variant="secondary"
+            variant="primary"
             label="Continue to ITR12 export"
             onPress={() => router.push("/itr12-export-setup")}
+            size="L"
+            fullWidth
+          />
+          <View style={{ height: space.sm }} />
+          <MXButton
+            variant="secondary"
+            label="Change my figures"
+            onPress={() => router.push("/tax-liability-inputs" as any)}
+            size="L"
             fullWidth
           />
         </ScrollView>
