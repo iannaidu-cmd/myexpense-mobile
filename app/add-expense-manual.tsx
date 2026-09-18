@@ -1,4 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { ConfirmModal } from "@/components/ConfirmModal";
 import { InfoBanner } from "@/components/InfoBanner";
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
@@ -141,6 +142,7 @@ export default function AddExpenseScreen() {
   const [saving, setSaving] = useState(false);
   const [successVisible, setSuccessVisible] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
+  const [showLimitConfirm, setShowLimitConfirm] = useState(false);
 
   // Suggest the business-use % worked out on the Category Breakdown logbook
   // calculator (GPS business km ÷ annual odometer) as the default when
@@ -165,14 +167,7 @@ export default function AddExpenseScreen() {
       const count = await expenseService.countThisMonth(user.id).catch(() => null);
       if (count !== null && count >= FREE_EXPENSE_LIMIT) {
         setSaving(false);
-        Alert.alert(
-          "Monthly limit reached",
-          `Free accounts can log ${FREE_EXPENSE_LIMIT} expenses a month. Upgrade to Pro for unlimited expense tracking.`,
-          [
-            { text: "Not now", style: "cancel" },
-            { text: "Upgrade", onPress: () => router.push("/paywall-upgrade" as any) },
-          ],
-        );
+        setShowLimitConfirm(true);
         return;
       }
     }
@@ -779,6 +774,21 @@ export default function AddExpenseScreen() {
         onPrimary={() => { setSuccessVisible(false); router.replace("/(tabs)" as any); }}
         secondaryLabel="Add another"
         onSecondary={() => setSuccessVisible(false)}
+      />
+
+      <ConfirmModal
+        visible={showLimitConfirm}
+        title="Monthly limit reached"
+        message={`Free accounts can log ${FREE_EXPENSE_LIMIT} expenses a month. Upgrade to Pro for unlimited expense tracking.`}
+        confirmLabel="Upgrade"
+        cancelLabel="Not now"
+        destructive={false}
+        icon="star.fill"
+        onConfirm={() => {
+          setShowLimitConfirm(false);
+          router.push("/paywall-upgrade" as any);
+        }}
+        onCancel={() => setShowLimitConfirm(false)}
       />
     </SafeAreaView>
   );

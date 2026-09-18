@@ -1,4 +1,5 @@
 import { AnnouncementModal } from "@/components/AnnouncementModal";
+import { ConfirmModal } from "@/components/ConfirmModal";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { FREE_SCAN_LIMIT, scanAllowanceNoticeKey } from "@/constants/freeTier";
 import { supabase } from "@/lib/supabase";
@@ -108,6 +109,7 @@ export default function ScanReceiptCameraScreen() {
   const [scanBlocked, setScanBlocked] = useState(false);
   const [scanGateReady, setScanGateReady] = useState(false);
   const [showAllowanceNotice, setShowAllowanceNotice] = useState(false);
+  const [showUploadFailedChoice, setShowUploadFailedChoice] = useState(false);
 
   // Refresh premium status before deciding whether the free-tier scan cap applies.
   useEffect(() => {
@@ -227,17 +229,7 @@ export default function ScanReceiptCameraScreen() {
       if (expenseId) {
         Alert.alert("Upload failed", "Could not upload receipt. Please try again.");
       } else {
-        Alert.alert(
-          "Upload failed",
-          "Could not upload receipt. You can still add the expense manually.",
-          [
-            {
-              text: "Add manually",
-              onPress: () => router.push("/(tabs)/add-expense" as any),
-            },
-            { text: "Try again", style: "cancel" },
-          ],
-        );
+        setShowUploadFailedChoice(true);
       }
     } finally {
       setUploading(false);
@@ -697,6 +689,21 @@ export default function ScanReceiptCameraScreen() {
         primaryLabel="Got it"
         onPrimary={dismissAllowanceNotice}
         onClose={dismissAllowanceNotice}
+      />
+
+      <ConfirmModal
+        visible={showUploadFailedChoice}
+        title="Upload failed"
+        message="Could not upload receipt. You can still add the expense manually."
+        confirmLabel="Add manually"
+        cancelLabel="Try again"
+        destructive={false}
+        icon="exclamationmark.triangle.fill"
+        onConfirm={() => {
+          setShowUploadFailedChoice(false);
+          router.push("/(tabs)/add-expense" as any);
+        }}
+        onCancel={() => setShowUploadFailedChoice(false)}
       />
     </View>
   );

@@ -1,3 +1,4 @@
+import { ConfirmModal } from "@/components/ConfirmModal";
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -9,7 +10,6 @@ import { useAppForeground } from "@/hooks/use-app-foreground";
 import React, { useCallback, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   RefreshControl,
   StatusBar,
@@ -62,6 +62,7 @@ export default function ExpenseHistoryScreen() {
   const [editMode, setEditMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [batchSaving, setBatchSaving] = useState(false);
+  const [showBatchDeleteConfirm, setShowBatchDeleteConfirm] = useState(false);
 
   const enterEditMode = () => {
     setSelectedIds(new Set());
@@ -101,28 +102,20 @@ export default function ExpenseHistoryScreen() {
 
   const handleBatchDelete = () => {
     if (selectedIds.size === 0) return;
+    setShowBatchDeleteConfirm(true);
+  };
+
+  const confirmBatchDelete = async () => {
+    setShowBatchDeleteConfirm(false);
     const ids = [...selectedIds];
-    Alert.alert(
-      "Delete expenses",
-      `Delete ${ids.length} expense${ids.length !== 1 ? "s" : ""}? This cannot be undone.`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            setExpenses((prev) => prev.filter((e) => !selectedIds.has(e.id)));
-            setSelectedIds(new Set());
-            setEditMode(false);
-            try {
-              await Promise.all(ids.map((id) => expenseService.deleteExpense(id)));
-            } catch {
-              // silent
-            }
-          },
-        },
-      ],
-    );
+    setExpenses((prev) => prev.filter((e) => !selectedIds.has(e.id)));
+    setSelectedIds(new Set());
+    setEditMode(false);
+    try {
+      await Promise.all(ids.map((id) => expenseService.deleteExpense(id)));
+    } catch {
+      // silent
+    }
   };
 
   const loadData = useCallback(async (silent = false) => {
@@ -711,6 +704,17 @@ export default function ExpenseHistoryScreen() {
       </View>
 
       <MXTabBar />
+
+      <ConfirmModal
+        visible={showBatchDeleteConfirm}
+        title="Delete expenses"
+        message={`Delete ${selectedIds.size} expense${selectedIds.size !== 1 ? "s" : ""}? This cannot be undone.`}
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        destructive
+        onConfirm={confirmBatchDelete}
+        onCancel={() => setShowBatchDeleteConfirm(false)}
+      />
     </SafeAreaView>
   );
 }

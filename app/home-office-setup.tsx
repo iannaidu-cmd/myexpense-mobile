@@ -1,3 +1,4 @@
+import { ConfirmModal } from "@/components/ConfirmModal";
 import { InfoBanner } from "@/components/InfoBanner";
 import { MXButton } from "@/components/MXButton";
 import { MXHeader } from "@/components/MXHeader";
@@ -54,6 +55,7 @@ export default function HomeOfficeSetupScreen() {
   const [arrangementType, setArrangementType] = useState<ArrangementType>("none");
   const [annualCost, setAnnualCost] = useState("");
   const [saving, setSaving] = useState(false);
+  const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -116,21 +118,14 @@ export default function HomeOfficeSetupScreen() {
 
   const handleClear = () => {
     if (!user) return;
-    Alert.alert(
-      "Remove home office setup",
-      "This will clear your floor area ratio and disable the proportional calculation.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Remove",
-          style: "destructive",
-          onPress: async () => {
-            await clear(user.id);
-            safeBack(router);
-          },
-        },
-      ],
-    );
+    setShowRemoveConfirm(true);
+  };
+
+  const confirmClear = async () => {
+    if (!user) return;
+    setShowRemoveConfirm(false);
+    await clear(user.id);
+    safeBack(router);
   };
 
   return (
@@ -542,6 +537,17 @@ export default function HomeOfficeSetupScreen() {
       </KeyboardAvoidingView>
 
       <MXTabBar />
+
+      <ConfirmModal
+        visible={showRemoveConfirm}
+        title="Remove home office setup"
+        message="This will clear your floor area ratio and disable the proportional calculation."
+        confirmLabel="Remove"
+        cancelLabel="Cancel"
+        destructive
+        onConfirm={confirmClear}
+        onCancel={() => setShowRemoveConfirm(false)}
+      />
     </SafeAreaView>
   );
 }

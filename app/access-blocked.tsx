@@ -1,3 +1,4 @@
+import { ConfirmModal } from "@/components/ConfirmModal";
 import { MXButton } from "@/components/MXButton";
 import { MXCard } from "@/components/MXCard";
 import { MXHeader } from "@/components/MXHeader";
@@ -5,7 +6,7 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useAuthStore } from "@/stores/authStore";
 import { useSubscriptionStore } from "@/stores/subscriptionStore";
 import { colour, space, typography } from "@/tokens";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Alert, Linking, Platform, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -17,6 +18,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 export default function AccessBlockedScreen() {
   const { signOut } = useAuthStore();
   const { customerInfo, refresh } = useSubscriptionStore();
+  const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
 
   useEffect(() => {
     refresh().catch(console.warn);
@@ -37,10 +39,7 @@ export default function AccessBlockedScreen() {
   };
 
   const handleSignOut = () => {
-    Alert.alert("Sign out?", "You can sign back in once your payment is up to date.", [
-      { text: "Cancel", style: "cancel" },
-      { text: "Sign out", style: "destructive", onPress: () => signOut() },
-    ]);
+    setShowSignOutConfirm(true);
   };
 
   return (
@@ -127,6 +126,20 @@ export default function AccessBlockedScreen() {
         />
         <MXButton label="Sign Out" variant="tertiary" size="L" onPress={handleSignOut} fullWidth />
       </View>
+
+      <ConfirmModal
+        visible={showSignOutConfirm}
+        title="Sign out?"
+        message="You can sign back in once your payment is up to date."
+        confirmLabel="Sign out"
+        cancelLabel="Cancel"
+        destructive
+        onConfirm={() => {
+          setShowSignOutConfirm(false);
+          signOut();
+        }}
+        onCancel={() => setShowSignOutConfirm(false)}
+      />
     </SafeAreaView>
   );
 }
