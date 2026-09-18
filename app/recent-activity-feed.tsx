@@ -5,6 +5,7 @@ import { NavigationProp } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { safeBack } from "@/lib/navigation";
 
 interface Props {
   navigation?: NavigationProp<any>;
@@ -321,7 +322,7 @@ export default function RecentActivityFeedScreen({ navigation }: Props) {
         }}
       >
         <TouchableOpacity
-          onPress={() => router.back()}
+          onPress={() => safeBack(router)}
           style={{ marginBottom: 10 }}
         >
           <Text style={{ color: C.brandTeal, fontSize: 13 }}>‹ Home</Text>

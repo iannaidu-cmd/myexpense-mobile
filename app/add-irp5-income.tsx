@@ -21,6 +21,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { safeBack } from "@/lib/navigation";
 
 // Last day of February of a SA tax year's end year (e.g. "2026/27" -> 2027-02-28),
 // computed via Date instead of a static lookup so it never goes stale and
@@ -144,7 +145,7 @@ export default function AddIRP5IncomeScreen() {
       Alert.alert(
         "IRP5 income saved",
         `${fmt(gross)} gross income from ${employerName} added. PAYE credit of ${fmt(paye)} recorded.`,
-        [{ text: "Done", onPress: () => router.back() }],
+        [{ text: "Done", onPress: () => safeBack(router) }],
       );
     } catch (e: any) {
       Alert.alert("Error saving IRP5", e.message);

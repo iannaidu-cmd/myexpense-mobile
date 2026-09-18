@@ -14,6 +14,7 @@ import React, { useEffect, useState } from "react";
 import { Alert, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { type PurchasesPackage } from "react-native-purchases";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { safeBack } from "@/lib/navigation";
 
 const FEATURES: { label: string; icon: "camera.fill" | "car.fill" | "chart.bar.fill" | "square.and.arrow.up" }[] = [
   { label: "Unlimited receipt scanning & OCR", icon: "camera.fill" },
@@ -160,7 +161,7 @@ export default function PaywallUpgradeScreen() {
   useEffect(() => {
     if (isPro) {
       Alert.alert("You're on Pro!", "Premium is already active on this account.", [
-        { text: "OK", onPress: () => router.back() },
+        { text: "OK", onPress: () => safeBack(router) },
       ]);
     }
   }, [isPro]);
@@ -194,7 +195,7 @@ export default function PaywallUpgradeScreen() {
       Alert.alert(
         "Welcome to Pro! ⚡",
         "You now have unlimited access to all MyExpense features.",
-        [{ text: "Let's go", onPress: () => router.back() }]
+        [{ text: "Let's go", onPress: () => safeBack(router) }]
       );
     }
   };
@@ -204,7 +205,7 @@ export default function PaywallUpgradeScreen() {
     if (restored) {
       await syncPremiumStatus();
       Alert.alert("Purchases restored", "Your Pro subscription has been restored.", [
-        { text: "OK", onPress: () => router.back() },
+        { text: "OK", onPress: () => safeBack(router) },
       ]);
     } else {
       Alert.alert("Nothing to restore", "No active Pro subscription was found on this account.");
@@ -242,7 +243,7 @@ export default function PaywallUpgradeScreen() {
 
       <View style={{ flexDirection: "row", justifyContent: "flex-end", paddingHorizontal: space.lg, paddingTop: space.xs }}>
         <TouchableOpacity
-          onPress={() => router.back()}
+          onPress={() => safeBack(router)}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           style={{
             width: 32,
@@ -357,7 +358,7 @@ export default function PaywallUpgradeScreen() {
           </Text>
           <Text
             style={{ ...typography.bodyXS, color: colour.onNoir2, opacity: 0.85, fontWeight: "500" }}
-            onPress={() => router.back()}
+            onPress={() => safeBack(router)}
           >
             Maybe later
           </Text>

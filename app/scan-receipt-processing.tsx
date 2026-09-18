@@ -6,6 +6,7 @@ import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Animated, Easing, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { safeBack } from "@/lib/navigation";
 
 // Fuzzy-match OCR category string against the canonical CATEGORIES list.
 // Tries exact → case-insensitive → partial containment.
@@ -241,7 +242,7 @@ export default function ScanReceiptProcessingScreen() {
         </Text>
         {!done && (
           <TouchableOpacity
-            onPress={() => router.back()}
+            onPress={() => safeBack(router)}
             style={{
               paddingHorizontal: space.md,
               paddingVertical: space.xs,

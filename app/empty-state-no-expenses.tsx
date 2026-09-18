@@ -5,6 +5,7 @@ import { colour, space } from "@/tokens";
 import { useRouter } from "expo-router";
 import React, { useEffect, useRef } from "react";
 import { Animated, Easing, TouchableOpacity, View } from "react-native";
+import { safeBack } from "@/lib/navigation";
 
 // ─── Types ────────────────────────────────────────────────────────────────────────
 interface Props {
@@ -247,7 +248,7 @@ export default function EmptyStateNoExpensesScreen({
     onAddExpense ?? (() => router.push("/add-expense-manual" as any));
   const handleCta2 =
     onScanReceipt ?? (() => router.push("/scan-receipt-camera" as any));
-  const handleClear = onClearFilter ?? (() => router.back());
+  const handleClear = onClearFilter ?? (() => safeBack(router));
 
   return (
     <PhoneShell activeTab="Home">

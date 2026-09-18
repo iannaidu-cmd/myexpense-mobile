@@ -14,6 +14,7 @@ import {
     View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { safeBack } from "@/lib/navigation";
 
 // Steps 1-2, 4-6 don't reference a specific tax year, so they stay static;
 // step 3's tip is filled in at render time with the tax year being filed for.
@@ -487,7 +488,7 @@ export default function ITR12EFilingGuideScreen() {
         </View>
 
         <TouchableOpacity
-          onPress={() => router.back()}
+          onPress={() => safeBack(router)}
           style={{
             marginHorizontal: space.md,
             borderRadius: radius.md,

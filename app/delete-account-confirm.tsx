@@ -8,6 +8,7 @@ import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Alert, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { safeBack } from "@/lib/navigation";
 
 const CONFIRM_WORD = "DELETE";
 
@@ -127,7 +128,7 @@ export default function DeleteAccountConfirmScreen() {
           label="Cancel"
           variant="tertiary"
           size="L"
-          onPress={() => router.back()}
+          onPress={() => safeBack(router)}
           disabled={loading}
           fullWidth
         />

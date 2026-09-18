@@ -28,6 +28,7 @@ import {
     View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { safeBack } from "@/lib/navigation";
 
 interface Props {}
 
@@ -762,7 +763,7 @@ export default function AddExpenseScreen() {
           )}
         </TouchableOpacity>
         <TouchableOpacity
-          onPress={() => router.back()}
+          onPress={() => safeBack(router)}
           style={{ alignItems: "center", paddingVertical: 8 }}
         >
           <Text style={{ color: colour.textSub, fontSize: 13 }}>Cancel</Text>
