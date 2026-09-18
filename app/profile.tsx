@@ -25,6 +25,7 @@ import {
     View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { safeBack } from "@/lib/navigation";
 // ─── Profile Screen ────────────────────────────────────────────────────────────
 // Dedicated "My Profile" screen showing and editing user details.
 // Accessible from Settings → My Profile.
@@ -136,9 +137,7 @@ export default function ProfileScreen() {
         subtitle="Manage your personal details"
         showBack
         backLabel="Settings"
-        onBack={() =>
-          router.canGoBack() ? router.back() : router.replace("/(tabs)")
-        }
+        onBack={() => safeBack(router)}
         right={
           <TouchableOpacity
             onPress={handleSave}

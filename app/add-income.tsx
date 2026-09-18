@@ -28,6 +28,7 @@ import {
     View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { safeBack } from "@/lib/navigation";
 
 // ─── Income Categories ────────────────────────────────────────────────────────
 const QUICK_PICKS = [
@@ -552,7 +553,7 @@ export default function AddIncomeScreen() {
         )}
 
         <TouchableOpacity
-          onPress={() => router.back()}
+          onPress={() => safeBack(router)}
           style={{ alignItems: "center", paddingVertical: space.sm }}
         >
           <Text style={{ ...typography.bodyS, color: colour.textSub }}>
@@ -570,7 +571,7 @@ export default function AddIncomeScreen() {
         primaryLabel={isEditing ? "Back to details" : "Go to dashboard"}
         onPrimary={() => {
           setSuccessVisible(false);
-          isEditing ? router.back() : router.replace("/(tabs)");
+          isEditing ? safeBack(router) : router.replace("/(tabs)");
         }}
         secondaryLabel={isEditing ? undefined : "Add another"}
         onSecondary={isEditing ? undefined : () => setSuccessVisible(false)}

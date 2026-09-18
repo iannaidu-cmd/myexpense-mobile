@@ -26,6 +26,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { safeBack } from "@/lib/navigation";
 
 const fmt = (n: number) =>
   `R ${n.toLocaleString("en-ZA", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
@@ -107,7 +108,7 @@ export default function HomeOfficeSetupScreen() {
         arrangementType,
         annualCost: arrangementType === "renting" ? annualRent : cost,
       });
-      router.back();
+      safeBack(router);
     } finally {
       setSaving(false);
     }
@@ -125,7 +126,7 @@ export default function HomeOfficeSetupScreen() {
           style: "destructive",
           onPress: async () => {
             await clear(user.id);
-            router.back();
+            safeBack(router);
           },
         },
       ],

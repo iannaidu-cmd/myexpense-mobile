@@ -13,6 +13,7 @@ import {
     View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { safeBack } from "@/lib/navigation";
 
 export default function DeleteConfirmationScreen() {
   const router = useRouter();
@@ -261,7 +262,7 @@ export default function DeleteConfirmationScreen() {
             )}
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={() => router.back()}
+            onPress={() => safeBack(router)}
             style={{
               borderRadius: radius.pill,
               borderWidth: 1.5,

@@ -18,6 +18,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { safeBack } from "@/lib/navigation";
 
 type TaxYear = {
   id: string;
@@ -130,7 +131,7 @@ export default function TaxYearSelectorScreen() {
     // defaults use taxStore) agree on what the user just selected.
     setActiveTaxYear(year.label);
     setTaxSummaryActiveYear(year.label);
-    setTimeout(() => router.back(), 150);
+    setTimeout(() => safeBack(router), 150);
   };
 
   // Active year data for hero

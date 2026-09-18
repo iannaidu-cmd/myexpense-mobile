@@ -20,6 +20,7 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
+import { safeBack } from "@/lib/navigation";
 
 // ─── Illustration ─────────────────────────────────────────────────────────────
 
@@ -149,7 +150,7 @@ export default function ErrorNoInternetScreen() {
     const state = await NetInfo.fetch();
     setRetrying(false);
     if (state.isConnected && state.isInternetReachable !== false) {
-      router.back();
+      safeBack(router);
     } else {
       Alert.alert(
         "Still offline",
@@ -173,7 +174,7 @@ export default function ErrorNoInternetScreen() {
       >
         <SafeAreaView>
           <TouchableOpacity
-            onPress={() => router.back()}
+            onPress={() => safeBack(router)}
             style={{ marginBottom: space.sm }}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
@@ -303,7 +304,7 @@ export default function ErrorNoInternetScreen() {
 
         {/* Go offline link */}
         <TouchableOpacity
-          onPress={() => router.back()}
+          onPress={() => safeBack(router)}
           style={{ paddingVertical: space.sm }}
         >
           <Text style={{ ...typography.actionS, color: colour.textSub }}>

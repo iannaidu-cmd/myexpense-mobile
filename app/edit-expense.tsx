@@ -28,6 +28,7 @@ import {
     View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { safeBack } from "@/lib/navigation";
 
 // Derived from the shared canonical list — names must match add-expense-manual,
 // receipt-review, and category-breakdown so a saved expense's category always
@@ -534,7 +535,7 @@ export default function EditExpenseScreen() {
         title="Changes saved"
         message="Your expense has been updated."
         primaryLabel="Done"
-        onPrimary={() => { setSuccessVisible(false); router.back(); }}
+        onPrimary={() => { setSuccessVisible(false); safeBack(router); }}
       />
     </SafeAreaView>
   );

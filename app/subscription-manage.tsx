@@ -6,13 +6,11 @@ import { profileService } from "@/services/profileService";
 import { useAuthStore } from "@/stores/authStore";
 import { useSubscriptionStore } from "@/stores/subscriptionStore";
 import { colour, radius, space, typography } from "@/tokens";
-import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { Alert, Linking, Platform, ScrollView, StatusBar, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function SubscriptionManageScreen() {
-  const router = useRouter();
   const { user, isPremium, isDevUser } = useAuthStore();
   const { customerInfo, loading, restorePurchases, refresh } = useSubscriptionStore();
   // authStore's AuthState doesn't expose the raw tier, only the derived
@@ -68,7 +66,7 @@ export default function SubscriptionManageScreen() {
   return (
     <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colour.background }}>
       <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
-      <MXBackHeader title="Subscription" onBack={() => router.back()} />
+      <MXBackHeader title="Subscription" />
 
       <ScrollView contentContainerStyle={{ padding: space.lg, gap: space.lg }}>
         {/* Plan status card */}

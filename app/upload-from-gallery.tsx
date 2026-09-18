@@ -25,6 +25,7 @@ import {
     SafeAreaView,
     useSafeAreaInsets,
 } from "react-native-safe-area-context";
+import { safeBack } from "@/lib/navigation";
 
 export default function UploadFromGalleryScreen() {
   const router = useRouter();
@@ -83,7 +84,7 @@ export default function UploadFromGalleryScreen() {
       Alert.alert(
         "Permission Required",
         "Please allow access to your photo library in Settings to upload receipts.",
-        [{ text: "OK", onPress: () => router.back() }],
+        [{ text: "OK", onPress: () => safeBack(router) }],
       );
       return;
     }
@@ -93,7 +94,7 @@ export default function UploadFromGalleryScreen() {
       quality: 0.9,
     });
     if (result.canceled) {
-      router.back();
+      safeBack(router);
       return;
     }
     setPickedUri(result.assets[0].uri);

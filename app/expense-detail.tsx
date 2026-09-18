@@ -23,6 +23,7 @@ import {
     View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { safeBack } from "@/lib/navigation";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
@@ -292,7 +293,7 @@ export default function ExpenseDetailScreen() {
     setDeleting(true);
     try {
       await expenseService.deleteExpense(expense.id);
-      router.back();
+      safeBack(router);
     } catch (e: any) {
       Alert.alert("Error", e.message);
       setDeleting(false);
@@ -331,7 +332,7 @@ export default function ExpenseDetailScreen() {
             Expense not found.
           </Text>
           <TouchableOpacity
-            onPress={() => router.back()}
+            onPress={() => safeBack(router)}
             style={{ marginTop: space.lg }}
           >
             <Text style={{ ...typography.bodyM, color: colour.primary }}>

@@ -26,6 +26,7 @@ import {
     useWindowDimensions,
     View,
 } from "react-native";
+import { safeBack } from "@/lib/navigation";
 
 const C = colour;
 
@@ -384,7 +385,7 @@ export default function ScanReceiptCameraScreen() {
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={() => router.back()}
+            onPress={() => safeBack(router)}
             style={{ marginTop: 16 }}
           >
             <Text style={{ color: "rgba(255,255,255,0.5)", fontSize: 14 }}>
@@ -465,7 +466,7 @@ export default function ScanReceiptCameraScreen() {
           }}
         >
           <TouchableOpacity
-            onPress={() => router.back()}
+            onPress={() => safeBack(router)}
             style={{
               marginRight: 16,
               width: 38,

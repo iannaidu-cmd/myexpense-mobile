@@ -16,6 +16,7 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
+import { safeBack } from "@/lib/navigation";
 
 export default function ResetPasswordScreen() {
   const router = useRouter();
@@ -98,7 +99,7 @@ export default function ResetPasswordScreen() {
           >
             {!done && (
               <TouchableOpacity
-                onPress={() => router.back()}
+                onPress={() => safeBack(router)}
                 style={{ marginBottom: space.lg }}
               >
                 <Text

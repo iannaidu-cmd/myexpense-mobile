@@ -19,6 +19,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { safeBack } from "@/lib/navigation";
 
 // ─── Illustration ─────────────────────────────────────────────────────────────
 // Simple SVG-style inline illustration using View primitives
@@ -156,7 +157,7 @@ export default function EmptyStateNoReportsScreen() {
       >
         <SafeAreaView>
           <TouchableOpacity
-            onPress={() => router.back()}
+            onPress={() => safeBack(router)}
             style={{ marginBottom: space.sm }}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >

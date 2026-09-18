@@ -24,6 +24,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { safeBack } from "@/lib/navigation";
 
 const fmt = (n: number) =>
   `R ${Number(n).toLocaleString("en-ZA", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
@@ -683,7 +684,7 @@ export default function ITR12ExportPreviewScreen() {
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          onPress={() => router.back()}
+          onPress={() => safeBack(router)}
           style={{ alignItems: "center", paddingVertical: 8 }}
         >
           <Text style={{ color: colour.textSub, fontSize: 13 }}>

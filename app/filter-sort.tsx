@@ -11,6 +11,7 @@ import {
     View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { safeBack } from "@/lib/navigation";
 
 type SortKey = "date_desc" | "date_asc" | "amount_desc" | "amount_asc";
 
@@ -88,7 +89,7 @@ export default function FilterSortScreen() {
     setMaxAmount("");
   };
 
-  const handleApply = () => router.back();
+  const handleApply = () => safeBack(router);
 
   const RadioGroup = ({
     label,

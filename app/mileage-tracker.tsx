@@ -28,6 +28,7 @@ import {
     View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { safeBack } from "@/lib/navigation";
 
 
 // ─── Default map region — Johannesburg, SA ────────────────────────────────────
@@ -517,7 +518,7 @@ export default function MileageTrackerScreen() {
           >
             <Text style={{ ...typography.btnL, color: colour.textOnPrimary }}>Upgrade to Pro</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => router.back()} style={{ marginTop: 16 }}>
+          <TouchableOpacity onPress={() => safeBack(router)} style={{ marginTop: 16 }}>
             <Text style={{ ...typography.bodyS, color: colour.textSub }}>Go back</Text>
           </TouchableOpacity>
         </View>

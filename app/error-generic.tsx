@@ -12,6 +12,7 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
+import { safeBack } from "@/lib/navigation";
 const C = colour;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -231,7 +232,7 @@ export default function ErrorGenericScreen({
   const displayTitle = title ?? defaults.title;
   const displayMessage = message ?? defaults.message;
 
-  const handleRetry = onRetry ?? (() => router.back());
+  const handleRetry = onRetry ?? (() => safeBack(router));
   const handleHome = onGoHome ?? (() => router.replace("/(tabs)" as any));
   const handleSupport =
     onContactSupport ?? (() => router.push("/help-support" as any));
