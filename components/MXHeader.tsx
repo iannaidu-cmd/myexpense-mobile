@@ -24,7 +24,15 @@ export function MXHeader({
   children,
 }: MXHeaderProps) {
   const router = useRouter();
-  const handleBack = onBack ?? (() => router.back());
+  const handleBack =
+    onBack ??
+    (() => {
+      if (router.canGoBack()) {
+        router.back();
+      } else {
+        router.replace("/(tabs)");
+      }
+    });
 
   return (
     <View style={{ paddingHorizontal: space.lg, paddingVertical: 6, marginBottom: 4 }}>
