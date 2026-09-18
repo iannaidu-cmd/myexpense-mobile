@@ -1,3 +1,4 @@
+import { ConfirmModal } from "@/components/ConfirmModal";
 import { MXButton } from "@/components/MXButton";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useAuthStore } from "@/stores/authStore";
@@ -5,6 +6,7 @@ import { colour, space, typography } from "@/tokens";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { useState } from "react";
 import { Alert, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -18,6 +20,7 @@ const GRACE_PERIOD_DAYS = 30;
 export default function AccountPendingDeletionScreen() {
   const router = useRouter();
   const { deletionRequestedAt, cancelAccountDeletion, signOut } = useAuthStore();
+  const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
 
   const purgeDate = deletionRequestedAt
     ? new Date(new Date(deletionRequestedAt).getTime() + GRACE_PERIOD_DAYS * 86_400_000)
@@ -41,10 +44,7 @@ export default function AccountPendingDeletionScreen() {
   };
 
   const handleSignOut = () => {
-    Alert.alert("Sign out?", "Your account will still be deleted on schedule unless you cancel first.", [
-      { text: "Cancel", style: "cancel" },
-      { text: "Sign out", style: "destructive", onPress: () => signOut() },
-    ]);
+    setShowSignOutConfirm(true);
   };
 
   return (
@@ -149,6 +149,20 @@ export default function AccountPendingDeletionScreen() {
           Sign out
         </Text>
       </ScrollView>
+
+      <ConfirmModal
+        visible={showSignOutConfirm}
+        title="Sign out?"
+        message="Your account will still be deleted on schedule unless you cancel first."
+        confirmLabel="Sign out"
+        cancelLabel="Cancel"
+        destructive
+        onConfirm={() => {
+          setShowSignOutConfirm(false);
+          signOut();
+        }}
+        onCancel={() => setShowSignOutConfirm(false)}
+      />
     </SafeAreaView>
   );
 }

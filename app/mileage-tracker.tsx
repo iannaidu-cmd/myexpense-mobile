@@ -1,4 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { ConfirmModal } from "@/components/ConfirmModal";
 import { InfoBanner } from "@/components/InfoBanner";
 import { useKeepAwake } from "expo-keep-awake";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -152,6 +153,8 @@ export default function MileageTrackerScreen() {
   const [tripNote, setTripNote] = useState("");
 
   const [locationReady, setLocationReady] = useState(false);
+  const [showEndConfirm, setShowEndConfirm] = useState(false);
+  const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
 
   useKeepAwake(status !== "idle" ? "mileage-trip" : undefined);
 
@@ -438,53 +441,38 @@ export default function MileageTrackerScreen() {
   ]);
 
   const handleEnd = useCallback(() => {
-    Alert.alert(
-      "End Trip?",
-      `You've travelled ${distanceKm.toFixed(2)} km. End and save this trip?`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "End & Save",
-          onPress: async () => {
-            stopTracking();
-            setStatus("idle");
-            await saveTrip();
-          },
-        },
-      ],
-    );
-  }, [distanceKm, stopTracking, saveTrip]);
+    setShowEndConfirm(true);
+  }, []);
+
+  const confirmEnd = useCallback(async () => {
+    setShowEndConfirm(false);
+    stopTracking();
+    setStatus("idle");
+    await saveTrip();
+  }, [stopTracking, saveTrip]);
 
   // Discard the trip entirely — no row is ever written to mileage_trips.
   // Distinct from handleEnd, which always saves. Lets the user bail out of a
   // trip started by accident (or a test drive) without it landing in their
   // logbook, so there's nothing to clean up afterwards from Trip History.
   const handleCancel = useCallback(() => {
-    Alert.alert(
-      "Discard Trip?",
-      `You've travelled ${distanceKm.toFixed(2)} km. This trip will NOT be saved.`,
-      [
-        { text: "Keep Tracking", style: "cancel" },
-        {
-          text: "Discard",
-          style: "destructive",
-          onPress: () => {
-            stopTracking();
-            clearSavedTrip();
-            setStatus("idle");
-            setDistanceKm(0);
-            setCoords([]);
-            setStartTime(null);
-            setElapsed(0);
-            setStartPos(null);
-            setTripNote("");
-            lastCoordRef.current = null;
-            pausedKmRef.current = 0;
-          },
-        },
-      ],
-    );
-  }, [distanceKm, stopTracking, clearSavedTrip]);
+    setShowDiscardConfirm(true);
+  }, []);
+
+  const confirmDiscard = useCallback(() => {
+    setShowDiscardConfirm(false);
+    stopTracking();
+    clearSavedTrip();
+    setStatus("idle");
+    setDistanceKm(0);
+    setCoords([]);
+    setStartTime(null);
+    setElapsed(0);
+    setStartPos(null);
+    setTripNote("");
+    lastCoordRef.current = null;
+    pausedKmRef.current = 0;
+  }, [stopTracking, clearSavedTrip]);
 
   const deductionEstimate = distanceKm * SARS_RATE_PER_KM;
   const elapsedStr = formatElapsed(elapsed);
@@ -1163,6 +1151,29 @@ export default function MileageTrackerScreen() {
       </Modal>
 
       <MXTabBar />
+
+      <ConfirmModal
+        visible={showEndConfirm}
+        title="End trip?"
+        message={`You've travelled ${distanceKm.toFixed(2)} km. End and save this trip?`}
+        confirmLabel="End & Save"
+        cancelLabel="Cancel"
+        destructive={false}
+        icon="checkmark.circle.fill"
+        onConfirm={confirmEnd}
+        onCancel={() => setShowEndConfirm(false)}
+      />
+      <ConfirmModal
+        visible={showDiscardConfirm}
+        title="Discard trip?"
+        message={`You've travelled ${distanceKm.toFixed(2)} km. This trip will NOT be saved.`}
+        confirmLabel="Discard"
+        cancelLabel="Keep tracking"
+        destructive
+        icon="trash.fill"
+        onConfirm={confirmDiscard}
+        onCancel={() => setShowDiscardConfirm(false)}
+      />
     </View>
   );
 }
