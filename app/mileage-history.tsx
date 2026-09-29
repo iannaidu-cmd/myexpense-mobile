@@ -1,47 +1,36 @@
-import { ConfirmModal } from "@/components/ConfirmModal";
-import { InfoBanner } from "@/components/InfoBanner";
+import { AnnouncementModal } from "@/components/AnnouncementModal";
+import { MXButton } from "@/components/MXButton";
 import { MXHeader } from "@/components/MXHeader";
+import { NoteCard, SectionEyebrow } from "@/components/MXSection";
 import { MXTabBar } from "@/components/MXTabBar";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { mileageService, type MileageTrip } from "@/services/mileageService";
-import { mileageRateForTaxYear } from "@/lib/taxRules";
+import { useNotice } from "@/components/useNotice";
+import { VehiclePicker } from "@/components/VehiclePicker";
+import { FREE_LOGBOOK_EXPORT_LIMIT } from "@/constants/freeTier";
+import { useAppForeground } from "@/hooks/use-app-foreground";
+import { claimsVehicleCostsAsBusiness, EMPLOYEE_VEHICLE_NOTE } from "@/lib/workType";
+import { logbookExportService } from "@/services/logbookExportService";
+import {
+  mileageService,
+  missingLogbookFields,
+  type MileageTrip,
+} from "@/services/mileageService";
+import { profileService } from "@/services/profileService";
 import { useAuthStore } from "@/stores/authStore";
 import { useExpenseStore } from "@/stores/expenseStore";
+import { activeVehicles, logbookBusinessUse, useVehicleStore, vehicleLabel } from "@/stores/vehicleStore";
 import { colour, radius, space, typography } from "@/tokens";
 import { useFocusEffect, useRouter } from "expo-router";
-import { useAppForeground } from "@/hooks/use-app-foreground";
 import React, { useCallback, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Platform,
-    ScrollView,
-    StatusBar,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  ScrollView,
+  StatusBar,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-
-
-const platformShadow =
-  Platform.select({
-    ios: {
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 8,
-    },
-    android: { elevation: 4 },
-    default: { boxShadow: "0 2px 8px rgba(0,0,0,0.10)" },
-  }) ?? {};
-
-function formatElapsed(seconds: number): string {
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  if (h > 0) return `${h}h ${m}m`;
-  return `${m}m`;
-}
 
 function formatDate(dateStr: string): string {
   const d = new Date(dateStr);
@@ -50,37 +39,48 @@ function formatDate(dateStr: string): string {
   yesterday.setDate(today.getDate() - 1);
   if (d.toDateString() === today.toDateString()) return "Today";
   if (d.toDateString() === yesterday.toDateString()) return "Yesterday";
-  return d.toLocaleDateString("en-ZA", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
+  return d.toLocaleDateString("en-ZA", { day: "numeric", month: "short", year: "numeric" });
 }
 
+const fmtKm = (n: number) => `${n.toLocaleString("en-ZA", { maximumFractionDigits: 1 })} km`;
 
 export default function MileageHistoryScreen() {
   const router = useRouter();
-  const { user } = useAuthStore();
+  const { user, isPremium } = useAuthStore();
   const { activeTaxYear } = useExpenseStore();
+  const { notice, showNotice } = useNotice();
 
   const [loading, setLoading] = useState(true);
   const [trips, setTrips] = useState<MileageTrip[]>([]);
-  const [deleting, setDeleting] = useState<string | null>(null);
-  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const { vehicles, readings, load: loadVehicles } = useVehicleStore();
+  const tripVehicles = activeVehicles(vehicles);
+  const [showAssign, setShowAssign] = useState(false);
+  const [assignVehicleId, setAssignVehicleId] = useState<string | null>(null);
+  const [assigning, setAssigning] = useState(false);
+  const [showExport, setShowExport] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [isEmployee, setIsEmployee] = useState(false);
 
   const loadTrips = useCallback(async () => {
     if (!user) { setLoading(false); return; }
     setLoading(true);
     try {
-      const data = await mileageService.getTrips(user.id, activeTaxYear);
+      const [data, profile] = await Promise.all([
+        mileageService.getTrips(user.id, activeTaxYear),
+        profileService.getProfile(user.id).catch(() => null),
+        loadVehicles(user.id, activeTaxYear, true).catch(() => {}),
+      ]);
+      setIsEmployee(!claimsVehicleCostsAsBusiness(profile?.work_type));
       setTrips(data);
+      // Trips feed the business-use % behind the wear & tear claim.
+      useVehicleStore.getState().syncWearAndTear(user.id, activeTaxYear);
     } catch (e: any) {
       console.error("MileageHistory load error:", e);
       setTrips([]);
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, activeTaxYear]);
 
   useFocusEffect(
     useCallback(() => {
@@ -89,43 +89,88 @@ export default function MileageHistoryScreen() {
   );
   useAppForeground(loadTrips);
 
-  const handleDelete = (id: string) => setConfirmDeleteId(id);
+  // ── Logbook completeness (backfill for trips logged before vehicles) ─────
+  const incompleteTrips = trips.filter((t) => missingLogbookFields(t).length > 0);
+  const unassignedCount = trips.filter((t) => !t.vehicle_id).length;
+  const vehiclesMissingOpening = tripVehicles.filter((v) => readings[v.id]?.openingKm == null);
+  const vehicleById = Object.fromEntries(vehicles.map((v) => [v.id, v]));
+  const showLogbookCard =
+    incompleteTrips.length > 0 ||
+    vehiclesMissingOpening.length > 0 ||
+    (trips.length > 0 && tripVehicles.length === 0);
 
-  const confirmDelete = async () => {
-    if (!confirmDeleteId) return;
-    const id = confirmDeleteId;
-    setConfirmDeleteId(null);
-    setDeleting(id);
+  const openAssign = () => {
+    setAssignVehicleId(tripVehicles.length ? tripVehicles[0].id : null);
+    setShowAssign(true);
+  };
+
+  const confirmAssign = async () => {
+    if (!user || !assignVehicleId) return;
+    setAssigning(true);
     try {
-      await mileageService.deleteTrip(id, user!.id);
+      await mileageService.assignVehicleToUnassignedTrips(user.id, assignVehicleId, activeTaxYear);
+      setShowAssign(false);
       await loadTrips();
-    } catch (e: any) {
-      Alert.alert("Error", e.message);
+    } catch {
+      setShowAssign(false);
+      showNotice({
+        title: "Couldn't link your trips",
+        message: "Please check your internet connection and try again.",
+      });
     } finally {
-      setDeleting(null);
+      setAssigning(false);
     }
   };
 
-  // Totals — trips are already scoped to activeTaxYear (see loadTrips), so a
-  // single rate lookup for that year applies to all of them. Using today's
-  // rate here would misvalue trips from a year with a different SARS rate.
-  const mileageRate = mileageRateForTaxYear(activeTaxYear);
+  // ── Logbook export — free-tier gated like the ITR12 export ──────────────
+  // Fails open on a count-check error, same as the ITR12 export.
+  const openExport = async () => {
+    if (!user) return;
+    if (!isPremium) {
+      const count = await logbookExportService.countThisMonth(user.id).catch(() => null);
+      if (count !== null && count >= FREE_LOGBOOK_EXPORT_LIMIT) {
+        showNotice({
+          title: "You've used this month's exports",
+          message: `Free accounts can export the logbook ${FREE_LOGBOOK_EXPORT_LIMIT} times a month. Upgrade to Pro to export as often as you like.`,
+          icon: "crown.fill",
+          confirmLabel: "Upgrade to Pro",
+          cancelLabel: "Not now",
+          onConfirm: () => router.push("/paywall-upgrade" as any),
+        });
+        return;
+      }
+    }
+    setShowExport(true);
+  };
+
+  const runExport = async (format: "pdf" | "csv") => {
+    if (!user) return;
+    setShowExport(false);
+    setExporting(true);
+    try {
+      if (format === "pdf") await logbookExportService.exportPDF(user.id, activeTaxYear);
+      else await logbookExportService.exportCSV(user.id, activeTaxYear);
+      await logbookExportService.logExport(user.id).catch((e) => console.warn("logExport failed:", e.message));
+    } catch {
+      showNotice({ title: "Couldn't export your logbook", message: "Please try again." });
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  // Totals. No rand value per km: a self-employed (s11(a)) vehicle claim is
+  // actual costs × business-use %, so the logbook's job is the % itself:
+  // business km ÷ odometer total km.
   const totalKm = trips.reduce((s, t) => s + Number(t.distance_km), 0);
-  const totalDeductions = mileageRate != null ? totalKm * mileageRate : 0;
-  const totalTrips = trips.length;
-  const fmtDeduction = (km: number) =>
-    mileageRate != null ? `R${(km * mileageRate).toFixed(2)}` : "Rate unknown";
+  const workUse = logbookBusinessUse(trips, readings);
 
   return (
-    <SafeAreaView
-      edges={["top"]}
-      style={{ flex: 1, backgroundColor: colour.background }}
-    >
+    <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colour.background }}>
       <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
 
       <MXHeader
         title="Trip logbook"
-        subtitle={`Tax Year ${activeTaxYear}`}
+        subtitle={`Tax year ${activeTaxYear}`}
         showBack
         right={
           <TouchableOpacity
@@ -137,330 +182,355 @@ export default function MileageHistoryScreen() {
               paddingVertical: space.xs,
             }}
           >
-            <Text style={{ ...typography.actionS, color: colour.accentDeep }}>
-              + New Trip
-            </Text>
+            <Text style={{ ...typography.chipText, color: colour.accentDeep }}>+ Track a trip</Text>
           </TouchableOpacity>
         }
       />
 
       <ScrollView
-        style={{
-          flex: 1,
-          backgroundColor: colour.bgPage,
-          borderTopLeftRadius: radius.xl,
-          borderTopRightRadius: radius.xl,
-        }}
+        style={{ flex: 1 }}
         contentContainerStyle={{ padding: space.lg, paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Stats hero */}
+        {/* ── Stats hero (same build as expense-history) ────────────────── */}
         <View
           style={{
-            backgroundColor: colour.noir,
-            borderRadius: radius.lg,
+            backgroundColor: colour.heroDark,
+            borderRadius: radius.hero,
             padding: space.lg,
             marginBottom: space.lg,
           }}
         >
           <View style={{ flexDirection: "row" }}>
-            <View style={{ flex: 1.1 }}>
-              <Text style={{ ...typography.caption, color: colour.onNoir2 }}>
-                Total distance
+            <View style={{ flex: 1.2 }}>
+              <Text style={{ ...typography.statLabel, color: colour.onNoir2, textTransform: "uppercase" }}>
+                Work km
               </Text>
               <Text
-                style={{ ...typography.amountM, color: colour.onNoir, marginTop: 2 }}
+                style={{ ...typography.statValue, color: colour.onNoir, marginTop: 6 }}
                 numberOfLines={1}
                 adjustsFontSizeToFit
                 minimumFontScale={0.6}
               >
-                {totalKm.toFixed(1)} km
+                {fmtKm(totalKm)}
               </Text>
             </View>
             <View style={{ width: 1, backgroundColor: "rgba(255,255,255,0.14)" }} />
             <View style={{ flex: 1, paddingLeft: space.md }}>
-              <Text style={{ ...typography.caption, color: colour.onNoir2 }}>
-                Est. deduction
+              <Text style={{ ...typography.statLabel, color: colour.onNoir2, textTransform: "uppercase" }}>
+                Work use
               </Text>
-              <Text
-                style={{ ...typography.amountM, color: colour.brandTeal, marginTop: 2 }}
-                numberOfLines={1}
-                adjustsFontSizeToFit
-                minimumFontScale={0.6}
-              >
-                {mileageRate != null ? `R${totalDeductions.toFixed(0)}` : "—"}
+              <Text style={{ ...typography.statValue, color: colour.brandTeal, marginTop: 6 }}>
+                {workUse ? `${(workUse.ratio * 100).toFixed(0)}%` : "—"}
               </Text>
             </View>
             <View style={{ width: 1, backgroundColor: "rgba(255,255,255,0.14)" }} />
             <View style={{ flex: 0.7, paddingLeft: space.md }}>
-              <Text style={{ ...typography.caption, color: colour.onNoir2 }}>
+              <Text style={{ ...typography.statLabel, color: colour.onNoir2, textTransform: "uppercase" }}>
                 Trips
               </Text>
-              <Text style={{ ...typography.amountM, color: colour.onNoir, marginTop: 2 }}>
-                {totalTrips}
-              </Text>
+              <Text style={{ ...typography.statValue, color: colour.onNoir, marginTop: 6 }}>{trips.length}</Text>
             </View>
           </View>
         </View>
 
+        {/* ── Actions ───────────────────────────────────────────────────── */}
+        <View style={{ flexDirection: "row", gap: space.sm, marginBottom: space.md }}>
+          {[
+            { label: "Add a trip", icon: "plus.circle.fill", onPress: () => router.push("/mileage-trip-edit") },
+            { label: exporting ? "Exporting…" : "Export logbook", icon: "square.and.arrow.up", onPress: openExport },
+          ].map((b) => (
+            <TouchableOpacity
+              key={b.icon}
+              onPress={b.onPress}
+              disabled={exporting}
+              activeOpacity={0.8}
+              style={{
+                flex: 1,
+                flexDirection: "row",
+                alignItems: "center",
+                gap: space.sm,
+                backgroundColor: colour.bgCard,
+                borderRadius: radius.md,
+                borderWidth: 1,
+                borderColor: colour.borderLight,
+                paddingVertical: space.md,
+                paddingHorizontal: space.md,
+              }}
+            >
+              <IconSymbol name={b.icon as any} size={16} color={colour.accentDeep} />
+              <Text style={{ ...typography.mTbtn, color: colour.text }}>{b.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* ── Vehicles ──────────────────────────────────────────────────── */}
+        <TouchableOpacity
+          onPress={() => router.push("/vehicles")}
+          activeOpacity={0.7}
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            backgroundColor: colour.bgCard,
+            borderRadius: radius.card,
+            borderWidth: 1,
+            borderColor: colour.border,
+            paddingHorizontal: space.lg,
+            paddingVertical: space.md,
+            marginBottom: space.lg,
+          }}
+        >
+          <View
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              backgroundColor: colour.primaryLight,
+              alignItems: "center",
+              justifyContent: "center",
+              marginRight: space.md,
+            }}
+          >
+            <IconSymbol name="car.fill" size={18} color={colour.primary} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ ...typography.itemTitle, color: colour.textPrimary }}>Vehicles & km readings</Text>
+            <Text style={{ ...typography.itemSub, color: colour.textSecondary, marginTop: 2 }} numberOfLines={1}>
+              {tripVehicles.length === 0
+                ? "Add the vehicle you use for work"
+                : tripVehicles.map(vehicleLabel).join(" · ")}
+            </Text>
+          </View>
+          <IconSymbol name="chevron.right" size={14} color={colour.textHint} />
+        </TouchableOpacity>
+
+        {/* ── Logbook incomplete (backfill for trips logged before vehicles) ── */}
+        {!loading && showLogbookCard && (
+          <View
+            style={{
+              backgroundColor: colour.heroDark,
+              borderRadius: radius.card,
+              padding: space.md,
+              marginBottom: space.lg,
+            }}
+          >
+            <View style={{ flexDirection: "row", alignItems: "center", gap: space.xs, marginBottom: space.xs }}>
+              <IconSymbol name="exclamationmark.triangle.fill" size={14} color={colour.warning} />
+              <Text style={{ ...typography.labelS, color: colour.onNoir }}>Your logbook isn't finished</Text>
+            </View>
+            <Text style={{ ...typography.noteText, color: colour.onNoir2 }}>
+              {incompleteTrips.length > 0
+                ? `${incompleteTrips.length} of ${trips.length} trip${trips.length === 1 ? " is" : "s are"} missing details SARS needs. Tap a trip to add the vehicle, where you drove from and to, and why.`
+                : "Your trips are complete. SARS also needs your start and end of year km readings for each vehicle."}
+            </Text>
+
+            {unassignedCount > 0 && (
+              <TouchableOpacity
+                onPress={tripVehicles.length === 0 ? () => router.push("/vehicle-form") : openAssign}
+                activeOpacity={0.85}
+                style={{
+                  backgroundColor: colour.primary,
+                  borderRadius: radius.pill,
+                  height: 44,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginTop: space.md,
+                }}
+              >
+                <Text style={{ ...typography.mBtn, color: colour.onPrimary }} numberOfLines={1}>
+                  {tripVehicles.length === 0
+                    ? "Add your vehicle"
+                    : `Choose the vehicle for ${unassignedCount} trip${unassignedCount === 1 ? "" : "s"}`}
+                </Text>
+              </TouchableOpacity>
+            )}
+
+            {vehiclesMissingOpening.map((v) => (
+              <TouchableOpacity
+                key={v.id}
+                onPress={() => router.push({ pathname: "/vehicle-form", params: { id: v.id } })}
+                style={{ flexDirection: "row", alignItems: "center", marginTop: space.md }}
+              >
+                <Text style={{ ...typography.noteText, color: colour.onNoir, flex: 1 }}>
+                  Start-of-year km reading missing for {vehicleLabel(v)}
+                </Text>
+                <Text style={{ ...typography.chipText, color: colour.primary200 }}>Add →</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
+        {/* ── Trips ─────────────────────────────────────────────────────── */}
         {loading ? (
-          <View style={{ alignItems: "center", paddingTop: space["4xl"] }}>
-            <ActivityIndicator color={colour.primary} size="large" />
+          <View style={{ alignItems: "center", paddingTop: space["3xl"] }}>
+            <ActivityIndicator color={colour.primary} />
           </View>
         ) : trips.length === 0 ? (
-          <View style={{ alignItems: "center", paddingTop: space["4xl"] }}>
-            <IconSymbol name="car.fill" size={48} color={colour.textHint} style={{ marginBottom: space.md } as any} />
-            <Text style={{ ...typography.h4, color: colour.textPrimary }}>
-              No trips yet
-            </Text>
+          <View style={{ alignItems: "center", paddingTop: space["2xl"], paddingHorizontal: space.lg }}>
+            <View
+              style={{
+                width: 64,
+                height: 64,
+                borderRadius: 32,
+                backgroundColor: colour.primaryLight,
+                alignItems: "center",
+                justifyContent: "center",
+                marginBottom: space.md,
+              }}
+            >
+              <IconSymbol name="car.fill" size={28} color={colour.primary} />
+            </View>
+            <Text style={{ ...typography.cardTitle, color: colour.textPrimary }}>No trips yet</Text>
             <Text
               style={{
-                ...typography.bodyM,
+                ...typography.mSub,
                 color: colour.textSecondary,
                 textAlign: "center",
                 marginTop: space.xs,
                 marginBottom: space.xl,
               }}
             >
-              Start tracking your business travel for SARS ITR12 deductions
+              Track your work trips so you can claim for your vehicle.
             </Text>
-            <TouchableOpacity
-              onPress={() => router.push("/mileage-tracker")}
-              style={{
-                backgroundColor: colour.primary,
-                borderRadius: radius.pill,
-                paddingVertical: space.md,
-                paddingHorizontal: space.xl,
-              }}
-            >
-              <Text style={{ ...typography.btnL, color: colour.onPrimary }}>
-                Start First Trip
-              </Text>
+            <MXButton label="Track your first trip" variant="primary" size="L" onPress={() => router.push("/mileage-tracker")} fullWidth />
+            <TouchableOpacity onPress={() => router.push("/mileage-trip-edit")} style={{ marginTop: space.md }}>
+              <Text style={{ ...typography.mTbtn, color: colour.primary }}>Or add a past trip by hand</Text>
             </TouchableOpacity>
           </View>
         ) : (
           <>
-            <Text
+            <SectionEyebrow>All trips</SectionEyebrow>
+            <View
               style={{
-                ...typography.labelM,
-                color: colour.textSecondary,
-                marginBottom: space.sm,
+                backgroundColor: colour.bgCard,
+                borderRadius: radius.card,
+                borderWidth: 1,
+                borderColor: colour.border,
+                paddingHorizontal: space.lg,
+                marginBottom: space.xl,
               }}
             >
-              ALL TRIPS
-            </Text>
-            {trips.map((trip) => (
-              <View
-                key={trip.id}
-                style={{
-                  backgroundColor: colour.white,
-                  borderRadius: radius.lg,
-                  padding: space.lg,
-                  marginBottom: space.md,
-                  borderWidth: 1,
-                  borderColor: colour.border,
-                  ...platformShadow,
-                }}
-              >
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "flex-start",
-                    marginBottom: space.sm,
-                  }}
-                >
-                  <View
-                    style={{
-                      width: 44,
-                      height: 44,
-                      borderRadius: 12,
-                      backgroundColor: colour.primaryLight,
-                      alignItems: "center",
-                      justifyContent: "center",
-                      marginRight: space.md,
-                    }}
-                  >
-                    <IconSymbol name="car.fill" size={22} color={colour.primary} />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text
-                      style={{
-                        ...typography.labelM,
-                        color: colour.textPrimary,
-                      }}
-                    >
-                      {trip.purpose}
-                    </Text>
-                    <Text
-                      style={{
-                        ...typography.caption,
-                        color: colour.textSecondary,
-                      }}
-                    >
-                      {formatDate(trip.trip_date)} ·{" "}
-                      {formatElapsed(trip.duration_seconds)}
-                    </Text>
-                  </View>
-                  <View style={{ alignItems: "flex-end" }}>
-                    <Text
-                      style={{ ...typography.labelM, color: colour.primary }}
-                    >
-                      {Number(trip.distance_km).toFixed(2)} km
-                    </Text>
-                    <Text
-                      style={{ ...typography.caption, color: colour.accentDeep }}
-                    >
-                      {fmtDeduction(Number(trip.distance_km))}
-                    </Text>
-                  </View>
-                </View>
-
-                {/* Detail row */}
-                <View
-                  style={{
-                    flexDirection: "row",
-                    backgroundColor: colour.bgPage,
-                    borderRadius: radius.sm,
-                    padding: space.sm,
-                    marginBottom: space.sm,
-                  }}
-                >
-                  <View style={{ flex: 1, alignItems: "center" }}>
-                    <Text
-                      style={{
-                        ...typography.micro,
-                        color: colour.textSecondary,
-                      }}
-                    >
-                      Distance
-                    </Text>
-                    <Text
-                      style={{
-                        ...typography.labelS,
-                        color: colour.textPrimary,
-                      }}
-                    >
-                      {Number(trip.distance_km).toFixed(2)} km
-                    </Text>
-                  </View>
-                  <View
-                    style={{
-                      flex: 1,
-                      alignItems: "center",
-                      borderLeftWidth: 1,
-                      borderRightWidth: 1,
-                      borderColor: colour.border,
-                    }}
-                  >
-                    <Text
-                      style={{
-                        ...typography.micro,
-                        color: colour.textSecondary,
-                      }}
-                    >
-                      Duration
-                    </Text>
-                    <Text
-                      style={{
-                        ...typography.labelS,
-                        color: colour.textPrimary,
-                      }}
-                    >
-                      {formatElapsed(trip.duration_seconds)}
-                    </Text>
-                  </View>
-                  <View style={{ flex: 1, alignItems: "center" }}>
-                    <Text
-                      style={{
-                        ...typography.micro,
-                        color: colour.textSecondary,
-                      }}
-                    >
-                      Deduction
-                    </Text>
-                    <Text
-                      style={{ ...typography.labelS, color: colour.accentDeep }}
-                    >
-                      {fmtDeduction(Number(trip.distance_km))}
-                    </Text>
-                  </View>
-                </View>
-
-                {trip.notes && (
-                  <Text
-                    style={{
-                      ...typography.bodyXS,
-                      color: colour.textSecondary,
-                      marginBottom: space.sm,
-                    }}
-                  >
-                    {trip.notes}
-                  </Text>
-                )}
-
-                {/* ITR12 badge + delete */}
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                  }}
-                >
-                  <View
-                    style={{
-                      backgroundColor: colour.primaryLight,
-                      borderRadius: radius.pill,
-                      paddingHorizontal: space.sm,
-                      paddingVertical: 2,
-                    }}
-                  >
-                    <Text
-                      style={{
-                        ...typography.micro,
-                        color: colour.primary,
-                        fontWeight: "700",
-                      }}
-                    >
-                      S11(a) · ITR12 Deductible
-                    </Text>
-                  </View>
+              {trips.map((trip, i) => {
+                const missing = missingLogbookFields(trip);
+                const vehicle = trip.vehicle_id ? vehicleById[trip.vehicle_id] : undefined;
+                const place =
+                  trip.start_address || trip.end_address
+                    ? `${trip.start_address ?? "?"} → ${trip.end_address ?? "?"}`
+                    : null;
+                return (
                   <TouchableOpacity
-                    onPress={() => handleDelete(trip.id)}
-                    disabled={deleting === trip.id}
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    key={trip.id}
+                    activeOpacity={0.7}
+                    onPress={() => router.push({ pathname: "/mileage-trip-edit", params: { id: trip.id } })}
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      paddingVertical: space.md,
+                      borderBottomWidth: i < trips.length - 1 ? 1 : 0,
+                      borderBottomColor: colour.border,
+                    }}
                   >
-                    {deleting === trip.id ? (
-                      <ActivityIndicator color={colour.danger} size="small" />
-                    ) : (
-                      <Text
-                        style={{ ...typography.caption, color: colour.danger }}
-                      >
-                        Delete
+                    <View
+                      style={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: 20,
+                        backgroundColor: colour.primaryLight,
+                        alignItems: "center",
+                        justifyContent: "center",
+                        marginRight: space.md,
+                      }}
+                    >
+                      <IconSymbol name={trip.source === "manual" ? "pencil" : "car.fill"} size={18} color={colour.primary} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ ...typography.itemTitle, color: colour.textPrimary }} numberOfLines={1}>
+                        {trip.notes?.trim() || trip.purpose}
                       </Text>
-                    )}
+                      <Text style={{ ...typography.itemSub, color: colour.textSecondary, marginTop: 2 }} numberOfLines={1}>
+                        {formatDate(trip.trip_date)}
+                        {vehicle ? ` · ${vehicle.registration}` : ""}
+                        {trip.source === "manual" ? " · added by hand" : ""}
+                      </Text>
+                      {place && (
+                        <Text style={{ ...typography.itemSub, color: colour.textSecondary, marginTop: 2 }} numberOfLines={1}>
+                          {place}
+                        </Text>
+                      )}
+                    </View>
+                    <View style={{ alignItems: "flex-end", gap: 5, marginLeft: space.sm }}>
+                      <Text style={{ ...typography.itemAmount, color: colour.textPrimary }}>
+                        {fmtKm(Number(trip.distance_km))}
+                      </Text>
+                      {missing.length > 0 && (
+                        <View
+                          style={{
+                            backgroundColor: colour.warningBg,
+                            borderRadius: radius.full,
+                            paddingHorizontal: space.sm,
+                            paddingVertical: 3,
+                          }}
+                        >
+                          <Text style={{ ...typography.chipText, color: colour.text }}>Needs details</Text>
+                        </View>
+                      )}
+                    </View>
                   </TouchableOpacity>
-                </View>
-              </View>
-            ))}
+                );
+              })}
+            </View>
 
-            <InfoBanner
+            <NoteCard
               icon="car.fill"
-              title="SARS Logbook Requirement"
-              body={`SARS requires a travel logbook for vehicle expense claims. This logbook records each business trip with date, distance, purpose and calculated deduction at the SARS deemed rate${mileageRate != null ? ` of R${mileageRate}/km for ${activeTaxYear}` : ` for ${activeTaxYear} (not yet on record)`}.`}
-              style={{ marginTop: space.sm }}
+              title="What SARS needs in your logbook"
+              body={`For each work trip: the date, the km, where you drove from and to, and why. For each vehicle: the km on your dashboard at the start and end of the tax year. ${isEmployee ? EMPLOYEE_VEHICLE_NOTE : "We compare your work km to all the km you drove, and you claim that share of your vehicle costs."} Driving between home and your usual workplace doesn't count as work travel.`}
             />
           </>
         )}
       </ScrollView>
-      <ConfirmModal
-        visible={!!confirmDeleteId}
-        title="Delete trip"
-        message="Remove this trip from your logbook? This cannot be undone."
-        confirmLabel="Delete"
-        cancelLabel="Keep it"
-        onConfirm={confirmDelete}
-        onCancel={() => setConfirmDeleteId(null)}
+
+      {notice}
+
+      <AnnouncementModal
+        visible={showExport}
+        icon="square.and.arrow.up"
+        eyebrow={`Tax year ${activeTaxYear}`}
+        title="Export your logbook"
+        subtitle="Set out the way SARS asks for it: each vehicle's km readings, then every work trip with its date, km, where you drove from and to, and why."
+        primaryLabel="Export PDF"
+        onPrimary={() => runExport("pdf")}
+        secondaryLabel="Export CSV (spreadsheet)"
+        onSecondary={() => runExport("csv")}
+        onClose={() => setShowExport(false)}
       />
+
+      {/* Link trips logged before vehicles existed — app bottom sheet */}
+      <AnnouncementModal
+        visible={showAssign}
+        icon="car.fill"
+        eyebrow={`Tax year ${activeTaxYear}`}
+        title="Which vehicle did you use?"
+        subtitle={`All ${unassignedCount} trip${unassignedCount === 1 ? "" : "s"} with no vehicle will be linked to the one you pick. You can still change a single trip later.`}
+        primaryLabel={assigning ? "Linking…" : "Link trips"}
+        onPrimary={() => {
+          if (!assigning) confirmAssign();
+        }}
+        secondaryLabel="Cancel"
+        onClose={() => setShowAssign(false)}
+      >
+        <VehiclePicker
+          vehicles={tripVehicles}
+          selectedId={assignVehicleId}
+          onSelect={setAssignVehicleId}
+          onAddVehicle={() => {
+            // Close the sheet first — a native Modal stays on top of the
+            // pushed screen otherwise.
+            setShowAssign(false);
+            router.push("/vehicle-form");
+          }}
+        />
+      </AnnouncementModal>
+
       <MXTabBar />
     </SafeAreaView>
   );

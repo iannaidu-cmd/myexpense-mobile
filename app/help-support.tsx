@@ -1,3 +1,4 @@
+import { showNotice } from "@/components/NoticeHost";
 import { MXBackHeader } from "@/components/MXBackHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -5,13 +6,12 @@ import { colour, radius, space, typography } from "@/tokens";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-    Alert,
-    Linking,
-    ScrollView,
-    StatusBar,
-    Text,
-    TouchableOpacity,
-    View,
+  Linking,
+  ScrollView,
+  StatusBar,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -37,7 +37,7 @@ const FAQS = [
   },
   {
     q: "How do I track mileage?",
-    a: "Go to the Reports tab and tap Mileage Tracker. Start a trip and MyExpense will record your route. You can also add trips manually. SARS mileage is calculated at the prescribed rate.",
+    a: "Go to the Reports tab and tap Mileage Tracker. Add your vehicle, then start a trip. MyExpense records how far you drove, where you went and why. You can also add a trip you didn't track. Add the km on your dashboard at the start and end of the tax year too. Your logbook then shows how much of your driving was for work, and you claim that share of your vehicle costs (fuel, insurance, repairs, licence and finance charges).",
   },
   {
     q: "Is my data safe and POPIA compliant?",
@@ -201,10 +201,12 @@ export default function HelpSupportScreen() {
     Linking.openURL(
       `mailto:${SUPPORT_EMAIL}?subject=MyExpense Support Request`,
     ).catch(() =>
-      Alert.alert(
-        "Could not open email",
-        `Please email us at ${SUPPORT_EMAIL}`,
-      ),
+      showNotice({
+        title: "We couldn't open your email app",
+        message: `Please email us at ${SUPPORT_EMAIL}`,
+        tone: "info",
+        icon: "envelope.fill",
+      }),
     );
   };
 

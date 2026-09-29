@@ -1,3 +1,4 @@
+import { showNotice } from "@/components/NoticeHost";
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { SuccessModal } from "@/components/SuccessModal";
@@ -14,18 +15,17 @@ import { colour, radius, space, typography } from "@/tokens";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    FlatList,
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    ScrollView,
-    StatusBar,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  FlatList,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  ScrollView,
+  StatusBar,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { safeBack } from "@/lib/navigation";
@@ -58,6 +58,8 @@ export default function EditExpenseScreen() {
   const [date, setDate] = useState("");
   const [category, setCategory] = useState("");
   const [notes, setNotes] = useState("");
+  // % applied when the expense was first saved (null if never apportioned).
+  const [businessUsePct, setBusinessUsePct] = useState<number | null>(null);
   const [showCatModal, setShowCatModal] = useState(false);
 
   // Load existing expense on mount
@@ -71,12 +73,13 @@ export default function EditExpenseScreen() {
         setDate(expense.expense_date ? isoToDisplayDate(expense.expense_date) : "");
         setCategory(expense.category ?? "");
         setNotes(expense.notes ?? "");
+        setBusinessUsePct(expense.business_use_pct != null ? Number(expense.business_use_pct) : null);
         // Derive toggle state from saved is_deductible flag
         setExpenseType(expense.is_deductible ? "business" : "personal");
         setLoadingExpense(false);
       })
       .catch((e) => {
-        Alert.alert("Error", e.message);
+        showNotice({ title: "Couldn't open this expense", message: "Please check your internet connection and try again." });
         setLoadingExpense(false);
       });
   }, [id]);
@@ -109,6 +112,11 @@ export default function EditExpenseScreen() {
       await expenseService.updateExpense({
         id: id!,
         amount: parseFloat(amount),
+        // The amount here is the claimable (already apportioned) figure, so
+        // keep the stored full amount in step with it.
+        ...(businessUsePct != null && businessUsePct > 0
+          ? { gross_amount: parseFloat((parseFloat(amount) / (businessUsePct / 100)).toFixed(2)) }
+          : {}),
         vendor: vendor.trim(),
         expense_date: expenseDateIso,
         category: category,

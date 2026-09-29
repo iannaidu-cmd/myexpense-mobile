@@ -14,6 +14,9 @@ export interface IncomeEntry {
   category: string | null;
   date: string;
   tax_year: string;
+  /** Set only on the system-managed recoupment row for a sold vehicle
+   *  (services/wearAndTearService.ts). Not user-editable. */
+  recoupment_vehicle_id?: string | null;
   created_at: string;
 }
 

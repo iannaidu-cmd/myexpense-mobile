@@ -1,3 +1,4 @@
+import { showNotice } from "@/components/NoticeHost";
 // ─── Profile Setup Screen ─────────────────────────────────────────────────────
 // Shown once after first sign-in when the user has no tax number on record.
 // Collects the minimum details SARS requires: tax number, work type, name.
@@ -6,30 +7,26 @@
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { profileService } from "@/services/profileService";
 import { useAuthStore } from "@/stores/authStore";
+import { useExpenseStore } from "@/stores/expenseStore";
+import { useVehicleStore } from "@/stores/vehicleStore";
 import { colour, radius, space, typography } from "@/tokens";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StatusBar,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StatusBar,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const WORK_TYPES = [
-  { id: "sole", label: "Sole proprietor" },
-  { id: "freelancer", label: "Freelancer" },
-  { id: "contractor", label: "Independent contractor" },
-  { id: "employed", label: "Salaried employee" },
-  { id: "other", label: "Other" },
-];
+// Shared with the tax rules that depend on it (see lib/workType.ts).
+import { WORK_TYPES } from "@/lib/workType";
 
 export default function ProfileSetupScreen() {
   const router = useRouter();
@@ -88,12 +85,12 @@ export default function ProfileSetupScreen() {
         work_type: workType,
         ...(phone.trim() ? ({ phone: phone.trim() } as any) : {}),
       });
+      // Work type decides whether vehicle wear & tear can be claimed
+      // (lib/workType.ts), so recompute it, and the Home estimate with it.
+      useVehicleStore.getState().syncWearAndTear(user.id, useExpenseStore.getState().activeTaxYear);
       router.replace("/(tabs)");
-    } catch (err: any) {
-      Alert.alert(
-        "Error",
-        err.message ?? "Could not save profile. Please try again.",
-      );
+    } catch {
+      showNotice({ title: "Couldn't save your profile", message: "Please check your internet connection and try again." });
     } finally {
       setSaving(false);
     }

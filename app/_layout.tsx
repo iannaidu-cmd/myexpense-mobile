@@ -1,4 +1,5 @@
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { NoticeHost } from "@/components/NoticeHost";
 import { FacebookOAuthModal } from "@/components/auth/FacebookOAuthModal";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { configurePurchases } from "@/lib/purchases";
@@ -452,6 +453,9 @@ function RootLayout() {
           name="mileage-trip-summary"
           options={{ headerShown: false }}
         />
+        <Stack.Screen name="mileage-trip-edit" options={{ headerShown: false }} />
+        <Stack.Screen name="vehicles" options={{ headerShown: false }} />
+        <Stack.Screen name="vehicle-form" options={{ headerShown: false }} />
         {/* ── Settings ── */}
         <Stack.Screen name="home-office-setup" options={{ headerShown: false }} />
         <Stack.Screen name="bank-accounts" options={{ headerShown: false }} />
@@ -514,6 +518,8 @@ function RootLayout() {
         />
       </Stack>
       <StatusBar style="auto" />
+      {/* App-wide in-app notices (replaces native Alert.alert) */}
+      <NoticeHost />
     </ThemeProvider>
     {!splashDone && <InlineSplash opacity={splashOpacity} />}
     </View>

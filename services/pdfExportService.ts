@@ -12,6 +12,12 @@ import type { Expense, TaxLiabilityEstimate } from "@/types/database";
 import { ITR12_CATEGORIES } from "@/types/database";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
+import { workTypeLabel } from "@/lib/workType";
+
+// User text (OCR vendor names, profile fields) goes into HTML, so escape it —
+// a stray "<" in a vendor name would otherwise break or drop part of the PDF.
+const esc = (s: unknown) =>
+  String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 
 // ─── PDF CSS palette ──────────────────────────────────────────────────────────
 // Token-mapped colors use colour.* directly; PDF-specific shades are named here.
@@ -140,8 +146,8 @@ function buildHTML(opts: {
             (e) => `
           <tr>
             <td>${fmtDate(e.expense_date)}</td>
-            <td>${e.vendor}</td>
-            <td>${e.category}</td>
+            <td>${esc(e.vendor)}</td>
+            <td>${esc(e.category)}</td>
             <td style="text-align:center">${e.is_deductible ? getITR12Field(e.category) : "—"}</td>
             <td style="text-align:right">${fmtZAR(e.amount)}</td>
             ${includeVAT ? `<td style="text-align:right">${e.vat_amount ? fmtZAR(e.vat_amount) : "—"}</td>` : ""}
@@ -403,11 +409,11 @@ function buildHTML(opts: {
   <div class="taxpayer-bar">
     <div class="taxpayer-field">
       <div class="taxpayer-label">Taxpayer</div>
-      <div class="taxpayer-value">${profile.full_name ?? "—"}</div>
+      <div class="taxpayer-value">${esc(profile.full_name ?? "—")}</div>
     </div>
     <div class="taxpayer-field">
       <div class="taxpayer-label">SARS Tax Number</div>
-      <div class="taxpayer-value">${profile.tax_number ?? "Not provided"}</div>
+      <div class="taxpayer-value">${esc(profile.tax_number ?? "Not provided")}</div>
     </div>
     <div class="taxpayer-field">
       <div class="taxpayer-label">Return Type</div>
@@ -415,11 +421,11 @@ function buildHTML(opts: {
     </div>
     <div class="taxpayer-field">
       <div class="taxpayer-label">Employment Type</div>
-      <div class="taxpayer-value">${profile.work_type ?? "Sole Proprietor"}</div>
+      <div class="taxpayer-value">${esc(workTypeLabel(profile.work_type))}</div>
     </div>
     <div class="taxpayer-field">
       <div class="taxpayer-label">VAT Status</div>
-      <div class="taxpayer-value">${profile.vat_registered ? `Registered${profile.vat_number ? ` (${profile.vat_number})` : ""}` : "Not registered"}</div>
+      <div class="taxpayer-value">${profile.vat_registered ? `Registered${profile.vat_number ? ` (${esc(profile.vat_number)})` : ""}` : "Not registered"}</div>
     </div>
   </div>
 

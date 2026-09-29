@@ -1,3 +1,4 @@
+import { showNotice } from "@/components/NoticeHost";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ConfirmModal } from "@/components/ConfirmModal";
 import { InfoBanner } from "@/components/InfoBanner";
@@ -11,22 +12,23 @@ import { expenseService } from "@/services/expenseService";
 import { useAuthStore } from "@/stores/authStore";
 import { useExpenseStore } from "@/stores/expenseStore";
 import { floorRatio, useHomeOfficeStore } from "@/stores/homeOfficeStore";
+import { logbookBusinessUse, useVehicleStore, vehicleLabel } from "@/stores/vehicleStore";
+import { mileageService } from "@/services/mileageService";
 import { colour, radius } from "@/tokens";
 import { formatDateInputDDMMYYYY } from "@/lib/dateInput";
-import { SARS_RATE_PER_KM, taxYearForDate } from "@/lib/taxRules";
-import { useRouter } from "expo-router";
+import { taxYearForDate } from "@/lib/taxRules";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StatusBar,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StatusBar,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { safeBack } from "@/lib/navigation";
@@ -130,7 +132,12 @@ export default function AddExpenseScreen() {
       year: "numeric",
     }),
   );
-  const [category, setCategory] = useState("");
+  // Optional preselected category, e.g. "Vehicle Expenses" from the trip
+  // summary's "Log a vehicle cost". Ignored unless it's a real category.
+  const { category: categoryParam } = useLocalSearchParams<{ category?: string }>();
+  const [category, setCategory] = useState(
+    categoryParam && CATEGORIES.some((c) => c.label === categoryParam) ? categoryParam : "",
+  );
   const [expType, setExpType] = useState<"business" | "personal">("business");
   const [vatNumber, setVatNumber] = useState("");
   const [vatAmount, setVatAmount] = useState("");
@@ -148,12 +155,46 @@ export default function AddExpenseScreen() {
   // calculator (GPS business km ÷ annual odometer) as the default when
   // logging a Vehicle Expense — this is what actually feeds that ratio into
   // real deduction totals, since it's applied at save time below.
+  // Prefers the logbook's odometer readings (synced, per vehicle); falls back
+  // to the last % worked out on the Category Breakdown calculator.
+  const loadVehicles = useVehicleStore((s) => s.load);
+  const allVehicles = useVehicleStore((s) => s.vehicles);
+  const pickableVehicles = allVehicles.filter((v) => !v.isArchived);
+  // Which vehicle this cost was for. Saved on the expense so per-vehicle
+  // actual costs are available later (e.g. the employee travel-allowance claim).
+  const [vehicleId, setVehicleId] = useState<string | null>(null);
   React.useEffect(() => {
-    if (category !== "Vehicle Expenses") return;
-    AsyncStorage.getItem(`@mx_vehicle_business_pct:${activeTaxYear}`).then((v) => {
-      if (v) setBusinessUsePct(v);
-    });
-  }, [category, activeTaxYear]);
+    if (category === "Vehicle Expenses" && !vehicleId && pickableVehicles.length) {
+      setVehicleId(pickableVehicles[pickableVehicles.length - 1].id);
+    }
+  }, [category, pickableVehicles.length]);
+  React.useEffect(() => {
+    if (category !== "Vehicle Expenses" || !user) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const [trips] = await Promise.all([
+          mileageService.getTrips(user.id, activeTaxYear),
+          loadVehicles(user.id, activeTaxYear, true),
+        ]);
+        // That vehicle's own logbook % when one is chosen, else all vehicles.
+        const { readings } = useVehicleStore.getState();
+        const logbook = vehicleId
+          ? logbookBusinessUse(
+              trips.filter((t) => t.vehicle_id === vehicleId),
+              readings[vehicleId] ? { [vehicleId]: readings[vehicleId] } : {},
+            )
+          : logbookBusinessUse(trips, readings);
+        if (logbook && logbook.ratio > 0) {
+          if (!cancelled) setBusinessUsePct(String(Math.round(logbook.ratio * 100)));
+          return;
+        }
+      } catch { /* fall back to the saved estimate */ }
+      const v = await AsyncStorage.getItem(`@mx_vehicle_business_pct:${activeTaxYear}`);
+      if (v && !cancelled) setBusinessUsePct(v);
+    })();
+    return () => { cancelled = true; };
+  }, [category, activeTaxYear, user, vehicleId]);
 
   const selectedCat = ITR12_CATEGORIES.find((c) => c.label === category);
   const canSave = !!amount && parseFloat(amount) > 0 && !!vendor && !!category;
@@ -187,23 +228,31 @@ export default function AddExpenseScreen() {
       const HOME_OFFICE_CATS = ["Home Office", "Utilities", "Repairs & Maintenance"];
       let pct = 1;
       let overrideDeductible: boolean | undefined;
+      // Whether a business-use/floor-area share was applied, so the full
+      // amount and the % can be kept alongside the reduced one.
+      let apportioned = false;
 
       if (category === "Telephone & Cell" || category === "Telephone & Internet") {
         pct = Math.min(Math.max(parseFloat(businessUsePct) || 100, 0), 100) / 100;
+        apportioned = true;
       } else if (HOME_OFFICE_CATS.includes(category)) {
         pct = ratio;
+        apportioned = true;
       } else if (category === "Insurance") {
         pct = insuranceSubType === "property_contents"
           ? ratio
           : Math.min(Math.max(parseFloat(businessUsePct) || 100, 0), 100) / 100;
+        apportioned = true;
       } else if (category === "Interest & Finance Charges") {
         if (interestSubType === "personal") {
           overrideDeductible = false;
         } else if (interestSubType === "bond") {
           pct = ratio;
+          apportioned = true;
         }
       } else if (category === "Vehicle Expenses") {
         pct = Math.min(Math.max(parseFloat(businessUsePct) || 100, 0), 100) / 100;
+        apportioned = true;
       }
 
       const savedAmount = parseFloat((rawAmount * pct).toFixed(2));
@@ -218,6 +267,9 @@ export default function AddExpenseScreen() {
         is_deductible: overrideDeductible ?? (expType === "business"),
         vat_amount: vatAmount ? parseFloat(vatAmount) : undefined,
         notes: note.trim() || undefined,
+        gross_amount: apportioned ? rawAmount : null,
+        business_use_pct: apportioned ? parseFloat((pct * 100).toFixed(2)) : null,
+        vehicle_id: category === "Vehicle Expenses" ? vehicleId : null,
       });
 
       setAmount("");
@@ -229,8 +281,8 @@ export default function AddExpenseScreen() {
 
       setSuccessMessage(`R ${savedAmount.toLocaleString("en-ZA", { minimumFractionDigits: 2 })} at ${vendor.trim()} has been saved.`);
       setSuccessVisible(true);
-    } catch (e: any) {
-      Alert.alert("Error saving expense", e.message);
+    } catch {
+      showNotice({ title: "Couldn't save this expense", message: "Please check your internet connection and try again." });
     } finally {
       setSaving(false);
     }
@@ -486,9 +538,37 @@ export default function AddExpenseScreen() {
             <View>
               <InfoBanner
                 icon="car.fill"
-                body={`Only the work portion counts. We've suggested a % below based on your mileage logbook (business km ÷ total km) — adjust it if this expense doesn't match. A flat rate of R${SARS_RATE_PER_KM}/km is tracked separately under Mileage.`}
+                body={`You can only claim the work part of a vehicle cost. We've filled in the % from your logbook (your work km compared to all your km). Change it if this cost is different. Add real costs here, like fuel, insurance, repairs, licence and finance charges.`}
                 style={{ marginBottom: 10 }}
               />
+              {pickableVehicles.length > 0 && (
+                <>
+                  <FieldLabel label="Vehicle" />
+                  <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
+                    {pickableVehicles.map((v) => {
+                      const selected = v.id === vehicleId;
+                      return (
+                        <TouchableOpacity
+                          key={v.id}
+                          onPress={() => setVehicleId(v.id)}
+                          style={{
+                            backgroundColor: selected ? colour.primary : colour.white,
+                            borderRadius: radius.pill,
+                            borderWidth: 1,
+                            borderColor: selected ? colour.primary : colour.border,
+                            paddingHorizontal: 12,
+                            paddingVertical: 6,
+                          }}
+                        >
+                          <Text style={{ fontSize: 12, fontWeight: "600", color: selected ? colour.onPrimary : colour.text }}>
+                            {vehicleLabel(v)}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </>
+              )}
               <FieldLabel label="Business use %" />
               <UnderlineInput
                 value={businessUsePct}

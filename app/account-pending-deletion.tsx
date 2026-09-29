@@ -1,3 +1,4 @@
+import { showNotice } from "@/components/NoticeHost";
 import { ConfirmModal } from "@/components/ConfirmModal";
 import { MXButton } from "@/components/MXButton";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -7,7 +8,7 @@ import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useState } from "react";
-import { Alert, ScrollView, Text, View } from "react-native";
+import { ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const GRACE_PERIOD_DAYS = 30;
@@ -33,9 +34,9 @@ export default function AccountPendingDeletionScreen() {
     try {
       await cancelAccountDeletion();
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert("Deletion cancelled", "Your account is safe — welcome back.");
-    } catch (e: any) {
-      Alert.alert("Something went wrong", e?.message ?? "Please try again.");
+      showNotice({ title: "Your account is safe", message: "We've cancelled the deletion. Welcome back!", tone: "success" });
+    } catch {
+      showNotice({ title: "Something went wrong", message: "Please check your internet connection and try again." });
     }
   };
 

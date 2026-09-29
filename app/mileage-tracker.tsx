@@ -1,23 +1,31 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { AnnouncementModal } from "@/components/AnnouncementModal";
 import { ConfirmModal } from "@/components/ConfirmModal";
 import { InfoBanner } from "@/components/InfoBanner";
 import { useKeepAwake } from "expo-keep-awake";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
+import { SectionEyebrow } from "@/components/MXSection";
+import { useNotice } from "@/components/useNotice";
+import { VehiclePicker } from "@/components/VehiclePicker";
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from "@/components/maps";
 import { FREE_MILEAGE_TRIP_LIMIT } from "@/constants/freeTier";
-import { SARS_RATE_PER_KM, taxYearForDate } from "@/lib/taxRules";
+import { TRIP_PURPOSES } from "@/constants/tripPurposes";
+import { localISODate } from "@/lib/dateInput";
+import { taxYearForDate } from "@/lib/taxRules";
+import { addressForCoords } from "@/lib/tripAddress";
+import { validateTripReason } from "@/lib/validation";
 import { mileageService } from "@/services/mileageService";
 import { useAuthStore } from "@/stores/authStore";
 import { useExpenseStore } from "@/stores/expenseStore";
+import { activeVehicles, useVehicleStore, vehicleLabel } from "@/stores/vehicleStore";
 import { colour, radius, space, typography } from "@/tokens";
 import * as Location from "expo-location";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
     ActivityIndicator,
-    Alert,
     KeyboardAvoidingView,
     Modal,
     Platform,
@@ -39,17 +47,6 @@ const DEFAULT_REGION = {
   latitudeDelta: 0.15,
   longitudeDelta: 0.15,
 };
-
-// ─── ITR12 purpose categories ─────────────────────────────────────────────────
-const TRIP_PURPOSES = [
-  { key: "client_visit", label: "Client Visit", itr12: "S11(a)" },
-  { key: "supplier", label: "Supplier / Procurement", itr12: "S11(a)" },
-  { key: "business_errand", label: "Business Errand", itr12: "S11(a)" },
-  { key: "site_inspection", label: "Site Inspection", itr12: "S11(a)" },
-  { key: "conference", label: "Conference / Event", itr12: "S11(a)" },
-  { key: "office_supplies", label: "Office Supplies Run", itr12: "S11(a)" },
-  { key: "other_business", label: "Other Business Travel", itr12: "S11(a)" },
-];
 
 // ─── Haversine distance ───────────────────────────────────────────────────────
 function haversineKm(
@@ -109,6 +106,7 @@ export default function MileageTrackerScreen() {
   const router = useRouter();
   const { user, isPremium, isInitialised, refreshPremiumStatus } = useAuthStore();
   const { activeTaxYear } = useExpenseStore();
+  const { notice, showNotice } = useNotice();
 
   const [premiumChecked, setPremiumChecked] = useState(false);
   const [tripLimitReached, setTripLimitReached] = useState(false);
@@ -150,7 +148,40 @@ export default function MileageTrackerScreen() {
 
   const [showPurpose, setShowPurpose] = useState(false);
   const [selectedPurpose, setSelectedPurpose] = useState(TRIP_PURPOSES[0]);
+  // The SARS "reason for the trip" — required (saved to mileage_trips.notes).
   const [tripNote, setTripNote] = useState("");
+  const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
+  const [startAddress, setStartAddress] = useState<string | null>(null);
+
+  const { vehicles, load: loadVehicles } = useVehicleStore();
+  const tripVehicles = activeVehicles(vehicles);
+  const selectedVehicle = vehicles.find((v) => v.id === selectedVehicleId) ?? null;
+
+  // Ask for the vehicle as soon as the tracker opens if the account has none.
+  // SARS needs one logbook per vehicle, and a trip can't be started without
+  // one. Shown once per visit; it isn't shown if the vehicles couldn't be
+  // loaded (e.g. offline), since we can't tell whether the account has one.
+  const [showAddVehicle, setShowAddVehicle] = useState(false);
+  const askedForVehicle = useRef(false);
+  useEffect(() => {
+    if (!user) return;
+    loadVehicles(user.id, activeTaxYear)
+      .then(() => {
+        if (askedForVehicle.current) return;
+        askedForVehicle.current = true;
+        if (useVehicleStore.getState().vehicles.length === 0) setShowAddVehicle(true);
+      })
+      .catch(() => {});
+  }, [user, activeTaxYear]);
+
+  // Default to a vehicle once they're loaded — and to the newly added one
+  // when the user adds a vehicle from the start-trip sheet.
+  const tripVehicleIds = tripVehicles.map((v) => v.id).join(",");
+  useEffect(() => {
+    if (status !== "idle") return;
+    if (selectedVehicleId && tripVehicles.some((v) => v.id === selectedVehicleId)) return;
+    setSelectedVehicleId(tripVehicles.length ? tripVehicles[tripVehicles.length - 1].id : null);
+  }, [tripVehicleIds, status]);
 
   const [locationReady, setLocationReady] = useState(false);
   const [showEndConfirm, setShowEndConfirm] = useState(false);
@@ -178,8 +209,10 @@ export default function MileageTrackerScreen() {
       coords,
       selectedPurpose,
       tripNote,
+      selectedVehicleId,
+      startAddress,
     }));
-  }, [status, distanceKm, elapsed, startTime, startPos, coords, selectedPurpose, tripNote]);
+  }, [status, distanceKm, elapsed, startTime, startPos, coords, selectedPurpose, tripNote, selectedVehicleId, startAddress]);
 
   // ── Restore in-progress trip on mount ────────────────────────────────────
   useEffect(() => {
@@ -196,11 +229,15 @@ export default function MileageTrackerScreen() {
         setCoords(saved.coords ?? []);
         if (saved.selectedPurpose) setSelectedPurpose(saved.selectedPurpose);
         setTripNote(saved.tripNote ?? "");
+        setSelectedVehicleId(saved.selectedVehicleId ?? null);
+        setStartAddress(saved.startAddress ?? null);
         pausedKmRef.current = saved.distanceKm ?? 0;
-        Alert.alert(
-          "Trip restored",
-          "Your previous trip was recovered. Tap Resume to continue tracking.",
-        );
+        showNotice({
+          title: "We saved your trip",
+          message: "The app closed while you were tracking, but your trip is safe. Tap Resume to carry on.",
+          tone: "info",
+          icon: "car.fill",
+        });
       } catch {
         AsyncStorage.removeItem(TRIP_STORAGE_KEY);
       }
@@ -222,10 +259,11 @@ export default function MileageTrackerScreen() {
         const { status: perm } =
           await Location.requestForegroundPermissionsAsync();
         if (perm !== "granted") {
-          Alert.alert(
-            "Location Required",
-            "MyExpense needs location access to track your business travel for SARS compliance.",
-          );
+          showNotice({
+            title: "Allow location to track trips",
+            message: "MyExpense uses your location to measure your work trips for SARS. You can switch it on in your phone's settings.",
+            icon: "mappin",
+          });
           setLocationReady(true);
           return;
         }
@@ -334,10 +372,11 @@ export default function MileageTrackerScreen() {
         },
       );
     } catch {
-      Alert.alert(
-        "Location Unavailable",
-        "Please enable GPS/location services on your device before starting a trip.",
-      );
+      showNotice({
+        title: "Switch on your location",
+        message: "Turn on location (GPS) on your phone, then start the trip again.",
+        icon: "mappin",
+      });
     }
   }, [currentPos]);
 
@@ -355,11 +394,18 @@ export default function MileageTrackerScreen() {
     setDistanceKm(0);
     setCoords(currentPos ? [currentPos] : []);
     setStartPos(currentPos);
+    setStartAddress(null);
     lastCoordRef.current = currentPos;
     pausedKmRef.current = 0;
     setStatus("running");
+    // Resolve the SARS "From" place in the background — never blocks the start.
+    addressForCoords(currentPos?.latitude, currentPos?.longitude).then((a) => {
+      if (a) setStartAddress(a);
+    });
     await startTracking();
   }, [currentPos, startTracking]);
+
+  const startBlocked = !selectedVehicleId || !!validateTripReason(tripNote);
 
   const handlePause = useCallback(() => {
     stopTracking();
@@ -377,29 +423,35 @@ export default function MileageTrackerScreen() {
     if (!user) return;
     setSaving(true);
     try {
-      const { supabase } = await import("@/lib/supabase");
-      const tripDate = (startTime ?? new Date()).toISOString().split("T")[0];
+      const tripDate = localISODate(startTime ?? new Date());
+      // Either can come back null (no signal / geocoder unavailable) — the
+      // trip still saves and shows in the logbook as needing From/To.
+      const [fromAddress, toAddress] = await Promise.all([
+        startAddress ?? addressForCoords(startPos?.latitude, startPos?.longitude),
+        addressForCoords(currentPos?.latitude, currentPos?.longitude),
+      ]);
 
-      const { data, error } = await supabase
-        .from("mileage_trips")
-        .insert({
-          user_id: user.id,
-          purpose: selectedPurpose.label,
-          distance_km: parseFloat(distanceKm.toFixed(3)),
-          duration_seconds: elapsed,
-          start_lat: startPos?.latitude ?? null,
-          start_lng: startPos?.longitude ?? null,
-          end_lat: currentPos?.latitude ?? null,
-          end_lng: currentPos?.longitude ?? null,
-          tax_year: taxYearForDate(tripDate),
-          is_deductible: true,
-          notes: tripNote || null,
-          trip_date: tripDate,
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
+      const data = await mileageService.createTrip(user.id, {
+        purpose: selectedPurpose.label,
+        distance_km: parseFloat(distanceKm.toFixed(3)),
+        duration_seconds: elapsed,
+        start_lat: startPos?.latitude ?? null,
+        start_lng: startPos?.longitude ?? null,
+        end_lat: currentPos?.latitude ?? null,
+        end_lng: currentPos?.longitude ?? null,
+        tax_year: taxYearForDate(tripDate),
+        notes: tripNote.trim() || null,
+        trip_date: tripDate,
+        vehicle_id: selectedVehicleId,
+        start_address: fromAddress,
+        end_address: toAddress,
+        odometer_start: null,
+        odometer_end: null,
+        source: "gps",
+      });
+      // New business km change the vehicle's wear & tear claim. Not awaited:
+      // the summary screen shouldn't wait on it.
+      useVehicleStore.getState().syncWearAndTear(user.id, data.tax_year);
 
       clearSavedTrip();
 
@@ -420,11 +472,11 @@ export default function MileageTrackerScreen() {
           endLon: String(currentPos?.longitude ?? 0),
         },
       });
-    } catch (e: any) {
-      Alert.alert(
-        "Save failed",
-        e.message ?? "Could not save trip. Please try again.",
-      );
+    } catch {
+      showNotice({
+        title: "Couldn't save your trip",
+        message: "Please check your internet connection and try again. Your trip is still here, so nothing is lost.",
+      });
     } finally {
       setSaving(false);
     }
@@ -438,6 +490,8 @@ export default function MileageTrackerScreen() {
     tripNote,
     startTime,
     router,
+    selectedVehicleId,
+    startAddress,
   ]);
 
   const handleEnd = useCallback(() => {
@@ -470,11 +524,11 @@ export default function MileageTrackerScreen() {
     setElapsed(0);
     setStartPos(null);
     setTripNote("");
+    setStartAddress(null);
     lastCoordRef.current = null;
     pausedKmRef.current = 0;
   }, [stopTracking, clearSavedTrip]);
 
-  const deductionEstimate = distanceKm * SARS_RATE_PER_KM;
   const elapsedStr = formatElapsed(elapsed);
 
   // ── Split distance into whole and decimal parts ───────────────────────────
@@ -760,7 +814,7 @@ export default function MileageTrackerScreen() {
                     color: colour.onPrimary,
                   }}
                 >
-                  R{deductionEstimate.toFixed(2)}
+                  {selectedVehicle?.registration ?? "—"}
                 </Text>
                 <Text
                   style={{
@@ -769,7 +823,7 @@ export default function MileageTrackerScreen() {
                     color: colour.primary100,
                   }}
                 >
-                  DEDUCTION
+                  VEHICLE
                 </Text>
               </View>
             </View>
@@ -809,7 +863,7 @@ export default function MileageTrackerScreen() {
                   {selectedPurpose.label}
                 </Text>
                 <Text style={{ ...typography.bodyXS, color: colour.textSub }}>
-                  {selectedPurpose.itr12} · Started{" "}
+                  {selectedVehicle ? `${vehicleLabel(selectedVehicle)} · ` : ""}Started{" "}
                   {startTime ? formatTime(startTime) : "—"}
                 </Text>
               </View>
@@ -861,8 +915,8 @@ export default function MileageTrackerScreen() {
               </TouchableOpacity>
 
               <InfoBanner
-                title={`SARS deemed rate ${activeTaxYear}: R${SARS_RATE_PER_KM}/km`}
-                body="Only business travel is deductible under S11(a). Personal trips are excluded."
+                title="Work trips only"
+                body="Only log trips for work. Driving between home and your usual workplace doesn't count, so don't log it."
                 style={{ marginTop: space.md }}
               />
             </>
@@ -1016,8 +1070,10 @@ export default function MileageTrackerScreen() {
               paddingHorizontal: space.md,
               paddingBottom: space["3xl"],
               paddingTop: space.md,
+              maxHeight: "90%",
             }}
           >
+            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
             <View
               style={{
                 width: 40,
@@ -1035,7 +1091,7 @@ export default function MileageTrackerScreen() {
                 marginBottom: space.xs,
               }}
             >
-              Trip purpose
+              New trip
             </Text>
             <Text
               style={{
@@ -1044,8 +1100,23 @@ export default function MileageTrackerScreen() {
                 marginBottom: space.md,
               }}
             >
-              Select the business purpose for SARS ITR12 compliance.
+              SARS needs to know which vehicle you used and why you went.
             </Text>
+
+            <SectionEyebrow style={{ marginBottom: space.xs }}>Vehicle</SectionEyebrow>
+            <VehiclePicker
+              vehicles={tripVehicles}
+              selectedId={selectedVehicleId}
+              onSelect={setSelectedVehicleId}
+              onAddVehicle={() => {
+                // Close the sheet first — a native Modal would stay on top of
+                // the pushed screen otherwise.
+                setShowPurpose(false);
+                router.push("/vehicle-form");
+              }}
+            />
+
+            <SectionEyebrow style={{ marginTop: space.md, marginBottom: space.xs }}>Type of trip</SectionEyebrow>
 
             {TRIP_PURPOSES.map((p) => (
               <TouchableOpacity
@@ -1109,12 +1180,12 @@ export default function MileageTrackerScreen() {
                   marginBottom: 4,
                 }}
               >
-                Note (optional)
+                Why are you going? (SARS needs this)
               </Text>
               <TextInput
                 value={tripNote}
                 onChangeText={setTripNote}
-                placeholder="e.g. Meeting at Sandton client office"
+                placeholder="e.g. Meeting with ABC Ltd re: website quote"
                 placeholderTextColor={colour.textHint}
                 style={{
                   borderBottomWidth: 1,
@@ -1128,6 +1199,7 @@ export default function MileageTrackerScreen() {
 
             <TouchableOpacity
               onPress={confirmStart}
+              disabled={startBlocked}
               style={{
                 backgroundColor: colour.primary,
                 borderRadius: radius.pill,
@@ -1137,6 +1209,7 @@ export default function MileageTrackerScreen() {
                 flexDirection: "row",
                 justifyContent: "center",
                 gap: space.sm,
+                opacity: startBlocked ? 0.45 : 1,
               }}
               activeOpacity={0.85}
             >
@@ -1145,12 +1218,42 @@ export default function MileageTrackerScreen() {
                 Start tracking
               </Text>
             </TouchableOpacity>
+            {startBlocked && (
+              <Text
+                style={{
+                  ...typography.bodyXS,
+                  color: colour.textSub,
+                  textAlign: "center",
+                  marginTop: space.sm,
+                }}
+              >
+                {!selectedVehicleId ? "Add your vehicle to start." : "Say why you're going to start."}
+              </Text>
+            )}
+            </ScrollView>
           </View>
         </View>
         </KeyboardAvoidingView>
       </Modal>
 
       <MXTabBar />
+
+      {notice}
+      <AnnouncementModal
+        visible={showAddVehicle && status === "idle"}
+        icon="car.fill"
+        eyebrow="Mileage logbook"
+        title="Add your vehicle"
+        subtitle="Your logbook needs your vehicle's make, model, year and number plate, plus its km readings. It takes about a minute."
+        primaryLabel="Add vehicle"
+        onPrimary={() => {
+          setShowAddVehicle(false);
+          router.push("/vehicle-form");
+        }}
+        secondaryLabel="Not now"
+        onSecondary={() => setShowAddVehicle(false)}
+        onClose={() => setShowAddVehicle(false)}
+      />
 
       <ConfirmModal
         visible={showEndConfirm}

@@ -110,6 +110,67 @@ export function validateVATNumber(value: string): string | null {
   return null;
 }
 
+// ── Vehicle (mileage logbook) ─────────────────────────────────────────────────
+export const MAX_VEHICLE_TEXT_LENGTH = 50;
+export const MAX_ODOMETER_KM = 9_999_999;
+
+export function validateVehicleText(value: string, fieldName: string): string | null {
+  const trimmed = value.trim();
+  if (!trimmed) return `${fieldName} is required.`;
+  if (trimmed.length > MAX_VEHICLE_TEXT_LENGTH)
+    return `${fieldName} must be ${MAX_VEHICLE_TEXT_LENGTH} characters or fewer.`;
+  return null;
+}
+
+export function validateVehicleYear(value: string): string | null {
+  const trimmed = value.trim();
+  if (!trimmed) return "Year is required.";
+  if (!/^\d{4}$/.test(trimmed)) return "Year must be 4 digits, e.g. 2019.";
+  const year = Number(trimmed);
+  const maxYear = new Date().getFullYear() + 1; // next year's models go on sale early
+  if (year < 1950 || year > maxYear) return `Year must be between 1950 and ${maxYear}.`;
+  return null;
+}
+
+// SA plates vary by province and include personalised plates, so only a
+// loose shape check: letters, digits, spaces and hyphens.
+export function validateRegistration(value: string): string | null {
+  const trimmed = value.trim();
+  if (!trimmed) return "Registration number is required.";
+  if (!/^[A-Za-z0-9 -]{2,12}$/.test(trimmed))
+    return "Use letters, numbers, spaces or hyphens only (max 12).";
+  return null;
+}
+
+// Optional field — empty is valid.
+export function validateOdometer(value: string, fieldName = "Odometer reading"): string | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const num = Number(trimmed);
+  if (isNaN(num) || num < 0) return `${fieldName} must be a positive number.`;
+  if (num > MAX_ODOMETER_KM) return `${fieldName} looks too high.`;
+  return null;
+}
+
+// Trip "From" / "To" place — SARS requires both for every business trip.
+export const MAX_TRIP_PLACE_LENGTH = 200;
+export function validateTripPlace(value: string, fieldName: string): string | null {
+  const trimmed = value.trim();
+  if (!trimmed) return `Please add "${fieldName}". SARS needs it.`;
+  if (trimmed.length > MAX_TRIP_PLACE_LENGTH)
+    return `${fieldName} must be ${MAX_TRIP_PLACE_LENGTH} characters or fewer.`;
+  return null;
+}
+
+// SARS requires the reason for every business trip.
+export function validateTripReason(value: string): string | null {
+  const trimmed = value.trim();
+  if (!trimmed) return "Please say why you went. SARS needs it.";
+  if (trimmed.length > MAX_NOTE_LENGTH)
+    return `Reason must be ${MAX_NOTE_LENGTH} characters or fewer.`;
+  return null;
+}
+
 // ── Vendor / text fields ──────────────────────────────────────────────────────
 export function validateVendor(value: string): string | null {
   const trimmed = value.trim();

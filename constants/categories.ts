@@ -32,7 +32,7 @@ export const CATEGORIES: Category[] = [
   { label: "Repairs & Maintenance",    icon: "wrench.fill",           code: "S11(a)",    deductible: true,  examples: "Fixing equipment, office repairs, servicing" },
   { label: "Training & Education",     icon: "book.fill",             code: "S11(a)",    deductible: true,  examples: "Courses, workshops, conferences, certifications" },
   { label: "Telephone & Internet",     icon: "phone.fill",            code: "S11(a)",    deductible: true,  examples: "Airtime, data, fibre, ADSL, WiFi, ISP bills (Vodacom, MTN, Telkom, Cell C, RSAWeb)" },
-  { label: "Vehicle Expenses",         icon: "car.fill",              code: "S11(a)",    deductible: true,  examples: "Fuel, vehicle maintenance, licensing (non-mileage vehicle costs)" },
+  { label: "Vehicle Expenses",         icon: "car.fill",              code: "S11(a)",    deductible: true,  examples: "Fuel, insurance, services, licence, finance charges (you claim the work share from your logbook)" },
   { label: "Retirement Annuity",       icon: "chart.bar.fill",        code: "S11F",      deductible: true,  examples: "Retirement annuity contributions" },
   { label: "Personal / Other",         icon: "person.fill",           code: "N/A",       deductible: false, examples: "Non-business or personal expenses (not tax-deductible)" },
 ];

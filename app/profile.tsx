@@ -1,3 +1,4 @@
+import { showNotice } from "@/components/NoticeHost";
 ﻿import { InfoBanner } from "@/components/InfoBanner";
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
@@ -13,16 +14,15 @@ import { colour, radius, space, typography } from "@/tokens";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StatusBar,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StatusBar,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { safeBack } from "@/lib/navigation";
@@ -84,7 +84,7 @@ export default function ProfileScreen() {
     if (dateOfBirth) {
       const dobError = validateDateOfBirth(displayDateToISO(dateOfBirth));
       if (dobError) {
-        Alert.alert("Error", dobError);
+        showNotice({ title: "Check your date of birth", message: dobError });
         return;
       }
     }
@@ -102,8 +102,8 @@ export default function ProfileScreen() {
         has_disability: taxDisability,
       });
       setSuccessVisible(true);
-    } catch (e: any) {
-      Alert.alert("Error", e.message ?? "Could not save profile.");
+    } catch {
+      showNotice({ title: "Couldn't save your profile", message: "Please check your internet connection and try again." });
     } finally {
       setSaving(false);
     }

@@ -219,7 +219,12 @@ export default function HomeScreen() {
           incomeService.getTotals(user.id, activeTaxYear),
           expenseService.getRecentExpenses(user.id, 5),
           incomeService.getRecentIncome(user.id, 5, activeTaxYear),
-          taxLiabilityService.getEstimate(user.id, activeTaxYear).catch(() => null),
+          // Recalculated against current deductions rather than read as
+          // stored, so "SARS owes you" always includes every saving: vehicle
+          // costs, wear & tear and everything else logged since it was saved.
+          taxLiabilityService.refreshEstimate(user.id, activeTaxYear)
+            .then((r) => r?.estimate ?? null)
+            .catch(() => taxLiabilityService.getEstimate(user.id, activeTaxYear).catch(() => null)),
         ]),
         timeout,
       ]);

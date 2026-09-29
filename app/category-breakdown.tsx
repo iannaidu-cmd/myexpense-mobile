@@ -7,6 +7,8 @@ import { profileService } from "@/services/profileService";
 import { useAuthStore } from "@/stores/authStore";
 import { useExpenseStore } from "@/stores/expenseStore";
 import { floorRatio, useHomeOfficeStore } from "@/stores/homeOfficeStore";
+import { logbookBusinessUse, useVehicleStore } from "@/stores/vehicleStore";
+import type { MileageTrip } from "@/services/mileageService";
 import { colour, radius, space, typography } from "@/tokens";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useAppForeground } from "@/hooks/use-app-foreground";
@@ -75,12 +77,22 @@ export default function CategoryBreakdownScreen() {
   const [selected, setSelected] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>("All");
 
-  // Vehicle logbook — total km is a per-tax-year figure (the annual odometer
-  // reading), so it's namespaced by activeTaxYear to avoid last year's number
-  // leaking into this year's ratio.
-  const [businessKm, setBusinessKm] = useState(0);
+  // Vehicle logbook — the business-use % comes from the vehicles' opening and
+  // closing odometer readings (vehicle_odometer_readings) once they exist.
+  // Until then (e.g. mid-year, before the closing reading) the user can enter
+  // an estimated total km, kept per tax year on the device as before.
+  const [tripsForYear, setTripsForYear] = useState<MileageTrip[]>([]);
   const [totalKmStr, setTotalKmStr] = useState('');
   const totalKmKey = `@mx_total_km:${activeTaxYear}`;
+  const { readings: odometerReadings, load: loadVehicles } = useVehicleStore();
+  const businessKm = tripsForYear.reduce((s, t) => s + Number(t.distance_km), 0);
+  const fromOdometer = logbookBusinessUse(tripsForYear, odometerReadings);
+  const estimateTotalKm = parseFloat(totalKmStr);
+  const vehicleRatio: number | null = fromOdometer
+    ? fromOdometer.ratio
+    : !isNaN(estimateTotalKm) && estimateTotalKm > 0 && businessKm > 0
+      ? Math.min(businessKm / estimateTotalKm, 1)
+      : null;
 
   // Home office — the real, single source of truth (also used by
   // add-expense-manual.tsx and home-office-setup.tsx). This panel used to
@@ -94,14 +106,17 @@ export default function CategoryBreakdownScreen() {
     AsyncStorage.getItem(totalKmKey).then((v) => setTotalKmStr(v ?? ''));
   }, [totalKmKey]);
 
-  // Fetch GPS business km when Vehicle Expenses is selected
+  // Fetch logbook trips + odometer readings when Vehicle Expenses is selected
   useEffect(() => {
     if (selected !== 'Vehicle Expenses' || !user) return;
     (async () => {
       try {
         const { mileageService } = await import('@/services/mileageService');
-        const km = await mileageService.getTotalBusinessKm(user.id, activeTaxYear);
-        setBusinessKm(km);
+        const [trips] = await Promise.all([
+          mileageService.getTrips(user.id, activeTaxYear),
+          loadVehicles(user.id, activeTaxYear, true),
+        ]);
+        setTripsForYear(trips);
       } catch { /* non-fatal */ }
     })();
   }, [selected, user, activeTaxYear]);
@@ -112,11 +127,10 @@ export default function CategoryBreakdownScreen() {
   // the ratio is applied at entry time (same pattern as Telephone/Insurance/
   // Home Office) rather than retroactively rewriting saved expense amounts.
   useEffect(() => {
-    const totalKm = parseFloat(totalKmStr);
-    if (!totalKmStr || isNaN(totalKm) || totalKm <= 0 || businessKm <= 0) return;
-    const pct = Math.round(Math.min(businessKm / totalKm, 1) * 100);
+    if (vehicleRatio == null || vehicleRatio <= 0) return;
+    const pct = Math.round(vehicleRatio * 100);
     AsyncStorage.setItem(`@mx_vehicle_business_pct:${activeTaxYear}`, String(pct));
-  }, [businessKm, totalKmStr, activeTaxYear]);
+  }, [vehicleRatio, activeTaxYear]);
 
   const loadData = useCallback(async () => {
     if (!user) { setLoading(false); return; }
@@ -390,34 +404,53 @@ export default function CategoryBreakdownScreen() {
                   Logbook deduction calculator
                 </Text>
                 <Text style={{ ...typography.micro, color: C.textSecondary, marginBottom: space.sm }}>
-                  SARS: (business km ÷ total km) × vehicle costs
+                  You claim the work share of your vehicle costs: your work km compared to all your km
                 </Text>
-                <View style={{ flexDirection: 'row', gap: space.md, marginBottom: space.sm }}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ ...typography.micro, color: C.textHint, marginBottom: 4 }}>Business km (GPS tracked)</Text>
-                    <Text style={{ ...typography.labelM, color: C.primary }}>{businessKm.toFixed(1)} km</Text>
+                {fromOdometer ? (
+                  <View style={{ flexDirection: 'row', gap: space.md, marginBottom: space.sm }}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ ...typography.micro, color: C.textHint, marginBottom: 4 }}>Work km (logbook)</Text>
+                      <Text style={{ ...typography.labelM, color: C.primary }}>{fromOdometer.businessKm.toFixed(1)} km</Text>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ ...typography.micro, color: C.textHint, marginBottom: 4 }}>Total km (from your km readings)</Text>
+                      <Text style={{ ...typography.labelM, color: C.textPrimary }}>{fromOdometer.totalKm.toFixed(1)} km</Text>
+                    </View>
                   </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ ...typography.micro, color: C.textHint, marginBottom: 4 }}>Total km (annual odometer)</Text>
-                    <TextInput
-                      value={totalKmStr}
-                      onChangeText={setTotalKmStr}
-                      onBlur={() => AsyncStorage.setItem(totalKmKey, totalKmStr)}
-                      keyboardType="numeric"
-                      placeholder="e.g. 15000"
-                      placeholderTextColor={C.textHint}
-                      style={{ borderWidth: 1, borderColor: C.border, borderRadius: radius.sm, paddingHorizontal: space.sm, paddingVertical: 6, fontSize: 14, color: C.textPrimary }}
-                    />
-                  </View>
-                </View>
+                ) : (
+                  <>
+                    <View style={{ flexDirection: 'row', gap: space.md, marginBottom: space.sm }}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ ...typography.micro, color: C.textHint, marginBottom: 4 }}>Work km (GPS tracked)</Text>
+                        <Text style={{ ...typography.labelM, color: C.primary }}>{businessKm.toFixed(1)} km</Text>
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ ...typography.micro, color: C.textHint, marginBottom: 4 }}>Total km (estimate)</Text>
+                        <TextInput
+                          value={totalKmStr}
+                          onChangeText={setTotalKmStr}
+                          onBlur={() => AsyncStorage.setItem(totalKmKey, totalKmStr)}
+                          keyboardType="numeric"
+                          placeholder="e.g. 15000"
+                          placeholderTextColor={C.textHint}
+                          style={{ borderWidth: 1, borderColor: C.border, borderRadius: radius.sm, paddingHorizontal: space.sm, paddingVertical: 6, fontSize: 14, color: C.textPrimary }}
+                        />
+                      </View>
+                    </View>
+                    <TouchableOpacity onPress={() => router.push('/vehicles')} style={{ marginBottom: space.sm }}>
+                      <Text style={{ ...typography.micro, color: C.primary, fontWeight: '600' }}>
+                        Add your start and end of year km readings →
+                      </Text>
+                    </TouchableOpacity>
+                  </>
+                )}
                 {(() => {
-                  const totalKm = parseFloat(totalKmStr);
-                  if (!totalKmStr || isNaN(totalKm) || totalKm <= 0 || businessKm <= 0) return null;
-                  const ratio = Math.min(businessKm / totalKm, 1);
+                  if (vehicleRatio == null || vehicleRatio <= 0) return null;
+                  const ratio = vehicleRatio;
                   return (
                     <View style={{ backgroundColor: C.successBg, borderRadius: radius.sm, padding: space.sm }}>
                       <Text style={{ ...typography.micro, color: C.success }}>
-                        Business use: {(ratio * 100).toFixed(1)}% → this year&apos;s total so far: {fmt(selectedCat.amount * ratio)}
+                        Work use: {(ratio * 100).toFixed(1)}% · you can claim {fmt(selectedCat.amount)} so far this year
                       </Text>
                       <Text style={{ ...typography.micro, color: C.textSecondary, marginTop: 4 }}>
                         This % will be suggested automatically next time you log a Vehicle Expense — it only applies to expenses logged from now on, not ones already saved.
@@ -440,7 +473,7 @@ export default function CategoryBreakdownScreen() {
                 {homeOfficeSetting && homeOfficeSetting.totalM2 > 0 ? (
                   <View style={{ backgroundColor: C.successBg, borderRadius: radius.sm, padding: space.sm }}>
                     <Text style={{ ...typography.micro, color: C.success }}>
-                      Home office: {(floorRatio(homeOfficeSetting) * 100).toFixed(1)}% ({homeOfficeSetting.officeM2}m² ÷ {homeOfficeSetting.totalM2}m²) → this year&apos;s total so far: {fmt(selectedCat.amount * floorRatio(homeOfficeSetting))}
+                      Home office: {(floorRatio(homeOfficeSetting) * 100).toFixed(1)}% ({homeOfficeSetting.officeM2}m² ÷ {homeOfficeSetting.totalM2}m²) · claimable so far this year: {fmt(selectedCat.amount)}
                     </Text>
                     <TouchableOpacity onPress={() => router.push('/home-office-setup' as any)} style={{ marginTop: space.xs }}>
                       <Text style={{ ...typography.micro, color: C.primary, fontWeight: '600' }}>Edit room sizes</Text>

@@ -1,7 +1,29 @@
 import { CATEGORY_PARTIAL_CAPS } from "@/constants/categories";
 import { getCached, invalidatePrefix, setCached } from "@/lib/queryCache";
 import { supabase } from "@/lib/supabase";
+import { claimableInputVat } from "@/lib/vat";
 import type { Expense, NewExpense, UpdateExpense } from "@/types/database";
+
+// Income-tax-deductible base of one expense row. A registered VAT vendor
+// claims input VAT back separately (VAT201), so only the VAT they can
+// actually claim comes off; VAT they can't claim (entertainment, or the
+// private share of a partly-business cost) stays part of the cost (s23C).
+// When the row was apportioned (business_use_pct), `amount` is already the
+// business share, so only that share of the VAT comes off. The old rule
+// subtracted the full VAT from the reduced amount and under-deducted.
+export function deductibleBase(
+  e: {
+    amount: number | string;
+    vat_amount?: number | string | null;
+    business_use_pct?: number | string | null;
+    category: string;
+    is_deductible: boolean;
+  },
+  vatRegistered: boolean,
+): number {
+  if (!vatRegistered) return Number(e.amount);
+  return Math.max(0, Number(e.amount) - claimableInputVat(e));
+}
 
 export interface ExpenseTotals {
   totalExpenses: number;
@@ -117,7 +139,7 @@ export const expenseService = {
 
     const { data, error } = await supabase
       .from("expenses")
-      .select("amount, is_deductible, category, vat_amount")
+      .select("amount, is_deductible, category, vat_amount, business_use_pct")
       .eq("user_id", userId)
       .eq("tax_year", taxYear);
 
@@ -130,10 +152,7 @@ export const expenseService = {
         .filter((e) => e.is_deductible)
         .reduce((sum, e) => {
           const cap = CATEGORY_PARTIAL_CAPS[e.category] ?? 1;
-          const base = vatRegistered
-            ? Math.max(0, Number(e.amount) - Number(e.vat_amount ?? 0))
-            : Number(e.amount);
-          return sum + base * cap;
+          return sum + deductibleBase(e, vatRegistered) * cap;
         }, 0),
       receiptCount: expenses.length,
     };
@@ -153,6 +172,8 @@ export const expenseService = {
       .from("expenses")
       .select("id", { count: "exact", head: true })
       .eq("user_id", userId)
+      // System-managed wear-and-tear rows aren't something the user added.
+      .is("wear_and_tear_vehicle_id", null)
       .gte("created_at", startOfMonth.toISOString());
 
     if (error) throw new Error(error.message);
@@ -177,6 +198,9 @@ export const expenseService = {
         notes: expense.notes ?? null,
         receipt_url: expense.receipt_url ?? null,
         storage_path: expense.storage_path ?? null,
+        gross_amount: expense.gross_amount ?? null,
+        business_use_pct: expense.business_use_pct ?? null,
+        vehicle_id: expense.vehicle_id ?? null,
       })
       .select()
       .single();
@@ -263,7 +287,7 @@ export const expenseService = {
 
     const { data, error } = await supabase
       .from("expenses")
-      .select("category, amount, vat_amount")
+      .select("category, amount, vat_amount, business_use_pct, is_deductible")
       .eq("user_id", userId)
       .eq("tax_year", taxYear)
       .eq("is_deductible", true);
@@ -272,10 +296,7 @@ export const expenseService = {
 
     const result = (data ?? []).reduce<Record<string, number>>((acc, e) => {
       const cap = CATEGORY_PARTIAL_CAPS[e.category] ?? 1;
-      const base = vatRegistered
-        ? Math.max(0, Number(e.amount) - Number(e.vat_amount ?? 0))
-        : Number(e.amount);
-      acc[e.category] = (acc[e.category] ?? 0) + base * cap;
+      acc[e.category] = (acc[e.category] ?? 0) + deductibleBase(e, vatRegistered) * cap;
       return acc;
     }, {});
     setCached(key, result);

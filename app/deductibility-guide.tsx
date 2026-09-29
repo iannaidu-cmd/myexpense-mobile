@@ -34,9 +34,9 @@ const GUIDE: GuideEntry[] = [
     category: "Travel & Vehicle",
     section: "S11(a)",
     itr12Field: "Travel Costs – Local",
-    deductPct: "100%",
-    condition: "Business travel only. Logbook required.",
-    docs: "Logbook, fuel receipts, trip purpose",
+    deductPct: "Work share",
+    condition: "The work share of your real vehicle costs, from your logbook. Driving between home and work doesn't count.",
+    docs: "Logbook (trips and km readings), plus fuel, insurance and repair receipts",
   },
   {
     icon: "house.fill",

@@ -1,3 +1,4 @@
+import { showNotice } from "@/components/NoticeHost";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
@@ -16,16 +17,15 @@ import { colour, radius, space, typography } from "@/tokens";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StatusBar,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StatusBar,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { safeBack } from "@/lib/navigation";
@@ -164,7 +164,7 @@ export default function AddIncomeScreen() {
     const noteErr = validateNote(description);
     const firstErr = amountErr ?? sourceErr ?? dateErr ?? noteErr;
     if (firstErr) {
-      Alert.alert("Invalid input", firstErr);
+      showNotice({ title: "Check your details", message: firstErr });
       return;
     }
 
@@ -196,8 +196,11 @@ export default function AddIncomeScreen() {
         setSuccessMessage(`R ${parseFloat(amount).toLocaleString("en-ZA", { minimumFractionDigits: 2 })} from ${source} has been saved.`);
       }
       setSuccessVisible(true);
-    } catch (e: any) {
-      Alert.alert(isEditing ? "Error updating income" : "Error saving income", e.message);
+    } catch {
+      showNotice({
+        title: isEditing ? "Couldn't update this income" : "Couldn't save this income",
+        message: "Please check your internet connection and try again.",
+      });
     } finally {
       setSaving(false);
     }

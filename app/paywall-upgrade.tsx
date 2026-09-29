@@ -1,3 +1,4 @@
+import { showNotice } from "@/components/NoticeHost";
 import { MXButton } from "@/components/MXButton";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useAuthStore } from "@/stores/authStore";
@@ -11,7 +12,7 @@ import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useState } from "react";
-import { Alert, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { type PurchasesPackage } from "react-native-purchases";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { safeBack } from "@/lib/navigation";
@@ -160,9 +161,13 @@ export default function PaywallUpgradeScreen() {
   // If already Pro via RevenueCat (e.g. restored), go back
   useEffect(() => {
     if (isPro) {
-      Alert.alert("You're on Pro!", "Premium is already active on this account.", [
-        { text: "OK", onPress: () => safeBack(router) },
-      ]);
+      showNotice({
+        title: "You're on Pro!",
+        message: "Pro is already switched on for this account.",
+        tone: "success",
+        icon: "crown.fill",
+        onConfirm: () => safeBack(router),
+      });
     }
   }, [isPro]);
 
@@ -185,18 +190,21 @@ export default function PaywallUpgradeScreen() {
 
   const handlePurchase = async () => {
     if (!selectedPkg) {
-      Alert.alert("Not available", "Products are still loading. Please try again in a moment.");
+      showNotice({ title: "Just a moment", message: "Prices are still loading. Please try again in a few seconds.", tone: "info" });
       return;
     }
     const success = await purchasePackage(selectedPkg);
     if (success) {
       await syncPremiumStatus();
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert(
-        "Welcome to Pro! ⚡",
-        "You now have unlimited access to all MyExpense features.",
-        [{ text: "Let's go", onPress: () => safeBack(router) }]
-      );
+      showNotice({
+        title: "Welcome to Pro!",
+        message: "You can now use every MyExpense feature, as much as you like.",
+        tone: "success",
+        icon: "crown.fill",
+        confirmLabel: "Let's go",
+        onConfirm: () => safeBack(router),
+      });
     }
   };
 
@@ -204,11 +212,15 @@ export default function PaywallUpgradeScreen() {
     const restored = await restorePurchases();
     if (restored) {
       await syncPremiumStatus();
-      Alert.alert("Purchases restored", "Your Pro subscription has been restored.", [
-        { text: "OK", onPress: () => safeBack(router) },
-      ]);
+      showNotice({
+        title: "Pro restored",
+        message: "Your Pro subscription is back on.",
+        tone: "success",
+        icon: "crown.fill",
+        onConfirm: () => safeBack(router),
+      });
     } else {
-      Alert.alert("Nothing to restore", "No active Pro subscription was found on this account.");
+      showNotice({ title: "Nothing to restore", message: "We couldn't find a Pro subscription for this account.", tone: "info" });
     }
   };
 

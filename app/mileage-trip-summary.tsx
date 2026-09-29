@@ -1,11 +1,13 @@
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { SARS_RATE_PER_KM } from "@/lib/taxRules";
+import { claimsVehicleCostsAsBusiness, EMPLOYEE_VEHICLE_NOTE } from "@/lib/workType";
+import { profileService } from "@/services/profileService";
+import { useAuthStore } from "@/stores/authStore";
 import { useExpenseStore } from "@/stores/expenseStore";
 import { colour, radius, space, typography } from "@/tokens";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
     Image,
     Platform,
@@ -47,6 +49,16 @@ const platformShadow =
 export default function MileageTripSummaryScreen() {
   const router = useRouter();
   const { activeTaxYear } = useExpenseStore();
+  const { user } = useAuthStore();
+  // Salaried employees can't claim vehicle costs themselves (lib/workType.ts).
+  const [isEmployee, setIsEmployee] = useState(false);
+  useEffect(() => {
+    if (!user) return;
+    profileService
+      .getProfile(user.id)
+      .then((p) => setIsEmployee(!claimsVehicleCostsAsBusiness(p?.work_type)))
+      .catch(() => {});
+  }, [user]);
   const params = useLocalSearchParams<{
     tripId: string;
     distanceKm: string;
@@ -67,7 +79,6 @@ export default function MileageTripSummaryScreen() {
   const itr12 = params.itr12 ?? "S11(a)";
   const note = params.note ?? "";
   const startTime = params.startTime ? new Date(params.startTime) : new Date();
-  const deduction = distanceKm * SARS_RATE_PER_KM;
 
   const startLat = parseFloat(params.startLat ?? "0");
   const startLon = parseFloat(params.startLon ?? "0");
@@ -82,17 +93,11 @@ export default function MileageTripSummaryScreen() {
     ? `https://maps.googleapis.com/maps/api/staticmap?center=${midLat},${midLon}&zoom=13&size=600x200&maptype=roadmap&markers=color:green%7C${startLat},${startLon}&markers=color:red%7C${endLat},${endLon}&path=color:0x006FFDff|weight:4|${startLat},${startLon}|${endLat},${endLon}&key=${process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ?? ""}`
     : null;
 
-  const handleAddAsExpense = () => {
-    router.push({
-      pathname: "/(tabs)/add-expense",
-      params: {
-        amount: deduction.toFixed(2),
-        category: "Vehicle Expenses",
-        description: `Business travel: ${purpose} (${distanceKm.toFixed(2)} km @ R${SARS_RATE_PER_KM}/km)`,
-        itr12ref: itr12,
-        date: startTime.toISOString().split("T")[0],
-      },
-    });
+  // Self-employed (s11(a)) vehicle claims are actual costs × logbook
+  // business-use % — the km themselves are not a deduction, so there's no
+  // per-km expense to add here. Instead, point to logging an actual cost.
+  const handleLogVehicleCost = () => {
+    router.push({ pathname: "/add-expense-manual", params: { category: "Vehicle Expenses" } });
   };
 
   return (
@@ -168,7 +173,7 @@ export default function MileageTripSummaryScreen() {
             }}
           >
             <Text style={{ ...typography.captionM, color: colour.primary }}>
-              Estimated tax deduction
+              Work km logged
             </Text>
             <Text
               style={{
@@ -177,11 +182,10 @@ export default function MileageTripSummaryScreen() {
                 marginTop: 2,
               }}
             >
-              R{deduction.toFixed(2)}
+              {distanceKm.toFixed(2)} km
             </Text>
-            <Text style={{ ...typography.bodyXS, color: colour.textSub }}>
-              {distanceKm.toFixed(2)} km × R{SARS_RATE_PER_KM}/km (SARS deemed
-              rate)
+            <Text style={{ ...typography.bodyXS, color: colour.textSub, textAlign: "center" }}>
+              Counts towards how much of your driving is for work
             </Text>
           </View>
 
@@ -294,12 +298,7 @@ export default function MileageTripSummaryScreen() {
           <DetailRow icon="tag.fill" label="Purpose" value={purpose} />
           <DetailRow icon="doc.text.fill" label="SARS reference" value={itr12} />
           <DetailRow icon="calendar" label="Tax year" value={activeTaxYear} />
-          <DetailRow
-            icon="dollarsign.circle.fill"
-            label="SARS rate"
-            value={`R${SARS_RATE_PER_KM}/km (deemed cost)`}
-          />
-          {note ? <DetailRow icon="pencil" label="Note" value={note} /> : null}
+          {note ? <DetailRow icon="pencil" label="Reason" value={note} /> : null}
         </View>
 
         {/* Actions */}
@@ -326,9 +325,10 @@ export default function MileageTripSummaryScreen() {
             </Text>
           </TouchableOpacity>
 
-          {/* Add as expense */}
+          {/* Log an actual vehicle cost */}
+          {!isEmployee && (
           <TouchableOpacity
-            onPress={handleAddAsExpense}
+            onPress={handleLogVehicleCost}
             style={{
               backgroundColor: colour.white,
               borderRadius: radius.pill,
@@ -340,9 +340,10 @@ export default function MileageTripSummaryScreen() {
             activeOpacity={0.85}
           >
             <Text style={{ ...typography.actionL, color: colour.primary }}>
-              Add as expense entry
+              Log a vehicle cost
             </Text>
           </TouchableOpacity>
+          )}
 
           {/* Start another */}
           <TouchableOpacity
@@ -369,9 +370,9 @@ export default function MileageTripSummaryScreen() {
           }}
         >
           <Text style={{ ...typography.bodyXS, color: colour.text }}>
-            The deduction estimate uses the SARS deemed cost rate of R{SARS_RATE_PER_KM}/km.
-            Actual deductibility depends on your total business km vs private km
-            ratio. Consult a tax professional for your ITR12 submission.
+            {isEmployee
+              ? `${EMPLOYEE_VEHICLE_NOTE} Check with a tax practitioner before you file.`
+              : "If you work for yourself, you claim the work share of what your vehicle really costs you: fuel, insurance, repairs, licence, finance charges and wear & tear. The work share is your work km from this logbook compared to all the km you drove. Check with a tax practitioner before you file."}
           </Text>
         </View>
       </ScrollView>

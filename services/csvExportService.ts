@@ -3,7 +3,7 @@
 // saves it to the device filesystem, then shares it via the native share sheet.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { expenseService } from "@/services/expenseService";
+import { deductibleBase, expenseService } from "@/services/expenseService";
 import { profileService } from "@/services/profileService";
 import type { Expense } from "@/types/database";
 import { ITR12_CATEGORIES } from "@/types/database";
@@ -55,11 +55,7 @@ export function generateCSV(expenses: Expense[], vatRegistered = false): string 
         new Date(b.expense_date).getTime() - new Date(a.expense_date).getTime(),
     )
     .map((e) => {
-      const deductibleAmount = e.is_deductible
-        ? vatRegistered
-          ? Math.max(0, Number(e.amount) - Number(e.vat_amount ?? 0))
-          : Number(e.amount)
-        : 0;
+      const deductibleAmount = e.is_deductible ? deductibleBase(e, vatRegistered) : 0;
       return [
         csvField(e.expense_date),
         csvField(e.vendor),

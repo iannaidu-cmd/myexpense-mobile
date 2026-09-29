@@ -1,3 +1,4 @@
+import { showNotice } from "@/components/NoticeHost";
 import { ConfirmModal } from "@/components/ConfirmModal";
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
@@ -12,7 +13,6 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   ScrollView,
   StatusBar,
   Text,
@@ -93,8 +93,8 @@ export default function IncomeDetailScreen() {
     try {
       await incomeService.deleteIncome(income.id);
       router.replace("/income-history" as any);
-    } catch (e: any) {
-      Alert.alert("Error", e.message);
+    } catch {
+      showNotice({ title: "Couldn't delete this income", message: "Please check your internet connection and try again." });
       setDeleting(false);
     }
   };
@@ -115,11 +115,15 @@ export default function IncomeDetailScreen() {
       });
       await incomeService.deleteIncome(income.id);
       router.replace("/expense-history" as any);
-    } catch (e: any) {
-      Alert.alert("Error", e.message);
+    } catch {
+      showNotice({ title: "Couldn't move this to expenses", message: "Please check your internet connection and try again." });
       setConverting(false);
     }
   };
+
+  // System-managed s8(4)(a) recoupment from a vehicle sale
+  // (services/wearAndTearService.ts). It's changed from the vehicle, not here.
+  const isRecoupment = !!income?.recoupment_vehicle_id;
 
   return (
     <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colour.background }}>
@@ -129,7 +133,7 @@ export default function IncomeDetailScreen() {
         title="Income details"
         showBack
         right={
-          income ? (
+          income && !isRecoupment ? (
             <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
               <TouchableOpacity
                 onPress={() => router.push(`/add-income?id=${income.id}` as any)}
@@ -236,6 +240,24 @@ export default function IncomeDetailScreen() {
               </Text>
             </View>
 
+            {isRecoupment && (
+              <TouchableOpacity
+                onPress={() =>
+                  router.push({ pathname: "/vehicle-form", params: { id: income.recoupment_vehicle_id } })
+                }
+                style={{
+                  marginTop: space.xl,
+                  backgroundColor: colour.primary,
+                  borderRadius: radius.pill,
+                  paddingVertical: 14,
+                  alignItems: "center",
+                }}
+              >
+                <Text style={{ ...typography.btnL, color: colour.onPrimary }}>View vehicle sale</Text>
+              </TouchableOpacity>
+            )}
+
+            {!isRecoupment && (<>
             {/* Reclassify as expense */}
             <TouchableOpacity
               onPress={() => setShowConvertConfirm(true)}
@@ -281,6 +303,7 @@ export default function IncomeDetailScreen() {
                 Delete income
               </Text>
             </TouchableOpacity>
+            </>)}
           </ScrollView>
         </>
       )}

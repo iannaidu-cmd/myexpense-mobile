@@ -1,3 +1,4 @@
+import { showNotice } from "@/components/NoticeHost";
 import { AnnouncementModal } from "@/components/AnnouncementModal";
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
@@ -13,13 +14,12 @@ import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Image,
-    StatusBar,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Image,
+  StatusBar,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import {
     SafeAreaView,
@@ -81,11 +81,12 @@ export default function UploadFromGalleryScreen() {
   const openPicker = useCallback(async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
-      Alert.alert(
-        "Permission Required",
-        "Please allow access to your photo library in Settings to upload receipts.",
-        [{ text: "OK", onPress: () => safeBack(router) }],
-      );
+      showNotice({
+        title: "Allow access to your photos",
+        message: "To upload a receipt, let MyExpense use your photos. You can switch this on in your phone's settings.",
+        icon: "photo.fill",
+        onConfirm: () => safeBack(router),
+      });
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -165,8 +166,8 @@ export default function UploadFromGalleryScreen() {
       // Pass local URI for preview — bucket is private so no public URL is generated
       receiptState.set(base64, manipulated.uri, storagePath);
       router.push("/scan-receipt-processing" as any);
-    } catch (e: any) {
-      Alert.alert("Upload Failed", e.message ?? "Could not upload receipt.");
+    } catch {
+      showNotice({ title: "Couldn't upload your receipt", message: "Please check your internet connection and try again." });
     } finally {
       setUploading(false);
     }

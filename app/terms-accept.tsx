@@ -1,3 +1,4 @@
+import { showNotice } from "@/components/NoticeHost";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useAuthStore } from "@/stores/authStore";
 import { colour, radius, space, typography } from "@/tokens";
@@ -5,7 +6,6 @@ import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   StatusBar,
   Text,
   TouchableOpacity,
@@ -25,8 +25,8 @@ export default function TermsAcceptScreen() {
     try {
       await acceptTerms();
       router.replace("/(tabs)");
-    } catch (e: any) {
-      Alert.alert("Error", e.message ?? "Could not save your acceptance. Please try again.");
+    } catch {
+      showNotice({ title: "Couldn't save that", message: "Please check your internet connection and try again." });
     } finally {
       setSaving(false);
     }

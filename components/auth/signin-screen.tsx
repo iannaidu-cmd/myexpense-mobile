@@ -1,3 +1,4 @@
+import { showNotice } from "@/components/NoticeHost";
 import * as AppleAuthentication from "expo-apple-authentication";
 import { supabase } from "@/lib/supabase";
 import {
@@ -19,7 +20,6 @@ import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -210,7 +210,7 @@ export function SigninScreen() {
     try {
       const stored = await getBiometricSession();
       if (!stored) {
-        if (!auto) Alert.alert("Setup required", "Please sign in with your email and password once to activate fingerprint login.");
+        if (!auto) showNotice({ title: "One more step", message: "Sign in once with your email and password to switch on fingerprint sign-in.", tone: "info" });
         return;
       }
       const { data, error } = await supabase.auth.setSession({
@@ -219,14 +219,14 @@ export function SigninScreen() {
       });
       if (error || !data.session?.user) {
         await clearBiometricSession();
-        Alert.alert("Sign in with password", "Your session has expired. Sign in once with your email and password — fingerprint will reactivate automatically.");
+        showNotice({ title: "Please sign in again", message: "For your safety, sign in once with your email and password. Fingerprint sign-in will then work again.", tone: "info" });
         return;
       }
       await saveBiometricSession(data.session.user.email ?? stored.email, data.session.access_token, data.session.refresh_token);
       useAuthStore.setState({ user: { id: data.session.user.id, email: data.session.user.email ?? "" }, isAuthenticated: true });
       router.replace("/(tabs)");
     } catch {
-      Alert.alert("Sign in failed", "Please sign in with your email and password.");
+      showNotice({ title: "Couldn't sign you in", message: "Please sign in with your email and password." });
     }
   };
 
@@ -256,10 +256,16 @@ export function SigninScreen() {
         if (sd.session) await saveBiometricSession(email, sd.session.access_token, sd.session.refresh_token);
       }
       if (available && !alreadyEnabled) {
-        Alert.alert(`Enable ${biometricLabel}?`, `Use ${biometricLabel} to sign in faster next time.`, [
-          { text: "Not now", style: "cancel", onPress: () => router.replace("/(tabs)") },
-          { text: "Enable", onPress: async () => { await setBiometricEnabled(true); setBiometricEnabledState(true); router.replace("/(tabs)"); } },
-        ]);
+        showNotice({
+          title: `Use ${biometricLabel}?`,
+          message: `Sign in faster next time with ${biometricLabel}.`,
+          tone: "info",
+          icon: "lock.fill",
+          confirmLabel: "Switch it on",
+          onConfirm: async () => { await setBiometricEnabled(true); setBiometricEnabledState(true); router.replace("/(tabs)"); },
+          cancelLabel: "Not now",
+          onCancel: () => router.replace("/(tabs)"),
+        });
       } else {
         router.replace("/(tabs)");
       }
@@ -275,7 +281,7 @@ export function SigninScreen() {
     try {
       const result = await signInWithGoogle();
       if (result.success) router.replace("/(tabs)");
-      else if (result.error !== "cancelled") Alert.alert("Google Sign-In failed", result.error ?? "Please try again.");
+      else if (result.error !== "cancelled") showNotice({ title: "Couldn't sign in with Google", message: "Please try again." });
     } finally { setGoogleLoading(false); }
   };
 
@@ -283,7 +289,7 @@ export function SigninScreen() {
     setFbLoading(true);
     try {
       const result = await signInWithFacebook();
-      if (!result.success && result.error !== "cancelled") Alert.alert("Facebook Sign-In failed", result.error ?? "Please try again.");
+      if (!result.success && result.error !== "cancelled") showNotice({ title: "Couldn't sign in with Facebook", message: "Please try again." });
     } finally { setFbLoading(false); }
   };
 
@@ -292,7 +298,7 @@ export function SigninScreen() {
     try {
       const result = await signInWithApple();
       if (result.success) router.replace("/(tabs)");
-      else if (result.error !== "cancelled") Alert.alert("Apple Sign-In failed", result.error ?? "Please try again.");
+      else if (result.error !== "cancelled") showNotice({ title: "Couldn't sign in with Apple", message: "Please try again." });
     } finally { setAppleLoading(false); }
   };
 

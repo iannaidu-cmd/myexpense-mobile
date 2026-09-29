@@ -3,9 +3,6 @@ import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { calculateTaxLiability, TaxLiabilityResult } from "@/lib/taxLiability";
-import { expenseService } from "@/services/expenseService";
-import { incomeService } from "@/services/incomeService";
-import { profileService } from "@/services/profileService";
 import { taxLiabilityService } from "@/services/taxLiabilityService";
 import { useAuthStore } from "@/stores/authStore";
 import { useExpenseStore } from "@/stores/expenseStore";
@@ -66,51 +63,18 @@ export default function TaxLiabilitySummaryScreen() {
     if (!user) { setLoading(false); return; }
     setLoading(true);
     try {
-      const existing = await taxLiabilityService.getEstimate(user.id, activeTaxYear);
-      if (!existing) {
+      // Keep the persisted row fresh against current income/deductions (same
+      // "recalculate on every view" habit as services/taxService.ts's
+      // tax_summary), then use the full result (age/rebate/RA breakdown).
+      const refreshed = await taxLiabilityService.refreshEstimate(user.id, activeTaxYear);
+      if (!refreshed) {
         router.replace("/tax-liability-inputs" as any);
         return;
       }
 
-      const profile = await profileService.getProfile(user.id);
-      const [expenseTotals, incomeTotals] = await Promise.all([
-        expenseService.getTotals(user.id, activeTaxYear, profile?.vat_registered ?? false),
-        incomeService.getTotals(user.id, activeTaxYear),
-      ]);
-      const income = Math.max(0, incomeTotals.totalIncome - expenseTotals.totalDeductions);
-
-      const calcInput = {
-        taxYear: activeTaxYear,
-        businessTaxableIncome: income,
-        otherTaxableIncome: existing.other_taxable_income,
-        dateOfBirth: profile?.date_of_birth ?? null,
-        retirementAnnuityContributions: existing.retirement_annuity_contributions,
-        medicalAidDependants: profile?.medical_aid_dependants ?? 0,
-        donationsYtd: existing.donations_ytd ?? 0,
-        taxAlreadyPaid: existing.tax_already_paid,
-        retirementSeveranceLumpSum: existing.retirement_severance_lump_sum,
-        priorRetirementSeveranceLumpSums: existing.prior_retirement_severance_lump_sums,
-      };
-
-      // Keep the persisted row fresh (same "recalculate on every view" habit
-      // as services/taxService.ts's tax_summary), then use the full result
-      // (age/rebate/RA breakdown) for display.
-      await taxLiabilityService.recalculateEstimate(user.id, activeTaxYear, {
-        tax_year: activeTaxYear,
-        other_taxable_income: existing.other_taxable_income,
-        retirement_annuity_contributions: existing.retirement_annuity_contributions,
-        tax_already_paid: existing.tax_already_paid,
-        donations_ytd: existing.donations_ytd,
-        retirement_severance_lump_sum: existing.retirement_severance_lump_sum,
-        prior_retirement_severance_lump_sums: existing.prior_retirement_severance_lump_sums,
-        businessTaxableIncome: income,
-        dateOfBirth: profile?.date_of_birth ?? null,
-        medicalAidDependants: profile?.medical_aid_dependants ?? 0,
-      });
-
-      setResult(calculateTaxLiability(calcInput));
-      setBusinessTaxableIncome(income);
-      setOtherIncome(existing.other_taxable_income);
+      setResult(calculateTaxLiability(refreshed.input));
+      setBusinessTaxableIncome(refreshed.input.businessTaxableIncome);
+      setOtherIncome(refreshed.input.otherTaxableIncome);
     } catch (e) {
       console.error("TaxLiabilitySummary load error:", e);
     } finally {

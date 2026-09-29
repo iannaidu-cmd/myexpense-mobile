@@ -1,3 +1,4 @@
+import { showNotice } from "@/components/NoticeHost";
 // ─── BiometricToggle ──────────────────────────────────────────────────────────
 // Drop this into the Settings screen Preferences section.
 // Shows a toggle to enable/disable biometric login.
@@ -15,7 +16,7 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { supabase } from "@/lib/supabase";
 import { colour, radius, space, typography } from "@/tokens";
 import { useEffect, useState } from "react";
-import { Alert, Switch, Text, View } from "react-native";
+import { Switch, Text, View } from "react-native";
 
 export function BiometricToggle() {
   const [available, setAvailable] = useState(false);
@@ -44,10 +45,10 @@ export function BiometricToggle() {
       // Save the current session so biometric login can restore it
       const { data } = await supabase.auth.getSession();
       if (!data.session) {
-        Alert.alert(
-          "Error",
-          "Could not save session. Please sign out and back in, then try again.",
-        );
+        showNotice({
+          title: "Couldn't turn this on",
+          message: "Please sign out and sign in again, then try once more.",
+        });
         return;
       }
       await saveBiometricSession(
@@ -58,24 +59,21 @@ export function BiometricToggle() {
 
       await setBiometricEnabled(true);
       setEnabled(true);
-      Alert.alert("Enabled", `${label} sign-in is now active.`);
+      showNotice({ title: `${label} is on`, message: `You can now sign in with ${label}.`, tone: "success" });
     } else {
-      Alert.alert(
-        `Disable ${label}?`,
-        "You will need to use your password to sign in.",
-        [
-          { text: "Cancel", style: "cancel" },
-          {
-            text: "Disable",
-            style: "destructive",
-            onPress: async () => {
-              await clearBiometricSession();
-              await setBiometricEnabled(false);
-              setEnabled(false);
-            },
-          },
-        ],
-      );
+      showNotice({
+        title: `Switch off ${label}?`,
+        message: "You'll need your password to sign in.",
+        destructive: true,
+        icon: "lock.fill",
+        confirmLabel: "Switch off",
+        cancelLabel: "Cancel",
+        onConfirm: async () => {
+          await clearBiometricSession();
+          await setBiometricEnabled(false);
+          setEnabled(false);
+        },
+      });
     }
   };
 
