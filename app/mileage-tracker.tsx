@@ -6,6 +6,8 @@ import { useKeepAwake } from "expo-keep-awake";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
+import { SectionEyebrow } from "@/components/MXSection";
+import { useNotice } from "@/components/useNotice";
 import { VehiclePicker } from "@/components/VehiclePicker";
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from "@/components/maps";
 import { FREE_MILEAGE_TRIP_LIMIT } from "@/constants/freeTier";
@@ -24,7 +26,6 @@ import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
     ActivityIndicator,
-    Alert,
     KeyboardAvoidingView,
     Modal,
     Platform,
@@ -105,6 +106,7 @@ export default function MileageTrackerScreen() {
   const router = useRouter();
   const { user, isPremium, isInitialised, refreshPremiumStatus } = useAuthStore();
   const { activeTaxYear } = useExpenseStore();
+  const { notice, showNotice } = useNotice();
 
   const [premiumChecked, setPremiumChecked] = useState(false);
   const [tripLimitReached, setTripLimitReached] = useState(false);
@@ -230,10 +232,12 @@ export default function MileageTrackerScreen() {
         setSelectedVehicleId(saved.selectedVehicleId ?? null);
         setStartAddress(saved.startAddress ?? null);
         pausedKmRef.current = saved.distanceKm ?? 0;
-        Alert.alert(
-          "Trip restored",
-          "Your previous trip was recovered. Tap Resume to continue tracking.",
-        );
+        showNotice({
+          title: "We saved your trip",
+          message: "The app closed while you were tracking, but your trip is safe. Tap Resume to carry on.",
+          tone: "info",
+          icon: "car.fill",
+        });
       } catch {
         AsyncStorage.removeItem(TRIP_STORAGE_KEY);
       }
@@ -255,10 +259,11 @@ export default function MileageTrackerScreen() {
         const { status: perm } =
           await Location.requestForegroundPermissionsAsync();
         if (perm !== "granted") {
-          Alert.alert(
-            "Location Required",
-            "MyExpense needs location access to track your business travel for SARS compliance.",
-          );
+          showNotice({
+            title: "Allow location to track trips",
+            message: "MyExpense uses your location to measure your work trips for SARS. You can switch it on in your phone's settings.",
+            icon: "mappin",
+          });
           setLocationReady(true);
           return;
         }
@@ -367,10 +372,11 @@ export default function MileageTrackerScreen() {
         },
       );
     } catch {
-      Alert.alert(
-        "Location Unavailable",
-        "Please enable GPS/location services on your device before starting a trip.",
-      );
+      showNotice({
+        title: "Switch on your location",
+        message: "Turn on location (GPS) on your phone, then start the trip again.",
+        icon: "mappin",
+      });
     }
   }, [currentPos]);
 
@@ -466,11 +472,11 @@ export default function MileageTrackerScreen() {
           endLon: String(currentPos?.longitude ?? 0),
         },
       });
-    } catch (e: any) {
-      Alert.alert(
-        "Save failed",
-        e.message ?? "Could not save trip. Please try again.",
-      );
+    } catch {
+      showNotice({
+        title: "Couldn't save your trip",
+        message: "Please check your internet connection and try again. Your trip is still here, so nothing is lost.",
+      });
     } finally {
       setSaving(false);
     }
@@ -1097,9 +1103,7 @@ export default function MileageTrackerScreen() {
               SARS needs to know which vehicle you used and why you went.
             </Text>
 
-            <Text style={{ ...typography.labelM, color: colour.textSub, marginBottom: space.xs }}>
-              VEHICLE
-            </Text>
+            <SectionEyebrow style={{ marginBottom: space.xs }}>Vehicle</SectionEyebrow>
             <VehiclePicker
               vehicles={tripVehicles}
               selectedId={selectedVehicleId}
@@ -1112,16 +1116,7 @@ export default function MileageTrackerScreen() {
               }}
             />
 
-            <Text
-              style={{
-                ...typography.labelM,
-                color: colour.textSub,
-                marginTop: space.md,
-                marginBottom: space.xs,
-              }}
-            >
-              PURPOSE
-            </Text>
+            <SectionEyebrow style={{ marginTop: space.md, marginBottom: space.xs }}>Type of trip</SectionEyebrow>
 
             {TRIP_PURPOSES.map((p) => (
               <TouchableOpacity
@@ -1243,6 +1238,7 @@ export default function MileageTrackerScreen() {
 
       <MXTabBar />
 
+      {notice}
       <AnnouncementModal
         visible={showAddVehicle && status === "idle"}
         icon="car.fill"

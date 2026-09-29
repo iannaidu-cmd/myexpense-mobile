@@ -2,7 +2,9 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { MXHeader } from "@/components/MXHeader";
 import { expenseService } from "@/services/expenseService";
 import { incomeService } from "@/services/incomeService";
-import { mileageService } from "@/services/mileageService";
+import { mileageService, missingLogbookFields } from "@/services/mileageService";
+import { logbookBusinessUse, useVehicleStore } from "@/stores/vehicleStore";
+import { claimsVehicleCostsAsBusiness } from "@/lib/workType";
 import { claimableInputVat } from "@/lib/vat";
 import { profileService } from "@/services/profileService";
 import { taxLiabilityService } from "@/services/taxLiabilityService";
@@ -241,6 +243,18 @@ export default function ReportsTabScreen() {
   const [taxLiability, setTaxLiability] = useState<TaxLiabilityEstimate | null>(null);
   const [vatRegistered, setVatRegistered] = useState(false);
   const [vatClaimable, setVatClaimable] = useState(0);
+  // Mileage logbook card. Vehicle claims come from the same expense rows as
+  // every other total (actual costs × work share, plus the automatic wear &
+  // tear row), so this card, the deductions strip and "SARS owes you" agree.
+  const [mileage, setMileage] = useState<{
+    workKm: number;
+    trips: number;
+    incompleteTrips: number;
+    workUsePct: number | null;
+    vehicleClaims: number;
+    hasVehicle: boolean;
+    isEmployee: boolean;
+  } | null>(null);
 
   const isFetching = useRef(false);
   const hasLoaded = useRef(false);
@@ -261,13 +275,30 @@ export default function ReportsTabScreen() {
             incomeService.getIncome(user.id, activeTaxYear),
             mileageService.getTrips(user.id, activeTaxYear),
             expenseService.getByCategory(user.id, activeTaxYear, vatRegistered),
-            taxLiabilityService.getEstimate(user.id, activeTaxYear).catch(() => null),
+            // Recalculated against current deductions, same as Home, so the
+            // two "SARS owes you" figures can never disagree.
+            taxLiabilityService
+              .refreshEstimate(user.id, activeTaxYear)
+              .then((r) => r?.estimate ?? null)
+              .catch(() => taxLiabilityService.getEstimate(user.id, activeTaxYear).catch(() => null)),
+            useVehicleStore.getState().load(user.id, activeTaxYear, true).catch(() => {}),
           ]);
 
         setFyDeductions(expenseTotals.totalDeductions);
         setReceiptCount(expenseTotals.receiptCount);
         setTotalKm(Math.round(mileageTrips.reduce((s, t) => s + Number(t.distance_km), 0)));
         setTripCount(mileageTrips.length);
+        const { vehicles, readings } = useVehicleStore.getState();
+        const workUse = logbookBusinessUse(mileageTrips, readings);
+        setMileage({
+          workKm: mileageTrips.reduce((s, t) => s + Number(t.distance_km), 0),
+          trips: mileageTrips.length,
+          incompleteTrips: mileageTrips.filter((t) => missingLogbookFields(t).length > 0).length,
+          workUsePct: workUse ? workUse.ratio * 100 : null,
+          vehicleClaims: byCategory["Vehicle Expenses"] ?? 0,
+          hasVehicle: vehicles.some((v) => !v.isArchived),
+          isEmployee: !claimsVehicleCostsAsBusiness(profile?.work_type),
+        });
         setCategoryCount(
           Object.keys(byCategory).filter((k) => k !== "Personal / Non-deductible").length,
         );
@@ -716,6 +747,66 @@ export default function ReportsTabScreen() {
                 <IconSymbol name="chevron.right" size={14} color={colour.white} />
               </View>
             </TouchableOpacity>
+
+            {/* ── 4d. Mileage logbook (noir, same build as the VAT card) ─── */}
+            {mileage && (
+              <TouchableOpacity
+                onPress={() => router.push(mileage.hasVehicle || mileage.trips > 0 ? "/mileage-history" : "/vehicle-form")}
+                activeOpacity={0.85}
+                style={{
+                  backgroundColor: colour.noir,
+                  borderRadius: radius.md,
+                  padding: 16,
+                  paddingHorizontal: 18,
+                  marginBottom: 14,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  overflow: "hidden",
+                }}
+              >
+                <View style={{
+                  position: "absolute", width: 100, height: 100, borderRadius: 50,
+                  backgroundColor: colour.primary, opacity: 0.35, top: -30, right: -20,
+                }} />
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 10, fontWeight: "600", color: colour.onNoir2, letterSpacing: 0.5, marginBottom: 4 }}>
+                    MILEAGE LOGBOOK
+                  </Text>
+                  {!mileage.hasVehicle && mileage.trips === 0 ? (
+                    <Text style={{ fontSize: 15, fontWeight: "700", color: colour.onNoir, letterSpacing: -0.3 }}>
+                      Add your vehicle to start
+                    </Text>
+                  ) : mileage.isEmployee ? (
+                    <Text style={{ fontSize: 24, fontWeight: "800", letterSpacing: -1, color: colour.onNoir }}>
+                      {Math.round(mileage.workKm).toLocaleString("en-ZA")} work km
+                    </Text>
+                  ) : (
+                    <Text style={{ fontSize: 24, fontWeight: "800", letterSpacing: -1, color: colour.onNoir }}>
+                      {fmtAmount(mileage.vehicleClaims)} to claim
+                    </Text>
+                  )}
+                  <Text style={{ fontSize: 10, color: colour.onNoir2, marginTop: 4 }}>
+                    {!mileage.hasVehicle
+                      ? mileage.trips > 0
+                        ? "Add your vehicle to finish your logbook"
+                        : "Track your work trips for SARS"
+                      : mileage.incompleteTrips > 0
+                        ? `${mileage.incompleteTrips} trip${mileage.incompleteTrips === 1 ? " needs" : "s need"} more details`
+                        : mileage.workUsePct == null
+                          ? `${Math.round(mileage.workKm).toLocaleString("en-ZA")} work km · add your km readings`
+                          : `${Math.round(mileage.workKm).toLocaleString("en-ZA")} work km · ${mileage.workUsePct.toFixed(0)}% work use`}
+                  </Text>
+                </View>
+                <View style={{
+                  width: 32, height: 32, borderRadius: 16,
+                  backgroundColor: "rgba(255,255,255,0.15)",
+                  alignItems: "center", justifyContent: "center",
+                }}>
+                  <IconSymbol name="chevron.right" size={14} color={colour.white} />
+                </View>
+              </TouchableOpacity>
+            )}
 
             {/* ── 5. Transactions ──────────────────────────────────────────── */}
             <SectionLabel>Transactions</SectionLabel>

@@ -1,8 +1,9 @@
-import { InfoBanner } from "@/components/InfoBanner";
-import { isoToDisplayDate } from "@/lib/dateInput";
+import { MXButton } from "@/components/MXButton";
 import { MXHeader } from "@/components/MXHeader";
+import { NoteCard, SectionEyebrow } from "@/components/MXSection";
 import { MXTabBar } from "@/components/MXTabBar";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { isoToDisplayDate } from "@/lib/dateInput";
 import { useAuthStore } from "@/stores/authStore";
 import { useExpenseStore } from "@/stores/expenseStore";
 import {
@@ -17,7 +18,6 @@ import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
-  Platform,
   ScrollView,
   StatusBar,
   Text,
@@ -26,25 +26,15 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const platformShadow =
-  Platform.select({
-    ios: {
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 8,
-    },
-    android: { elevation: 4 },
-    default: { boxShadow: "0 2px 8px rgba(0,0,0,0.10)" },
-  }) ?? {};
-
 const fmtKm = (n: number) => `${n.toLocaleString("en-ZA", { maximumFractionDigits: 1 })} km`;
+const fmtR = (n: number) =>
+  `R ${n.toLocaleString("en-ZA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-function odometerStatus(r: OdometerReading | undefined): { text: string; needsAction: boolean } {
+function kmStatus(r: OdometerReading | undefined): { text: string; needsAction: boolean } {
   const total = odometerTotalKm(r);
   if (total != null) return { text: `${fmtKm(total)} this tax year`, needsAction: false };
   if (r?.openingKm != null) {
-    return { text: `Started the year on ${fmtKm(r.openingKm)} · add the end-of-year reading later`, needsAction: false };
+    return { text: `Started the year on ${fmtKm(r.openingKm)}`, needsAction: false };
   }
   return { text: "Start-of-year km reading missing", needsAction: true };
 }
@@ -69,72 +59,83 @@ export default function VehiclesScreen() {
   const active = vehicles.filter((v) => !v.isArchived);
   const archived = vehicles.filter((v) => v.isArchived);
 
-  const renderVehicle = (v: Vehicle) => {
-    const status = odometerStatus(readings[v.id]);
+  // One row, same build as the expense-history list rows.
+  const renderVehicle = (v: Vehicle, i: number, list: Vehicle[]) => {
+    const status = kmStatus(readings[v.id]);
+    const claim = wearAndTear[v.id]?.claim;
     return (
       <TouchableOpacity
         key={v.id}
-        activeOpacity={0.8}
+        activeOpacity={0.7}
         onPress={() => router.push({ pathname: "/vehicle-form", params: { id: v.id } })}
         style={{
-          backgroundColor: colour.white,
-          borderRadius: radius.lg,
-          padding: space.lg,
-          marginBottom: space.md,
-          borderWidth: 1,
-          borderColor: colour.border,
+          flexDirection: "row",
+          alignItems: "center",
+          paddingVertical: space.md,
+          borderBottomWidth: i < list.length - 1 ? 1 : 0,
+          borderBottomColor: colour.border,
           opacity: v.isArchived ? 0.6 : 1,
-          ...platformShadow,
         }}
       >
-        <View style={{ flexDirection: "row", alignItems: "center" }}>
-          <View
+        <View
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: 20,
+            backgroundColor: colour.primaryLight,
+            alignItems: "center",
+            justifyContent: "center",
+            marginRight: space.md,
+          }}
+        >
+          <IconSymbol name="car.fill" size={18} color={colour.primary} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={{ ...typography.itemTitle, color: colour.textPrimary }} numberOfLines={1}>
+            {vehicleLabel(v)}
+          </Text>
+          <Text
             style={{
-              width: 44,
-              height: 44,
-              borderRadius: 12,
-              backgroundColor: colour.primaryLight,
-              alignItems: "center",
-              justifyContent: "center",
-              marginRight: space.md,
+              ...typography.itemSub,
+              color: status.needsAction && !v.isArchived ? colour.danger : colour.textSecondary,
+              marginTop: 2,
             }}
           >
-            <IconSymbol name="car.fill" size={22} color={colour.primary} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={{ ...typography.labelM, color: colour.textPrimary }}>{vehicleLabel(v)}</Text>
-            <Text
-              style={{
-                ...typography.caption,
-                color: status.needsAction && !v.isArchived ? colour.danger : colour.textSecondary,
-              }}
-            >
-              {v.isArchived ? (v.soldDate ? `Sold ${isoToDisplayDate(v.soldDate)}` : "Archived") : status.text}
-            </Text>
-            {!v.isArchived && wearAndTear[v.id]?.claim != null && wearAndTear[v.id]!.claim! > 0 && (
-              <Text style={{ ...typography.caption, color: colour.accentDeep }}>
-                Wear & tear {activeTaxYear}: R {wearAndTear[v.id]!.claim!.toLocaleString("en-ZA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </Text>
-            )}
-          </View>
-          <View
-            style={{
-              backgroundColor: colour.primaryLight,
-              borderRadius: radius.pill,
-              paddingHorizontal: space.sm,
-              paddingVertical: 2,
-              marginRight: space.xs,
-            }}
-          >
-            <Text style={{ ...typography.micro, color: colour.primary, fontWeight: "700" }}>
-              {v.registration}
-            </Text>
-          </View>
-          <IconSymbol name="chevron.right" size={16} color={colour.textHint} />
+            {v.isArchived
+              ? v.soldDate
+                ? `Sold ${isoToDisplayDate(v.soldDate)}`
+                : "Hidden"
+              : `${v.registration} · ${status.text}`}
+          </Text>
+        </View>
+        <View style={{ alignItems: "flex-end", gap: 5 }}>
+          {!v.isArchived && claim != null && claim > 0 ? (
+            <>
+              <Text style={{ ...typography.itemAmount, color: colour.accentDeep }}>{fmtR(claim)}</Text>
+              <Text style={{ ...typography.itemSub, color: colour.textSecondary }}>wear & tear</Text>
+            </>
+          ) : (
+            <IconSymbol name="chevron.right" size={14} color={colour.textHint} />
+          )}
         </View>
       </TouchableOpacity>
     );
   };
+
+  const listCard = (list: Vehicle[]) => (
+    <View
+      style={{
+        backgroundColor: colour.bgCard,
+        borderRadius: radius.card,
+        borderWidth: 1,
+        borderColor: colour.border,
+        paddingHorizontal: space.lg,
+        marginBottom: space.xl,
+      }}
+    >
+      {list.map((v, i) => renderVehicle(v, i, list))}
+    </View>
+  );
 
   return (
     <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colour.background }}>
@@ -142,7 +143,7 @@ export default function VehiclesScreen() {
 
       <MXHeader
         title="Vehicles"
-        subtitle={`Tax Year ${activeTaxYear}`}
+        subtitle={`Tax year ${activeTaxYear}`}
         showBack
         right={
           <TouchableOpacity
@@ -154,32 +155,39 @@ export default function VehiclesScreen() {
               paddingVertical: space.xs,
             }}
           >
-            <Text style={{ ...typography.actionS, color: colour.accentDeep }}>+ Add</Text>
+            <Text style={{ ...typography.chipText, color: colour.accentDeep }}>+ Add</Text>
           </TouchableOpacity>
         }
       />
 
       <ScrollView
-        style={{
-          flex: 1,
-          backgroundColor: colour.bgPage,
-          borderTopLeftRadius: radius.xl,
-          borderTopRightRadius: radius.xl,
-        }}
+        style={{ flex: 1 }}
         contentContainerStyle={{ padding: space.lg, paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
       >
         {loading ? (
           <View style={{ alignItems: "center", paddingTop: space["4xl"] }}>
-            <ActivityIndicator color={colour.primary} size="large" />
+            <ActivityIndicator color={colour.primary} />
           </View>
         ) : vehicles.length === 0 ? (
-          <View style={{ alignItems: "center", paddingTop: space["4xl"] }}>
-            <IconSymbol name="car.fill" size={48} color={colour.textHint} style={{ marginBottom: space.md } as any} />
-            <Text style={{ ...typography.h4, color: colour.textPrimary }}>No vehicles yet</Text>
+          <View style={{ alignItems: "center", paddingTop: space["4xl"], paddingHorizontal: space.lg }}>
+            <View
+              style={{
+                width: 64,
+                height: 64,
+                borderRadius: 32,
+                backgroundColor: colour.primaryLight,
+                alignItems: "center",
+                justifyContent: "center",
+                marginBottom: space.md,
+              }}
+            >
+              <IconSymbol name="car.fill" size={28} color={colour.primary} />
+            </View>
+            <Text style={{ ...typography.cardTitle, color: colour.textPrimary }}>No vehicles yet</Text>
             <Text
               style={{
-                ...typography.bodyM,
+                ...typography.mSub,
                 color: colour.textSecondary,
                 textAlign: "center",
                 marginTop: space.xs,
@@ -188,46 +196,27 @@ export default function VehiclesScreen() {
             >
               Add the vehicle you use for work, so each trip in your logbook is linked to it.
             </Text>
-            <TouchableOpacity
-              onPress={() => router.push("/vehicle-form")}
-              style={{
-                backgroundColor: colour.primary,
-                borderRadius: radius.pill,
-                paddingVertical: space.md,
-                paddingHorizontal: space.xl,
-              }}
-            >
-              <Text style={{ ...typography.btnL, color: colour.onPrimary }}>Add vehicle</Text>
-            </TouchableOpacity>
+            <MXButton label="Add vehicle" variant="primary" size="L" onPress={() => router.push("/vehicle-form")} fullWidth />
           </View>
         ) : (
           <>
             {active.length > 0 && (
-              <Text style={{ ...typography.labelM, color: colour.textSecondary, marginBottom: space.sm }}>
-                IN USE
-              </Text>
+              <>
+                <SectionEyebrow>In use</SectionEyebrow>
+                {listCard(active)}
+              </>
             )}
-            {active.map(renderVehicle)}
-
             {archived.length > 0 && (
-              <Text
-                style={{
-                  ...typography.labelM,
-                  color: colour.textSecondary,
-                  marginTop: space.md,
-                  marginBottom: space.sm,
-                }}
-              >
-                SOLD & ARCHIVED
-              </Text>
+              <>
+                <SectionEyebrow>Sold or hidden</SectionEyebrow>
+                {listCard(archived)}
+              </>
             )}
-            {archived.map(renderVehicle)}
 
-            <InfoBanner
+            <NoteCard
               icon="car.fill"
               title="Your km readings"
               body="For each vehicle, write down the km on your dashboard on 1 March and on the last day of February. You need both to claim for your vehicle."
-              style={{ marginTop: space.sm }}
             />
           </>
         )}

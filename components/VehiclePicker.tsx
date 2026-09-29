@@ -1,6 +1,7 @@
 // ─── VehiclePicker ────────────────────────────────────────────────────────────
 // Radio-style list of the user's vehicles for a mileage trip, with an
-// "Add vehicle" row. Same selected/unselected styling as the trip purpose list.
+// "Add vehicle" row. Sits inside a SectionCard (components/MXSection.tsx) and
+// uses the mockup's list-item type roles (itemTitle / itemSub).
 
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { vehicleLabel, type Vehicle } from "@/stores/vehicleStore";
@@ -24,6 +25,7 @@ export function VehiclePicker({ vehicles, selectedId, onSelect, onAddVehicle }: 
           <TouchableOpacity
             key={v.id}
             onPress={() => onSelect(v.id)}
+            activeOpacity={0.7}
             style={{
               flexDirection: "row",
               alignItems: "center",
@@ -32,6 +34,7 @@ export function VehiclePicker({ vehicles, selectedId, onSelect, onAddVehicle }: 
               borderRadius: radius.md,
               backgroundColor: selected ? colour.primary50 : "transparent",
               marginBottom: 4,
+              gap: space.md,
             }}
           >
             <View
@@ -41,32 +44,39 @@ export function VehiclePicker({ vehicles, selectedId, onSelect, onAddVehicle }: 
                 borderRadius: 10,
                 borderWidth: 2,
                 borderColor: selected ? colour.primary : colour.border,
+                backgroundColor: selected ? colour.primary : "transparent",
                 alignItems: "center",
                 justifyContent: "center",
-                marginRight: space.sm,
               }}
             >
               {selected && (
-                <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: colour.primary }} />
+                <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: colour.onPrimary }} />
               )}
             </View>
-            <Text style={{ ...typography.bodyM, color: colour.text, flex: 1 }}>{vehicleLabel(v)}</Text>
-            <Text style={{ ...typography.bodyXS, color: colour.textSub }}>{v.registration}</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={{ ...typography.itemTitle, color: colour.textPrimary }} numberOfLines={1}>
+                {vehicleLabel(v)}
+              </Text>
+              <Text style={{ ...typography.itemSub, color: colour.textSecondary, marginTop: 2 }}>
+                {v.registration}
+              </Text>
+            </View>
           </TouchableOpacity>
         );
       })}
       <TouchableOpacity
         onPress={onAddVehicle}
+        activeOpacity={0.7}
         style={{
           flexDirection: "row",
           alignItems: "center",
           paddingVertical: space.sm,
           paddingHorizontal: space.sm,
-          gap: space.sm,
+          gap: space.md,
         }}
       >
         <IconSymbol name="plus.circle.fill" size={20} color={colour.primary} />
-        <Text style={{ ...typography.actionS, color: colour.primary }}>
+        <Text style={{ ...typography.mTbtn, color: colour.primary }}>
           {vehicles.length === 0 ? "Add your vehicle" : "Add another vehicle"}
         </Text>
       </TouchableOpacity>

@@ -1,8 +1,11 @@
-import { InfoBanner } from "@/components/InfoBanner";
+import { ConfirmModal } from "@/components/ConfirmModal";
 import { MXButton } from "@/components/MXButton";
 import { MXHeader } from "@/components/MXHeader";
 import { MXInput } from "@/components/MXInput";
+import { NoteCard, SectionCard } from "@/components/MXSection";
 import { MXTabBar } from "@/components/MXTabBar";
+import { SuccessModal } from "@/components/SuccessModal";
+import { useNotice } from "@/components/useNotice";
 import { VehiclePicker } from "@/components/VehiclePicker";
 import { FREE_MILEAGE_TRIP_LIMIT } from "@/constants/freeTier";
 import { TRIP_PURPOSES } from "@/constants/tripPurposes";
@@ -32,7 +35,6 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -57,6 +59,7 @@ export default function MileageTripEditScreen() {
   const { user, isPremium } = useAuthStore();
   const { activeTaxYear } = useExpenseStore();
   const { vehicles, load: loadVehicles } = useVehicleStore();
+  const { notice, showNotice } = useNotice();
 
   const [trip, setTrip] = useState<MileageTrip | null>(null);
   const [loading, setLoading] = useState(!isNew);
@@ -72,6 +75,8 @@ export default function MileageTripEditScreen() {
   const [suggested, setSuggested] = useState({ from: false, to: false });
   const [errors, setErrors] = useState<Record<string, string | null>>({});
   const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const isManual = isNew || trip?.source === "manual";
 
@@ -112,8 +117,11 @@ export default function MileageTripEditScreen() {
         if (start) setFrom((cur) => cur || start);
         if (end) setTo((cur) => cur || end);
         setSuggested({ from: !!start, to: !!end });
-      } catch (e: any) {
-        Alert.alert("Error", e.message);
+      } catch {
+        showNotice({
+          title: "Couldn't open this trip",
+          message: "Please check your internet connection and try again.",
+        });
       } finally {
         setLoading(false);
       }
@@ -135,7 +143,7 @@ export default function MileageTripEditScreen() {
 
   const validate = () => {
     const next: Record<string, string | null> = {
-      vehicle: vehicleId ? null : "Choose the vehicle used for this trip.",
+      vehicle: vehicleId ? null : "Choose the vehicle you used.",
       from: validateTripPlace(from, "From"),
       to: validateTripPlace(to, "To"),
       reason: validateTripReason(reason),
@@ -169,7 +177,8 @@ export default function MileageTripEditScreen() {
     if (!user) return;
     const error = validate();
     if (error) {
-      Alert.alert("Logbook details needed", error);
+      // Each problem is also shown under its own field.
+      showNotice({ title: "Check the highlighted fields", message: error });
       return;
     }
     setSaving(true);
@@ -193,14 +202,14 @@ export default function MileageTripEditScreen() {
         if (!isPremium) {
           const count = await mileageService.countThisMonth(user.id).catch(() => null);
           if (count !== null && count >= FREE_MILEAGE_TRIP_LIMIT) {
-            Alert.alert(
-              "Monthly trip limit reached",
-              `Free accounts can log ${FREE_MILEAGE_TRIP_LIMIT} trips a month. Upgrade to Pro for unlimited trips.`,
-              [
-                { text: "Not now", style: "cancel" },
-                { text: "Upgrade", onPress: () => router.push("/paywall-upgrade" as any) },
-              ],
-            );
+            showNotice({
+              title: "You've used this month's trips",
+              message: `Free accounts can log ${FREE_MILEAGE_TRIP_LIMIT} trips a month. Upgrade to Pro to log as many as you like.`,
+              icon: "crown.fill",
+              confirmLabel: "Upgrade to Pro",
+              cancelLabel: "Not now",
+              onConfirm: () => router.push("/paywall-upgrade" as any),
+            });
             return;
           }
         }
@@ -228,12 +237,40 @@ export default function MileageTripEditScreen() {
       // each affected vehicle's business-use % and wear & tear.
       const years = new Set([taxYear, trip?.tax_year].filter((y): y is string => !!y));
       for (const ty of years) await useVehicleStore.getState().syncWearAndTear(user.id, ty);
-      safeBack(router, "/mileage-history");
-    } catch (e: any) {
-      Alert.alert("Save failed", e.message ?? "Could not save this trip. Please try again.");
+      setSaved(true);
+    } catch {
+      showNotice({
+        title: "Couldn't save this trip",
+        message: "Please check your internet connection and try again.",
+      });
     } finally {
       setSaving(false);
     }
+  };
+
+  const confirmDelete = async () => {
+    if (!user || !trip) return;
+    setShowDeleteConfirm(false);
+    try {
+      await mileageService.deleteTrip(trip.id, user.id);
+      // Fewer work km changes the vehicle's work share and wear & tear.
+      await useVehicleStore.getState().syncWearAndTear(user.id, trip.tax_year);
+      safeBack(router, "/mileage-history");
+    } catch {
+      showNotice({ title: "Couldn't delete this trip", message: "Please try again." });
+    }
+  };
+
+  // Clear the form for another manual trip, keeping the vehicle and date.
+  const addAnother = () => {
+    setSaved(false);
+    setDistance("");
+    setFrom("");
+    setTo("");
+    setReason("");
+    setOdoStart("");
+    setOdoEnd("");
+    setErrors({});
   };
 
   const purposeOptions = TRIP_PURPOSES.some((p) => p.label === purpose) || !purpose
@@ -247,9 +284,9 @@ export default function MileageTripEditScreen() {
         title={isNew ? "Add a trip" : "Trip details"}
         subtitle={
           isNew
-            ? "Add a trip you didn't track"
+            ? "A trip you didn't track"
             : trip
-              ? `${isoToDisplayDate(trip.trip_date)} · ${Number(trip.distance_km).toFixed(2)} km${isManual ? " · manual" : ""}`
+              ? `${isoToDisplayDate(trip.trip_date)} · ${Number(trip.distance_km).toFixed(1)} km${isManual ? " · added by hand" : ""}`
               : undefined
         }
         showBack
@@ -258,9 +295,9 @@ export default function MileageTripEditScreen() {
       {!isNew && (loading || !trip) ? (
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
           {loading ? (
-            <ActivityIndicator color={colour.primary} size="large" />
+            <ActivityIndicator color={colour.primary} />
           ) : (
-            <Text style={{ ...typography.bodyM, color: colour.textSub }}>Trip not found.</Text>
+            <Text style={{ ...typography.mSub, color: colour.textSub }}>We couldn't find this trip.</Text>
           )}
         </View>
       ) : (
@@ -274,30 +311,19 @@ export default function MileageTripEditScreen() {
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
-            <InfoBanner
+            <NoteCard
               icon="car.fill"
               title="What SARS needs"
               body={
                 isNew
-                  ? "For a work trip you didn't track with GPS. SARS needs the date, the distance, the vehicle, where you drove from and to, and why."
-                  : "For every work trip, SARS needs the vehicle, where you drove from and to, and why."
+                  ? "For a work trip you didn't track with GPS: the date, the distance, the vehicle, where you drove from and to, and why."
+                  : "For every work trip: the vehicle, where you drove from and to, and why."
               }
-              style={{ marginBottom: space.xl }}
             />
 
-            {/* ── Vehicle ───────────────────────────────────────────── */}
-            <Text style={{ ...typography.labelM, color: errors.vehicle ? colour.danger : colour.textSub, marginBottom: space.sm }}>
-              VEHICLE
-            </Text>
-            <View
-              style={{
-                backgroundColor: colour.white,
-                borderRadius: radius.md,
-                borderWidth: 1,
-                borderColor: errors.vehicle ? colour.danger : colour.borderLight,
-                padding: space.xs,
-                marginBottom: space.xl,
-              }}
+            <SectionCard
+              title="Vehicle"
+              style={errors.vehicle ? { borderColor: colour.danger } : undefined}
             >
               <VehiclePicker
                 vehicles={pickable}
@@ -305,15 +331,14 @@ export default function MileageTripEditScreen() {
                 onSelect={setVehicleId}
                 onAddVehicle={() => router.push("/vehicle-form")}
               />
-            </View>
+              {errors.vehicle ? (
+                <Text style={{ ...typography.hintText, color: colour.danger }}>{errors.vehicle}</Text>
+              ) : null}
+            </SectionCard>
 
-            {/* ── Date & distance (manual trips only) ───────────────── */}
             {isManual && (
-              <>
-                <Text style={{ ...typography.labelM, color: colour.textSub, marginBottom: space.sm }}>
-                  DATE & DISTANCE
-                </Text>
-                <View style={{ flexDirection: "row", gap: space.md, marginBottom: space.xl }}>
+              <SectionCard title="Date and distance">
+                <View style={{ flexDirection: "row", gap: space.md }}>
                   <View style={{ flex: 1 }}>
                     <MXInput
                       label="Trip date"
@@ -336,14 +361,10 @@ export default function MileageTripEditScreen() {
                     />
                   </View>
                 </View>
-              </>
+              </SectionCard>
             )}
 
-            {/* ── Route & reason ────────────────────────────────────── */}
-            <Text style={{ ...typography.labelM, color: colour.textSub, marginBottom: space.sm }}>
-              TRAVEL DETAILS
-            </Text>
-            <View style={{ gap: space.md, marginBottom: space.xl }}>
+            <SectionCard title="Where and why">
               <MXInput
                 label="From"
                 value={from}
@@ -364,67 +385,66 @@ export default function MileageTripEditScreen() {
                 label="Why you went"
                 value={reason}
                 onChangeText={setReason}
-                placeholder="e.g. Site meeting with ABC Ltd re: fit-out quote"
+                placeholder="e.g. Site meeting with ABC Ltd about a quote"
                 multiline
                 error={errors.reason ?? undefined}
               />
-            </View>
+            </SectionCard>
 
-            {/* ── Category ──────────────────────────────────────────── */}
-            <Text style={{ ...typography.labelM, color: colour.textSub, marginBottom: space.sm }}>
-              CATEGORY
-            </Text>
-            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.sm, marginBottom: space.xl }}>
-              {purposeOptions.map((label) => {
-                const selected = label === purpose;
-                return (
-                  <TouchableOpacity
-                    key={label}
-                    onPress={() => setPurpose(label)}
-                    style={{
-                      backgroundColor: selected ? colour.primary : colour.white,
-                      borderRadius: radius.pill,
-                      borderWidth: 1,
-                      borderColor: selected ? colour.primary : colour.border,
-                      paddingHorizontal: space.md,
-                      paddingVertical: space.xs,
-                    }}
-                  >
-                    <Text style={{ ...typography.actionS, color: selected ? colour.onPrimary : colour.text }}>
-                      {label}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
+            <SectionCard title="Type of trip">
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.sm }}>
+                {purposeOptions.map((label) => {
+                  const selected = label === purpose;
+                  return (
+                    <TouchableOpacity
+                      key={label}
+                      onPress={() => setPurpose(label)}
+                      style={{
+                        backgroundColor: selected ? colour.primary : colour.bgPage,
+                        borderRadius: radius.full,
+                        borderWidth: 1,
+                        borderColor: selected ? colour.primary : colour.border,
+                        paddingHorizontal: space.md,
+                        paddingVertical: 7,
+                      }}
+                    >
+                      <Text style={{ ...typography.fchipText, color: selected ? colour.textOnPrimary : colour.textSecondary }}>
+                        {label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </SectionCard>
 
-            {/* ── Odometer (optional) ───────────────────────────────── */}
-            <Text style={{ ...typography.labelM, color: colour.textSub, marginBottom: space.sm }}>
-              KM READINGS (OPTIONAL)
-            </Text>
-            <View style={{ flexDirection: "row", gap: space.md, marginBottom: space.xl }}>
-              <View style={{ flex: 1 }}>
-                <MXInput
-                  label="Start (km)"
-                  value={odoStart}
-                  onChangeText={setOdoStart}
-                  keyboardType="decimal-pad"
-                  error={errors.odoStart ?? undefined}
-                />
+            <SectionCard
+              title="Km readings"
+              subtitle="Optional. The km on your dashboard when you left and when you got back."
+            >
+              <View style={{ flexDirection: "row", gap: space.md }}>
+                <View style={{ flex: 1 }}>
+                  <MXInput
+                    label="Start (km)"
+                    value={odoStart}
+                    onChangeText={setOdoStart}
+                    keyboardType="decimal-pad"
+                    error={errors.odoStart ?? undefined}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <MXInput
+                    label="End (km)"
+                    value={odoEnd}
+                    onChangeText={setOdoEnd}
+                    keyboardType="decimal-pad"
+                    error={errors.odoEnd ?? undefined}
+                  />
+                </View>
               </View>
-              <View style={{ flex: 1 }}>
-                <MXInput
-                  label="End (km)"
-                  value={odoEnd}
-                  onChangeText={setOdoEnd}
-                  keyboardType="decimal-pad"
-                  error={errors.odoEnd ?? undefined}
-                />
-              </View>
-            </View>
+            </SectionCard>
 
             <MXButton
-              label={saving ? "Saving…" : isNew ? "Add trip to logbook" : "Save trip details"}
+              label={saving ? "Saving…" : isNew ? "Add trip to logbook" : "Save trip"}
               variant="primary"
               size="L"
               onPress={handleSave}
@@ -433,15 +453,48 @@ export default function MileageTripEditScreen() {
               fullWidth
             />
             {isNew && selectedVehicle && (
-              <Text style={{ ...typography.bodyXS, color: colour.textSub, textAlign: "center", marginTop: space.sm }}>
-                Logging to {vehicleLabel(selectedVehicle)}
+              <Text style={{ ...typography.hintText, color: colour.textSub, textAlign: "center", marginTop: space.sm }}>
+                Adding to {vehicleLabel(selectedVehicle)}
               </Text>
+            )}
+            {!isNew && (
+              <TouchableOpacity onPress={() => setShowDeleteConfirm(true)} style={{ alignItems: "center", marginTop: space.lg }}>
+                <Text style={{ ...typography.mTbtn, color: colour.danger }}>Delete trip</Text>
+              </TouchableOpacity>
             )}
           </ScrollView>
         </KeyboardAvoidingView>
       )}
 
       <MXTabBar />
+
+      {notice}
+      <ConfirmModal
+        visible={showDeleteConfirm}
+        title="Delete this trip?"
+        message="It will be removed from your logbook. You can't undo this."
+        confirmLabel="Delete"
+        cancelLabel="Keep it"
+        destructive
+        onConfirm={confirmDelete}
+        onCancel={() => setShowDeleteConfirm(false)}
+      />
+      <SuccessModal
+        visible={saved}
+        title={isNew ? "Trip added" : "Trip saved"}
+        message={
+          isNew
+            ? `${Number(effectiveDistance ?? 0).toFixed(1)} km has been added to your logbook.`
+            : "Your logbook has been updated."
+        }
+        primaryLabel="Done"
+        onPrimary={() => {
+          setSaved(false);
+          safeBack(router, "/mileage-history");
+        }}
+        secondaryLabel={isNew ? "Add another trip" : undefined}
+        onSecondary={isNew ? addAnother : undefined}
+      />
     </SafeAreaView>
   );
 }

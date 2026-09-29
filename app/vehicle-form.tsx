@@ -1,13 +1,14 @@
 import { ConfirmModal } from "@/components/ConfirmModal";
-import { InfoBanner } from "@/components/InfoBanner";
 import { MXButton } from "@/components/MXButton";
 import { MXHeader } from "@/components/MXHeader";
 import { MXInput } from "@/components/MXInput";
+import { GroupRow, GroupTotal, NoteCard, SectionCard } from "@/components/MXSection";
 import { MXTabBar } from "@/components/MXTabBar";
+import { SuccessModal } from "@/components/SuccessModal";
+import { useNotice } from "@/components/useNotice";
 import { displayDateToISO, formatDateInputDDMMYYYY, isoToDisplayDate } from "@/lib/dateInput";
 import { safeBack } from "@/lib/navigation";
 import { taxYearForDate } from "@/lib/taxRules";
-import { claimsVehicleCostsAsBusiness, EMPLOYEE_VEHICLE_NOTE } from "@/lib/workType";
 import {
   firstError,
   validateDate,
@@ -27,6 +28,7 @@ import {
   wearAndTearCostBase,
   type VehicleType,
 } from "@/lib/wearAndTear";
+import { claimsVehicleCostsAsBusiness, EMPLOYEE_VEHICLE_NOTE } from "@/lib/workType";
 import { profileService } from "@/services/profileService";
 import { vehicleService } from "@/services/vehicleService";
 import { useAuthStore } from "@/stores/authStore";
@@ -36,7 +38,6 @@ import { colour, radius, space, typography } from "@/tokens";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -68,6 +69,35 @@ const VEHICLE_TYPES: { key: VehicleType; label: string; desc: string }[] = [
   { key: "motorcycle", label: "Motorcycle", desc: `Its cost is spread over ${VEHICLE_WRITE_OFF_YEARS.motorcycle} years.` },
 ];
 
+// A labelled on/off row inside a SectionCard (same build as the lump-sum
+// directive switch on tax-liability-inputs).
+function SwitchRow({
+  title,
+  hint,
+  value,
+  onChange,
+}: {
+  title: string;
+  hint: string;
+  value: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: space.xs }}>
+      <View style={{ flex: 1, marginRight: space.md }}>
+        <Text style={{ ...typography.rowValue, color: colour.text }}>{title}</Text>
+        <Text style={{ ...typography.hintText, color: colour.textSub, marginTop: 2 }}>{hint}</Text>
+      </View>
+      <Switch
+        value={value}
+        onValueChange={onChange}
+        trackColor={{ false: colour.border, true: colour.accent }}
+        thumbColor={colour.white}
+      />
+    </View>
+  );
+}
+
 export default function VehicleFormScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id?: string }>();
@@ -85,6 +115,7 @@ export default function VehicleFormScreen() {
     saveOdometer,
     syncWearAndTear,
   } = useVehicleStore();
+  const { notice, showNotice } = useNotice();
 
   const existing = id ? vehicles.find((v) => v.id === id) : undefined;
   const isEdit = !!id;
@@ -106,6 +137,7 @@ export default function VehicleFormScreen() {
   const [isEmployee, setIsEmployee] = useState(false);
   const [errors, setErrors] = useState<Record<string, string | null>>({});
   const [saving, setSaving] = useState(false);
+  const [done, setDone] = useState<null | { title: string; message: string }>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showArchiveInstead, setShowArchiveInstead] = useState(false);
 
@@ -222,7 +254,8 @@ export default function VehicleFormScreen() {
     if (!user) return;
     const error = validate();
     if (error) {
-      Alert.alert("Check your vehicle details", error);
+      // Each problem is also shown under its own field.
+      showNotice({ title: "Check the highlighted fields", message: error });
       return;
     }
     setSaving(true);
@@ -267,25 +300,38 @@ export default function VehicleFormScreen() {
       );
       saleYears.delete(activeTaxYear);
       for (const ty of saleYears) await syncWearAndTear(user.id, ty);
-      safeBack(router, "/vehicles");
-    } catch (e: any) {
-      Alert.alert("Save failed", e.message ?? "Could not save this vehicle. Please try again.");
+      setDone({
+        title: isEdit ? "Vehicle saved" : "Vehicle added",
+        message: isEdit
+          ? `${make} ${model} has been updated.`
+          : `${make} ${model} has been added. You can now pick it when you log a trip.`,
+      });
+    } catch {
+      showNotice({
+        title: "Couldn't save your vehicle",
+        message: "Please check your internet connection and try again.",
+      });
     } finally {
       setSaving(false);
     }
   };
 
   // A vehicle with trips can't be deleted — its logbook must stay intact for
-  // SARS — so offer archiving instead.
+  // SARS — so offer hiding it instead.
   const handleDelete = async () => {
     if (!user || !id) return;
     try {
       const trips = await vehicleService.countTripsForVehicle(user.id, id);
       if (trips === 0) setShowDeleteConfirm(true);
       else if (existing && !existing.isArchived) setShowArchiveInstead(true);
-      else Alert.alert("Can't delete", "This vehicle has trips in your logbook. SARS can ask to see them for up to 5 years, so they must be kept.");
-    } catch (e: any) {
-      Alert.alert("Error", e.message);
+      else
+        showNotice({
+          title: "This vehicle can't be deleted",
+          message: "It has trips in your logbook. SARS can ask to see them for up to 5 years, so they must be kept.",
+          tone: "info",
+        });
+    } catch {
+      showNotice({ title: "Something went wrong", message: "Please check your internet connection and try again." });
     }
   };
 
@@ -296,8 +342,8 @@ export default function VehicleFormScreen() {
       await remove(user.id, id);
       await syncWearAndTear(user.id, activeTaxYear);
       safeBack(router, "/vehicles");
-    } catch (e: any) {
-      Alert.alert("Could not delete", e.message);
+    } catch {
+      showNotice({ title: "Couldn't delete this vehicle", message: "Please try again." });
     }
   };
 
@@ -308,8 +354,8 @@ export default function VehicleFormScreen() {
       await setArchived(user.id, id, !existing.isArchived);
       await syncWearAndTear(user.id, activeTaxYear);
       safeBack(router, "/vehicles");
-    } catch (e: any) {
-      Alert.alert("Error", e.message);
+    } catch {
+      showNotice({ title: "Something went wrong", message: "Please check your internet connection and try again." });
     }
   };
 
@@ -332,18 +378,14 @@ export default function VehicleFormScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          <InfoBanner
+          <NoteCard
             icon="car.fill"
             title="One logbook per vehicle"
             body="SARS wants a separate logbook for each vehicle you use for work. You'll also need these details for your tax return."
-            style={{ marginBottom: space.xl }}
           />
 
-          {/* ── Vehicle details ───────────────────────────────────────── */}
-          <Text style={{ ...typography.labelM, color: colour.textSub, marginBottom: space.sm }}>
-            VEHICLE DETAILS
-          </Text>
-          <View style={{ gap: space.md, marginBottom: space.xl }}>
+          {/* ── Vehicle details ─────────────────────────────────────────── */}
+          <SectionCard title="Vehicle details">
             <View style={{ flexDirection: "row", gap: space.md }}>
               <View style={{ flex: 1 }}>
                 <MXInput
@@ -379,7 +421,7 @@ export default function VehicleFormScreen() {
               </View>
               <View style={{ flex: 1 }}>
                 <MXInput
-                  label="Registration"
+                  label="Number plate"
                   value={registration}
                   onChangeText={setRegistration}
                   placeholder="e.g. CA 123-456"
@@ -388,23 +430,11 @@ export default function VehicleFormScreen() {
                 />
               </View>
             </View>
-          </View>
+          </SectionCard>
 
-          {/* ── Vehicle type (sets the wear & tear write-off period) ──── */}
-          <Text style={{ ...typography.labelM, color: colour.textSub, marginBottom: space.sm }}>
-            VEHICLE TYPE
-          </Text>
-          <View
-            style={{
-              backgroundColor: colour.white,
-              borderRadius: radius.md,
-              borderWidth: 1,
-              borderColor: colour.borderLight,
-              overflow: "hidden",
-              marginBottom: space.xl,
-            }}
-          >
-            {VEHICLE_TYPES.map((opt, i) => {
+          {/* ── Vehicle type (sets the wear & tear write-off period) ────── */}
+          <SectionCard title="Type of vehicle">
+            {VEHICLE_TYPES.map((opt) => {
               const selected = vehicleType === opt.key;
               return (
                 <TouchableOpacity
@@ -414,10 +444,10 @@ export default function VehicleFormScreen() {
                   style={{
                     flexDirection: "row",
                     alignItems: "center",
-                    padding: space.md,
+                    padding: space.sm,
+                    borderRadius: radius.md,
                     backgroundColor: selected ? colour.primary50 : "transparent",
-                    borderBottomWidth: i < VEHICLE_TYPES.length - 1 ? 1 : 0,
-                    borderBottomColor: colour.borderLight,
+                    gap: space.md,
                   }}
                 >
                   <View
@@ -430,7 +460,6 @@ export default function VehicleFormScreen() {
                       backgroundColor: selected ? colour.primary : "transparent",
                       alignItems: "center",
                       justifyContent: "center",
-                      marginRight: space.md,
                     }}
                   >
                     {selected && (
@@ -438,19 +467,19 @@ export default function VehicleFormScreen() {
                     )}
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 13, fontWeight: "600", color: colour.text }}>{opt.label}</Text>
-                    <Text style={{ fontSize: 11, color: colour.textSub, marginTop: 1 }}>{opt.desc}</Text>
+                    <Text style={{ ...typography.itemTitle, color: colour.textPrimary }}>{opt.label}</Text>
+                    <Text style={{ ...typography.itemSub, color: colour.textSecondary, marginTop: 2 }}>{opt.desc}</Text>
                   </View>
                 </TouchableOpacity>
               );
             })}
-          </View>
+          </SectionCard>
 
-          {/* ── Odometer ──────────────────────────────────────────────── */}
-          <Text style={{ ...typography.labelM, color: colour.textSub, marginBottom: space.sm }}>
-            KM READINGS · TAX YEAR {activeTaxYear}
-          </Text>
-          <View style={{ gap: space.md, marginBottom: space.md }}>
+          {/* ── Km readings ─────────────────────────────────────────────── */}
+          <SectionCard
+            title={`Km readings for ${activeTaxYear}`}
+            subtitle="You need both readings to claim for your vehicle. Take a photo of your dashboard on both dates, just in case."
+          >
             <MXInput
               label="Start-of-year km reading"
               value={openingKm}
@@ -469,34 +498,16 @@ export default function VehicleFormScreen() {
               hint={`The km on your dashboard on ${dates.closing}. Leave it blank until then.`}
               error={errors.closingKm ?? undefined}
             />
-          </View>
+            {yearKm != null && (
+              <GroupTotal label="Total km driven this tax year" value={fmtKm(yearKm)} />
+            )}
+          </SectionCard>
 
-          <View
-            style={{
-              backgroundColor: colour.noir,
-              borderRadius: radius.md,
-              padding: space.lg,
-              marginBottom: space.xl,
-            }}
+          {/* ── Purchase details (wear & tear) ──────────────────────────── */}
+          <SectionCard
+            title="When you bought it"
+            subtitle="Used to work out wear & tear: the value your vehicle loses each year, which you can claim part of."
           >
-            <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-              <Text style={{ fontSize: 12, color: colour.onNoir2 }}>Total km driven this tax year</Text>
-              <Text style={{ fontSize: 12, fontWeight: "700", color: colour.onNoir }}>
-                {yearKm != null ? fmtKm(yearKm) : "—"}
-              </Text>
-            </View>
-            <Text style={{ fontSize: 11, color: colour.onNoir2, lineHeight: 16, marginTop: space.sm }}>
-              {yearKm != null
-                ? "Your work km from the logbook are compared to this total to show how much of your driving was for work."
-                : "You need both readings to claim for your vehicle. Take a photo of your dashboard on both dates, just in case."}
-            </Text>
-          </View>
-
-          {/* ── Purchase details (wear & tear) ────────────────────────── */}
-          <Text style={{ ...typography.labelM, color: colour.textSub, marginBottom: space.sm }}>
-            WHEN YOU BOUGHT IT
-          </Text>
-          <View style={{ gap: space.md, marginBottom: space.xl }}>
             <MXInput
               label="Purchase price (R)"
               value={purchasePrice}
@@ -516,127 +527,69 @@ export default function VehicleFormScreen() {
               error={errors.acquiredDate ?? undefined}
             />
             {vatRegistered && !purchaseVatCanBeClaimed(vehicleType) && (
-              <Text style={{ fontSize: 11, color: colour.textSub, lineHeight: 16 }}>
+              <Text style={{ ...typography.hintText, color: colour.textSub }}>
                 You can't claim back the VAT on buying a {vehicleType === "double_cab" ? "double-cab bakkie" : "car"}, even as a VAT vendor. So we use the full price, including VAT.
               </Text>
             )}
             {vatRegistered && purchaseVatCanBeClaimed(vehicleType) && (
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  backgroundColor: colour.white,
-                  borderRadius: radius.md,
-                  borderWidth: 1,
-                  borderColor: colour.borderLight,
-                  padding: space.md,
-                }}
-              >
-                <View style={{ flex: 1, marginRight: space.md }}>
-                  <Text style={{ fontSize: 13, fontWeight: "600", color: colour.text }}>
-                    I claimed the VAT back on this vehicle
-                  </Text>
-                  <Text style={{ fontSize: 11, color: colour.textSub, marginTop: 2 }}>
-                    {vehicleType === "delivery"
-                      ? "Only switch this on if you got the VAT back on your VAT return. SARS checks single cabs and panel vans one by one, so make sure yours qualifies."
-                      : "Only switch this on if you got the VAT back on your VAT return."}
-                  </Text>
-                </View>
-                <Switch
-                  value={vatClaimed}
-                  onValueChange={setVatClaimed}
-                  trackColor={{ true: colour.primary, false: colour.border }}
-                />
-              </View>
+              <SwitchRow
+                title="I claimed the VAT back on this vehicle"
+                hint={
+                  vehicleType === "delivery"
+                    ? "Only switch this on if you got the VAT back on your VAT return. SARS checks single cabs and panel vans one by one, so make sure yours qualifies."
+                    : "Only switch this on if you got the VAT back on your VAT return."
+                }
+                value={vatClaimed}
+                onChange={setVatClaimed}
+              />
             )}
-          </View>
+          </SectionCard>
 
+          {/* ── Wear & tear result ──────────────────────────────────────── */}
           {previewAllowance != null && costBase != null && (
-            <View
-              style={{
-                backgroundColor: colour.noir,
-                borderRadius: radius.md,
-                padding: space.lg,
-                marginBottom: space.xl,
-              }}
-            >
-              <Text style={{ fontSize: 12, fontWeight: "700", color: colour.onNoir, marginBottom: space.sm }}>
-                Wear & tear for {activeTaxYear}
-              </Text>
-              <Text style={{ fontSize: 11, color: colour.onNoir2, lineHeight: 16, marginBottom: space.sm }}>
-                Wear & tear is the value your vehicle loses each year. You can claim part of it.
-              </Text>
-              <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: space.xs }}>
-                <Text style={{ fontSize: 12, color: colour.onNoir2 }}>
-                  Price{effectiveVatClaimed ? " (without VAT)" : ""}
-                </Text>
-                <Text style={{ fontSize: 12, fontWeight: "700", color: colour.onNoir }}>{fmtR(costBase)}</Text>
+            <SectionCard title={`Wear & tear for ${activeTaxYear}`}>
+              <View>
+                <GroupRow label={`Price${effectiveVatClaimed ? " (without VAT)" : ""}`} value={fmtR(costBase)} />
+                <GroupRow
+                  label={
+                    costBase < 7000
+                      ? "Under R7 000, so all of it counts this year"
+                      : `Spread over ${VEHICLE_WRITE_OFF_YEARS[vehicleType]} years${previewMonths > 0 && previewMonths < 12 ? `, for the ${previewMonths} months you had it` : ""}`
+                  }
+                  value={fmtR(previewAllowance)}
+                  last={isEmployee || businessRatio == null}
+                />
+                {!isEmployee && businessRatio != null && (
+                  <GroupTotal
+                    label={`You can claim (${(businessRatio * 100).toFixed(1)}% work use)`}
+                    value={fmtR(wearAndTearClaim(previewAllowance, businessRatio))}
+                    accent
+                  />
+                )}
               </View>
-              <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: space.xs }}>
-                <Text style={{ fontSize: 12, color: colour.onNoir2 }}>
-                  {costBase < 7000
-                    ? "Under R7 000, so all of it counts this year"
-                    : `Split over ${VEHICLE_WRITE_OFF_YEARS[vehicleType]} years${previewMonths > 0 && previewMonths < 12 ? `, for the ${previewMonths} months you had it` : ""}`}
-                </Text>
-                <Text style={{ fontSize: 12, fontWeight: "700", color: colour.onNoir }}>{fmtR(previewAllowance)}</Text>
-              </View>
-              <View style={{ height: 1, backgroundColor: "rgba(255,255,255,0.1)", marginVertical: space.sm }} />
-              {isEmployee ? (
-                <Text style={{ fontSize: 11, color: colour.onNoir2, lineHeight: 16 }}>
-                  {EMPLOYEE_VEHICLE_NOTE}
-                </Text>
-              ) : businessRatio != null ? (
-                <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                  <Text style={{ fontSize: 14, fontWeight: "700", color: colour.primary }}>
-                    You can claim ({(businessRatio * 100).toFixed(1)}% work use)
-                  </Text>
-                  <Text style={{ fontSize: 14, fontWeight: "800", color: colour.primary }}>
-                    {fmtR(wearAndTearClaim(previewAllowance, businessRatio))}
-                  </Text>
-                </View>
-              ) : (
-                <Text style={{ fontSize: 11, color: colour.onNoir2, lineHeight: 16 }}>
-                  You can claim the part of this that matches how much you drove for work. We'll work it out once you've added both km readings for {activeTaxYear}, and add it to your Vehicle Expenses for you.
-                </Text>
-              )}
-              {previewAllowance === 0 && (
-                <Text style={{ fontSize: 11, color: colour.onNoir2, lineHeight: 16, marginTop: space.sm }}>
-                  Nothing to claim this tax year. Either the vehicle's full cost has already been claimed, or you hadn't bought it yet.
-                </Text>
-              )}
-            </View>
+              <Text style={{ ...typography.hintText, color: colour.textSub }}>
+                {isEmployee
+                  ? EMPLOYEE_VEHICLE_NOTE
+                  : previewAllowance === 0
+                    ? "Nothing to claim this tax year. Either the vehicle's full cost has already been claimed, or you hadn't bought it yet."
+                    : businessRatio == null
+                      ? `You can claim the part of this that matches how much you drove for work. We'll work it out once you've added both km readings for ${activeTaxYear}, and add it to your Vehicle Expenses for you.`
+                      : "We add this to your Vehicle Expenses for you, and it updates when your trips or km readings change."}
+              </Text>
+            </SectionCard>
           )}
 
-          {/* ── Sold ──────────────────────────────────────────────────── */}
+          {/* ── Sold ────────────────────────────────────────────────────── */}
           {isEdit && (
-            <>
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  backgroundColor: colour.white,
-                  borderRadius: radius.md,
-                  borderWidth: 1,
-                  borderColor: colour.borderLight,
-                  padding: space.md,
-                  marginBottom: space.md,
-                }}
-              >
-                <View style={{ flex: 1, marginRight: space.md }}>
-                  <Text style={{ fontSize: 13, fontWeight: "600", color: colour.text }}>I've sold this vehicle</Text>
-                  <Text style={{ fontSize: 11, color: colour.textSub, marginTop: 2 }}>
-                    We'll stop claiming wear & tear and work out if any tax is due on the sale.
-                  </Text>
-                </View>
-                <Switch
-                  value={showSale}
-                  onValueChange={setShowSale}
-                  trackColor={{ true: colour.primary, false: colour.border }}
-                />
-              </View>
-
+            <SectionCard title="Selling this vehicle">
+              <SwitchRow
+                title="I've sold this vehicle"
+                hint="We'll stop claiming wear & tear and work out if any tax is due on the sale."
+                value={showSale}
+                onChange={setShowSale}
+              />
               {showSale && (
-                <View style={{ gap: space.md, marginBottom: space.xl }}>
+                <>
                   <View style={{ flexDirection: "row", gap: space.md }}>
                     <View style={{ flex: 1 }}>
                       <MXInput
@@ -659,29 +612,26 @@ export default function VehicleFormScreen() {
                       />
                     </View>
                   </View>
-                  <Text style={{ fontSize: 11, color: colour.textSub, marginTop: -space.xs }}>
+                  <Text style={{ ...typography.hintText, color: colour.textSub }}>
                     Also add an end-of-year km reading from the day you sold it.
                   </Text>
 
                   {salePreview && (
-                    <View style={{ backgroundColor: colour.noir, borderRadius: radius.md, padding: space.lg }}>
-                      <Text style={{ fontSize: 12, fontWeight: "700", color: colour.onNoir, marginBottom: space.sm }}>
-                        Selling it · {salePreview.saleTaxYear} tax year
-                      </Text>
-                      <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: space.xs }}>
-                        <Text style={{ fontSize: 12, color: colour.onNoir2 }}>Value left for tax when sold</Text>
-                        <Text style={{ fontSize: 12, fontWeight: "700", color: colour.onNoir }}>{fmtR(salePreview.taxValue)}</Text>
+                    <>
+                      <View>
+                        <GroupRow label="Value left for tax when sold" value={fmtR(salePreview.taxValue)} />
+                        <GroupTotal
+                          label={
+                            salePreview.grossRecoupment > 0
+                              ? "Sold for more than that by"
+                              : salePreview.grossLoss > 0
+                                ? "Sold for less than that by"
+                                : "Sold for exactly that"
+                          }
+                          value={fmtR(salePreview.grossRecoupment || salePreview.grossLoss)}
+                        />
                       </View>
-                      <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: space.xs }}>
-                        <Text style={{ fontSize: 12, color: colour.onNoir2 }}>
-                          {salePreview.grossRecoupment > 0 ? "Sold for more than that by" : salePreview.grossLoss > 0 ? "Sold for less than that by" : "Sold for exactly that"}
-                        </Text>
-                        <Text style={{ fontSize: 12, fontWeight: "700", color: colour.onNoir }}>
-                          {fmtR(salePreview.grossRecoupment || salePreview.grossLoss)}
-                        </Text>
-                      </View>
-                      <View style={{ height: 1, backgroundColor: "rgba(255,255,255,0.1)", marginVertical: space.sm }} />
-                      <Text style={{ fontSize: 11, color: colour.onNoir2, lineHeight: 16 }}>
+                      <Text style={{ ...typography.hintText, color: colour.textSub }}>
                         {isEmployee
                           ? "You didn't claim wear & tear as a salaried employee, so there's no tax on the sale."
                           : salePreview.grossRecoupment > 0
@@ -692,11 +642,11 @@ export default function VehicleFormScreen() {
                               ? "You may be able to claim the work part of this loss. MyExpense can't do this for you yet, so ask your accountant or tax practitioner."
                               : "There's no tax to pay on the sale."}
                       </Text>
-                    </View>
+                    </>
                   )}
-                </View>
+                </>
               )}
-            </>
+            </SectionCard>
           )}
 
           <MXButton
@@ -712,12 +662,12 @@ export default function VehicleFormScreen() {
           {existing && (
             <View style={{ alignItems: "center", marginTop: space.lg, gap: space.md }}>
               <TouchableOpacity onPress={toggleArchived}>
-                <Text style={{ fontSize: 13, color: colour.primary }}>
+                <Text style={{ ...typography.mTbtn, color: colour.primary }}>
                   {existing.isArchived ? "Use this vehicle again" : "Hide this vehicle (no longer used)"}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={handleDelete}>
-                <Text style={{ fontSize: 13, color: colour.danger }}>Delete vehicle</Text>
+                <Text style={{ ...typography.mTbtn, color: colour.danger }}>Delete vehicle</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -726,10 +676,21 @@ export default function VehicleFormScreen() {
 
       <MXTabBar />
 
+      {notice}
+      <SuccessModal
+        visible={!!done}
+        title={done?.title ?? ""}
+        message={done?.message}
+        primaryLabel="Done"
+        onPrimary={() => {
+          setDone(null);
+          safeBack(router, "/vehicles");
+        }}
+      />
       <ConfirmModal
         visible={showDeleteConfirm}
-        title="Delete vehicle"
-        message="Remove this vehicle and its km readings? You can't undo this."
+        title="Delete this vehicle?"
+        message="This removes the vehicle and its km readings. You can't undo this."
         confirmLabel="Delete"
         cancelLabel="Cancel"
         destructive
@@ -742,6 +703,8 @@ export default function VehicleFormScreen() {
         message="This vehicle has trips in your logbook. SARS can ask to see them for up to 5 years, so it can't be deleted. You can hide it so it doesn't show up for new trips."
         confirmLabel="Hide vehicle"
         cancelLabel="Cancel"
+        destructive={false}
+        icon="info.circle.fill"
         onConfirm={toggleArchived}
         onCancel={() => setShowArchiveInstead(false)}
       />

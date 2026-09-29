@@ -1,4 +1,6 @@
 import { InfoBanner } from "@/components/InfoBanner";
+import { SuccessModal } from "@/components/SuccessModal";
+import { useNotice } from "@/components/useNotice";
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -22,7 +24,7 @@ import { useAppForeground } from "@/hooks/use-app-foreground";
 import React, { useCallback, useState } from "react";
 import {
     ActivityIndicator,
-    Alert,
+
     ScrollView,
     Share,
     StatusBar,
@@ -57,6 +59,8 @@ type Period = "month" | "year";
 export default function VATSummaryScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
+  const { notice, showNotice } = useNotice();
+  const [vatSaved, setVatSaved] = useState(false);
   const { activeTaxYear } = useExpenseStore();
   const [loading, setLoading] = useState(true);
   const [expenses, setExpenses] = useState<any[]>([]);
@@ -112,7 +116,7 @@ export default function VATSummaryScreen() {
     if (vatRegistered) {
       const vatError = validateVATNumber(vatNumber);
       if (vatError) {
-        Alert.alert("Error", vatError);
+        showNotice({ title: "Check your VAT number", message: vatError });
         return;
       }
     }
@@ -122,9 +126,12 @@ export default function VATSummaryScreen() {
         vat_registered: vatRegistered,
         vat_number: vatRegistered ? vatNumber.trim() : null,
       });
-      Alert.alert("Saved", "Your VAT registration status has been updated.");
-    } catch (e: any) {
-      Alert.alert("Error", e.message ?? "Could not save VAT registration.");
+      setVatSaved(true);
+    } catch {
+      showNotice({
+        title: "Couldn't save your VAT details",
+        message: "Please check your internet connection and try again.",
+      });
     } finally {
       setSavingVat(false);
     }
@@ -192,8 +199,8 @@ export default function VATSummaryScreen() {
       ].join("\n");
 
       await Share.share({ message: lines, title: "VAT Report" });
-    } catch (e) {
-      Alert.alert("Export failed", "Could not export VAT report.");
+    } catch {
+      showNotice({ title: "Couldn't export your VAT report", message: "Please try again." });
     }
   };
 
@@ -670,6 +677,15 @@ export default function VATSummaryScreen() {
         )}
       </ScrollView>
       <MXTabBar />
+
+      {notice}
+      <SuccessModal
+        visible={vatSaved}
+        title="VAT details saved"
+        message={vatRegistered ? "We'll now show the VAT you can claim back." : "We'll treat the VAT you pay as a cost."}
+        primaryLabel="Done"
+        onPrimary={() => setVatSaved(false)}
+      />
     </SafeAreaView>
   );
 }
