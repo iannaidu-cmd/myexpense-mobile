@@ -1,4 +1,5 @@
 import { ConfirmModal } from "@/components/ConfirmModal";
+import { InfoBanner } from "@/components/InfoBanner";
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -344,6 +345,9 @@ export default function ExpenseDetailScreen() {
     );
   }
 
+  // System-managed s11(e) row (services/wearAndTearService.ts).
+  const isWearAndTear = !!expense.wear_and_tear_vehicle_id;
+
   const claimable = expense.is_deductible ? Number(expense.amount) : 0;
   const itr12Code = expense.itr12_code ?? "S11(a)";
   const hasReceipt = !!storagePath || !!expense.receipt_url;
@@ -365,14 +369,14 @@ export default function ExpenseDetailScreen() {
       <MXHeader
         title="Expense detail"
         showBack
-        right={
+        right={isWearAndTear ? undefined : (
           <TouchableOpacity
             onPress={() => router.push(`/edit-expense?id=${expense.id}` as any)}
             style={{ backgroundColor: colour.primary50, borderRadius: radius.pill, paddingHorizontal: space.md, paddingVertical: space.xs }}
           >
             <Text style={{ ...typography.labelS, color: colour.accentDeep }}>Edit</Text>
           </TouchableOpacity>
-        }
+        )}
       />
 
       {/* Content */}
@@ -558,7 +562,36 @@ export default function ExpenseDetailScreen() {
           </Text>
         </View>
 
+        {/* Wear & tear rows are recalculated from the vehicle and logbook, so
+            they're changed there rather than edited by hand. */}
+        {isWearAndTear && (
+          <>
+            <InfoBanner
+              icon="car.fill"
+              title="Calculated automatically"
+              body="We work out this wear & tear claim from what you paid for your vehicle and how much of your driving was for work. It updates by itself when those change."
+              style={{ marginBottom: space.md }}
+            />
+            <TouchableOpacity
+              onPress={() =>
+                router.push({ pathname: "/vehicle-form", params: { id: expense.wear_and_tear_vehicle_id } })
+              }
+              style={{
+                backgroundColor: colour.primary,
+                borderRadius: radius.pill,
+                height: 52,
+                alignItems: "center",
+                justifyContent: "center",
+                marginBottom: space.md,
+              }}
+            >
+              <Text style={{ ...typography.mBtn, color: colour.textOnPrimary }}>View vehicle</Text>
+            </TouchableOpacity>
+          </>
+        )}
+
         {/* Actions */}
+        {!isWearAndTear && (<>
         <TouchableOpacity
           onPress={() => router.push(`/edit-expense?id=${expense.id}` as any)}
           style={{
@@ -620,6 +653,7 @@ export default function ExpenseDetailScreen() {
             </Text>
           )}
         </TouchableOpacity>
+        </>)}
       </ScrollView>
       <ConfirmModal
         visible={showDeleteConfirm}

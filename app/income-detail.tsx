@@ -121,6 +121,10 @@ export default function IncomeDetailScreen() {
     }
   };
 
+  // System-managed s8(4)(a) recoupment from a vehicle sale
+  // (services/wearAndTearService.ts). It's changed from the vehicle, not here.
+  const isRecoupment = !!income?.recoupment_vehicle_id;
+
   return (
     <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colour.background }}>
       <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
@@ -129,7 +133,7 @@ export default function IncomeDetailScreen() {
         title="Income details"
         showBack
         right={
-          income ? (
+          income && !isRecoupment ? (
             <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
               <TouchableOpacity
                 onPress={() => router.push(`/add-income?id=${income.id}` as any)}
@@ -236,6 +240,24 @@ export default function IncomeDetailScreen() {
               </Text>
             </View>
 
+            {isRecoupment && (
+              <TouchableOpacity
+                onPress={() =>
+                  router.push({ pathname: "/vehicle-form", params: { id: income.recoupment_vehicle_id } })
+                }
+                style={{
+                  marginTop: space.xl,
+                  backgroundColor: colour.primary,
+                  borderRadius: radius.pill,
+                  paddingVertical: 14,
+                  alignItems: "center",
+                }}
+              >
+                <Text style={{ ...typography.btnL, color: colour.onPrimary }}>View vehicle sale</Text>
+              </TouchableOpacity>
+            )}
+
+            {!isRecoupment && (<>
             {/* Reclassify as expense */}
             <TouchableOpacity
               onPress={() => setShowConvertConfirm(true)}
@@ -281,6 +303,7 @@ export default function IncomeDetailScreen() {
                 Delete income
               </Text>
             </TouchableOpacity>
+            </>)}
           </ScrollView>
         </>
       )}

@@ -25,6 +25,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { safeBack } from "@/lib/navigation";
+import { workTypeLabel } from "@/lib/workType";
 
 const fmt = (n: number) =>
   `R ${Number(n).toLocaleString("en-ZA", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
@@ -134,7 +135,7 @@ export default function ITR12ExportPreviewScreen() {
         `Tax Number:      ${profile?.tax_number ?? "—"}`,
         `Tax Year:        ${taxYear}`,
         `Return Type:     ITR12`,
-        `Work Type:       ${profile?.work_type ?? "Sole Proprietor"}`,
+        `Work Type:       ${workTypeLabel(profile?.work_type)}`,
         `VAT Status:      ${profile?.vat_registered ? `Registered${profile?.vat_number ? ` (${profile.vat_number})` : ""}` : "Not registered"}`,
         "",
         profile?.vat_registered ? "ALLOWABLE DEDUCTIONS (EXCL. VAT)" : "ALLOWABLE DEDUCTIONS",
@@ -304,7 +305,7 @@ export default function ITR12ExportPreviewScreen() {
                 },
                 {
                   label: "Employment Type",
-                  value: profile?.work_type ?? "Sole Proprietor",
+                  value: workTypeLabel(profile?.work_type),
                 },
                 {
                   label: "VAT Status",

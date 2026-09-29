@@ -53,6 +53,16 @@ export interface Expense {
   receipt_url: string | null;
   storage_path: string | null;
   ocr_raw: Record<string, unknown> | null;
+  /** Set only on the system-managed s11(e) wear-and-tear row for this vehicle
+   *  and tax year (services/wearAndTearService.ts). Not user-editable. */
+  wear_and_tear_vehicle_id?: string | null;
+  /** Full amount before the business-use % was applied (amount = gross × pct).
+   *  Null on rows saved before 29 Sep 2026 or with no apportionment. */
+  gross_amount?: number | null;
+  /** The business-use % (0–100) applied when saved. */
+  business_use_pct?: number | null;
+  /** The vehicle a Vehicle Expenses cost was for. */
+  vehicle_id?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -145,6 +155,9 @@ export interface NewExpense {
   notes?: string;
   receipt_url?: string;
   storage_path?: string;
+  gross_amount?: number | null;
+  business_use_pct?: number | null;
+  vehicle_id?: string | null;
 }
 
 export interface UpdateExpense extends Partial<NewExpense> {

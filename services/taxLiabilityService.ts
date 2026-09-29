@@ -1,5 +1,8 @@
 import { supabase } from "@/lib/supabase";
-import { calculateTaxLiability } from "@/lib/taxLiability";
+import { calculateTaxLiability, type TaxLiabilityInput } from "@/lib/taxLiability";
+import { expenseService } from "@/services/expenseService";
+import { incomeService } from "@/services/incomeService";
+import { profileService } from "@/services/profileService";
 import type { NewTaxLiabilityEstimate, TaxLiabilityEstimate } from "@/types/database";
 
 export interface RecalculateEstimateInputs extends NewTaxLiabilityEstimate {
@@ -74,6 +77,64 @@ export const taxLiabilityService = {
 
     if (error) throw new Error(error.message);
     return data;
+  },
+
+  // Re-run an existing estimate against the CURRENT income and deductions
+  // (every expense row, incl. mileage-derived ones like wear & tear), keeping
+  // the user's saved inputs. Returns null if they haven't set one up yet.
+  // Used wherever the stored figure is shown (Home, the summary screen) and
+  // after anything that changes deductions behind the scenes, so the Home
+  // "refund or bill" figure never lags behind the expenses it's built from.
+  refreshEstimate: async (
+    userId: string,
+    taxYear: string,
+  ): Promise<{ estimate: TaxLiabilityEstimate; input: TaxLiabilityInput } | null> => {
+    const existing = await taxLiabilityService.getEstimate(userId, taxYear);
+    if (!existing) return null;
+
+    const profile = await profileService.getProfile(userId);
+    const [expenseTotals, incomeTotals] = await Promise.all([
+      expenseService.getTotals(userId, taxYear, profile?.vat_registered ?? false),
+      incomeService.getTotals(userId, taxYear),
+    ]);
+    const businessTaxableIncome = Math.max(0, incomeTotals.totalIncome - expenseTotals.totalDeductions);
+
+    const input: TaxLiabilityInput = {
+      taxYear,
+      businessTaxableIncome,
+      otherTaxableIncome: existing.other_taxable_income,
+      dateOfBirth: profile?.date_of_birth ?? null,
+      retirementAnnuityContributions: existing.retirement_annuity_contributions,
+      medicalAidDependants: profile?.medical_aid_dependants ?? 0,
+      donationsYtd: existing.donations_ytd ?? 0,
+      taxAlreadyPaid: existing.tax_already_paid,
+      retirementSeveranceLumpSum: existing.retirement_severance_lump_sum,
+      priorRetirementSeveranceLumpSums: existing.prior_retirement_severance_lump_sums,
+      actualLumpSumTax: existing.actual_lump_sum_tax ?? undefined,
+      additionalLumpSums: existing.additional_lump_sums?.map((entry) => ({
+        grossAmount: entry.grossAmount,
+        actualTax: entry.actualTax ?? undefined,
+      })),
+    };
+
+    // Passes EVERY saved input back through. The summary screen's old inline
+    // version dropped actual_lump_sum_tax / additional_lump_sums, which wiped
+    // them on every view.
+    const estimate = await taxLiabilityService.recalculateEstimate(userId, taxYear, {
+      tax_year: taxYear,
+      other_taxable_income: existing.other_taxable_income,
+      retirement_annuity_contributions: existing.retirement_annuity_contributions,
+      tax_already_paid: existing.tax_already_paid,
+      donations_ytd: existing.donations_ytd,
+      retirement_severance_lump_sum: existing.retirement_severance_lump_sum,
+      prior_retirement_severance_lump_sums: existing.prior_retirement_severance_lump_sums,
+      actual_lump_sum_tax: existing.actual_lump_sum_tax,
+      additional_lump_sums: existing.additional_lump_sums,
+      businessTaxableIncome,
+      dateOfBirth: profile?.date_of_birth ?? null,
+      medicalAidDependants: profile?.medical_aid_dependants ?? 0,
+    });
+    return { estimate, input };
   },
 
   getOrCreate: async (

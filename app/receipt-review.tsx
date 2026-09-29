@@ -7,8 +7,10 @@ import { CATEGORIES } from "@/constants/categories";
 import { expenseService } from "@/services/expenseService";
 import { useAuthStore } from "@/stores/authStore";
 import { floorRatio, useHomeOfficeStore } from "@/stores/homeOfficeStore";
+import { logbookBusinessUse, useVehicleStore } from "@/stores/vehicleStore";
+import { mileageService } from "@/services/mileageService";
 import { colour, radius, space, typography } from "@/tokens";
-import { displayDateToISO, formatDateInputDDMMYYYY, isoToDisplayDate } from "@/lib/dateInput";
+import { displayDateToISO, formatDateInputDDMMYYYY, isoToDisplayDate, localISODate } from "@/lib/dateInput";
 import { taxYearForDate } from "@/lib/taxRules";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -157,6 +159,45 @@ export default function ReceiptReviewScreen() {
   const isHomeOfficeCat = expenseType === "business" && HOME_OFFICE_CATS.includes(category);
   const homeOfficeRatio = homeOfficeSetting ? floorRatio(homeOfficeSetting) : 1;
 
+  // Vehicle costs only count at the business-use % (same as manual entry).
+  // Scanned vehicle receipts used to be saved at 100%. Prefilled from the
+  // logbook when there's one vehicle with both odometer readings, else all
+  // vehicles combined; editable.
+  const isVehicleCat = expenseType === "business" && category === "Vehicle Expenses";
+  const [vehicleBusinessPct, setVehicleBusinessPct] = useState("100");
+  const [vehiclePctFromLogbook, setVehiclePctFromLogbook] = useState(false);
+  const [vehicleId, setVehicleId] = useState<string | null>(null);
+  // Only a complete date picks the tax year; until then, use today's.
+  const typedIso = displayDateToISO(date);
+  const receiptTaxYear = taxYearForDate(
+    /^\d{4}-\d{2}-\d{2}$/.test(typedIso) ? typedIso : localISODate(new Date()),
+  );
+  useEffect(() => {
+    if (!isVehicleCat || !user) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const [trips] = await Promise.all([
+          mileageService.getTrips(user.id, receiptTaxYear),
+          useVehicleStore.getState().load(user.id, receiptTaxYear, true),
+        ]);
+        const { vehicles, readings } = useVehicleStore.getState();
+        const inUse = vehicles.filter((v) => !v.isArchived);
+        const only = inUse.length === 1 ? inUse[0].id : null;
+        if (!cancelled) setVehicleId(only);
+        const logbook = only
+          ? logbookBusinessUse(trips.filter((t) => t.vehicle_id === only), readings[only] ? { [only]: readings[only] } : {})
+          : logbookBusinessUse(trips, readings);
+        if (logbook && logbook.ratio > 0 && !cancelled) {
+          setVehicleBusinessPct(String(Math.round(logbook.ratio * 100)));
+          setVehiclePctFromLogbook(true);
+        }
+      } catch { /* keep 100% — the user can change it */ }
+    })();
+    return () => { cancelled = true; };
+  }, [isVehicleCat, user, receiptTaxYear]);
+  const vehicleRatio = Math.min(Math.max(parseFloat(vehicleBusinessPct) || 0, 0), 100) / 100;
+
   const canSave = !!amount && parseFloat(amount) > 0 && !!vendor && !!category;
   const hasReceipt = !!params.storagePath && params.storagePath !== "";
 
@@ -203,9 +244,9 @@ export default function ReceiptReviewScreen() {
       }
 
       const rawAmount = parseFloat(amount);
-      const savedAmount = isHomeOfficeCat
-        ? parseFloat((rawAmount * homeOfficeRatio).toFixed(2))
-        : rawAmount;
+      const share = isHomeOfficeCat ? homeOfficeRatio : isVehicleCat ? vehicleRatio : 1;
+      const apportioned = isHomeOfficeCat || isVehicleCat;
+      const savedAmount = apportioned ? parseFloat((rawAmount * share).toFixed(2)) : rawAmount;
       const expenseDateIso = displayDateToISO(date);
 
       await expenseService.addExpense(user.id, {
@@ -221,6 +262,9 @@ export default function ReceiptReviewScreen() {
         notes: notes.trim() || undefined,
         receipt_url: receiptUrl,
         storage_path: params.storagePath || undefined,
+        gross_amount: apportioned ? rawAmount : null,
+        business_use_pct: apportioned ? parseFloat((share * 100).toFixed(2)) : null,
+        vehicle_id: isVehicleCat ? vehicleId : null,
       });
 
       if (params.storagePath) {
@@ -639,6 +683,33 @@ export default function ReceiptReviewScreen() {
               }
               style={{ marginBottom: space.md }}
             />
+          )}
+
+          {isVehicleCat && (
+            <>
+              <InfoBanner
+                icon="car.fill"
+                title={vehiclePctFromLogbook ? `We'll claim ${vehicleBusinessPct}%, based on your logbook` : "How much was for work?"}
+                body={`You can only claim the work part of a vehicle cost: your work km compared to all your km. Change the % if this cost is different.${amount && parseFloat(amount) > 0 ? ` Claimable amount: R ${Math.round(parseFloat(amount) * vehicleRatio).toLocaleString("en-ZA")}` : ""}`}
+                style={{ marginBottom: space.sm }}
+              />
+              <FieldLabel label="Work use %" />
+              <TextInput
+                value={vehicleBusinessPct}
+                onChangeText={setVehicleBusinessPct}
+                placeholder="e.g. 80"
+                placeholderTextColor={colour.textHint}
+                keyboardType="decimal-pad"
+                style={{
+                  ...typography.bodyL,
+                  color: colour.text,
+                  borderBottomWidth: 1,
+                  borderBottomColor: colour.border,
+                  paddingVertical: space.sm,
+                  marginBottom: space.md,
+                }}
+              />
+            </>
           )}
 
           {showCatPicker && (

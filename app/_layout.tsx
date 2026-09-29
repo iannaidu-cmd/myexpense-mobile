@@ -452,6 +452,9 @@ function RootLayout() {
           name="mileage-trip-summary"
           options={{ headerShown: false }}
         />
+        <Stack.Screen name="mileage-trip-edit" options={{ headerShown: false }} />
+        <Stack.Screen name="vehicles" options={{ headerShown: false }} />
+        <Stack.Screen name="vehicle-form" options={{ headerShown: false }} />
         {/* ── Settings ── */}
         <Stack.Screen name="home-office-setup" options={{ headerShown: false }} />
         <Stack.Screen name="bank-accounts" options={{ headerShown: false }} />

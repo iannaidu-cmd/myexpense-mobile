@@ -50,7 +50,9 @@ const GRACE_PERIOD_DAYS = 30;
 const RECEIPTS_BUCKET = "receipts";
 
 // Fully deleted — not part of the "transaction/expense record" retained per policy.
-const FULLY_DELETED_TABLES = ["mileage_trips", "bank_accounts", "home_office_settings", "tax_summary"] as const;
+// Order matters: mileage_trips before vehicles (FK). Odometer readings
+// cascade away with their vehicle.
+const FULLY_DELETED_TABLES = ["mileage_trips", "vehicles", "bank_accounts", "home_office_settings", "tax_summary"] as const;
 
 Deno.serve(
   async (req) => {

@@ -37,7 +37,7 @@ const FAQS = [
   },
   {
     q: "How do I track mileage?",
-    a: "Go to the Reports tab and tap Mileage Tracker. Start a trip and MyExpense will record your route. You can also add trips manually. SARS mileage is calculated at the prescribed rate.",
+    a: "Go to the Reports tab and tap Mileage Tracker. Add your vehicle, then start a trip. MyExpense records how far you drove, where you went and why. You can also add a trip you didn't track. Add the km on your dashboard at the start and end of the tax year too. Your logbook then shows how much of your driving was for work, and you claim that share of your vehicle costs (fuel, insurance, repairs, licence and finance charges).",
   },
   {
     q: "Is my data safe and POPIA compliant?",

@@ -3,6 +3,7 @@ import { MXHeader } from "@/components/MXHeader";
 import { expenseService } from "@/services/expenseService";
 import { incomeService } from "@/services/incomeService";
 import { mileageService } from "@/services/mileageService";
+import { claimableInputVat } from "@/lib/vat";
 import { profileService } from "@/services/profileService";
 import { taxLiabilityService } from "@/services/taxLiabilityService";
 import { useAuthStore } from "@/stores/authStore";
@@ -272,14 +273,10 @@ export default function ReportsTabScreen() {
         );
         setTaxLiability(liabilityEstimate);
         setVatRegistered(vatRegistered);
-        // Same claimable-VAT rule as app/vat-summary.tsx: input tax can only
-        // be claimed back by a registered vendor, regardless of is_deductible.
+        // Same claimable-VAT rule as app/vat-summary.tsx (lib/vat.ts): only a
+        // registered vendor can claim, only the business share, never entertainment.
         setVatClaimable(
-          vatRegistered
-            ? allExpenses
-                .filter((e) => e.vat_amount && Number(e.vat_amount) > 0 && e.is_deductible)
-                .reduce((s, e) => s + Number(e.vat_amount), 0)
-            : 0,
+          vatRegistered ? allExpenses.reduce((s, e) => s + claimableInputVat(e), 0) : 0,
         );
 
         const now = new Date();
@@ -708,7 +705,7 @@ export default function ReportsTabScreen() {
                   </Text>
                 )}
                 <Text style={{ fontSize: 10, color: colour.onNoir2, marginTop: 4 }}>
-                  {vatRegistered ? "Tap to see input vs output VAT" : "Tap to register or see the VAT report"}
+                  {vatRegistered ? "Tap to see the VAT you can claim back" : "Tap to register or see your VAT"}
                 </Text>
               </View>
               <View style={{

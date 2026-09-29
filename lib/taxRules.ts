@@ -86,7 +86,7 @@ function latestKnownTaxYear(): string {
 // Look up a year's full constants, falling back to the newest known year if
 // the requested year hasn't been added to the table yet (SARS brackets only
 // ever move in the taxpayer's favour year over year, so this is the
-// least-wrong guess — same fallback pattern as SARS_RATE_PER_KM below).
+// least-wrong guess).
 export function taxDataForYear(taxYear: string): YearTaxData {
   return TAX_DATA_BY_YEAR[taxYear] ?? TAX_DATA_BY_YEAR[latestKnownTaxYear()];
 }
@@ -187,34 +187,13 @@ export function retirementSeveranceLumpSumTax(thisLumpSum: number, priorLumpSums
   return Math.max(0, Math.round(taxOnCumulative - taxOnPrior));
 }
 
-// SARS deemed mileage rate per km, by tax year. A fixed regulated figure SARS
-// gazettes each year — not derivable from a formula like TAX_YEAR. Add the
-// new year by hand once SARS publishes it, the same way TAX_BRACKETS above
-// must be updated.
-// A prior single hardcoded rate (R4.84) went stale after its year label was
-// bumped forward without updating the number, silently mislabeling R4.84 as
-// the "2025/26" rate when it was actually the correct 2024/25 figure.
-export const SARS_MILEAGE_RATES: Record<string, number> = {
-  "2026/27": 4.95, // effective 1 March 2026
-  "2025/26": 4.76,
-  "2024/25": 4.84,
-};
-
-// Rate for a specific tax year — use this (not SARS_RATE_PER_KM) whenever
-// valuing an EXISTING trip or expense, so historical records keep using the
-// rate that actually applied when they were logged instead of today's rate.
-// Returns null for years before our records so callers can show "rate
-// unknown" rather than silently applying the wrong figure.
-export function mileageRateForTaxYear(taxYear: string): number | null {
-  return SARS_MILEAGE_RATES[taxYear] ?? null;
-}
-
-// Current tax year's rate — only appropriate for a NEW trip being tracked
-// right now. Falls back to the highest known rate if the current year hasn't
-// been added to the table yet (rates only increase over time, so this is the
-// least-wrong guess until the real figure is added).
-export const SARS_RATE_PER_KM =
-  mileageRateForTaxYear(getCurrentTaxYear()) ?? Math.max(...Object.values(SARS_MILEAGE_RATES));
+// No SARS per-km mileage rate lives here on purpose. The prescribed rate
+// (and the deemed-cost table) only apply to employees receiving a travel
+// allowance (s8(1)(b)). MyExpense's users are self-employed and claim under
+// s11(a): actual vehicle costs × the business-use % from their logbook
+// (business km ÷ odometer total km; see logbookBusinessUse in
+// stores/vehicleStore.ts). The app previously valued trips at R/km, which
+// risked double-claiming alongside actual vehicle costs.
 
 // VAT rate
 export const VAT_RATE = 0.15;

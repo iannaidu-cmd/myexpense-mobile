@@ -3,6 +3,13 @@ import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { VAT_RATE } from "@/lib/taxRules";
+import {
+  claimableInputVat,
+  countsTowardVatTurnover,
+  VAT_COMPULSORY_THRESHOLD,
+  VAT_VOLUNTARY_THRESHOLD,
+  vatNeedsReview,
+} from "@/lib/vat";
 import { validateVATNumber } from "@/lib/validation";
 import { expenseService } from "@/services/expenseService";
 import { incomeService } from "@/services/incomeService";
@@ -43,7 +50,9 @@ function csvField(val: string | number | null | undefined): string {
   return str;
 }
 
-type Period = "month" | "quarter" | "year";
+// No "quarter" option: SARS VAT returns run in two-month periods (Category
+// A/B), not calendar quarters, so a quarter total matched no real return.
+type Period = "month" | "year";
 
 export default function VATSummaryScreen() {
   const router = useRouter();
@@ -57,7 +66,9 @@ export default function VATSummaryScreen() {
   const [vatNumber, setVatNumber] = useState("");
   const [savingVat, setSavingVat] = useState(false);
 
-  const VAT_THRESHOLD = 1_000_000;
+  // See lib/vat.ts for the source (R2.3 million from 1 April 2026).
+  const VAT_THRESHOLD = VAT_COMPULSORY_THRESHOLD;
+  const fmtRand = (n: number) => `R${Math.round(n).toLocaleString("en-ZA")}`;
 
   const loadData = useCallback(async () => {
     if (!user) { setLoading(false); return; }
@@ -72,12 +83,14 @@ export default function VATSummaryScreen() {
       setVatRegistered(profile?.vat_registered ?? false);
       setVatNumber(profile?.vat_number ?? "");
 
-      // Rolling 12-month revenue for VAT threshold
+      // Rolling 12-month business turnover for the VAT threshold. Salary and
+      // other employment income aren't business turnover (VAT 404), and nor
+      // is the app's automatic vehicle-sale row.
       const cutoff = new Date();
       cutoff.setFullYear(cutoff.getFullYear() - 1);
       const cutoffStr = cutoff.toISOString().split("T")[0];
       const trailing = allIncome
-        .filter((e) => e.date >= cutoffStr)
+        .filter((e) => e.date >= cutoffStr && countsTowardVatTurnover(e))
         .reduce((s, e) => s + Number(e.amount), 0);
       setTrailing12Revenue(trailing);
     } catch (e) {
@@ -124,34 +137,29 @@ export default function VATSummaryScreen() {
       return (
         d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
       );
-    if (period === "quarter")
-      return (
-        Math.floor(d.getMonth() / 3) === Math.floor(now.getMonth() / 3) &&
-        d.getFullYear() === now.getFullYear()
-      );
     return true;
   });
 
   const totalVAT = filtered.reduce((s, e) => s + Number(e.vat_amount), 0);
   // Input tax can only be claimed back from SARS by a registered VAT vendor —
   // an unregistered user's VAT is just a cost, regardless of is_deductible.
-  const claimableVAT = vatRegistered
-    ? filtered.filter((e) => e.is_deductible).reduce((s, e) => s + Number(e.vat_amount), 0)
-    : 0;
+  // Only the business share counts, and never entertainment (lib/vat.ts).
+  const entryClaimable = (e: any) => (vatRegistered ? claimableInputVat(e) : 0);
+  const claimableVAT = filtered.reduce((s, e) => s + entryClaimable(e), 0);
   const nonClaimable = totalVAT - claimableVAT;
-  const isEntryClaimable = (e: any) => vatRegistered && e.is_deductible;
+  const isEntryClaimable = (e: any) => entryClaimable(e) > 0;
+  // Older partly-business entries whose share wasn't saved (lib/vat.ts).
+  const reviewCount = vatRegistered ? filtered.filter(vatNeedsReview).length : 0;
 
   const handleExport = async () => {
     try {
       const periodLabel =
         period === "month"
           ? now.toLocaleDateString("en-ZA", { month: "long", year: "numeric" })
-          : period === "quarter"
-          ? `Q${Math.floor(now.getMonth() / 3) + 1} ${now.getFullYear()}`
           : `Tax year ${activeTaxYear}`;
 
       const header = [
-        "Vendor", "Date", "Gross Amount (ZAR)", "VAT Amount (ZAR)", "Category", "Claimable",
+        "Vendor", "Date", "Amount (ZAR)", "VAT paid (ZAR)", "VAT you can claim (ZAR)", "Category", "Check",
       ].join(",");
 
       const rows = filtered.map((e) =>
@@ -160,8 +168,9 @@ export default function VATSummaryScreen() {
           csvField(e.expense_date),
           csvField(Number(e.amount).toFixed(2)),
           csvField(Number(e.vat_amount).toFixed(2)),
+          csvField(entryClaimable(e).toFixed(2)),
           csvField(e.category),
-          csvField(isEntryClaimable(e) ? "Yes" : "No"),
+          csvField(vatRegistered && vatNeedsReview(e) ? "Saved before work-share was recorded: check the VAT" : ""),
         ].join(","),
       );
 
@@ -172,14 +181,14 @@ export default function VATSummaryScreen() {
         `Generated: ${now.toLocaleDateString("en-ZA")}`,
         vatRegistered
           ? `VAT vendor status: Registered${vatNumber ? ` (${vatNumber})` : ""}`
-          : "VAT vendor status: Not registered — VAT below is a cost only, not claimable from SARS",
+          : "VAT vendor status: Not registered. The VAT below is a cost, not something you can claim back.",
         "",
         header,
         ...rows,
         "",
         `Total VAT paid,${fmt(totalVAT)}`,
-        `Claimable input tax,${fmt(claimableVAT)}`,
-        `Non-claimable VAT,${fmt(nonClaimable)}`,
+        `VAT you can claim back,${fmt(claimableVAT)}`,
+        `VAT you can't claim back,${fmt(nonClaimable)}`,
       ].join("\n");
 
       await Share.share({ message: lines, title: "VAT Report" });
@@ -190,7 +199,6 @@ export default function VATSummaryScreen() {
 
   const periods: { key: Period; label: string }[] = [
     { key: "month", label: "This month" },
-    { key: "quarter", label: "This quarter" },
     { key: "year", label: "Tax year" },
   ];
 
@@ -340,7 +348,7 @@ export default function VATSummaryScreen() {
             >
               <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
                 <Text style={{ fontSize: 11, fontWeight: "700", color: colour.onNoir2, letterSpacing: 0.6 }}>
-                  VAT REGISTRATION THRESHOLD
+                  WHEN YOU MUST REGISTER FOR VAT
                 </Text>
                 <View style={{ backgroundColor: bgColour, borderRadius: radius.pill, paddingHorizontal: 8, paddingVertical: 3 }}>
                   <Text style={{ fontSize: 10, fontWeight: "700", color: barColour }}>
@@ -353,7 +361,7 @@ export default function VATSummaryScreen() {
                 {`R ${Math.round(trailing12Revenue).toLocaleString("en-ZA")}`}
               </Text>
               <Text style={{ fontSize: 11, color: colour.onNoir2, marginBottom: space.md }}>
-                of R 1,000,000 threshold · rolling 12 months
+                {`business income in the last 12 months, out of ${fmtRand(VAT_THRESHOLD)}`}
               </Text>
 
               <View style={{ height: 8, backgroundColor: "rgba(255,255,255,0.1)", borderRadius: 4, marginBottom: 8 }}>
@@ -369,10 +377,13 @@ export default function VATSummaryScreen() {
 
               <Text style={{ fontSize: 11, color: colour.onNoir2 }}>
                 {trailing12Revenue >= VAT_THRESHOLD
-                  ? `⚠️ Threshold exceeded by R ${Math.round(trailing12Revenue - VAT_THRESHOLD).toLocaleString("en-ZA")} — VAT registration is compulsory.`
+                  ? `You're ${fmtRand(trailing12Revenue - VAT_THRESHOLD)} over the limit, so you must register for VAT.`
                   : pctDisplay >= 80
-                    ? `R ${Math.round(remaining).toLocaleString("en-ZA")} remaining — approaching the compulsory registration threshold.`
-                    : `R ${Math.round(remaining).toLocaleString("en-ZA")} below the R1M compulsory registration threshold.`}
+                    ? `${fmtRand(remaining)} to go before you must register for VAT. You're getting close.`
+                    : `${fmtRand(remaining)} to go before you must register for VAT.`}
+              </Text>
+              <Text style={{ fontSize: 10, color: colour.onNoir2, marginTop: 4, opacity: 0.8 }}>
+                Salary from a job doesn't count towards this.
               </Text>
             </View>
           );
@@ -495,12 +506,12 @@ export default function VATSummaryScreen() {
               >
                 <View>
                   <Text style={{ ...typography.labelM, color: colour.text }}>
-                    Non-claimable VAT
+                    VAT you can't claim back
                   </Text>
                   <Text
                     style={{ ...typography.caption, color: colour.text }}
                   >
-                    VAT on non-business expenses
+                    Personal costs, the personal part of mixed costs, and entertainment
                   </Text>
                 </View>
                 <Text style={{ ...typography.amountS, color: colour.text }}>
@@ -513,14 +524,23 @@ export default function VATSummaryScreen() {
               <InfoBanner
                 icon="checkmark.seal.fill"
                 title="Registered VAT vendor"
-                body={`You can claim input tax on qualifying business expenses above.${vatNumber ? ` VAT number: ${vatNumber}.` : ""} Update this above if it changes.`}
+                body={`You can claim back the VAT on your work costs. For costs that are partly personal (like your phone or car), you can only claim the work part. You can never claim VAT on entertainment or on buying a car.${vatNumber ? ` VAT number: ${vatNumber}.` : ""}`}
                 style={{ marginBottom: space.xl }}
               />
             ) : (
               <InfoBanner
                 icon="percent"
                 title="Not VAT registered"
-                body="None of the VAT above is claimable from SARS while you're unregistered — it's shown here as a cost, not a refund. You may voluntarily register once your turnover exceeds R50,000 per year; it becomes compulsory above R1,000,000. Set your status above once registered."
+                body={`You can't claim back any of this VAT until you're registered. It's shown as a cost, not a refund. You can choose to register once your business income is over ${fmtRand(VAT_VOLUNTARY_THRESHOLD)} a year, and you must register once it's over ${fmtRand(VAT_COMPULSORY_THRESHOLD)}. Change your status above once you're registered.`}
+                style={{ marginBottom: space.xl }}
+              />
+            )}
+
+            {reviewCount > 0 && (
+              <InfoBanner
+                icon="exclamationmark.triangle.fill"
+                title={`Check ${reviewCount} older entr${reviewCount === 1 ? "y" : "ies"}`}
+                body="These were saved before MyExpense kept track of the work part of mixed costs, like a phone or car. We're showing all of their VAT as claimable, but you can only claim the work part. Check them before you do your VAT return."
                 style={{ marginBottom: space.xl }}
               />
             )}
@@ -593,6 +613,11 @@ export default function VATSummaryScreen() {
                     >
                       {fmt(entry.vat_amount)}
                     </Text>
+                    {isEntryClaimable(entry) && entryClaimable(entry) < Number(entry.vat_amount) - 0.005 && (
+                      <Text style={{ ...typography.micro, color: colour.textSecondary }}>
+                        claim {fmt(entryClaimable(entry))}
+                      </Text>
+                    )}
                     <View
                       style={{
                         backgroundColor: isEntryClaimable(entry)
@@ -613,7 +638,11 @@ export default function VATSummaryScreen() {
                           fontWeight: "600",
                         }}
                       >
-                        {isEntryClaimable(entry) ? "Claimable" : "Not claimable"}
+                        {vatRegistered && vatNeedsReview(entry)
+                          ? "Check this"
+                          : isEntryClaimable(entry)
+                            ? "You can claim"
+                            : "Can't claim"}
                       </Text>
                     </View>
                   </View>

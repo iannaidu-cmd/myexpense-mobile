@@ -34,3 +34,12 @@ export function displayDateToISO(display: string): string {
   const [d, m, y] = parts;
   return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
 }
+
+// Date → ISO "YYYY-MM-DD" in the device's local time zone. Use this instead
+// of toISOString().split("T")[0], which gives the UTC date — in SAST (UTC+2)
+// anything between midnight and 02:00 lands on the previous day.
+export function localISODate(d: Date): string {
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}-${m}-${day}`;
+}

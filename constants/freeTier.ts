@@ -18,6 +18,9 @@ export const FREE_BANK_IMPORT_LIMIT = 20;
 /** Free-tier cap: ITR12 exports per calendar month. Previously Pro-only with zero free access. */
 export const FREE_ITR12_EXPORT_LIMIT = 20;
 
+/** Free-tier cap: mileage logbook exports per calendar month. Gated the same way as ITR12 exports. */
+export const FREE_LOGBOOK_EXPORT_LIMIT = 20;
+
 // AsyncStorage key for the "you have N free scans this month" heads-up shown
 // the first time a free (non-premium) user opens Scan each calendar month —
 // keyed by year-month so it naturally resets on its own every month, no

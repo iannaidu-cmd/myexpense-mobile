@@ -58,6 +58,8 @@ export default function EditExpenseScreen() {
   const [date, setDate] = useState("");
   const [category, setCategory] = useState("");
   const [notes, setNotes] = useState("");
+  // % applied when the expense was first saved (null if never apportioned).
+  const [businessUsePct, setBusinessUsePct] = useState<number | null>(null);
   const [showCatModal, setShowCatModal] = useState(false);
 
   // Load existing expense on mount
@@ -71,6 +73,7 @@ export default function EditExpenseScreen() {
         setDate(expense.expense_date ? isoToDisplayDate(expense.expense_date) : "");
         setCategory(expense.category ?? "");
         setNotes(expense.notes ?? "");
+        setBusinessUsePct(expense.business_use_pct != null ? Number(expense.business_use_pct) : null);
         // Derive toggle state from saved is_deductible flag
         setExpenseType(expense.is_deductible ? "business" : "personal");
         setLoadingExpense(false);
@@ -109,6 +112,11 @@ export default function EditExpenseScreen() {
       await expenseService.updateExpense({
         id: id!,
         amount: parseFloat(amount),
+        // The amount here is the claimable (already apportioned) figure, so
+        // keep the stored full amount in step with it.
+        ...(businessUsePct != null && businessUsePct > 0
+          ? { gross_amount: parseFloat((parseFloat(amount) / (businessUsePct / 100)).toFixed(2)) }
+          : {}),
         vendor: vendor.trim(),
         expense_date: expenseDateIso,
         category: category,

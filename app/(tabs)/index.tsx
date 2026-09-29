@@ -5,10 +5,13 @@ import { UpdateAvailableBanner } from "@/components/UpdateAvailableBanner";
 import { appVersionService } from "@/services/appVersionService";
 import { expenseService } from "@/services/expenseService";
 import { incomeService } from "@/services/incomeService";
+import { mileageService, missingLogbookFields } from "@/services/mileageService";
 import { profileService } from "@/services/profileService";
 import { taxLiabilityService } from "@/services/taxLiabilityService";
 import { GRACE_PERIOD_DAYS, useAuthStore } from "@/stores/authStore";
 import { useExpenseStore } from "@/stores/expenseStore";
+import { logbookBusinessUse, useVehicleStore } from "@/stores/vehicleStore";
+import { claimsVehicleCostsAsBusiness } from "@/lib/workType";
 import { colour, radius, space, typography } from "@/tokens";
 import { AppReleaseInfo, Expense, TaxLiabilityEstimate } from "@/types/database";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -189,6 +192,15 @@ export default function HomeScreen() {
   const [recentExpenses, setRecentExpenses] = useState<Expense[]>([]);
   const [recentIncome, setRecentIncome] = useState<any[]>([]);
   const [taxLiability, setTaxLiability] = useState<TaxLiabilityEstimate | null>(null);
+  const [mileage, setMileage] = useState<{
+    businessKm: number;
+    trips: number;
+    incompleteTrips: number;
+    businessUsePct: number | null;
+    vehicleDeductions: number; // Vehicle Expenses deductions incl. wear & tear
+    hasVehicle: boolean;
+    isEmployee: boolean; // salaried employees can't claim vehicle costs (lib/workType.ts)
+  } | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showRefreshHint, setShowRefreshHint] = useState(false);
@@ -212,14 +224,20 @@ export default function HomeScreen() {
       setTimeout(() => reject(new Error("timeout")), 25_000),
     );
     try {
-      const [profile, totals, incomeTotals, recent, recentInc, liabilityEstimate] = await Promise.race([
+      const [profile, totals, incomeTotals, recent, recentInc, liabilityEstimate, trips] = await Promise.race([
         Promise.all([
           profileService.getProfile(user.id),
           expenseService.getTotals(user.id, activeTaxYear),
           incomeService.getTotals(user.id, activeTaxYear),
           expenseService.getRecentExpenses(user.id, 5),
           incomeService.getRecentIncome(user.id, 5, activeTaxYear),
-          taxLiabilityService.getEstimate(user.id, activeTaxYear).catch(() => null),
+          // Recalculated against current deductions (incl. mileage-derived
+          // ones) rather than read as stored, so this figure never lags.
+          taxLiabilityService.refreshEstimate(user.id, activeTaxYear)
+            .then((r) => r?.estimate ?? null)
+            .catch(() => taxLiabilityService.getEstimate(user.id, activeTaxYear).catch(() => null)),
+          mileageService.getTrips(user.id, activeTaxYear).catch(() => []),
+          useVehicleStore.getState().load(user.id, activeTaxYear, true).catch(() => {}),
         ]),
         timeout,
       ]);
@@ -229,6 +247,24 @@ export default function HomeScreen() {
       setRecentExpenses(recent);
       setRecentIncome(recentInc);
       setTaxLiability(liabilityEstimate);
+
+      // Mileage logbook summary. Vehicle deductions come from the same
+      // expense rows as every other total (actual costs × business % plus
+      // the automatic wear & tear row), so this card and the hero agree.
+      const byCategory = await expenseService
+        .getByCategory(user.id, activeTaxYear, profile?.vat_registered ?? false)
+        .catch(() => ({} as Record<string, number>));
+      const { vehicles, readings } = useVehicleStore.getState();
+      const businessUse = logbookBusinessUse(trips, readings);
+      setMileage({
+        businessKm: trips.reduce((s, t) => s + Number(t.distance_km), 0),
+        trips: trips.length,
+        incompleteTrips: trips.filter((t) => missingLogbookFields(t).length > 0).length,
+        businessUsePct: businessUse ? businessUse.ratio * 100 : null,
+        vehicleDeductions: byCategory["Vehicle Expenses"] ?? 0,
+        hasVehicle: vehicles.some((v) => !v.isArchived),
+        isEmployee: !claimsVehicleCostsAsBusiness(profile?.work_type),
+      });
       hasLoaded.current = true;
       setShowRefreshHint(false);
     } catch (e) {
@@ -611,6 +647,65 @@ export default function HomeScreen() {
                 <Text style={{ fontSize: 13, fontWeight: "600", color: colour.text }}>Add expense</Text>
               </TouchableOpacity>
             </View>
+
+            {/* ── Mileage logbook ── */}
+            {mileage && (mileage.trips > 0 || mileage.hasVehicle) && (
+              <TouchableOpacity
+                onPress={() => router.push("/mileage-history")}
+                activeOpacity={0.8}
+                style={{
+                  backgroundColor: colour.white, borderRadius: radius.md,
+                  padding: 14, borderWidth: 1, borderColor: colour.borderLight,
+                  marginBottom: 10, ...cardShadow,
+                }}
+              >
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                  <View style={{
+                    width: 28, height: 28, borderRadius: 8,
+                    backgroundColor: colour.primary50, alignItems: "center", justifyContent: "center",
+                  }}>
+                    <IconSymbol name="car.fill" size={14} color={colour.accentDeep} />
+                  </View>
+                  <Text style={{ flex: 1, fontSize: 13, fontWeight: "600", color: colour.text }}>
+                    Mileage logbook
+                  </Text>
+                  <IconSymbol name="chevron.right" size={14} color={colour.textHint} />
+                </View>
+                <View style={{ flexDirection: "row", marginTop: 12 }}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 11, color: colour.textSub, fontWeight: "500", marginBottom: 4 }}>Work km</Text>
+                    <Text style={{ fontSize: 16, fontWeight: "700", color: colour.text }}>
+                      {Math.round(mileage.businessKm).toLocaleString("en-ZA")}
+                    </Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 11, color: colour.textSub, fontWeight: "500", marginBottom: 4 }}>Work use</Text>
+                    <Text style={{ fontSize: 16, fontWeight: "700", color: colour.text }}>
+                      {mileage.businessUsePct != null ? `${mileage.businessUsePct.toFixed(0)}%` : "—"}
+                    </Text>
+                  </View>
+                  {!mileage.isEmployee && (
+                    <View style={{ flex: 1.3 }}>
+                      <Text style={{ fontSize: 11, color: colour.textSub, fontWeight: "500", marginBottom: 4 }}>Vehicle deductions</Text>
+                      <Text style={{ fontSize: 16, fontWeight: "700", color: colour.accentDeep }}>
+                        {formatZAR(mileage.vehicleDeductions)}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+                {(mileage.isEmployee || mileage.incompleteTrips > 0 || !mileage.hasVehicle || mileage.businessUsePct == null) && (
+                  <Text style={{ fontSize: 11, color: colour.textSub, marginTop: 10 }}>
+                    {mileage.isEmployee
+                      ? "Employees can only claim travel if their employer pays them a travel allowance"
+                      : !mileage.hasVehicle
+                      ? "Add your vehicle to finish setting up your logbook"
+                      : mileage.incompleteTrips > 0
+                        ? `${mileage.incompleteTrips} trip${mileage.incompleteTrips === 1 ? "" : "s"} need${mileage.incompleteTrips === 1 ? "s" : ""} more details`
+                        : "Add your km readings to see how much of your driving is for work"}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            )}
 
             {/* ── Scan CTA banner ── */}
             <TouchableOpacity
