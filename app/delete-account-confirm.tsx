@@ -1,3 +1,4 @@
+import { showNotice } from "@/components/NoticeHost";
 import { MXButton } from "@/components/MXButton";
 import { MXHeader } from "@/components/MXHeader";
 import { MXInput } from "@/components/MXInput";
@@ -6,7 +7,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { colour, radius, space, typography } from "@/tokens";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Alert, ScrollView, Text, View } from "react-native";
+import { ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { safeBack } from "@/lib/navigation";
 
@@ -33,9 +34,9 @@ export default function DeleteAccountConfirmScreen() {
     try {
       await requestAccountDeletion();
       router.replace("/account-pending-deletion" as any);
-    } catch (e: any) {
+    } catch {
       setLoading(false);
-      Alert.alert("Something went wrong", e?.message ?? "Please try again.");
+      showNotice({ title: "Something went wrong", message: "Please check your internet connection and try again." });
     }
   };
 

@@ -1,3 +1,4 @@
+import { showNotice } from "@/components/NoticeHost";
 import { MXBackHeader } from "@/components/MXBackHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -5,13 +6,12 @@ import { colour, radius, space, typography } from "@/tokens";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-    Alert,
-    Linking,
-    ScrollView,
-    StatusBar,
-    Text,
-    TouchableOpacity,
-    View,
+  Linking,
+  ScrollView,
+  StatusBar,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -201,10 +201,12 @@ export default function HelpSupportScreen() {
     Linking.openURL(
       `mailto:${SUPPORT_EMAIL}?subject=MyExpense Support Request`,
     ).catch(() =>
-      Alert.alert(
-        "Could not open email",
-        `Please email us at ${SUPPORT_EMAIL}`,
-      ),
+      showNotice({
+        title: "We couldn't open your email app",
+        message: `Please email us at ${SUPPORT_EMAIL}`,
+        tone: "info",
+        icon: "envelope.fill",
+      }),
     );
   };
 

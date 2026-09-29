@@ -1,3 +1,4 @@
+import { showNotice } from "@/components/NoticeHost";
 import { InfoBanner } from "@/components/InfoBanner";
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
@@ -15,17 +16,16 @@ import { taxYearForDate } from "@/lib/taxRules";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Image,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StatusBar,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StatusBar,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -277,8 +277,8 @@ export default function ReceiptReviewScreen() {
 
       setSuccessMessage(`${vendor} — R ${savedAmount.toLocaleString("en-ZA", { minimumFractionDigits: 2 })} saved${hasReceipt ? " with receipt" : ""}.`);
       setSuccessVisible(true);
-    } catch (e: any) {
-      Alert.alert("Error", e.message);
+    } catch {
+      showNotice({ title: "Couldn't save this receipt", message: "Please check your internet connection and try again." });
     } finally {
       setSaving(false);
     }

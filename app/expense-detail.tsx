@@ -1,3 +1,4 @@
+import { showNotice } from "@/components/NoticeHost";
 import { ConfirmModal } from "@/components/ConfirmModal";
 import { InfoBanner } from "@/components/InfoBanner";
 import { MXHeader } from "@/components/MXHeader";
@@ -12,16 +13,15 @@ import { ACTIVE_TAX_YEAR } from "@/types/database";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Dimensions,
-    Image,
-    Modal,
-    ScrollView,
-    StatusBar,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Dimensions,
+  Image,
+  Modal,
+  ScrollView,
+  StatusBar,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { safeBack } from "@/lib/navigation";
@@ -282,8 +282,8 @@ export default function ExpenseDetailScreen() {
       });
       await expenseService.deleteExpense(expense.id);
       router.replace("/income-history" as any);
-    } catch (e: any) {
-      Alert.alert("Error", e.message);
+    } catch {
+      showNotice({ title: "Couldn't move this to income", message: "Please check your internet connection and try again." });
       setConverting(false);
     }
   };
@@ -295,8 +295,8 @@ export default function ExpenseDetailScreen() {
     try {
       await expenseService.deleteExpense(expense.id);
       safeBack(router);
-    } catch (e: any) {
-      Alert.alert("Error", e.message);
+    } catch {
+      showNotice({ title: "Couldn't delete this expense", message: "Please check your internet connection and try again." });
       setDeleting(false);
     }
   };

@@ -1,3 +1,4 @@
+import { showNotice } from "@/components/NoticeHost";
 import { MXBackHeader } from "@/components/MXBackHeader";
 import { MXButton } from "@/components/MXButton";
 import { MXTabBar } from "@/components/MXTabBar";
@@ -7,7 +8,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { useSubscriptionStore } from "@/stores/subscriptionStore";
 import { colour, radius, space, typography } from "@/tokens";
 import React, { useEffect, useState } from "react";
-import { Alert, Linking, Platform, ScrollView, StatusBar, Text, View } from "react-native";
+import { Linking, Platform, ScrollView, StatusBar, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function SubscriptionManageScreen() {
@@ -57,9 +58,9 @@ export default function SubscriptionManageScreen() {
   const handleRestore = async () => {
     const restored = await restorePurchases();
     if (restored) {
-      Alert.alert("Purchases restored", "Your Pro subscription has been restored.");
+      showNotice({ title: "Pro restored", message: "Your Pro subscription is back on.", tone: "success", icon: "crown.fill" });
     } else {
-      Alert.alert("Nothing to restore", "No active purchases found on this account.");
+      showNotice({ title: "Nothing to restore", message: "We couldn't find a subscription for this account.", tone: "info" });
     }
   };
 

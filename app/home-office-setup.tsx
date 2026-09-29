@@ -1,3 +1,4 @@
+import { showNotice } from "@/components/NoticeHost";
 import { ConfirmModal } from "@/components/ConfirmModal";
 import { InfoBanner } from "@/components/InfoBanner";
 import { MXButton } from "@/components/MXButton";
@@ -16,7 +17,6 @@ import { colour, radius, space, typography } from "@/tokens";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -99,7 +99,7 @@ export default function HomeOfficeSetupScreen() {
 
   const handleSave = async () => {
     if (!canSave || !user) {
-      if (!canSave) Alert.alert("Check your measurements", "Office area cannot exceed total property area.");
+      if (!canSave) showNotice({ title: "Check your measurements", message: "Your office can't be bigger than your whole home." });
       return;
     }
     setSaving(true);

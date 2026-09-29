@@ -1,3 +1,4 @@
+import { showNotice } from "@/components/NoticeHost";
 import { MXButton } from "@/components/MXButton";
 import { MXHeader } from "@/components/MXHeader";
 import { MXInput } from "@/components/MXInput";
@@ -17,7 +18,6 @@ import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -313,7 +313,7 @@ export default function TaxLiabilityInputsScreen() {
       validateNonNegativeAmount(priorLumpSumsNorm, "Earlier retirement or severance lump sums"),
     );
     if (error) {
-      Alert.alert("Check your entries", error);
+      showNotice({ title: "Check your entries", message: error });
       return;
     }
 
@@ -353,8 +353,8 @@ export default function TaxLiabilityInputsScreen() {
       });
 
       router.replace("/tax-liability-summary" as any);
-    } catch (e: any) {
-      Alert.alert("Error", e.message ?? "Could not calculate your tax liability.");
+    } catch {
+      showNotice({ title: "Couldn't work out your tax", message: "Please check your internet connection and try again." });
     } finally {
       setSaving(false);
     }

@@ -1,3 +1,4 @@
+import { showNotice } from "@/components/NoticeHost";
 import { AnnouncementModal } from "@/components/AnnouncementModal";
 import { ConfirmModal } from "@/components/ConfirmModal";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -18,14 +19,13 @@ import { useIsFocused } from "@react-navigation/native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Animated,
-    Linking,
-    Text,
-    TouchableOpacity,
-    useWindowDimensions,
-    View,
+  ActivityIndicator,
+  Animated,
+  Linking,
+  Text,
+  TouchableOpacity,
+  useWindowDimensions,
+  View,
 } from "react-native";
 import { safeBack } from "@/lib/navigation";
 
@@ -227,7 +227,7 @@ export default function ScanReceiptCameraScreen() {
     } catch (e: any) {
       console.error("Upload error:", e.message);
       if (expenseId) {
-        Alert.alert("Upload failed", "Could not upload receipt. Please try again.");
+        showNotice({ title: "Couldn't upload your receipt", message: "Please check your internet connection and try again." });
       } else {
         setShowUploadFailedChoice(true);
       }

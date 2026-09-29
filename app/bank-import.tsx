@@ -1,3 +1,4 @@
+import { showNotice } from "@/components/NoticeHost";
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { SuccessModal } from "@/components/SuccessModal";
@@ -20,7 +21,6 @@ import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Modal,
   ScrollView,
@@ -555,17 +555,17 @@ export default function BankImportScreen() {
       const parsed = await pickAndParseStatement();
       if (parsed === null) return; // user cancelled
       if (parsed.length === 0) {
-        Alert.alert(
-          "No transactions found",
-          "The file was parsed but contained no debit transactions. Make sure you exported a bank statement (not an invoice or other document) and that it includes outgoing transactions.",
-        );
+        showNotice({
+          title: "No transactions found",
+          message: "We read the file but found no money going out. Make sure it's a bank statement (not an invoice) and that it includes payments you made.",
+        });
         return;
       }
       setTransactions(parsed);
       // Select all by default
       setSelected(new Set(parsed.map((t) => t.id)));
-    } catch (err: any) {
-      Alert.alert("Could not parse file", err?.message ?? "Unknown error. Try a CSV export from your bank.");
+    } catch {
+      showNotice({ title: "We couldn't read this file", message: "Try downloading your statement from your bank as a CSV file." });
     } finally {
       setPickerLoading(false);
     }
@@ -618,7 +618,7 @@ export default function BankImportScreen() {
     if (!user) return;
     const toImport = transactions.filter((t) => selected.has(t.id));
     if (toImport.length === 0) {
-      Alert.alert("Nothing selected", "Tick at least one transaction to import.");
+      showNotice({ title: "Nothing selected", message: "Tick at least one transaction to import.", tone: "info" });
       return;
     }
 
@@ -639,10 +639,11 @@ export default function BankImportScreen() {
       const skipped = expenseEntries.length - freshExpenses.length;
 
       if (freshExpenses.length === 0 && incomeEntries.length === 0) {
-        Alert.alert(
-          "Already imported",
-          `All ${toImport.length} selected transaction${toImport.length !== 1 ? "s" : ""} already exist in your records.`,
-        );
+        showNotice({
+          title: "Already imported",
+          message: `${toImport.length === 1 ? "This transaction is" : `All ${toImport.length} transactions are`} already in your records.`,
+          tone: "info",
+        });
         return;
       }
 
@@ -676,8 +677,8 @@ export default function BankImportScreen() {
       setTransactions([]);
       setSelected(new Set());
       setFilter("All");
-    } catch (err: any) {
-      Alert.alert("Import failed", err?.message ?? "Please try again.");
+    } catch {
+      showNotice({ title: "Couldn't import your transactions", message: "Please check your internet connection and try again." });
     } finally {
       setImporting(false);
     }

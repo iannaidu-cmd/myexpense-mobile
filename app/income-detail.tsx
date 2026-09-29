@@ -1,3 +1,4 @@
+import { showNotice } from "@/components/NoticeHost";
 import { ConfirmModal } from "@/components/ConfirmModal";
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
@@ -12,7 +13,6 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   ScrollView,
   StatusBar,
   Text,
@@ -93,8 +93,8 @@ export default function IncomeDetailScreen() {
     try {
       await incomeService.deleteIncome(income.id);
       router.replace("/income-history" as any);
-    } catch (e: any) {
-      Alert.alert("Error", e.message);
+    } catch {
+      showNotice({ title: "Couldn't delete this income", message: "Please check your internet connection and try again." });
       setDeleting(false);
     }
   };
@@ -115,8 +115,8 @@ export default function IncomeDetailScreen() {
       });
       await incomeService.deleteIncome(income.id);
       router.replace("/expense-history" as any);
-    } catch (e: any) {
-      Alert.alert("Error", e.message);
+    } catch {
+      showNotice({ title: "Couldn't move this to expenses", message: "Please check your internet connection and try again." });
       setConverting(false);
     }
   };

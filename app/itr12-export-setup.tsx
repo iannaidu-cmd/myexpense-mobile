@@ -1,3 +1,4 @@
+import { showNotice } from "@/components/NoticeHost";
 import { InfoBanner } from "@/components/InfoBanner";
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
@@ -19,7 +20,6 @@ import { useAppForeground } from "@/hooks/use-app-foreground";
 import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   ScrollView,
   StatusBar,
   Switch,
@@ -176,7 +176,7 @@ export default function ITR12ExportSetupScreen() {
   const handleExport = async () => {
     if (!user) return;
     if (totalExpenses === 0) {
-      Alert.alert("No expenses", "Add expenses before generating an export.");
+      showNotice({ title: "No expenses yet", message: "Add some expenses first, then export them.", tone: "info" });
       return;
     }
     setExporting(true);
@@ -198,11 +198,8 @@ export default function ITR12ExportSetupScreen() {
         });
       }
       await logItr12Export(user.id).catch((e) => console.warn("logItr12Export failed:", e.message));
-    } catch (e: any) {
-      Alert.alert(
-        "Export failed",
-        e?.message ?? "Could not generate export. Please try again.",
-      );
+    } catch {
+      showNotice({ title: "Couldn't create your export", message: "Please check your internet connection and try again." });
     } finally {
       setExporting(false);
     }

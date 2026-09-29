@@ -1,4 +1,5 @@
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { NoticeHost } from "@/components/NoticeHost";
 import { FacebookOAuthModal } from "@/components/auth/FacebookOAuthModal";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { configurePurchases } from "@/lib/purchases";
@@ -517,6 +518,8 @@ function RootLayout() {
         />
       </Stack>
       <StatusBar style="auto" />
+      {/* App-wide in-app notices (replaces native Alert.alert) */}
+      <NoticeHost />
     </ThemeProvider>
     {!splashDone && <InlineSplash opacity={splashOpacity} />}
     </View>

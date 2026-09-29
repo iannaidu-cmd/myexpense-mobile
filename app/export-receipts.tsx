@@ -1,3 +1,4 @@
+import { showNotice } from "@/components/NoticeHost";
 import { InfoBanner } from "@/components/InfoBanner";
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
@@ -14,7 +15,6 @@ import { useFocusEffect } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Modal,
   Platform,
   ScrollView,
@@ -205,7 +205,7 @@ export default function ExportReceiptsScreen() {
   const handleExport = async () => {
     if (!user) return;
     if (!count) {
-      Alert.alert("No receipts", "There are no receipts in that date range.");
+      showNotice({ title: "No receipts", message: "There are no receipts between those dates.", tone: "info" });
       return;
     }
     setExporting(true);
@@ -218,13 +218,14 @@ export default function ExportReceiptsScreen() {
         onProgress: (done, total) => setProgress({ done, total }),
       });
       if (result.skipped > 0) {
-        Alert.alert(
-          "Export complete",
-          `${result.fileCount} receipt${result.fileCount === 1 ? "" : "s"} exported. ${result.skipped} could not be downloaded.`,
-        );
+        showNotice({
+          title: "Export done",
+          message: `${result.fileCount} receipt${result.fileCount === 1 ? " was" : "s were"} exported. ${result.skipped} couldn't be downloaded.`,
+          tone: "info",
+        });
       }
-    } catch (e: any) {
-      Alert.alert("Export failed", e?.message ?? "Could not export receipts. Please try again.");
+    } catch {
+      showNotice({ title: "Couldn't export your receipts", message: "Please check your internet connection and try again." });
     } finally {
       setExporting(false);
       setProgress(null);

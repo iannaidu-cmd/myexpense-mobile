@@ -1,3 +1,4 @@
+import { showNotice } from "@/components/NoticeHost";
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -15,7 +16,6 @@ import { useAppForeground } from "@/hooks/use-app-foreground";
 import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   ScrollView,
   Share,
   StatusBar,
@@ -161,8 +161,8 @@ export default function ITR12ExportPreviewScreen() {
         message: lines,
         title: `MyExpense ITR12 Preview ${taxYear}`,
       });
-    } catch (e) {
-      Alert.alert("Share failed", "Could not share the export.");
+    } catch {
+      showNotice({ title: "Couldn't share this", message: "Please try again." });
     } finally {
       setSharing(false);
     }
@@ -612,11 +612,8 @@ export default function ITR12ExportPreviewScreen() {
                 userId: user.id,
                 taxYear,
               });
-            } catch (e: any) {
-              Alert.alert(
-                "PDF failed",
-                e?.message ?? "Could not generate PDF.",
-              );
+            } catch {
+              showNotice({ title: "Couldn't make the PDF", message: "Please try again." });
             } finally {
               setPdfLoading(false);
             }
