@@ -1,3 +1,4 @@
+import { showNotice } from "@/components/NoticeHost";
 /**
  * ErrorNoInternetScreen.tsx
  * Route: app/error-no-internet.tsx  (or rendered inline as a conditional overlay)
@@ -11,14 +12,13 @@ import NetInfo from "@react-native-community/netinfo";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Platform,
-    SafeAreaView,
-    StatusBar,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Platform,
+  SafeAreaView,
+  StatusBar,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { safeBack } from "@/lib/navigation";
 
@@ -152,10 +152,11 @@ export default function ErrorNoInternetScreen() {
     if (state.isConnected && state.isInternetReachable !== false) {
       safeBack(router);
     } else {
-      Alert.alert(
-        "Still offline",
-        "Please check your internet connection and try again.",
-      );
+      showNotice({
+        title: "Still offline",
+        message: "Please check your Wi-Fi or mobile data and try again.",
+        icon: "globe",
+      });
     }
   };
 

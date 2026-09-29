@@ -1,3 +1,4 @@
+import { showNotice } from "@/components/NoticeHost";
 import { ConfirmModal } from "@/components/ConfirmModal";
 import { MXButton } from "@/components/MXButton";
 import { MXCard } from "@/components/MXCard";
@@ -7,7 +8,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { useSubscriptionStore } from "@/stores/subscriptionStore";
 import { colour, space, typography } from "@/tokens";
 import { useEffect, useState } from "react";
-import { Alert, Linking, Platform, ScrollView, Text, View } from "react-native";
+import { Linking, Platform, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 // Shown when a paid subscription's renewal payment failed and the 7-day
@@ -30,12 +31,15 @@ export default function AccessBlockedScreen() {
       Linking.openURL(url);
       return;
     }
-    Alert.alert(
-      "Update payment method",
-      Platform.OS === "ios"
-        ? "Open Settings → Apple ID → Subscriptions to update your payment method for MyExpense."
-        : "Open Play Store → Payments & subscriptions to update your payment method for MyExpense."
-    );
+    showNotice({
+      title: "Update your payment method",
+      message:
+        Platform.OS === "ios"
+          ? "Open Settings, tap your name, then Subscriptions, to update how you pay for MyExpense."
+          : "Open the Play Store, then Payments & subscriptions, to update how you pay for MyExpense.",
+      tone: "info",
+      icon: "creditcard.fill",
+    });
   };
 
   const handleSignOut = () => {

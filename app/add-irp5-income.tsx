@@ -1,3 +1,4 @@
+import { showNotice } from "@/components/NoticeHost";
 import { InfoBanner } from "@/components/InfoBanner";
 import { MXButton } from "@/components/MXButton";
 import { MXHeader } from "@/components/MXHeader";
@@ -10,7 +11,6 @@ import { ACTIVE_TAX_YEAR, TAX_YEARS } from "@/types/database";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -142,13 +142,15 @@ export default function AddIRP5IncomeScreen() {
         incomeRecordId: incomeRecord.id,
       });
 
-      Alert.alert(
-        "IRP5 income saved",
-        `${fmt(gross)} gross income from ${employerName} added. PAYE credit of ${fmt(paye)} recorded.`,
-        [{ text: "Done", onPress: () => safeBack(router) }],
-      );
-    } catch (e: any) {
-      Alert.alert("Error saving IRP5", e.message);
+      showNotice({
+        title: "IRP5 saved",
+        message: `We've added ${fmt(gross)} of income from ${employerName}, and the ${fmt(paye)} tax (PAYE) already taken off.`,
+        tone: "success",
+        confirmLabel: "Done",
+        onConfirm: () => safeBack(router),
+      });
+    } catch {
+      showNotice({ title: "Couldn't save your IRP5", message: "Please check your internet connection and try again." });
     } finally {
       setSaving(false);
     }

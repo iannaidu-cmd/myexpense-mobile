@@ -1,3 +1,4 @@
+import { showNotice } from "@/components/NoticeHost";
 import { ConfirmModal } from "@/components/ConfirmModal";
 import { InfoBanner } from "@/components/InfoBanner";
 import { MXHeader } from "@/components/MXHeader";
@@ -9,17 +10,16 @@ import { colour, radius, space, typography } from "@/tokens";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    ScrollView,
-    StatusBar,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  ScrollView,
+  StatusBar,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -84,7 +84,7 @@ export default function BankAccountsScreen() {
       setAccounts(data ?? []);
     } catch (e: any) {
       console.error("BankAccounts load error:", e);
-      Alert.alert("Error", "Couldn't load your bank accounts. Please try again.");
+      showNotice({ title: "Couldn't load your bank accounts", message: "Please check your internet connection and try again." });
     } finally {
       setLoading(false);
     }
@@ -104,7 +104,7 @@ export default function BankAccountsScreen() {
 
   const handleAdd = async () => {
     if (!bankName || !accountHolder || !accountNumber || !branchCode) {
-      Alert.alert("Required fields", "Please fill in all fields.");
+      showNotice({ title: "A few details are missing", message: "Please fill in all the fields." });
       return;
     }
     if (!user) return;
@@ -123,8 +123,8 @@ export default function BankAccountsScreen() {
       setShowModal(false);
       resetForm();
       await loadAccounts();
-    } catch (e: any) {
-      Alert.alert("Error", e.message ?? "Couldn't save your bank account. Please try again.");
+    } catch {
+      showNotice({ title: "Couldn't save your bank account", message: "Please check your internet connection and try again." });
     } finally {
       setSaving(false);
     }
@@ -145,8 +145,8 @@ export default function BankAccountsScreen() {
         .eq("user_id", user.id);
       if (setError) throw setError;
       await loadAccounts();
-    } catch (e: any) {
-      Alert.alert("Error", e.message ?? "Couldn't update your primary account. Please try again.");
+    } catch {
+      showNotice({ title: "Couldn't change your main account", message: "Please check your internet connection and try again." });
     }
   };
 
@@ -161,8 +161,8 @@ export default function BankAccountsScreen() {
       const { error } = await supabase.from("bank_accounts").delete().eq("id", id).eq("user_id", user!.id);
       if (error) throw error;
       await loadAccounts();
-    } catch (e: any) {
-      Alert.alert("Error", e.message ?? "Couldn't remove this account. Please try again.");
+    } catch {
+      showNotice({ title: "Couldn't remove this account", message: "Please check your internet connection and try again." });
     } finally {
       setDeleting(null);
     }

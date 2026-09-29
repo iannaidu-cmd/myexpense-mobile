@@ -1,3 +1,4 @@
+import { showNotice } from "@/components/NoticeHost";
 import { ConfirmModal } from "@/components/ConfirmModal";
 import { MXBackHeader } from "@/components/MXBackHeader";
 import { MXTabBar } from "@/components/MXTabBar";
@@ -16,13 +17,12 @@ import { colour, radius, space, typography } from "@/tokens";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-    Alert,
-    ScrollView,
-    StatusBar,
-    Switch,
-    Text,
-    TouchableOpacity,
-    View,
+  ScrollView,
+  StatusBar,
+  Switch,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -214,10 +214,10 @@ export default function SecuritySettingsScreen() {
           !session?.refresh_token ||
           !session?.user?.email
         ) {
-          Alert.alert(
-            "Error",
-            "Could not enable biometrics. Please sign in again.",
-          );
+          showNotice({
+            title: "Couldn't turn this on",
+            message: `Please sign out and sign in again, then switch on ${biometricLabel}.`,
+          });
           return;
         }
         await saveBiometricSession(
@@ -227,9 +227,9 @@ export default function SecuritySettingsScreen() {
         );
         await setBiometricEnabled(true);
         setBiometricEnabledState(true);
-        Alert.alert("Enabled", `${biometricLabel} sign-in is now active.`);
-      } catch (e: any) {
-        Alert.alert("Error", e?.message ?? "Something went wrong.");
+        showNotice({ title: `${biometricLabel} is on`, message: `You can now sign in with ${biometricLabel}.`, tone: "success" });
+      } catch {
+        showNotice({ title: "Something went wrong", message: "Please try again." });
       }
     } else {
       setShowDisableBiometricConfirm(true);
@@ -255,8 +255,8 @@ export default function SecuritySettingsScreen() {
       const { supabase } = await import("@/lib/supabase");
       await supabase.auth.signOut({ scope: "global" });
       router.replace("/sign-in");
-    } catch (e: any) {
-      Alert.alert("Error", e?.message ?? "Could not sign out.");
+    } catch {
+      showNotice({ title: "Couldn't sign you out", message: "Please check your internet connection and try again." });
     }
   };
 

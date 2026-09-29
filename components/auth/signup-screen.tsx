@@ -1,3 +1,4 @@
+import { showNotice } from "@/components/NoticeHost";
 import * as AppleAuthentication from "expo-apple-authentication";
 import { signInWithApple } from "@/services/appleAuthService";
 import { signInWithFacebook } from "@/services/facebookAuthService";
@@ -8,7 +9,6 @@ import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -207,7 +207,7 @@ export function SignupScreen() {
     try {
       const result = await signInWithGoogle();
       if (result.success) router.replace("/(tabs)");
-      else if (result.error !== "cancelled") Alert.alert("Google Sign-In failed", result.error ?? "Please try again.");
+      else if (result.error !== "cancelled") showNotice({ title: "Couldn't sign in with Google", message: "Please try again." });
     } finally { setGoogleLoading(false); }
   };
 
@@ -215,7 +215,7 @@ export function SignupScreen() {
     setFbLoading(true);
     try {
       const result = await signInWithFacebook();
-      if (!result.success && result.error !== "cancelled") Alert.alert("Facebook Sign-In failed", result.error ?? "Please try again.");
+      if (!result.success && result.error !== "cancelled") showNotice({ title: "Couldn't sign in with Facebook", message: "Please try again." });
     } finally { setFbLoading(false); }
   };
 
@@ -224,7 +224,7 @@ export function SignupScreen() {
     try {
       const result = await signInWithApple();
       if (result.success) router.replace("/(tabs)");
-      else if (result.error !== "cancelled") Alert.alert("Apple Sign-In failed", result.error ?? "Please try again.");
+      else if (result.error !== "cancelled") showNotice({ title: "Couldn't sign in with Apple", message: "Please try again." });
     } finally { setAppleLoading(false); }
   };
 

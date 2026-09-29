@@ -1,3 +1,4 @@
+import { showNotice } from "@/components/NoticeHost";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ConfirmModal } from "@/components/ConfirmModal";
 import { InfoBanner } from "@/components/InfoBanner";
@@ -19,16 +20,15 @@ import { taxYearForDate } from "@/lib/taxRules";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StatusBar,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StatusBar,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { safeBack } from "@/lib/navigation";
@@ -281,8 +281,8 @@ export default function AddExpenseScreen() {
 
       setSuccessMessage(`R ${savedAmount.toLocaleString("en-ZA", { minimumFractionDigits: 2 })} at ${vendor.trim()} has been saved.`);
       setSuccessVisible(true);
-    } catch (e: any) {
-      Alert.alert("Error saving expense", e.message);
+    } catch {
+      showNotice({ title: "Couldn't save this expense", message: "Please check your internet connection and try again." });
     } finally {
       setSaving(false);
     }

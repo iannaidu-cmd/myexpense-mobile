@@ -1,3 +1,4 @@
+import { showNotice } from "@/components/NoticeHost";
 // ─── Profile Setup Screen ─────────────────────────────────────────────────────
 // Shown once after first sign-in when the user has no tax number on record.
 // Collects the minimum details SARS requires: tax number, work type, name.
@@ -12,16 +13,15 @@ import { colour, radius, space, typography } from "@/tokens";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StatusBar,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StatusBar,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -89,11 +89,8 @@ export default function ProfileSetupScreen() {
       // (lib/workType.ts), so recompute it, and the Home estimate with it.
       useVehicleStore.getState().syncWearAndTear(user.id, useExpenseStore.getState().activeTaxYear);
       router.replace("/(tabs)");
-    } catch (err: any) {
-      Alert.alert(
-        "Error",
-        err.message ?? "Could not save profile. Please try again.",
-      );
+    } catch {
+      showNotice({ title: "Couldn't save your profile", message: "Please check your internet connection and try again." });
     } finally {
       setSaving(false);
     }

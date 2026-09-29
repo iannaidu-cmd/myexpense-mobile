@@ -1,3 +1,4 @@
+import { showNotice } from "@/components/NoticeHost";
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { SuccessModal } from "@/components/SuccessModal";
@@ -14,18 +15,17 @@ import { colour, radius, space, typography } from "@/tokens";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    FlatList,
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    ScrollView,
-    StatusBar,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  FlatList,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  ScrollView,
+  StatusBar,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { safeBack } from "@/lib/navigation";
@@ -79,7 +79,7 @@ export default function EditExpenseScreen() {
         setLoadingExpense(false);
       })
       .catch((e) => {
-        Alert.alert("Error", e.message);
+        showNotice({ title: "Couldn't open this expense", message: "Please check your internet connection and try again." });
         setLoadingExpense(false);
       });
   }, [id]);
