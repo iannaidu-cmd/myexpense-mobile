@@ -6,7 +6,7 @@
 const config = {
   name: "MyExpense",
   slug: "MyExpense",
-  version: "1.2.0",
+  version: "1.2.1",
   orientation: "portrait",
   icon: "./assets/images/icon.png",
   scheme: "myexpense",
@@ -15,7 +15,7 @@ const config = {
     supportsTablet: true,
     requiresFullScreen: true,
     bundleIdentifier: "co.za.myexpense",
-    buildNumber: "83",
+    buildNumber: "84",
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false,
       NSCameraUsageDescription:
