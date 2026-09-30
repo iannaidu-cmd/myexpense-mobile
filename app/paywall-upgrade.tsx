@@ -189,23 +189,40 @@ export default function PaywallUpgradeScreen() {
   const displayAnnual = annualPkg?.product.priceString ?? `R${ANNUAL_PRICE.toFixed(2)}`;
 
   const handlePurchase = async () => {
-    if (!selectedPkg) {
-      showNotice({ title: "Just a moment", message: "Prices are still loading. Please try again in a few seconds.", tone: "info" });
+    let pkg = selectedPkg;
+    if (!pkg) {
+      // Offerings may have failed on open (no network, store hiccup) — the
+      // store never retries on its own, so fetch again before giving up.
+      await refresh().catch(() => {});
+      const id = selectedPlan === "monthly" ? PACKAGE_MONTHLY : PACKAGE_ANNUAL;
+      pkg = useSubscriptionStore.getState().packages.find((p) => p.identifier === id);
+    }
+    if (!pkg) {
+      showNotice({
+        title: "Couldn't load prices",
+        message: "We couldn't reach the store. Check your internet connection and try again.",
+        tone: "info",
+      });
       return;
     }
-    const success = await purchasePackage(selectedPkg);
-    if (success) {
-      await syncPremiumStatus();
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      showNotice({
-        title: "Welcome to Pro!",
-        message: "You can now use every MyExpense feature, as much as you like.",
-        tone: "success",
-        icon: "crown.fill",
-        confirmLabel: "Let's go",
-        onConfirm: () => safeBack(router),
-      });
+    const success = await purchasePackage(pkg);
+    if (!success) {
+      const error = useSubscriptionStore.getState().error;
+      if (error) {
+        showNotice({ title: "Payment didn't go through", message: error, tone: "info" });
+      }
+      return;
     }
+    await syncPremiumStatus();
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    showNotice({
+      title: "Welcome to Pro!",
+      message: "You can now use every MyExpense feature, as much as you like.",
+      tone: "success",
+      icon: "crown.fill",
+      confirmLabel: "Let's go",
+      onConfirm: () => safeBack(router),
+    });
   };
 
   const handleRestore = async () => {
