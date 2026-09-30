@@ -7,13 +7,18 @@ import { profileService } from "@/services/profileService";
 import { useAuthStore } from "@/stores/authStore";
 import { useSubscriptionStore } from "@/stores/subscriptionStore";
 import { colour, radius, space, typography } from "@/tokens";
+import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { Linking, Platform, ScrollView, StatusBar, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function SubscriptionManageScreen() {
   const { user, isPremium, isDevUser } = useAuthStore();
-  const { customerInfo, loading, restorePurchases, refresh } = useSubscriptionStore();
+  const router = useRouter();
+  const { customerInfo, isPro, loading, restorePurchases, refresh } = useSubscriptionStore();
+  // Either source counts as paid: the profile flag lags the RevenueCat
+  // webhook, and a lapsed sub can leave isPro false before the profile updates.
+  const hasPro = isPremium || isPro;
   // authStore's AuthState doesn't expose the raw tier, only the derived
   // isPremium boolean — same pattern as (tabs)/settings.tsx, read it from
   // the profile directly.
@@ -122,10 +127,19 @@ export default function SubscriptionManageScreen() {
         {/* Actions */}
         {!isDevUser && (
           <View style={{ gap: space.sm }}>
+            {!hasPro && (
+              <MXButton
+                label="Upgrade to Pro"
+                onPress={() => router.push("/paywall-upgrade" as any)}
+                variant="primary"
+                size="L"
+                fullWidth
+              />
+            )}
             <MXButton
               label={`Manage on ${Platform.OS === "ios" ? "App Store" : "Google Play"}`}
               onPress={handleManage}
-              variant="primary"
+              variant={hasPro ? "primary" : "secondary"}
               loading={loading}
             />
             <MXButton
