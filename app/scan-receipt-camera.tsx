@@ -103,6 +103,10 @@ export default function ScanReceiptCameraScreen() {
   const [facing] = useState<CameraType>("back");
   const [torchOn, setTorchOn] = useState(false);
   const [uploading, setUploading] = useState(false);
+  // The camera unmounts whenever this screen loses focus, so it has to start
+  // up again each time you come back. Tapping the shutter before it's ready
+  // makes takePictureAsync fail, so capture waits for onCameraReady.
+  const [cameraReady, setCameraReady] = useState(false);
   const captureAnim = useRef(new Animated.Value(1)).current;
 
   const [premiumChecked, setPremiumChecked] = useState(false);
@@ -143,6 +147,10 @@ export default function ScanReceiptCameraScreen() {
       if (!seen) setShowAllowanceNotice(true);
     });
   }, [scanGateReady, isPremium, scanBlocked]);
+
+  useEffect(() => {
+    if (!isFocused) setCameraReady(false);
+  }, [isFocused]);
 
   const dismissAllowanceNotice = () => {
     setShowAllowanceNotice(false);
@@ -237,17 +245,21 @@ export default function ScanReceiptCameraScreen() {
   };
 
   const handleCapture = async () => {
-    if (!cameraRef.current || uploading) return;
+    if (!cameraRef.current || !cameraReady || uploading) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     animateCapture();
+    let photoUri: string | undefined;
     try {
       const photo = await cameraRef.current.takePictureAsync({ quality: 0.8 });
-      if (photo?.uri) {
-        await uploadAndProceed(photo.uri, `receipt_${Date.now()}.jpg`);
-      }
+      photoUri = photo?.uri;
     } catch (e) {
       console.error("Capture error:", e);
     }
+    if (!photoUri) {
+      showNotice({ title: "Couldn't take the photo", message: "Please try again, or pick the photo from your gallery." });
+      return;
+    }
+    await uploadAndProceed(photoUri, `receipt_${Date.now()}.jpg`);
   };
 
   const handleGallery = async () => {
@@ -445,6 +457,7 @@ export default function ScanReceiptCameraScreen() {
         style={{ flex: 1 }}
         facing={facing}
         enableTorch={torchOn}
+        onCameraReady={() => setCameraReady(true)}
       >
         {/* Top bar */}
         <View
@@ -624,7 +637,7 @@ export default function ScanReceiptCameraScreen() {
 
             <TouchableOpacity
               onPress={handleCapture}
-              disabled={uploading}
+              disabled={uploading || !cameraReady}
               style={{ alignItems: "center" }}
             >
               <View
@@ -636,20 +649,26 @@ export default function ScanReceiptCameraScreen() {
                   borderColor: uploading ? C.brandTeal : "#fff",
                   alignItems: "center",
                   justifyContent: "center",
+                  overflow: "hidden",
                 }}
               >
-                <View
-                  style={{
-                    width: 62,
-                    height: 62,
-                    borderRadius: 31,
-                    backgroundColor: uploading ? "transparent" : "#fff",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  {uploading && <ActivityIndicator color={C.brandTeal} />}
-                </View>
+                {/* Mount/unmount the white disc rather than toggling its
+                    backgroundColor — on Android, switching transparent → white
+                    after mount can drop the borderRadius and draw a square. */}
+                {uploading ? (
+                  <ActivityIndicator color={C.brandTeal} />
+                ) : (
+                  <View
+                    style={{
+                      width: 62,
+                      height: 62,
+                      borderRadius: 31,
+                      overflow: "hidden",
+                      backgroundColor: "#fff",
+                      opacity: cameraReady ? 1 : 0.4,
+                    }}
+                  />
+                )}
               </View>
             </TouchableOpacity>
 
