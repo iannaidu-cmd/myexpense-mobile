@@ -5,8 +5,8 @@ import { profileService } from "@/services/profileService";
 import { useAuthStore } from "@/stores/authStore";
 import { floorRatio, useHomeOfficeStore } from "@/stores/homeOfficeStore";
 import { colour, radius, space, typography } from "@/tokens";
-import { useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   ScrollView,
   StatusBar,
@@ -67,7 +67,7 @@ const BASE_SECTIONS: {
 
 export default function SettingsTabScreen() {
   const router = useRouter();
-  const { user, signOut, isPremium, isDevUser } = useAuthStore();
+  const { user, signOut, isPremium, isDevUser, refreshPremiumStatus } = useAuthStore();
   const { setting: homeOfficeSetting, load: loadHomeOffice } = useHomeOfficeStore();
   const [fullName, setFullName] = useState("");
   // "business" has no matching RevenueCat product/entitlement yet — intentional
@@ -75,6 +75,14 @@ export default function SettingsTabScreen() {
   // purchase flow. Keep the type and label in place until that plan ships.
   const [subscription, setSubscription] = useState<"free" | "pro" | "business">("free");
   const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
+
+  // isPremium is otherwise only read at launch — re-check on every visit so a
+  // subscription that expired mid-session doesn't keep showing as active.
+  useFocusEffect(
+    useCallback(() => {
+      refreshPremiumStatus().catch(console.warn);
+    }, [refreshPremiumStatus]),
+  );
 
   useEffect(() => {
     if (!user) return;

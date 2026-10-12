@@ -106,9 +106,19 @@ Deno.serve(
           })
           .eq("id", appUserId);
         if (error) throw new Error(error.message);
+      } else if (type === "CANCELLATION") {
+        // Normal cancellation: access continues until expiration_at_ms, and
+        // EXPIRATION fires then. Refund/revoke: RevenueCat sends CANCELLATION
+        // with expiration_at_ms at (or before) now, and no later EXPIRATION.
+        const expirationAtMs: number | null = event.expiration_at_ms ?? null;
+        const accessEnded = expirationAtMs !== null && expirationAtMs <= Date.now();
+        const update = accessEnded
+          ? { subscription: "free", subscription_expires_at: null, billing_issue_detected_at: null }
+          : { subscription_expires_at: expirationAtMs ? new Date(expirationAtMs).toISOString() : null };
+        const { error } = await supabase.from("profiles").update(update).eq("id", appUserId);
+        if (error) throw new Error(error.message);
       }
-      // CANCELLATION and any other event types: no-op. A cancellation keeps
-      // access until the paid period ends, at which point EXPIRATION fires.
+      // Any other event types: no-op.
 
       return new Response(JSON.stringify({ received: true, type }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
