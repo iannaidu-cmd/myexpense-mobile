@@ -3,17 +3,19 @@ import { MXBackHeader } from "@/components/MXBackHeader";
 import { MXButton } from "@/components/MXButton";
 import { MXTabBar } from "@/components/MXTabBar";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { useAppForeground } from "@/hooks/use-app-foreground";
 import { profileService } from "@/services/profileService";
 import { useAuthStore } from "@/stores/authStore";
 import { useSubscriptionStore } from "@/stores/subscriptionStore";
 import { colour, radius, space, typography } from "@/tokens";
+import * as Application from "expo-application";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { Linking, Platform, ScrollView, StatusBar, Text, View } from "react-native";
+import { Linking, Platform, ScrollView, StatusBar, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function SubscriptionManageScreen() {
-  const { user, isPremium, isDevUser } = useAuthStore();
+  const { user, isPremium, isDevUser, refreshPremiumStatus } = useAuthStore();
   const router = useRouter();
   const { customerInfo, isPro, loading, restorePurchases, refresh } = useSubscriptionStore();
   // Either source counts as paid: the profile flag lags the RevenueCat
@@ -24,9 +26,19 @@ export default function SubscriptionManageScreen() {
   // the profile directly.
   const [subscription, setSubscription] = useState<"free" | "pro" | "business">("free");
 
+  // isPremium is otherwise only read at launch, so a subscription that
+  // expired mid-session kept showing as active here until a restart.
   useEffect(() => {
     refresh().catch(console.warn);
+    refreshPremiumStatus().catch(console.warn);
   }, []);
+
+  // Cancelling happens in the store, outside the app — re-check on return so
+  // the card switches from "Renews" to "Ends" without a restart.
+  useAppForeground(() => {
+    refresh().catch(console.warn);
+    refreshPremiumStatus().catch(console.warn);
+  });
 
   useEffect(() => {
     if (!user) return;
@@ -58,6 +70,42 @@ export default function SubscriptionManageScreen() {
           : "https://play.google.com/store/account/subscriptions";
       Linking.openURL(storeUrl);
     }
+  };
+
+  // Apps can't cancel store subscriptions themselves — open this exact
+  // subscription in the store it was bought from, where cancelling is one tap.
+  const boughtOnApple = entitlement?.store === "APP_STORE" || entitlement?.store === "MAC_APP_STORE";
+  const boughtOnGoogle = entitlement?.store === "PLAY_STORE";
+  const storeName = boughtOnGoogle ? "Google Play"
+    : boughtOnApple ? "the App Store"
+    : Platform.OS === "ios" ? "the App Store" : "Google Play";
+
+  const openCancelPage = () => {
+    if (boughtOnGoogle) {
+      const sku = entitlement.productIdentifier.split(":")[0];
+      const pkg = Application.applicationId ?? "co.za.myexpense.myapp";
+      Linking.openURL(
+        `https://play.google.com/store/account/subscriptions?sku=${encodeURIComponent(sku)}&package=${encodeURIComponent(pkg)}`,
+      );
+    } else if (boughtOnApple) {
+      Linking.openURL("https://apps.apple.com/account/subscriptions");
+    } else {
+      handleManage();
+    }
+  };
+
+  const handleCancel = () => {
+    showNotice({
+      title: "Cancel your subscription?",
+      message: `We'll open ${storeName}, where you can cancel. You keep Pro${
+        expiryDate ? ` until ${expiryDate}` : " until the end of the time you've paid for"
+      }, and you won't be charged again.`,
+      icon: "calendar",
+      confirmLabel: `Go to ${storeName}`,
+      cancelLabel: "Keep Pro",
+      destructive: true,
+      onConfirm: openCancelPage,
+    });
   };
 
   const handleRestore = async () => {
@@ -118,7 +166,7 @@ export default function SubscriptionManageScreen() {
               }}
             >
               <Text style={{ ...typography.bodyS, color: colour.textHint }}>
-                Renews {expiryDate}
+                {entitlement?.willRenew ? "Renews" : "Ends"} {expiryDate}
               </Text>
             </View>
           )}
@@ -149,6 +197,21 @@ export default function SubscriptionManageScreen() {
               loading={loading}
             />
           </View>
+        )}
+
+        {/* Same outlined-danger pill as Sign out in settings — only while the
+            subscription is still set to renew. */}
+        {!isDevUser && entitlement?.willRenew && (
+          <TouchableOpacity
+            onPress={handleCancel}
+            activeOpacity={0.8}
+            style={{
+              borderRadius: radius.pill, borderWidth: 1.5, borderColor: colour.danger,
+              height: 52, alignItems: "center", justifyContent: "center",
+            }}
+          >
+            <Text style={{ ...typography.btnL, color: colour.danger }}>Cancel my subscription</Text>
+          </TouchableOpacity>
         )}
 
         <Text
