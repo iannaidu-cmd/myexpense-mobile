@@ -127,20 +127,22 @@ export default function UploadFromGalleryScreen() {
       const { supabase } = await import("@/lib/supabase");
 
       const UPLOAD_TIMEOUT_MS = 60_000;
-      const uploadTimeout = new Promise<never>((_, reject) =>
-        setTimeout(
+      let uploadTimer: ReturnType<typeof setTimeout> | undefined;
+      const uploadTimeout = new Promise<never>((_, reject) => {
+        uploadTimer = setTimeout(
           () => reject(new Error("Upload timed out. Please check your connection and try again.")),
           UPLOAD_TIMEOUT_MS,
-        ),
-      );
+        );
+      });
 
+      // Cleared either way so the timer can't reject later with nobody listening.
       const { error: uploadError } = await Promise.race([
         supabase.storage.from("receipts").upload(storagePath, uint8Array, {
           upsert: true,
           contentType: "image/jpeg",
         }),
         uploadTimeout,
-      ]);
+      ]).finally(() => clearTimeout(uploadTimer));
       if (uploadError) throw new Error(uploadError.message);
 
       await supabase.from("receipts").insert({

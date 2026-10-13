@@ -38,7 +38,10 @@ export const profileService = {
       .eq("id", userId)
       .single();
 
-    if (error && error.code !== "PGRST116") throw new Error(error.message);
+    // A gateway 504 comes back with an empty message — fall back to the code
+    // so Sentry reports say something (REACT-NATIVE-H was "No error message").
+    if (error && error.code !== "PGRST116")
+      throw new Error(error.message || `getProfile failed (${error.code || "no response"})`);
     const result = data ?? null;
     if (result) setCached(key, result, 120_000); // 2-min TTL — profile rarely changes
     return result;

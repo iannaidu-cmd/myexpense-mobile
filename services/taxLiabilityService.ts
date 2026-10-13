@@ -18,9 +18,11 @@ export const taxLiabilityService = {
       .select("*")
       .eq("user_id", userId)
       .eq("tax_year", taxYear)
-      .single();
+      // maybeSingle, not single: most users have no estimate row, and single()
+      // turns that into an HTTP 406 on every Home/Reports load.
+      .maybeSingle();
 
-    if (error && error.code !== "PGRST116") throw new Error(error.message);
+    if (error) throw new Error(error.message);
     return data ?? null;
   },
 

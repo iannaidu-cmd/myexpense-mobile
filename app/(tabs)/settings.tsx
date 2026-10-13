@@ -92,7 +92,7 @@ export default function SettingsTabScreen() {
         setFullName(p.full_name ?? "");
         setSubscription(p.subscription ?? "free");
       }
-    });
+    }).catch(() => {}); // network blip — keep the placeholder (Sentry REACT-NATIVE-H)
   }, [user]);
 
   const initials =

@@ -208,9 +208,12 @@ export default function HomeScreen() {
     if (isFetching.current) return;
     isFetching.current = true;
     if (!silent) setLoading(true);
-    const timeout = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error("timeout")), 25_000),
-    );
+    // Cleared in finally — otherwise it fires after every successful load and
+    // rejects a promise nobody awaits (same bug as REACT-NATIVE-M).
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const timeout = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => reject(new Error("timeout")), 25_000);
+    });
     try {
       const [profile, totals, incomeTotals, recent, recentInc, liabilityEstimate] = await Promise.race([
         Promise.all([
@@ -239,6 +242,7 @@ export default function HomeScreen() {
     } catch (e) {
       console.warn("HomeScreen load error:", e);
     } finally {
+      clearTimeout(timer);
       setLoading(false);
       setRefreshing(false);
       isFetching.current = false;
