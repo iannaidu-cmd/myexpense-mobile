@@ -246,14 +246,18 @@ function OTAUpdateCheck() {
 
 // ── RevenueCat setup ─────────────────────────────────────────────────────────
 function PurchasesSetup() {
-  const { user } = useAuthStore();
+  const { user, isInitialised } = useAuthStore();
   const { refresh } = useSubscriptionStore();
 
   useEffect(() => {
+    // Wait for the saved session to load so RevenueCat is configured with the
+    // Supabase user ID up front, instead of creating an anonymous ID first.
+    // isInitialised is set on every path in authStore.initialise (incl. errors).
+    if (!isInitialised) return;
     configurePurchases(user?.id);
     // Refresh subscription state whenever auth changes
     refresh().catch(console.warn);
-  }, [user?.id]);
+  }, [isInitialised, user?.id]);
 
   return null;
 }
