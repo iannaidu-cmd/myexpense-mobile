@@ -9,7 +9,8 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "expo lint",
-    "test": "jest"
+    "test": "jest",
+    "postinstall": "patch-package"
   },
   "jest": {
     "preset": "jest-expo",
@@ -84,6 +85,7 @@
     "eslint": "^9.25.0",
     "eslint-config-expo": "~10.0.0",
     "jest-expo": "^54.0.17",
+    "patch-package": "^8.0.1",
     "typescript": "~5.9.2"
   },
   "private": true,
