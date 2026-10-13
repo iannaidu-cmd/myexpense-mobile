@@ -44,7 +44,7 @@ export default function SubscriptionManageScreen() {
     if (!user) return;
     profileService.getProfile(user.id).then((p) => {
       if (p) setSubscription(p.subscription ?? "free");
-    });
+    }).catch(() => {});
   }, [user]);
 
   const planLabel =
