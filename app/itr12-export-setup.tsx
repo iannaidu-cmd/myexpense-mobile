@@ -129,22 +129,28 @@ export default function ITR12ExportSetupScreen() {
   const [exporting,       setExporting]       = useState(false);
   const [loading,         setLoading]         = useState(false);
 
+  const userId = user?.id;
   const loadData = useCallback(async () => {
-    if (!user) { setLoading(false); return; }
+    if (!userId) { setLoading(false); return; }
     setLoading(true);
-    const timeout = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error("Request timed out")), 20_000),
-    );
+    // Cleared in finally — otherwise the timer still fires after a successful
+    // load and rejects a promise nobody awaits (Sentry REACT-NATIVE-M).
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const timeout = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => reject(new Error("Request timed out")), 20_000);
+    });
     try {
-      const profile = await profileService.getProfile(user.id);
-      const vatRegistered = profile?.vat_registered ?? false;
       const [totals, byCategory, expenses, incomeTotals] = await Promise.race([
-        Promise.all([
-          expenseService.getTotals(user.id, taxYear, vatRegistered),
-          expenseService.getByCategory(user.id, taxYear, vatRegistered),
-          expenseService.getExpenses(user.id, taxYear),
-          incomeService.getTotals(user.id, taxYear),
-        ]),
+        (async () => {
+          const profile = await profileService.getProfile(userId);
+          const vatRegistered = profile?.vat_registered ?? false;
+          return Promise.all([
+            expenseService.getTotals(userId, taxYear, vatRegistered),
+            expenseService.getByCategory(userId, taxYear, vatRegistered),
+            expenseService.getExpenses(userId, taxYear),
+            incomeService.getTotals(userId, taxYear),
+          ]);
+        })(),
         timeout,
       ]);
       setTotalDeductions(totals.totalDeductions);
@@ -158,14 +164,14 @@ export default function ITR12ExportSetupScreen() {
     } catch (e) {
       console.warn("ITR12Export load error:", e);
     } finally {
+      clearTimeout(timer);
       setLoading(false);
     }
-  }, [user, taxYear]);
+  }, [userId, taxYear]);
 
-  // Fire when auth initialises (user changes null → User)
-  useEffect(() => { loadData(); }, [loadData]);
-
-  // Re-fire when screen gains focus after navigation
+  // Fires on mount, on refocus, and whenever loadData changes while focused
+  // (user signs in / tax year changes). A separate mount-time useEffect used
+  // to duplicate this and send every query twice.
   useFocusEffect(
     useCallback(() => {
       loadData();

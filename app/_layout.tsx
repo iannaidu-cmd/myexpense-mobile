@@ -29,7 +29,13 @@ import {
     DefaultTheme,
     ThemeProvider,
 } from "@react-navigation/native";
-import { Stack, useRootNavigationState, useRouter, useSegments } from "expo-router";
+import {
+    Stack,
+    useNavigationContainerRef,
+    useRootNavigationState,
+    useRouter,
+    useSegments,
+} from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import * as Updates from "expo-updates";
@@ -47,11 +53,16 @@ LogBox.ignoreLogs([
   "Unable to activate keep awake",
 ]);
 
+// Records screen changes as breadcrumbs so native crashes with no JS frames
+// (e.g. REACT-NATIVE-G, getChildDrawingOrder) show which screen was open.
+const navigationIntegration = Sentry.reactNavigationIntegration();
+
 Sentry.init({
   dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
   // JS errors captured in Expo Go; native crashes captured in dev/prod builds
   enabled: !!process.env.EXPO_PUBLIC_SENTRY_DSN,
   tracesSampleRate: 0.2,
+  integrations: [navigationIntegration],
 });
 
 SplashScreen.preventAutoHideAsync();
@@ -79,6 +90,8 @@ function AuthGate() {
   const router = useRouter();
   const segments = useSegments();
   const navigationState = useRootNavigationState();
+  const navRef = useNavigationContainerRef();
+  const [readyRetry, setReadyRetry] = useState(0);
   const { user, isInitialised, pendingEmailVerification, isAccessBlocked, isPendingDeletion } = useAuthStore();
 
   useEffect(() => {
@@ -87,6 +100,13 @@ function AuthGate() {
     // Layout" (Sentry: seen on fast cold starts, mostly Android).
     if (!navigationState?.key) return;
     if (!isInitialised) return;
+    // navigationState can have a key while the container still isn't ready
+    // (Sentry REACT-NATIVE-C). Nothing else in the deps changes when it
+    // becomes ready, so retry shortly instead of bailing for good.
+    if (!navRef.isReady()) {
+      const t = setTimeout(() => setReadyRetry((n) => n + 1), 50);
+      return () => clearTimeout(t);
+    }
 
     // Email confirmation pending — route to verification screen. This runs
     // inside AuthGate so there is no race between a screen's router.replace
@@ -155,7 +175,7 @@ function AuthGate() {
     } else if (user && (inAuthGroup || inOnboarding)) {
       router.replace("/(tabs)");
     }
-  }, [user, isInitialised, segments, pendingEmailVerification, isAccessBlocked, isPendingDeletion, navigationState?.key]);
+  }, [user, isInitialised, segments, pendingEmailVerification, isAccessBlocked, isPendingDeletion, navigationState?.key, readyRetry]);
 
   return null;
 }
@@ -237,7 +257,9 @@ function OTAUpdateCheck() {
         const result = await Updates.checkForUpdateAsync();
         if (result.isAvailable) await Updates.fetchUpdateAsync();
       } catch (e) {
-        Sentry.captureException(e);
+        // Offline or update server unreachable: expected, don't report
+        // (was Sentry REACT-NATIVE-B / REACT-NATIVE-K noise).
+        if (__DEV__) console.warn(e);
       }
     })();
   }, []);
@@ -336,6 +358,11 @@ function RootLayout() {
   const { initialise } = useAuthStore();
   const [splashDone, setSplashDone] = useState(false);
   const splashOpacity = useRef(new Animated.Value(1)).current;
+  const navContainerRef = useNavigationContainerRef();
+
+  useEffect(() => {
+    if (navContainerRef) navigationIntegration.registerNavigationContainer(navContainerRef);
+  }, [navContainerRef]);
   useFonts({
     Inter_400Regular,
     Inter_500Medium,
