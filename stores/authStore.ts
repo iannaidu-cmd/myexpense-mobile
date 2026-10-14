@@ -110,6 +110,38 @@ interface AuthState {
 // active promo_expires_at grants (checked first, see below).
 export const GRACE_PERIOD_DAYS = 7;
 
+// ─── Terms consent ────────────────────────────────────────────────────────────
+// The sign-up screen won't continue until "I agree to the Terms" is ticked,
+// but there's no session yet at that point (email sign-ups wait for the
+// confirmation link; OAuth hasn't returned), so the profile can't be written.
+// The tick time is parked on the device and written to
+// profiles.terms_accepted_at once the account is signed in. Expires after 7
+// days so an abandoned sign-up can't later be credited to a different account.
+const PENDING_TERMS_KEY = "pendingTermsConsentAt";
+const PENDING_TERMS_TTL_MS = 7 * 86_400_000;
+
+export async function notePendingTermsConsent(): Promise<void> {
+  await AsyncStorage.setItem(PENDING_TERMS_KEY, new Date().toISOString()).catch(() => {});
+}
+
+/** Writes a parked consent time to the profile. Resolves true if it did. */
+async function recordPendingTermsConsent(userId: string): Promise<boolean> {
+  const at = await AsyncStorage.getItem(PENDING_TERMS_KEY).catch(() => null);
+  if (!at) return false;
+  if (!(Date.now() - Date.parse(at) <= PENDING_TERMS_TTL_MS)) {
+    await AsyncStorage.removeItem(PENDING_TERMS_KEY).catch(() => {});
+    return false;
+  }
+  const { error } = await supabase
+    .from("profiles")
+    .update({ terms_accepted_at: at })
+    .eq("id", userId)
+    .is("terms_accepted_at", null);
+  if (error) return false; // keep it parked and retry on the next sign-in/launch
+  await AsyncStorage.removeItem(PENDING_TERMS_KEY).catch(() => {});
+  return true;
+}
+
 // ─── Helper: fetch premium status from profiles ───────────────────────────────
 async function fetchPremiumStatus(userId: string): Promise<{
   isDevUser: boolean;
@@ -224,6 +256,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           termsAccepted,
           needsProfileSetup,
         });
+        if (!termsAccepted) {
+          recordPendingTermsConsent(session.user.id).then((ok) => { if (ok) set({ termsAccepted: true }); });
+        }
       } else {
         set({ isInitialised: true });
       }
@@ -259,6 +294,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             fetchPremiumStatus(session.user.id)
               .then(({ isDevUser, isPremium, isAccessBlocked, billingIssueDetectedAt, deletionRequestedAt, isPendingDeletion, termsAccepted, needsProfileSetup }) => {
                 set({ isDevUser, isPremium, isAccessBlocked, billingIssueDetectedAt, deletionRequestedAt, isPendingDeletion, termsAccepted, needsProfileSetup });
+                if (!termsAccepted) {
+                  recordPendingTermsConsent(session.user.id).then((ok) => { if (ok) set({ termsAccepted: true }); });
+                }
               })
               .catch(() => {});
           } else {
