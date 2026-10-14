@@ -1,7 +1,8 @@
 import { showNotice } from "@/components/NoticeHost";
 // ─── Profile Setup Screen ─────────────────────────────────────────────────────
-// Shown once after first sign-in when the user has no tax number on record.
-// Collects the minimum details SARS requires: tax number, work type, name.
+// Shown once per account per device when the profile has no work type (see
+// ProfileSetupPrompt in app/_layout.tsx). Name and work type are required;
+// the tax number is optional since many new users won't have it to hand.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -23,13 +24,14 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 // Shared with the tax rules that depend on it (see lib/workType.ts).
 import { WORK_TYPES } from "@/lib/workType";
 
 export default function ProfileSetupScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { user } = useAuthStore();
 
   const [fullName, setFullName] = useState("");
@@ -61,12 +63,10 @@ export default function ProfileSetupScreen() {
     const e: typeof errors = {};
     if (!fullName.trim()) e.fullName = "Full name is required";
     const tn = taxNumber.replace(/\s/g, "");
-    if (!tn) {
-      e.taxNumber = "Income tax number is required";
-    } else if (!/^\d{10}$/.test(tn)) {
-      e.taxNumber = "SARS tax number must be exactly 10 digits";
+    if (tn && !/^\d{10}$/.test(tn)) {
+      e.taxNumber = "Your tax number should be 10 digits";
     }
-    if (!workType) e.workType = "Please select your work type";
+    if (!workType) e.workType = "Please choose how you work";
     return e;
   };
 
@@ -79,12 +79,14 @@ export default function ProfileSetupScreen() {
     if (!user) return;
     setSaving(true);
     try {
+      const tn = taxNumber.replace(/\s/g, "");
       await profileService.updateProfile(user.id, {
         full_name: fullName.trim(),
-        tax_number: taxNumber.replace(/\s/g, ""),
         work_type: workType,
+        ...(tn ? { tax_number: tn } : {}),
         ...(phone.trim() ? ({ phone: phone.trim() } as any) : {}),
       });
+      useAuthStore.setState({ needsProfileSetup: false });
       // Work type decides whether vehicle wear & tear can be claimed
       // (lib/workType.ts), so recompute it, and the Home estimate with it.
       useVehicleStore.getState().syncWearAndTear(user.id, useExpenseStore.getState().activeTaxYear);
@@ -98,10 +100,10 @@ export default function ProfileSetupScreen() {
 
   return (
     <SafeAreaView
-      edges={["top", "bottom"]}
-      style={{ flex: 1, backgroundColor: colour.background }}
+      edges={["top"]}
+      style={{ flex: 1, backgroundColor: colour.heroDark }}
     >
-      <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
+      <StatusBar barStyle="light-content" backgroundColor={colour.heroDark} />
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -119,56 +121,18 @@ export default function ProfileSetupScreen() {
               paddingBottom: space["3xl"],
             }}
           >
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                marginBottom: space.lg,
-                gap: space.md,
-              }}
-            >
-              {/* Step dots */}
-              <View style={{ flexDirection: "row", gap: 6 }}>
-                {[0, 1, 2, 3].map((i) => (
-                  <View
-                    key={i}
-                    style={{
-                      width: i === 3 ? 22 : 6,
-                      height: 6,
-                      borderRadius: radius.pill,
-                      backgroundColor:
-                        i === 3
-                          ? "rgba(255,255,255,0.95)"
-                          : "rgba(255,255,255,0.35)",
-                    }}
-                  />
-                ))}
-              </View>
-              <Text
-                style={{
-                  ...typography.caption,
-                  color: "rgba(255,255,255,0.7)",
-                }}
-              >
-                Step 4 of 4
-              </Text>
-            </View>
-
             <Text
               style={{
                 ...typography.h2,
                 fontWeight: "800",
-                color: colour.onPrimary,
+                color: colour.onNoir,
                 marginBottom: space.xs,
               }}
             >
-              Complete your{"\n"}tax profile
+              Tell us about{"\n"}your work
             </Text>
-            <Text
-              style={{ ...typography.bodyM, color: "rgba(255,255,255,0.75)" }}
-            >
-              SARS requires your income tax number to process ITR12 deductions.
-              This is stored securely and never shared.
+            <Text style={{ ...typography.bodyM, color: colour.onNoir2 }}>
+              This helps us work out what you can claim. It only takes a minute.
             </Text>
           </View>
 
@@ -233,7 +197,10 @@ export default function ProfileSetupScreen() {
                 marginBottom: space.xs,
               }}
             >
-              Income tax number (SARS)
+              SARS tax number{" "}
+              <Text style={{ color: colour.textHint, fontWeight: "400" }}>
+                (optional)
+              </Text>
             </Text>
             <TextInput
               value={taxNumber}
@@ -275,7 +242,7 @@ export default function ProfileSetupScreen() {
                   marginBottom: space.xl,
                 }}
               >
-                Find this on your SARS eFiling profile or IRP5.
+                {"It's on your eFiling profile or your IRP5. You can add it later."}
               </Text>
             )}
 
@@ -316,7 +283,7 @@ export default function ProfileSetupScreen() {
                 marginBottom: space.sm,
               }}
             >
-              Work type
+              How do you work?
             </Text>
             {errors.workType && (
               <Text
@@ -417,9 +384,8 @@ export default function ProfileSetupScreen() {
                   lineHeight: 18,
                 }}
               >
-                Your tax number is encrypted and stored securely. It is only
-                used to pre-fill your ITR12 export — we never share it with
-                third parties.
+                Your details are stored securely. Your tax number is only used
+                to fill in your tax export. We never share it.
               </Text>
             </View>
 
@@ -452,11 +418,11 @@ export default function ProfileSetupScreen() {
               style={{
                 alignItems: "center",
                 paddingVertical: space.sm,
-                marginBottom: space.lg,
+                marginBottom: space.lg + insets.bottom,
               }}
             >
               <Text style={{ ...typography.bodyS, color: colour.textHint }}>
-                Skip for now — I'll add this later in Settings
+                Skip for now. You can add this later under Me → My profile.
               </Text>
             </TouchableOpacity>
           </View>

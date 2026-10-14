@@ -44,6 +44,7 @@ import { Animated, Image, Linking, LogBox, View } from "react-native";
 import "react-native-reanimated";
 import "react-native-url-polyfill/auto";
 import { supabase } from "@/lib/supabase";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // Supabase internally console.errors when a stored refresh token is stale.
 // We handle this gracefully in authStore (signOut + redirect), so suppress
@@ -176,6 +177,37 @@ function AuthGate() {
       router.replace("/(tabs)");
     }
   }, [user, isInitialised, segments, pendingEmailVerification, isAccessBlocked, isPendingDeletion, navigationState?.key, readyRetry]);
+
+  return null;
+}
+
+// ── Profile setup prompt ──────────────────────────────────────────────────────
+// Sends a signed-in user whose profile has no work type to Profile setup, once
+// per account per device. Keyed off landing on the tabs rather than off the
+// sign-in screens, because sign-in, sign-up, the OAuth callback and email
+// verification each router.replace("/(tabs)") themselves. Once only, so anyone
+// who taps "Skip" isn't sent back on every launch; they can finish it on My
+// profile instead.
+function ProfileSetupPrompt() {
+  const router = useRouter();
+  const segments = useSegments();
+  const { user, needsProfileSetup } = useAuthStore();
+  const checkedFor = useRef<string | null>(null);
+  const inTabs = segments[0] === "(tabs)";
+
+  useEffect(() => {
+    if (!user || !needsProfileSetup || !inTabs) return;
+    if (checkedFor.current === user.id) return;
+    checkedFor.current = user.id;
+    const key = `profileSetupPrompted:${user.id}`;
+    AsyncStorage.getItem(key)
+      .then((seen) => {
+        if (seen) return;
+        AsyncStorage.setItem(key, new Date().toISOString()).catch(() => {});
+        router.replace("/profile-setup");
+      })
+      .catch(() => {});
+  }, [user?.id, needsProfileSetup, inTabs]);
 
   return null;
 }
@@ -390,6 +422,7 @@ function RootLayout() {
     <View style={{ flex: 1 }}>
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
       <AuthGate />
+      <ProfileSetupPrompt />
       <OAuthHandler />
       <OTAUpdateCheck />
       <PurchasesSetup />

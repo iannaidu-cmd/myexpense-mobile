@@ -3,7 +3,7 @@ import * as AppleAuthentication from "expo-apple-authentication";
 import { signInWithApple } from "@/services/appleAuthService";
 import { signInWithFacebook } from "@/services/facebookAuthService";
 import { signInWithGoogle } from "@/services/googleAuthService";
-import { useAuthStore } from "@/stores/authStore";
+import { notePendingTermsConsent, useAuthStore } from "@/stores/authStore";
 import { colour, radius } from "@/tokens";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -191,6 +191,9 @@ export function SignupScreen() {
     if (Object.keys(e).length) { setErrors(e); return; }
     setErrors({});
     setLoading(true);
+    // The button only enables once "I agree" is ticked. Saved to the profile
+    // after sign-in (see notePendingTermsConsent in authStore).
+    await notePendingTermsConsent();
     try {
       await signUp(email, password, name.trim());
       // AuthGate handles routing: pendingEmailVerification → email-verification,
@@ -204,6 +207,7 @@ export function SignupScreen() {
 
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
+    await notePendingTermsConsent();
     try {
       const result = await signInWithGoogle();
       if (result.success) router.replace("/(tabs)");
@@ -213,6 +217,7 @@ export function SignupScreen() {
 
   const handleFacebookSignIn = async () => {
     setFbLoading(true);
+    await notePendingTermsConsent();
     try {
       const result = await signInWithFacebook();
       if (!result.success && result.error !== "cancelled") showNotice({ title: "Couldn't sign in with Facebook", message: "Please try again." });
@@ -221,6 +226,7 @@ export function SignupScreen() {
 
   const handleAppleSignIn = async () => {
     setAppleLoading(true);
+    await notePendingTermsConsent();
     try {
       const result = await signInWithApple();
       if (result.success) router.replace("/(tabs)");
