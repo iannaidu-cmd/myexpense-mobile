@@ -7,6 +7,8 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { displayDateToISO, formatDateInputDDMMYYYY, isoToDisplayDate } from "@/lib/dateInput";
 import { validateDateOfBirth } from "@/lib/validation";
 import { medicalTaxCreditForYear } from "@/lib/taxRules";
+import { WORK_TYPES } from "@/lib/workType";
+import { useVehicleStore } from "@/stores/vehicleStore";
 import { profileService } from "@/services/profileService";
 import { useAuthStore } from "@/stores/authStore";
 import { useExpenseStore } from "@/stores/expenseStore";
@@ -54,6 +56,8 @@ export default function ProfileScreen() {
   const [taxDisability, setTaxDisability] = useState(false);
   const [taxMedMonthly, setTaxMedMonthly] = useState("");
   const [vatRegistered, setVatRegistered] = useState(false);
+  const [workType, setWorkType] = useState("");
+  const [savedWorkType, setSavedWorkType] = useState("");
 
   useEffect(() => {
     if (!user) { setLoading(false); return; }
@@ -72,6 +76,8 @@ export default function ProfileScreen() {
           setTaxDisability(p.has_disability ?? false);
           setTaxMedMonthly(p.medical_aid_monthly ? String(p.medical_aid_monthly) : "");
           setVatRegistered(p.vat_registered ?? false);
+          setWorkType(p.work_type ?? "");
+          setSavedWorkType(p.work_type ?? "");
         }
         setLoading(false);
       })
@@ -100,7 +106,15 @@ export default function ProfileScreen() {
         medical_aid_monthly: parseFloat(taxMedMonthly) || null,
         medical_aid_dependants: taxDependants,
         has_disability: taxDisability,
+        ...(workType ? { work_type: workType } : {}),
       });
+      if (workType) useAuthStore.setState({ needsProfileSetup: false });
+      // Work type decides whether vehicle wear & tear can be claimed
+      // (lib/workType.ts), so recompute it, same as Profile setup does.
+      if (workType && workType !== savedWorkType) {
+        setSavedWorkType(workType);
+        useVehicleStore.getState().syncWearAndTear(user.id, activeTaxYear);
+      }
       setSuccessVisible(true);
     } catch {
       showNotice({ title: "Couldn't save your profile", message: "Please check your internet connection and try again." });
@@ -338,6 +352,48 @@ export default function ProfileScreen() {
                   marginBottom: space.md,
                 }}
               >
+                {/* Work type */}
+                <View
+                  style={{
+                    padding: space.md,
+                    borderBottomWidth: 1,
+                    borderBottomColor: colour.borderLight,
+                  }}
+                >
+                  <Text style={{ ...typography.captionM, color: colour.textHint, letterSpacing: 0.5, marginBottom: space.sm }}>
+                    How do you work?
+                  </Text>
+                  <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.sm }}>
+                    {WORK_TYPES.map((wt) => (
+                      <TouchableOpacity
+                        key={wt.id}
+                        onPress={() => setWorkType(wt.id)}
+                        style={{
+                          paddingVertical: 8,
+                          paddingHorizontal: space.md,
+                          borderRadius: radius.pill,
+                          borderWidth: 1.5,
+                          borderColor: workType === wt.id ? colour.primary : colour.borderLight,
+                          backgroundColor: workType === wt.id ? colour.primary50 : colour.white,
+                        }}
+                      >
+                        <Text
+                          style={{
+                            fontSize: 12,
+                            fontWeight: "600",
+                            color: workType === wt.id ? colour.accentDeep : colour.textSub,
+                          }}
+                        >
+                          {wt.label}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                  <Text style={{ fontSize: 11, color: colour.textSub, marginTop: 6 }}>
+                    Decides whether you can claim your vehicle costs
+                  </Text>
+                </View>
+
                 {/* Date of birth */}
                 <View
                   style={{
