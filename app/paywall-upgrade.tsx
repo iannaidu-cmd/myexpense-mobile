@@ -16,6 +16,7 @@ import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { type PurchasesPackage } from "react-native-purchases";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { safeBack } from "@/lib/navigation";
+import { openStoreSubscription, storeNameFor } from "@/lib/storeSubscriptions";
 
 const FEATURES: { label: string; icon: "camera.fill" | "car.fill" | "chart.bar.fill" | "square.and.arrow.up" }[] = [
   { label: "Unlimited receipt scanning & OCR", icon: "camera.fill" },
@@ -34,6 +35,24 @@ async function syncPremiumStatus(): Promise<void> {
     await new Promise((resolve) => setTimeout(resolve, 2000));
     await useAuthStore.getState().refreshPremiumStatus().catch(() => {});
   }
+}
+
+// Pro access is decided by Supabase (profiles, kept in sync by the webhook),
+// not by RevenueCat. The two can disagree: e.g. a refunded user is switched
+// off after 7 days while the store can still show the subscription running.
+// The store won't sell the same subscription twice, so send them there.
+function showStillInStoreNotice() {
+  const info = useSubscriptionStore.getState().customerInfo;
+  const storeName = storeNameFor(info);
+  showNotice({
+    title: "Your subscription is still in the store",
+    message: `Pro is off for this account, but ${storeName} still has a MyExpense subscription running, so you can't buy it again here. Open ${storeName} to check it. If you turn it back on there, Pro comes back here by itself.`,
+    tone: "info",
+    icon: "crown.fill",
+    confirmLabel: `Go to ${storeName}`,
+    cancelLabel: "Not now",
+    onConfirm: () => openStoreSubscription(info),
+  });
 }
 
 function FeatureRow({ label, icon }: { label: string; icon: (typeof FEATURES)[number]["icon"] }) {
@@ -143,12 +162,29 @@ function PlanRow({
 export default function PaywallUpgradeScreen() {
   const router = useRouter();
   const { isPremium } = useAuthStore();
-  const { packages, loading, isPro, purchasePackage, restorePurchases, refresh } = useSubscriptionStore();
+  const { packages, loading, purchasePackage, restorePurchases, refresh } = useSubscriptionStore();
 
   const [selectedPlan, setSelectedPlan] = useState<"monthly" | "annual">("monthly");
 
+  // isPremium is otherwise only read at launch, so re-check it here: a user
+  // switched to free mid-session must see the paywall, not be bounced away.
+  // If the store still has a subscription running but Supabase says free,
+  // give the webhook a moment to catch up before telling them.
   useEffect(() => {
-    refresh().catch(console.warn);
+    let cancelled = false;
+    (async () => {
+      await Promise.all([
+        refresh().catch(console.warn),
+        useAuthStore.getState().refreshPremiumStatus().catch(() => {}),
+      ]);
+      if (cancelled || !useSubscriptionStore.getState().isPro || useAuthStore.getState().isPremium) return;
+      await syncPremiumStatus();
+      if (cancelled || useAuthStore.getState().isPremium) return;
+      showStillInStoreNotice();
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // ── Dev / premium bypass — skip paywall entirely ──────────────────────────
@@ -157,19 +193,6 @@ export default function PaywallUpgradeScreen() {
       router.replace("/(tabs)/settings" as any);
     }
   }, [isPremium]);
-
-  // If already Pro via RevenueCat (e.g. restored), go back
-  useEffect(() => {
-    if (isPro) {
-      showNotice({
-        title: "You're on Pro!",
-        message: "Pro is already switched on for this account.",
-        tone: "success",
-        icon: "crown.fill",
-        onConfirm: () => safeBack(router),
-      });
-    }
-  }, [isPro]);
 
   if (isPremium) return null;
 
@@ -207,8 +230,10 @@ export default function PaywallUpgradeScreen() {
     }
     const success = await purchasePackage(pkg);
     if (!success) {
-      const error = useSubscriptionStore.getState().error;
-      if (error) {
+      const { error, alreadyOwned } = useSubscriptionStore.getState();
+      if (alreadyOwned) {
+        showStillInStoreNotice();
+      } else if (error) {
         showNotice({ title: "Payment didn't go through", message: error, tone: "info" });
       }
       return;
@@ -229,6 +254,10 @@ export default function PaywallUpgradeScreen() {
     const restored = await restorePurchases();
     if (restored) {
       await syncPremiumStatus();
+      if (!useAuthStore.getState().isPremium) {
+        showStillInStoreNotice();
+        return;
+      }
       showNotice({
         title: "Pro restored",
         message: "Your Pro subscription is back on.",

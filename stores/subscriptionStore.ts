@@ -24,6 +24,9 @@ interface SubscriptionState {
   packages: PurchasesPackage[];
   loading: boolean;
   error: string | null;
+  /** True when the last purchase failed because the store already has this
+   *  subscription running for the user (stores block buying it twice). */
+  alreadyOwned: boolean;
 
   /** Call after RevenueCat is configured (on auth change or app focus) */
   refresh: () => Promise<void>;
@@ -43,6 +46,7 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
   packages: [],
   loading: false,
   error: null,
+  alreadyOwned: false,
 
   refresh: async () => {
     set({ loading: true, error: null });
@@ -66,7 +70,7 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
   },
 
   purchasePackage: async (pkg: PurchasesPackage): Promise<boolean> => {
-    set({ loading: true, error: null });
+    set({ loading: true, error: null, alreadyOwned: false });
     try {
       const { customerInfo } = await Purchases.purchasePackage(pkg);
       const isPro = isProFromCustomerInfo(customerInfo);
@@ -78,7 +82,10 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
         set({ loading: false });
         return false;
       }
-      set({ error: e?.message ?? "Purchase failed" });
+      set({
+        error: e?.message ?? "Purchase failed",
+        alreadyOwned: e?.code === Purchases.PURCHASES_ERROR_CODE.PRODUCT_ALREADY_PURCHASED_ERROR,
+      });
       return false;
     } finally {
       set({ loading: false });

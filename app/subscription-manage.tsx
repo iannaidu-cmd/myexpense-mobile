@@ -8,7 +8,7 @@ import { profileService } from "@/services/profileService";
 import { useAuthStore } from "@/stores/authStore";
 import { useSubscriptionStore } from "@/stores/subscriptionStore";
 import { colour, radius, space, typography } from "@/tokens";
-import * as Application from "expo-application";
+import { openStoreSubscription, storeNameFor } from "@/lib/storeSubscriptions";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { Linking, Platform, ScrollView, StatusBar, Text, TouchableOpacity, View } from "react-native";
@@ -74,25 +74,13 @@ export default function SubscriptionManageScreen() {
 
   // Apps can't cancel store subscriptions themselves — open this exact
   // subscription in the store it was bought from, where cancelling is one tap.
-  const boughtOnApple = entitlement?.store === "APP_STORE" || entitlement?.store === "MAC_APP_STORE";
-  const boughtOnGoogle = entitlement?.store === "PLAY_STORE";
-  const storeName = boughtOnGoogle ? "Google Play"
-    : boughtOnApple ? "the App Store"
-    : Platform.OS === "ios" ? "the App Store" : "Google Play";
+  const storeName = storeNameFor(customerInfo);
+  const openCancelPage = () => openStoreSubscription(customerInfo);
 
-  const openCancelPage = () => {
-    if (boughtOnGoogle) {
-      const sku = entitlement.productIdentifier.split(":")[0];
-      const pkg = Application.applicationId ?? "co.za.myexpense.myapp";
-      Linking.openURL(
-        `https://play.google.com/store/account/subscriptions?sku=${encodeURIComponent(sku)}&package=${encodeURIComponent(pkg)}`,
-      );
-    } else if (boughtOnApple) {
-      Linking.openURL("https://apps.apple.com/account/subscriptions");
-    } else {
-      handleManage();
-    }
-  };
+  // Access comes from the profile (isPremium), not RevenueCat. When the store
+  // still has a subscription running but Pro is off (e.g. 7 days after a
+  // refund), say so instead of offering an upgrade the store won't allow.
+  const storeOnlyPro = !isDevUser && isPro && !isPremium;
 
   const handleCancel = () => {
     showNotice({
@@ -111,6 +99,23 @@ export default function SubscriptionManageScreen() {
   const handleRestore = async () => {
     const restored = await restorePurchases();
     if (restored) {
+      // The profile updates via the webhook, so it can lag the store by a moment.
+      await refreshPremiumStatus().catch(() => {});
+      if (!useAuthStore.getState().isPremium) {
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        await refreshPremiumStatus().catch(() => {});
+      }
+      if (!useAuthStore.getState().isPremium) {
+        showNotice({
+          title: "Pro is still off",
+          message: `We found a subscription in ${storeName}, but it isn't switching Pro on for this account. Open ${storeName} to check it, or contact us from Help & support.`,
+          tone: "info",
+          confirmLabel: `Go to ${storeName}`,
+          cancelLabel: "Not now",
+          onConfirm: openCancelPage,
+        });
+        return;
+      }
       showNotice({ title: "Pro restored", message: "Your Pro subscription is back on.", tone: "success", icon: "crown.fill" });
     } else {
       showNotice({ title: "Nothing to restore", message: "We couldn't find a subscription for this account.", tone: "info" });
@@ -152,6 +157,8 @@ export default function SubscriptionManageScreen() {
                   ? "All features unlocked · Developer access"
                   : isPremium
                   ? "Active · All features unlocked"
+                  : storeOnlyPro
+                  ? `Pro is off, but ${storeName} still has a subscription running. Manage it there.`
                   : "Upgrade to unlock all features"}
               </Text>
             </View>
