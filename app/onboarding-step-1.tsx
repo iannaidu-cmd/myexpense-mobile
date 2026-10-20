@@ -1,9 +1,10 @@
 import { OnboardingFeatureScene } from '@/components/illustrations/OnboardingFeatureScene';
 import { OnboardingHeroScene } from '@/components/illustrations/OnboardingHeroScene';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { trackFunnel } from '@/services/funnelService';
 import { colour, radius, space } from '@/tokens';
 import { useRouter } from 'expo-router';
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Dimensions,
   Image,
@@ -77,10 +78,15 @@ export default function OnboardingScreen() {
     setPage(newPage);
   };
 
+  useEffect(() => {
+    trackFunnel('onboarding_page', { page });
+  }, [page]);
+
   const handleNext = () => {
     if (page < 2) {
       scrollToPage(page + 1);
     } else if (selected) {
+      trackFunnel('onboarding_done', { work_type: selected });
       router.replace('/sign-up');
     }
   };

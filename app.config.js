@@ -2,11 +2,36 @@
 // EAS secrets or a local .env without ever appearing in source control.
 // This is the sole Expo config file — do not reintroduce app.json alongside it.
 
+// Meta (Facebook) SDK for ad attribution: install / activation events and the
+// $fbAnonId RevenueCat forwards with purchases (Meta integration). Only added
+// when both values are set (EAS env), so a build without them still works.
+// No iOS App Tracking Transparency prompt: Android carries the attribution.
+const FB_APP_ID = process.env.FB_APP_ID;
+const FB_CLIENT_TOKEN = process.env.FB_CLIENT_TOKEN;
+const facebookPlugin =
+  FB_APP_ID && FB_CLIENT_TOKEN
+    ? [
+        [
+          "react-native-fbsdk-next",
+          {
+            appID: FB_APP_ID,
+            clientToken: FB_CLIENT_TOKEN,
+            displayName: "MyExpense",
+            scheme: `fb${FB_APP_ID}`,
+            isAutoInitEnabled: true,
+            autoLogAppEventsEnabled: true,
+            advertiserIDCollectionEnabled: true,
+            iosUserTrackingPermission: false,
+          },
+        ],
+      ]
+    : [];
+
 /** @type {import('expo/config').ExpoConfig} */
 const config = {
   name: "MyExpense",
   slug: "MyExpense",
-  version: "1.2.7",
+  version: "1.2.8",
   orientation: "portrait",
   icon: "./assets/images/icon.png",
   scheme: "myexpense",
@@ -15,7 +40,7 @@ const config = {
     supportsTablet: true,
     requiresFullScreen: true,
     bundleIdentifier: "co.za.myexpense",
-    buildNumber: "90",
+    buildNumber: "91",
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false,
       NSCameraUsageDescription:
@@ -36,7 +61,7 @@ const config = {
   },
   android: {
     package: "co.za.myexpense.myapp",
-    versionCode: 48,
+    versionCode: 49,
     config: {
       googleMaps: {
         apiKey: process.env.GOOGLE_MAPS_API_KEY,
@@ -117,6 +142,7 @@ const config = {
     "expo-web-browser",
     "expo-apple-authentication",
     "@react-native-community/datetimepicker",
+    ...facebookPlugin,
     [
       "@sentry/react-native/expo",
       {
@@ -132,6 +158,9 @@ const config = {
   },
   extra: {
     router: {},
+    // Read by lib/metaAttribution.ts: never call the Meta SDK when the plugin
+    // (and so its native initialisation) is absent from this build.
+    facebookEnabled: facebookPlugin.length > 0,
     eas: {
       projectId: "3cc2675f-d248-4f36-ba9b-401f7d55d8be",
     },

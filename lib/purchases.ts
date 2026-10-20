@@ -1,5 +1,6 @@
 import { Platform } from "react-native";
 import Purchases, { LOG_LEVEL } from "react-native-purchases";
+import { linkMetaToRevenueCat } from "./metaAttribution";
 
 // ─── RevenueCat configuration ─────────────────────────────────────────────────
 // Keys are injected via .env:
@@ -18,10 +19,11 @@ let _configured = false;
 export function configurePurchases(userId?: string) {
   if (_configured) {
     // If user ID changes (sign-in/sign-out), update the app user ID
+    // Re-attach Meta attribution to whichever RevenueCat user is now current.
     if (userId) {
-      Purchases.logIn(userId).catch(console.warn);
+      Purchases.logIn(userId).then(linkMetaToRevenueCat).catch(console.warn);
     } else {
-      Purchases.logOut().catch(console.warn);
+      Purchases.logOut().then(linkMetaToRevenueCat).catch(console.warn);
     }
     return;
   }
@@ -41,4 +43,5 @@ export function configurePurchases(userId?: string) {
 
   Purchases.configure({ apiKey, appUserID: userId ?? null });
   _configured = true;
+  linkMetaToRevenueCat();
 }

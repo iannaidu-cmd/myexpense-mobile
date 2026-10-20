@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { supabase } from "@/lib/supabase";
+import { trackFunnel } from "@/services/funnelService";
 import {
   useAuthStore,
   SUPABASE_CV_BACKUP_KEY,
@@ -245,10 +246,15 @@ export default function AuthCallbackScreen() {
 
   useEffect(() => {
     if (user) {
+      trackFunnel("callback_ok");
       Promise.resolve(WebBrowser.dismissBrowser()).catch(() => {});
       router.replace("/(tabs)");
     }
   }, [user]);
+
+  useEffect(() => {
+    if (errorMsg) trackFunnel("callback_failed", { error: errorMsg.slice(0, 200) });
+  }, [errorMsg]);
 
   if (errorMsg) {
     const isBadVerifier =

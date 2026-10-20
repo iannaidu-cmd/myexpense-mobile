@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import { trackFunnel } from "@/services/funnelService";
 import { useAuthStore } from "@/stores/authStore";
 import { colour, radius, space, typography } from "@/tokens";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -64,6 +65,7 @@ export function VerifyEmailScreen({
 
   const handleResend = async () => {
     setResendLoading(true);
+    trackFunnel("verification_resend");
     try {
       await resendVerification(email ?? "");
       setResendSent(true);

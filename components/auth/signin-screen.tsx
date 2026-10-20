@@ -14,6 +14,7 @@ import {
 import { signInWithApple } from "@/services/appleAuthService";
 import { signInWithFacebook } from "@/services/facebookAuthService";
 import { signInWithGoogle } from "@/services/googleAuthService";
+import { errorText, trackFunnel, trackOAuthResult } from "@/services/funnelService";
 import { useAuthStore } from "@/stores/authStore";
 import { colour, radius } from "@/tokens";
 import { useRouter } from "expo-router";
@@ -237,9 +238,12 @@ export function SigninScreen() {
     if (Object.keys(e).length) { setErrors(e); return; }
     setErrors({});
     setLoading(true);
+    trackFunnel("sign_in_submit", { method: "email" });
     try {
       await signIn(email, password);
-    } catch {
+      trackFunnel("sign_in_ok", { method: "email" });
+    } catch (err) {
+      trackFunnel("sign_in_failed", { method: "email", error: errorText(err) });
       setErrors({ password: "Invalid email or password. Please try again." });
       setLoading(false);
       return;
@@ -278,8 +282,10 @@ export function SigninScreen() {
 
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
+    trackFunnel("oauth_start", { provider: "google", from: "sign-in" });
     try {
       const result = await signInWithGoogle();
+      trackOAuthResult("google", "sign-in", result);
       if (result.success) router.replace("/(tabs)");
       else if (result.error !== "cancelled") showNotice({ title: "Couldn't sign in with Google", message: "Please try again." });
     } finally { setGoogleLoading(false); }
@@ -287,16 +293,20 @@ export function SigninScreen() {
 
   const handleFacebookSignIn = async () => {
     setFbLoading(true);
+    trackFunnel("oauth_start", { provider: "facebook", from: "sign-in" });
     try {
       const result = await signInWithFacebook();
+      trackOAuthResult("facebook", "sign-in", result);
       if (!result.success && result.error !== "cancelled") showNotice({ title: "Couldn't sign in with Facebook", message: "Please try again." });
     } finally { setFbLoading(false); }
   };
 
   const handleAppleSignIn = async () => {
     setAppleLoading(true);
+    trackFunnel("oauth_start", { provider: "apple", from: "sign-in" });
     try {
       const result = await signInWithApple();
+      trackOAuthResult("apple", "sign-in", result);
       if (result.success) router.replace("/(tabs)");
       else if (result.error !== "cancelled") showNotice({ title: "Couldn't sign in with Apple", message: "Please try again." });
     } finally { setAppleLoading(false); }
