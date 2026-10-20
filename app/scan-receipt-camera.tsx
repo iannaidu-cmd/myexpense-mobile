@@ -1,3 +1,4 @@
+import { trackFunnel } from "@/services/funnelService";
 import { showNotice } from "@/components/NoticeHost";
 import { AnnouncementModal } from "@/components/AnnouncementModal";
 import { ConfirmModal } from "@/components/ConfirmModal";
@@ -121,7 +122,7 @@ export default function ScanReceiptCameraScreen() {
     refreshPremiumStatus().finally(() => setPremiumChecked(true));
   }, [isInitialised, user]);
 
-  // Enforce the free-tier scan cap (20/month) once premium status is known.
+  // Enforce the free-tier scan cap (12/month) once premium status is known.
   // Fails open on a count-check error — a network blip shouldn't block a scan.
   useEffect(() => {
     if (!premiumChecked || !user) return;
@@ -132,7 +133,10 @@ export default function ScanReceiptCameraScreen() {
     receiptService
       .countThisMonth(user.id)
       .then((count) => {
-        if (count >= FREE_SCAN_LIMIT) setScanBlocked(true);
+        if (count >= FREE_SCAN_LIMIT) {
+          trackFunnel("limit_reached", { feature: "scan", limit: FREE_SCAN_LIMIT, count });
+          setScanBlocked(true);
+        }
       })
       .catch(() => {})
       .finally(() => setScanGateReady(true));
@@ -313,7 +317,10 @@ export default function ScanReceiptCameraScreen() {
           Free accounts get {FREE_SCAN_LIMIT} receipt scans a month. Upgrade to Pro for unlimited scanning, or add this expense manually.
         </Text>
         <TouchableOpacity
-          onPress={() => router.replace("/paywall-upgrade" as any)}
+          onPress={() => {
+            trackFunnel("limit_action", { feature: "scan", action: "upgrade" });
+            router.replace("/paywall-upgrade?from=scan_limit" as any);
+          }}
           style={{
             backgroundColor: C.primary,
             borderRadius: 14,
@@ -326,7 +333,10 @@ export default function ScanReceiptCameraScreen() {
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          onPress={() => router.replace("/(tabs)/add-expense" as any)}
+          onPress={() => {
+            trackFunnel("limit_action", { feature: "scan", action: "add_manually" });
+            router.replace("/(tabs)/add-expense" as any);
+          }}
           style={{ marginTop: 16 }}
         >
           <Text style={{ color: "rgba(255,255,255,0.5)", fontSize: 14 }}>

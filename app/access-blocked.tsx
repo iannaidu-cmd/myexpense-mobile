@@ -22,7 +22,7 @@ export default function AccessBlockedScreen() {
   const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
 
   useEffect(() => {
-    refresh().catch(console.warn);
+    refresh("access_blocked").catch(console.warn);
   }, []);
 
   const handleUpdatePayment = () => {

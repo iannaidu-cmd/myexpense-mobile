@@ -9,9 +9,8 @@ expo start              # Start dev server (Expo Go / dev client)
 expo start --android    # Launch on Android
 expo start --ios        # Launch on iOS
 expo lint               # Run ESLint (expo flat config)
+npx jest                # Run the Jest test suite (jest-expo preset, tests in /__tests__)
 ```
-
-No test runner is configured in this project.
 
 ## What this app is
 

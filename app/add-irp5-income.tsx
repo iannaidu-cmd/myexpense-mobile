@@ -1,3 +1,4 @@
+import { trackFirstAction } from "@/services/funnelService";
 import { showNotice } from "@/components/NoticeHost";
 import { InfoBanner } from "@/components/InfoBanner";
 import { MXButton } from "@/components/MXButton";
@@ -129,6 +130,7 @@ export default function AddIRP5IncomeScreen() {
         date: taxYearEnd,
         tax_year: taxYear,
       });
+      trackFirstAction("income");
 
       // Save full breakdown to local store
       await add({

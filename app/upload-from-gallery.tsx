@@ -1,3 +1,4 @@
+import { trackFunnel } from "@/services/funnelService";
 import { showNotice } from "@/components/NoticeHost";
 import { AnnouncementModal } from "@/components/AnnouncementModal";
 import { MXHeader } from "@/components/MXHeader";
@@ -57,7 +58,10 @@ export default function UploadFromGalleryScreen() {
     receiptService
       .countThisMonth(user.id)
       .then((count) => {
-        if (count >= FREE_SCAN_LIMIT) setScanBlocked(true);
+        if (count >= FREE_SCAN_LIMIT) {
+          trackFunnel("limit_reached", { feature: "scan", limit: FREE_SCAN_LIMIT, count });
+          setScanBlocked(true);
+        }
       })
       .catch(() => {})
       .finally(() => setScanGateReady(true));
@@ -196,13 +200,19 @@ export default function UploadFromGalleryScreen() {
             Free accounts get {FREE_SCAN_LIMIT} receipt scans a month. Upgrade to Pro for unlimited scanning, or add this expense manually.
           </Text>
           <TouchableOpacity
-            onPress={() => router.replace("/paywall-upgrade" as any)}
+            onPress={() => {
+              trackFunnel("limit_action", { feature: "scan", action: "upgrade" });
+              router.replace("/paywall-upgrade?from=gallery_limit" as any);
+            }}
             style={{ backgroundColor: colour.primary, borderRadius: radius.pill, paddingVertical: 14, paddingHorizontal: 32 }}
           >
             <Text style={[typography.btnL, { color: colour.textOnPrimary }]}>Upgrade to Pro</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={() => router.replace("/(tabs)/add-expense" as any)}
+            onPress={() => {
+              trackFunnel("limit_action", { feature: "scan", action: "add_manually" });
+              router.replace("/(tabs)/add-expense" as any);
+            }}
             style={{ marginTop: 16 }}
           >
             <Text style={[typography.bodyS, { color: colour.textSub }]}>Add manually instead</Text>

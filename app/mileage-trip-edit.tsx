@@ -1,3 +1,4 @@
+import { trackFunnel, trackFirstAction } from "@/services/funnelService";
 import { ConfirmModal } from "@/components/ConfirmModal";
 import { MXButton } from "@/components/MXButton";
 import { MXHeader } from "@/components/MXHeader";
@@ -202,13 +203,18 @@ export default function MileageTripEditScreen() {
         if (!isPremium) {
           const count = await mileageService.countThisMonth(user.id).catch(() => null);
           if (count !== null && count >= FREE_MILEAGE_TRIP_LIMIT) {
+            trackFunnel("limit_reached", { feature: "mileage", limit: FREE_MILEAGE_TRIP_LIMIT, count });
             showNotice({
               title: "You've used this month's trips",
               message: `Free accounts can log ${FREE_MILEAGE_TRIP_LIMIT} trips a month. Upgrade to Pro to log as many as you like.`,
               icon: "crown.fill",
               confirmLabel: "Upgrade to Pro",
               cancelLabel: "Not now",
-              onConfirm: () => router.push("/paywall-upgrade" as any),
+              onConfirm: () => {
+                trackFunnel("limit_action", { feature: "mileage", action: "upgrade" });
+                router.push("/paywall-upgrade?from=mileage_limit" as any);
+              },
+              onCancel: () => trackFunnel("limit_action", { feature: "mileage", action: "not_now" }),
             });
             return;
           }
@@ -225,6 +231,7 @@ export default function MileageTripEditScreen() {
           end_lng: null,
           source: "manual",
         });
+        trackFirstAction("mileage_trip");
       } else {
         await mileageService.updateTripDetails(
           trip!.id,

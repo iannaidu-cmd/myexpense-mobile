@@ -1,3 +1,4 @@
+import { trackFunnel, trackFirstAction } from "@/services/funnelService";
 import { showNotice } from "@/components/NoticeHost";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ConfirmModal } from "@/components/ConfirmModal";
@@ -207,6 +208,7 @@ export default function AddExpenseScreen() {
     if (!isPremium) {
       const count = await expenseService.countThisMonth(user.id).catch(() => null);
       if (count !== null && count >= FREE_EXPENSE_LIMIT) {
+        trackFunnel("limit_reached", { feature: "expense", limit: FREE_EXPENSE_LIMIT, count });
         setSaving(false);
         setShowLimitConfirm(true);
         return;
@@ -280,6 +282,7 @@ export default function AddExpenseScreen() {
       setBusinessUsePct("100");
 
       setSuccessMessage(`R ${savedAmount.toLocaleString("en-ZA", { minimumFractionDigits: 2 })} at ${vendor.trim()} has been saved.`);
+      trackFirstAction("expense_manual");
       setSuccessVisible(true);
     } catch {
       showNotice({ title: "Couldn't save this expense", message: "Please check your internet connection and try again." });
@@ -865,10 +868,14 @@ export default function AddExpenseScreen() {
         destructive={false}
         icon="star.fill"
         onConfirm={() => {
+          trackFunnel("limit_action", { feature: "expense", action: "upgrade" });
           setShowLimitConfirm(false);
-          router.push("/paywall-upgrade" as any);
+          router.push("/paywall-upgrade?from=expense_limit" as any);
         }}
-        onCancel={() => setShowLimitConfirm(false)}
+        onCancel={() => {
+          trackFunnel("limit_action", { feature: "expense", action: "not_now" });
+          setShowLimitConfirm(false);
+        }}
       />
     </SafeAreaView>
   );

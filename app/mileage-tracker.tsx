@@ -1,3 +1,4 @@
+import { trackFunnel, trackFirstAction } from "@/services/funnelService";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AnnouncementModal } from "@/components/AnnouncementModal";
 import { ConfirmModal } from "@/components/ConfirmModal";
@@ -117,7 +118,7 @@ export default function MileageTrackerScreen() {
     refreshPremiumStatus().finally(() => setPremiumChecked(true));
   }, [isInitialised, user]);
 
-  // Enforce the free-tier trip cap (20/month) once premium status is known.
+  // Enforce the free-tier trip cap (12/month) once premium status is known.
   // One "use" = one saved trip, counted directly off mileage_trips — no
   // separate log table needed, unlike bank import / ITR12 export, which
   // don't otherwise write a per-use row anywhere.
@@ -131,7 +132,10 @@ export default function MileageTrackerScreen() {
     mileageService
       .countThisMonth(user.id)
       .then((count) => {
-        if (count >= FREE_MILEAGE_TRIP_LIMIT) setTripLimitReached(true);
+        if (count >= FREE_MILEAGE_TRIP_LIMIT) {
+          trackFunnel("limit_reached", { feature: "mileage", limit: FREE_MILEAGE_TRIP_LIMIT, count });
+          setTripLimitReached(true);
+        }
       })
       .catch(() => {})
       .finally(() => setMileageGateReady(true));
@@ -250,7 +254,7 @@ export default function MileageTrackerScreen() {
 
   // ── Request location permission once the free-tier trip gate is resolved ──
   // Gated on mileageGateReady + !tripLimitReached so a free user who's
-  // already used their 20 trips this month (who sees the limit-reached
+  // already used their 12 trips this month (who sees the limit-reached
   // screen instead) is never prompted for location access.
   useEffect(() => {
     if (!mileageGateReady || tripLimitReached) return;
@@ -449,6 +453,7 @@ export default function MileageTrackerScreen() {
         odometer_end: null,
         source: "gps",
       });
+      trackFirstAction("mileage_trip");
       // New business km change the vehicle's wear & tear claim. Not awaited:
       // the summary screen shouldn't wait on it.
       useVehicleStore.getState().syncWearAndTear(user.id, data.tax_year);
@@ -555,12 +560,21 @@ export default function MileageTrackerScreen() {
             Free accounts can log {FREE_MILEAGE_TRIP_LIMIT} trips a month. Upgrade to Pro for unlimited mileage tracking.
           </Text>
           <TouchableOpacity
-            onPress={() => router.replace("/paywall-upgrade" as any)}
+            onPress={() => {
+              trackFunnel("limit_action", { feature: "mileage", action: "upgrade" });
+              router.replace("/paywall-upgrade?from=mileage_limit" as any);
+            }}
             style={{ backgroundColor: colour.primary, borderRadius: radius.pill, paddingVertical: 14, paddingHorizontal: 32 }}
           >
             <Text style={{ ...typography.btnL, color: colour.textOnPrimary }}>Upgrade to Pro</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => safeBack(router)} style={{ marginTop: 16 }}>
+          <TouchableOpacity
+            onPress={() => {
+              trackFunnel("limit_action", { feature: "mileage", action: "not_now" });
+              safeBack(router);
+            }}
+            style={{ marginTop: 16 }}
+          >
             <Text style={{ ...typography.bodyS, color: colour.textSub }}>Go back</Text>
           </TouchableOpacity>
         </View>
