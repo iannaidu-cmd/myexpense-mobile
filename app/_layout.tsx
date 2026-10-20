@@ -311,7 +311,7 @@ function PurchasesSetup() {
     if (!isInitialised) return;
     configurePurchases(user?.id);
     // Refresh subscription state whenever auth changes
-    refresh().catch(console.warn);
+    refresh("launch").catch(console.warn);
   }, [isInitialised, user?.id]);
 
   return null;

@@ -1,3 +1,4 @@
+import { trackFunnel } from "@/services/funnelService";
 import { AnnouncementModal } from "@/components/AnnouncementModal";
 import { MXButton } from "@/components/MXButton";
 import { MXHeader } from "@/components/MXHeader";
@@ -129,13 +130,18 @@ export default function MileageHistoryScreen() {
     if (!isPremium) {
       const count = await logbookExportService.countThisMonth(user.id).catch(() => null);
       if (count !== null && count >= FREE_LOGBOOK_EXPORT_LIMIT) {
+        trackFunnel("limit_reached", { feature: "logbook_export", limit: FREE_LOGBOOK_EXPORT_LIMIT, count });
         showNotice({
           title: "You've used this month's exports",
           message: `Free accounts can export the logbook ${FREE_LOGBOOK_EXPORT_LIMIT} times a month. Upgrade to Pro to export as often as you like.`,
           icon: "crown.fill",
           confirmLabel: "Upgrade to Pro",
           cancelLabel: "Not now",
-          onConfirm: () => router.push("/paywall-upgrade" as any),
+          onConfirm: () => {
+            trackFunnel("limit_action", { feature: "logbook_export", action: "upgrade" });
+            router.push("/paywall-upgrade?from=logbook_export_limit" as any);
+          },
+          onCancel: () => trackFunnel("limit_action", { feature: "logbook_export", action: "not_now" }),
         });
         return;
       }

@@ -1,3 +1,4 @@
+import { trackFunnel } from "@/services/funnelService";
 import { showNotice } from "@/components/NoticeHost";
 import { InfoBanner } from "@/components/InfoBanner";
 import { MXHeader } from "@/components/MXHeader";
@@ -98,7 +99,7 @@ export default function ITR12ExportSetupScreen() {
     refreshPremiumStatus().finally(() => setPremiumChecked(true));
   }, [isInitialised, user]);
 
-  // Enforce the free-tier export cap (20/month) once premium status is
+  // Enforce the free-tier export cap (12/month) once premium status is
   // known. One "use" = one successful export (any format), logged to
   // itr12_export_log since exports don't otherwise write a row anywhere.
   // Fails open on a count-check error — a network blip shouldn't block an export.
@@ -110,7 +111,10 @@ export default function ITR12ExportSetupScreen() {
     }
     countItr12ExportsThisMonth(user.id)
       .then((count) => {
-        if (count >= FREE_ITR12_EXPORT_LIMIT) setExportLimitReached(true);
+        if (count >= FREE_ITR12_EXPORT_LIMIT) {
+          trackFunnel("limit_reached", { feature: "itr12_export", limit: FREE_ITR12_EXPORT_LIMIT, count });
+          setExportLimitReached(true);
+        }
       })
       .catch(() => {})
       .finally(() => setExportGateReady(true));
@@ -232,12 +236,21 @@ export default function ITR12ExportSetupScreen() {
             Free accounts get {FREE_ITR12_EXPORT_LIMIT} ITR12 exports a month. Upgrade to Pro for unlimited exports.
           </Text>
           <TouchableOpacity
-            onPress={() => router.replace("/paywall-upgrade" as any)}
+            onPress={() => {
+              trackFunnel("limit_action", { feature: "itr12_export", action: "upgrade" });
+              router.replace("/paywall-upgrade?from=itr12_export_limit" as any);
+            }}
             style={{ backgroundColor: colour.primary, borderRadius: radius.pill, paddingVertical: 14, paddingHorizontal: 32 }}
           >
             <Text style={{ ...typography.btnL, color: colour.textOnPrimary }}>Upgrade to Pro</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => safeBack(router)} style={{ marginTop: 16 }}>
+          <TouchableOpacity
+            onPress={() => {
+              trackFunnel("limit_action", { feature: "itr12_export", action: "not_now" });
+              safeBack(router);
+            }}
+            style={{ marginTop: 16 }}
+          >
             <Text style={{ ...typography.bodyS, color: colour.textSub }}>Go back</Text>
           </TouchableOpacity>
         </View>

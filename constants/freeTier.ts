@@ -4,22 +4,22 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** Free-tier cap: OCR receipt scans per calendar month. */
-export const FREE_SCAN_LIMIT = 20;
+export const FREE_SCAN_LIMIT = 12;
 
 /** Free-tier cap: manually-entered expenses per calendar month. */
-export const FREE_EXPENSE_LIMIT = 20;
+export const FREE_EXPENSE_LIMIT = 12;
 
 /** Free-tier cap: saved mileage trips per calendar month. Previously Pro-only with zero free access. */
-export const FREE_MILEAGE_TRIP_LIMIT = 20;
+export const FREE_MILEAGE_TRIP_LIMIT = 12;
 
 /** Free-tier cap: bank statement import sessions per calendar month. Previously Pro-only with zero free access. */
-export const FREE_BANK_IMPORT_LIMIT = 20;
+export const FREE_BANK_IMPORT_LIMIT = 12;
 
 /** Free-tier cap: ITR12 exports per calendar month. Previously Pro-only with zero free access. */
-export const FREE_ITR12_EXPORT_LIMIT = 20;
+export const FREE_ITR12_EXPORT_LIMIT = 12;
 
 /** Free-tier cap: mileage logbook exports per calendar month. Gated the same way as ITR12 exports. */
-export const FREE_LOGBOOK_EXPORT_LIMIT = 20;
+export const FREE_LOGBOOK_EXPORT_LIMIT = 12;
 
 // AsyncStorage key for the "you have N free scans this month" heads-up shown
 // the first time a free (non-premium) user opens Scan each calendar month —

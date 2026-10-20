@@ -1,3 +1,4 @@
+import { trackFirstAction } from "@/services/funnelService";
 import { showNotice } from "@/components/NoticeHost";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { MXHeader } from "@/components/MXHeader";
@@ -193,6 +194,7 @@ export default function AddIncomeScreen() {
         setCategory("");
         setDescription("");
         setDate(isoToDisplayDate(new Date().toISOString().split("T")[0]));
+        trackFirstAction("income");
         setSuccessMessage(`R ${parseFloat(amount).toLocaleString("en-ZA", { minimumFractionDigits: 2 })} from ${source} has been saved.`);
       }
       setSuccessVisible(true);

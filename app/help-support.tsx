@@ -32,7 +32,7 @@ type Faq = { q: string; a: string; link?: { label: string; route: Href } };
 // Directions match the real tab bar (Home · Track · + · Reports · Me), and each
 // answer that sends the user somewhere carries a link straight there.
 function buildFaqs(isPremium: boolean): Faq[] {
-  const subscriptionRoute: Href = isPremium ? "/subscription-manage" : "/paywall-upgrade";
+  const subscriptionRoute: Href = isPremium ? "/subscription-manage" : "/paywall-upgrade?from=help";
   return [
     {
       q: "How do I scan a receipt?",

@@ -115,7 +115,7 @@ export default function SettingsTabScreen() {
             : isPremium
             ? "Pro plan · Active"
             : "Free plan · Upgrade to Pro",
-          route: isPremium ? "/subscription-manage" : "/paywall-upgrade",
+          route: isPremium ? "/subscription-manage" : "/paywall-upgrade?from=settings",
         };
       }
       if (item.route === "/home-office-setup") {

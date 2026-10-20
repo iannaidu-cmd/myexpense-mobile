@@ -1,3 +1,4 @@
+import { trackFunnel } from "@/services/funnelService";
 import { showNotice } from "@/components/NoticeHost";
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
@@ -514,10 +515,10 @@ export default function BankImportScreen() {
     refreshPremiumStatus().finally(() => setPremiumChecked(true));
   }, [isInitialised, user]);
 
-  // Enforce the free-tier import-session cap (20/month) once premium status
+  // Enforce the free-tier import-session cap (12/month) once premium status
   // is known. One "use" = one completed import session (not one per
   // transaction) — a single statement can still add many expenses at once,
-  // same as before, just capped at 20 sessions/month for free accounts
+  // same as before, just capped at 12 sessions/month for free accounts
   // instead of blocked outright.
   // Fails open on a count-check error — a network blip shouldn't block an import.
   useEffect(() => {
@@ -528,7 +529,10 @@ export default function BankImportScreen() {
     }
     countBankImportsThisMonth(user.id)
       .then((count) => {
-        if (count >= FREE_BANK_IMPORT_LIMIT) setImportLimitReached(true);
+        if (count >= FREE_BANK_IMPORT_LIMIT) {
+          trackFunnel("limit_reached", { feature: "bank_import", limit: FREE_BANK_IMPORT_LIMIT, count });
+          setImportLimitReached(true);
+        }
       })
       .catch(() => {})
       .finally(() => setImportGateReady(true));
@@ -723,12 +727,21 @@ export default function BankImportScreen() {
             Free accounts get {FREE_BANK_IMPORT_LIMIT} bank statement imports a month. Upgrade to Pro for unlimited imports.
           </Text>
           <TouchableOpacity
-            onPress={() => router.replace("/paywall-upgrade" as any)}
+            onPress={() => {
+              trackFunnel("limit_action", { feature: "bank_import", action: "upgrade" });
+              router.replace("/paywall-upgrade?from=bank_import_limit" as any);
+            }}
             style={{ backgroundColor: colour.primary, borderRadius: radius.pill, paddingVertical: 14, paddingHorizontal: 32 }}
           >
             <Text style={{ ...typography.btnL, color: colour.textOnPrimary }}>Upgrade to Pro</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => safeBack(router)} style={{ marginTop: 16 }}>
+          <TouchableOpacity
+            onPress={() => {
+              trackFunnel("limit_action", { feature: "bank_import", action: "not_now" });
+              safeBack(router);
+            }}
+            style={{ marginTop: 16 }}
+          >
             <Text style={{ ...typography.bodyS, color: colour.textSub }}>Go back</Text>
           </TouchableOpacity>
         </View>

@@ -1,6 +1,7 @@
 import { showNotice } from "@/components/NoticeHost";
 import { MXButton } from "@/components/MXButton";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { errorText, trackFunnel } from "@/services/funnelService";
 import { useAuthStore } from "@/stores/authStore";
 import {
   PACKAGE_ANNUAL,
@@ -9,9 +10,9 @@ import {
 } from "@/stores/subscriptionStore";
 import { colour, space, typography } from "@/tokens";
 import * as Haptics from "expo-haptics";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { type PurchasesPackage } from "react-native-purchases";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -166,6 +167,35 @@ export default function PaywallUpgradeScreen() {
 
   const [selectedPlan, setSelectedPlan] = useState<"monthly" | "annual">("monthly");
 
+  // ── Funnel tracking ──────────────────────────────────────────────────────
+  // from: which screen opened the paywall (a route param every entry point
+  // passes). One paywall_viewed and one paywall_closed per visit; Pro users
+  // bounced straight to Settings are not counted.
+  const params = useLocalSearchParams<{ from?: string }>();
+  const from = (Array.isArray(params.from) ? params.from[0] : params.from) || "unknown";
+  const tracked = useRef(!isPremium);
+  const openedAt = useRef(Date.now());
+  const viewedSent = useRef(false);
+  // Last close method seen. Android hardware back and iOS swipe-back bypass
+  // the buttons, so anything unrecorded counts as "back".
+  const closeVia = useRef("back");
+  const planRef = useRef(selectedPlan);
+  planRef.current = selectedPlan;
+
+  useEffect(() => {
+    return () => {
+      if (!tracked.current) return;
+      if (!viewedSent.current) {
+        trackFunnel("paywall_viewed", { from, prices_from_store: "pending" });
+      }
+      trackFunnel("paywall_closed", {
+        via: closeVia.current,
+        seconds: Math.round((Date.now() - openedAt.current) / 1000),
+        plan: planRef.current,
+      });
+    };
+  }, []);
+
   // isPremium is otherwise only read at launch, so re-check it here: a user
   // switched to free mid-session must see the paywall, not be bounced away.
   // If the store still has a subscription running but Supabase says free,
@@ -174,9 +204,22 @@ export default function PaywallUpgradeScreen() {
     let cancelled = false;
     (async () => {
       await Promise.all([
-        refresh().catch(console.warn),
+        refresh("paywall").catch(console.warn),
         useAuthStore.getState().refreshPremiumStatus().catch(() => {}),
       ]);
+      if (!cancelled && tracked.current && !viewedSent.current) {
+        viewedSent.current = true;
+        const loaded = useSubscriptionStore.getState().packages;
+        const hasMonthly = loaded.some((p) => p.identifier === PACKAGE_MONTHLY);
+        const hasAnnual = loaded.some((p) => p.identifier === PACKAGE_ANNUAL);
+        trackFunnel("paywall_viewed", { from, prices_from_store: hasMonthly && hasAnnual });
+        if (!hasMonthly || !hasAnnual) {
+          trackFunnel("paywall_prices_fallback", {
+            from,
+            missing: !hasMonthly && !hasAnnual ? "both" : !hasMonthly ? "monthly" : "annual",
+          });
+        }
+      }
       if (cancelled || !useSubscriptionStore.getState().isPro || useAuthStore.getState().isPremium) return;
       await syncPremiumStatus();
       if (cancelled || useAuthStore.getState().isPremium) return;
@@ -213,14 +256,23 @@ export default function PaywallUpgradeScreen() {
 
   const handlePurchase = async () => {
     let pkg = selectedPkg;
+    let retriedOfferings = false;
     if (!pkg) {
       // Offerings may have failed on open (no network, store hiccup) — the
       // store never retries on its own, so fetch again before giving up.
-      await refresh().catch(() => {});
+      retriedOfferings = true;
+      await refresh("paywall_retry").catch(() => {});
       const id = selectedPlan === "monthly" ? PACKAGE_MONTHLY : PACKAGE_ANNUAL;
       pkg = useSubscriptionStore.getState().packages.find((p) => p.identifier === id);
     }
     if (!pkg) {
+      // The RevenueCat error code is on the paywall_retry offerings_loaded
+      // event sent just before this one.
+      const storeError = useSubscriptionStore.getState().error;
+      trackFunnel("prices_unavailable_shown", {
+        plan: selectedPlan,
+        error: storeError ? errorText(storeError) : null,
+      });
       showNotice({
         title: "Couldn't load prices",
         message: "We couldn't reach the store. Check your internet connection and try again.",
@@ -228,6 +280,12 @@ export default function PaywallUpgradeScreen() {
       });
       return;
     }
+    trackFunnel("purchase_started", {
+      plan: selectedPlan,
+      product_id: pkg.product.identifier,
+      retried_offerings: retriedOfferings,
+    });
+    // purchase_result is sent by the store, which sees the raw error.
     const success = await purchasePackage(pkg);
     if (!success) {
       const { error, alreadyOwned } = useSubscriptionStore.getState();
@@ -239,6 +297,7 @@ export default function PaywallUpgradeScreen() {
       return;
     }
     await syncPremiumStatus();
+    trackFunnel("pro_synced", { via: "purchase", is_premium: useAuthStore.getState().isPremium });
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     showNotice({
       title: "Welcome to Pro!",
@@ -246,7 +305,10 @@ export default function PaywallUpgradeScreen() {
       tone: "success",
       icon: "crown.fill",
       confirmLabel: "Let's go",
-      onConfirm: () => safeBack(router),
+      onConfirm: () => {
+        closeVia.current = "purchased";
+        safeBack(router);
+      },
     });
   };
 
@@ -254,7 +316,10 @@ export default function PaywallUpgradeScreen() {
     const restored = await restorePurchases();
     if (restored) {
       await syncPremiumStatus();
-      if (!useAuthStore.getState().isPremium) {
+      const isPremiumNow = useAuthStore.getState().isPremium;
+      trackFunnel("pro_synced", { via: "restore", is_premium: isPremiumNow });
+      trackFunnel("restore_result", { outcome: isPremiumNow ? "restored" : "still_in_store" });
+      if (!isPremiumNow) {
         showStillInStoreNotice();
         return;
       }
@@ -263,9 +328,17 @@ export default function PaywallUpgradeScreen() {
         message: "Your Pro subscription is back on.",
         tone: "success",
         icon: "crown.fill",
-        onConfirm: () => safeBack(router),
+        onConfirm: () => {
+          closeVia.current = "restored";
+          safeBack(router);
+        },
       });
     } else {
+      const storeError = useSubscriptionStore.getState().error;
+      trackFunnel("restore_result", {
+        outcome: storeError ? "failed" : "nothing",
+        ...(storeError ? { error: errorText(storeError) } : {}),
+      });
       showNotice({ title: "Nothing to restore", message: "We couldn't find a Pro subscription for this account.", tone: "info" });
     }
   };
@@ -301,7 +374,10 @@ export default function PaywallUpgradeScreen() {
 
       <View style={{ flexDirection: "row", justifyContent: "flex-end", paddingHorizontal: space.lg, paddingTop: space.xs }}>
         <TouchableOpacity
-          onPress={() => safeBack(router)}
+          onPress={() => {
+            closeVia.current = "close";
+            safeBack(router);
+          }}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           style={{
             width: 32,
@@ -365,7 +441,10 @@ export default function PaywallUpgradeScreen() {
             priceDisplay={displayAnnual}
             period="/year"
             savingPercent={ANNUAL_SAVING_PCT}
-            onPress={() => setSelectedPlan("annual")}
+            onPress={() => {
+              trackFunnel("plan_selected", { plan: "annual" });
+              setSelectedPlan("annual");
+            }}
           />
           <PlanRow
             active={selectedPlan === "monthly"}
@@ -373,7 +452,10 @@ export default function PaywallUpgradeScreen() {
             sub="Billed every month"
             priceDisplay={displayMonthly}
             period="/month"
-            onPress={() => setSelectedPlan("monthly")}
+            onPress={() => {
+              trackFunnel("plan_selected", { plan: "monthly" });
+              setSelectedPlan("monthly");
+            }}
           />
         </View>
 
@@ -416,7 +498,10 @@ export default function PaywallUpgradeScreen() {
           </Text>
           <Text
             style={{ ...typography.bodyXS, color: colour.onNoir2, opacity: 0.85, fontWeight: "500" }}
-            onPress={() => safeBack(router)}
+            onPress={() => {
+              closeVia.current = "maybe_later";
+              safeBack(router);
+            }}
           >
             Maybe later
           </Text>

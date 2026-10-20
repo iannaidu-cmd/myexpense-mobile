@@ -23,6 +23,8 @@ export interface Notice {
   onConfirm?: () => void;
   /** Set to show a second button (e.g. "Not now"). Single-button otherwise. */
   cancelLabel?: string;
+  /** Runs after the second (cancel) button closes the notice. */
+  onCancel?: () => void;
 }
 
 export function useNotice() {
@@ -44,7 +46,11 @@ export function useNotice() {
         close();
         next?.();
       }}
-      onCancel={close}
+      onCancel={() => {
+        const next = current?.onCancel;
+        close();
+        next?.();
+      }}
     />
   );
 

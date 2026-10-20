@@ -29,14 +29,14 @@ export default function SubscriptionManageScreen() {
   // isPremium is otherwise only read at launch, so a subscription that
   // expired mid-session kept showing as active here until a restart.
   useEffect(() => {
-    refresh().catch(console.warn);
+    refresh("subscription_manage").catch(console.warn);
     refreshPremiumStatus().catch(console.warn);
   }, []);
 
   // Cancelling happens in the store, outside the app — re-check on return so
   // the card switches from "Renews" to "Ends" without a restart.
   useAppForeground(() => {
-    refresh().catch(console.warn);
+    refresh("subscription_manage_foreground").catch(console.warn);
     refreshPremiumStatus().catch(console.warn);
   });
 
@@ -185,7 +185,7 @@ export default function SubscriptionManageScreen() {
             {!hasPro && (
               <MXButton
                 label="Upgrade to Pro"
-                onPress={() => router.push("/paywall-upgrade" as any)}
+                onPress={() => router.push("/paywall-upgrade?from=subscription_manage" as any)}
                 variant="primary"
                 size="L"
                 fullWidth

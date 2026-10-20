@@ -56,6 +56,32 @@ export function errorText(e: unknown): string {
   return String(msg).slice(0, 200);
 }
 
+const FIRST_ACTION_KEY = "first_action_sent";
+
+/**
+ * Logs first_action once per install, on the first successful save of
+ * anything useful. The flag is new in 1.2.9, so existing users updating also
+ * fire it once: days_since_signup lets analysis keep only new users.
+ */
+export function trackFirstAction(kind: "expense_manual" | "receipt_scan" | "mileage_trip" | "income") {
+  try {
+    if (storage.getBoolean(FIRST_ACTION_KEY)) return;
+    storage.set(FIRST_ACTION_KEY, true);
+    supabase.auth
+      .getSession()
+      .then(({ data }) => {
+        const createdAt = data.session?.user?.created_at;
+        const days = createdAt
+          ? Math.floor((Date.now() - new Date(createdAt).getTime()) / 86_400_000)
+          : null;
+        trackFunnel("first_action", { kind, days_since_signup: days });
+      })
+      .catch(() => trackFunnel("first_action", { kind, days_since_signup: null }));
+  } catch {
+    // never let tracking throw
+  }
+}
+
 /** Logs the outcome of a Google / Apple / Facebook sign-in attempt. */
 export function trackOAuthResult(
   provider: string,
