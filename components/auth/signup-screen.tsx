@@ -3,6 +3,7 @@ import * as AppleAuthentication from "expo-apple-authentication";
 import { signInWithApple } from "@/services/appleAuthService";
 import { signInWithFacebook } from "@/services/facebookAuthService";
 import { signInWithGoogle } from "@/services/googleAuthService";
+import { errorText, trackFunnel, trackOAuthResult } from "@/services/funnelService";
 import { notePendingTermsConsent, useAuthStore } from "@/stores/authStore";
 import { colour, radius } from "@/tokens";
 import { useRouter } from "expo-router";
@@ -188,17 +189,24 @@ export function SignupScreen() {
     if (!name.trim()) e.name = "Full name is required.";
     if (!email.includes("@")) e.email = "Enter a valid email address.";
     if (password.length < 8) e.password = "Use at least 8 characters.";
-    if (Object.keys(e).length) { setErrors(e); return; }
+    if (Object.keys(e).length) {
+      trackFunnel("sign_up_invalid", { fields: Object.keys(e) });
+      setErrors(e);
+      return;
+    }
     setErrors({});
     setLoading(true);
+    trackFunnel("sign_up_submit", { method: "email" });
     // The button only enables once "I agree" is ticked. Saved to the profile
     // after sign-in (see notePendingTermsConsent in authStore).
     await notePendingTermsConsent();
     try {
       await signUp(email, password, name.trim());
+      trackFunnel("sign_up_ok", { method: "email" });
       // AuthGate handles routing: pendingEmailVerification → email-verification,
       // or isAuthenticated → tabs (when email confirmation is disabled).
     } catch (err: any) {
+      trackFunnel("sign_up_failed", { method: "email", error: errorText(err) });
       setErrors({ email: err.message ?? "Could not create account. Please try again." });
     } finally {
       setLoading(false);
@@ -208,8 +216,10 @@ export function SignupScreen() {
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
     await notePendingTermsConsent();
+    trackFunnel("oauth_start", { provider: "google", from: "sign-up" });
     try {
       const result = await signInWithGoogle();
+      trackOAuthResult("google", "sign-up", result);
       if (result.success) router.replace("/(tabs)");
       else if (result.error !== "cancelled") showNotice({ title: "Couldn't sign in with Google", message: "Please try again." });
     } finally { setGoogleLoading(false); }
@@ -218,8 +228,10 @@ export function SignupScreen() {
   const handleFacebookSignIn = async () => {
     setFbLoading(true);
     await notePendingTermsConsent();
+    trackFunnel("oauth_start", { provider: "facebook", from: "sign-up" });
     try {
       const result = await signInWithFacebook();
+      trackOAuthResult("facebook", "sign-up", result);
       if (!result.success && result.error !== "cancelled") showNotice({ title: "Couldn't sign in with Facebook", message: "Please try again." });
     } finally { setFbLoading(false); }
   };
@@ -227,8 +239,10 @@ export function SignupScreen() {
   const handleAppleSignIn = async () => {
     setAppleLoading(true);
     await notePendingTermsConsent();
+    trackFunnel("oauth_start", { provider: "apple", from: "sign-up" });
     try {
       const result = await signInWithApple();
+      trackOAuthResult("apple", "sign-up", result);
       if (result.success) router.replace("/(tabs)");
       else if (result.error !== "cancelled") showNotice({ title: "Couldn't sign in with Apple", message: "Please try again." });
     } finally { setAppleLoading(false); }
@@ -298,7 +312,11 @@ export function SignupScreen() {
 
             {/* Consent checkbox */}
             <TouchableOpacity
-              onPress={() => setAgreed(a => !a)} activeOpacity={0.8}
+              onPress={() => {
+                if (!agreed) trackFunnel("terms_ticked");
+                setAgreed(a => !a);
+              }}
+              activeOpacity={0.8}
               style={{ flexDirection: "row", alignItems: "flex-start", gap: 12, marginTop: 20 }}
             >
               <View style={{

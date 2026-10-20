@@ -3,6 +3,7 @@ import { NoticeHost } from "@/components/NoticeHost";
 import { FacebookOAuthModal } from "@/components/auth/FacebookOAuthModal";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { configurePurchases } from "@/lib/purchases";
+import { isFirstOpen, setFunnelUser, trackFunnel } from "@/services/funnelService";
 import * as Sentry from "@sentry/react-native";
 import {
     registerForPushNotifications,
@@ -316,6 +317,37 @@ function PurchasesSetup() {
   return null;
 }
 
+// ── Sign-up funnel tracking ──────────────────────────────────────────────────
+// Logs app opens and the first-run / auth screens a device reaches, so we can
+// see where new users stop before creating an account (see funnelService).
+const FUNNEL_SCREENS = new Set([
+  "onboarding-step-1", "sign-up", "sign-in", "email-verification", "auth",
+  "forgot-password", "profile-setup", "terms-accept", "(tabs)",
+]);
+
+function FunnelTracker() {
+  const { user, isInitialised } = useAuthStore();
+  const segments = useSegments();
+  const screen = segments[0] as string | undefined;
+  const opened = useRef(false);
+
+  useEffect(() => {
+    if (!isInitialised) return;
+    setFunnelUser(user?.id ?? null);
+    if (!opened.current) {
+      opened.current = true;
+      trackFunnel("app_open", { first: isFirstOpen(), signed_in: !!user });
+    }
+  }, [isInitialised, user?.id]);
+
+  useEffect(() => {
+    if (!isInitialised || !screen || !FUNNEL_SCREENS.has(screen)) return;
+    trackFunnel("screen", { name: screen, signed_in: !!user });
+  }, [isInitialised, screen]);
+
+  return null;
+}
+
 // ── Push notification setup ───────────────────────────────────────────────────
 function NotificationSetup() {
   const router = useRouter();
@@ -426,6 +458,7 @@ function RootLayout() {
       <OAuthHandler />
       <OTAUpdateCheck />
       <PurchasesSetup />
+      <FunnelTracker />
       <NotificationSetup />
       <FacebookOAuthModal />
       <Stack>
