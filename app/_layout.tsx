@@ -3,6 +3,7 @@ import { NoticeHost } from "@/components/NoticeHost";
 import { FacebookOAuthModal } from "@/components/auth/FacebookOAuthModal";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { configurePurchases } from "@/lib/purchases";
+import { promptPlayUpdateIfAvailable } from "@/lib/playInAppUpdate";
 import { isFirstOpen, setFunnelUser, trackFunnel } from "@/services/funnelService";
 import * as Sentry from "@sentry/react-native";
 import {
@@ -299,6 +300,20 @@ function OTAUpdateCheck() {
   return null;
 }
 
+// ── Google Play store update prompt (Android) ────────────────────────────────
+// Once per cold start, after the session has loaded so the splash is gone.
+// See lib/playInAppUpdate.ts.
+function PlayStoreUpdateCheck() {
+  const { isInitialised } = useAuthStore();
+  const checked = useRef(false);
+  useEffect(() => {
+    if (!isInitialised || checked.current) return;
+    checked.current = true;
+    promptPlayUpdateIfAvailable();
+  }, [isInitialised]);
+  return null;
+}
+
 // ── RevenueCat setup ─────────────────────────────────────────────────────────
 function PurchasesSetup() {
   const { user, isInitialised } = useAuthStore();
@@ -457,6 +472,7 @@ function RootLayout() {
       <ProfileSetupPrompt />
       <OAuthHandler />
       <OTAUpdateCheck />
+      <PlayStoreUpdateCheck />
       <PurchasesSetup />
       <FunnelTracker />
       <NotificationSetup />
