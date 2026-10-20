@@ -4,6 +4,7 @@ import { signInWithApple } from "@/services/appleAuthService";
 import { signInWithFacebook } from "@/services/facebookAuthService";
 import { signInWithGoogle } from "@/services/googleAuthService";
 import { errorText, trackFunnel, trackOAuthResult } from "@/services/funnelService";
+import { logMetaRegistration } from "@/lib/metaAttribution";
 import { notePendingTermsConsent, useAuthStore } from "@/stores/authStore";
 import { colour, radius } from "@/tokens";
 import { useRouter } from "expo-router";
@@ -203,6 +204,7 @@ export function SignupScreen() {
     try {
       await signUp(email, password, name.trim());
       trackFunnel("sign_up_ok", { method: "email" });
+      logMetaRegistration("email");
       // AuthGate handles routing: pendingEmailVerification → email-verification,
       // or isAuthenticated → tabs (when email confirmation is disabled).
     } catch (err: any) {
@@ -220,7 +222,10 @@ export function SignupScreen() {
     try {
       const result = await signInWithGoogle();
       trackOAuthResult("google", "sign-up", result);
-      if (result.success) router.replace("/(tabs)");
+      if (result.success) {
+        logMetaRegistration("google");
+        router.replace("/(tabs)");
+      }
       else if (result.error !== "cancelled") showNotice({ title: "Couldn't sign in with Google", message: "Please try again." });
     } finally { setGoogleLoading(false); }
   };
@@ -232,6 +237,7 @@ export function SignupScreen() {
     try {
       const result = await signInWithFacebook();
       trackOAuthResult("facebook", "sign-up", result);
+      if (result.success) logMetaRegistration("facebook");
       if (!result.success && result.error !== "cancelled") showNotice({ title: "Couldn't sign in with Facebook", message: "Please try again." });
     } finally { setFbLoading(false); }
   };
@@ -243,7 +249,10 @@ export function SignupScreen() {
     try {
       const result = await signInWithApple();
       trackOAuthResult("apple", "sign-up", result);
-      if (result.success) router.replace("/(tabs)");
+      if (result.success) {
+        logMetaRegistration("apple");
+        router.replace("/(tabs)");
+      }
       else if (result.error !== "cancelled") showNotice({ title: "Couldn't sign in with Apple", message: "Please try again." });
     } finally { setAppleLoading(false); }
   };
