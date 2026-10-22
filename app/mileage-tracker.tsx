@@ -573,7 +573,7 @@ export default function MileageTrackerScreen() {
               trackFunnel("limit_action", { feature: "mileage", action: "not_now" });
               safeBack(router);
             }}
-            style={{ marginTop: 16 }}
+            style={{ marginTop: space.lg }}
           >
             <Text style={{ ...typography.bodyS, color: colour.textSub }}>Go back</Text>
           </TouchableOpacity>

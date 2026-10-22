@@ -674,7 +674,7 @@ export default function ScanReceiptCameraScreen() {
                       height: 62,
                       borderRadius: 31,
                       overflow: "hidden",
-                      backgroundColor: "#fff",
+                      backgroundColor: C.white,
                       opacity: cameraReady ? 1 : 0.4,
                     }}
                   />

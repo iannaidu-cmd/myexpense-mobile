@@ -249,7 +249,7 @@ export default function ITR12ExportSetupScreen() {
               trackFunnel("limit_action", { feature: "itr12_export", action: "not_now" });
               safeBack(router);
             }}
-            style={{ marginTop: 16 }}
+            style={{ marginTop: space.lg }}
           >
             <Text style={{ ...typography.bodyS, color: colour.textSub }}>Go back</Text>
           </TouchableOpacity>

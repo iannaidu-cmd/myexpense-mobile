@@ -379,8 +379,7 @@ export default function ProfileScreen() {
                       >
                         <Text
                           style={{
-                            fontSize: 12,
-                            fontWeight: "600",
+                            ...typography.fchipText,
                             color: workType === wt.id ? colour.accentDeep : colour.textSub,
                           }}
                         >
@@ -389,7 +388,7 @@ export default function ProfileScreen() {
                       </TouchableOpacity>
                     ))}
                   </View>
-                  <Text style={{ fontSize: 11, color: colour.textSub, marginTop: 6 }}>
+                  <Text style={{ ...typography.hintText, color: colour.textSub, marginTop: 6 }}>
                     Decides whether you can claim your vehicle costs
                   </Text>
                 </View>

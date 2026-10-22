@@ -198,7 +198,7 @@ export default function ProfileSetupScreen() {
               }}
             >
               SARS tax number{" "}
-              <Text style={{ color: colour.textHint, fontWeight: "400" }}>
+              <Text style={{ color: colour.textHint, fontFamily: typography.bodyS.fontFamily }}>
                 (optional)
               </Text>
             </Text>
@@ -255,7 +255,7 @@ export default function ProfileSetupScreen() {
               }}
             >
               Phone number{" "}
-              <Text style={{ color: colour.textHint, fontWeight: "400" }}>
+              <Text style={{ color: colour.textHint, fontFamily: typography.bodyS.fontFamily }}>
                 (optional)
               </Text>
             </Text>
