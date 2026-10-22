@@ -66,6 +66,9 @@ Sentry.init({
   enabled: !!process.env.EXPO_PUBLIC_SENTRY_DSN,
   tracesSampleRate: 0.2,
   integrations: [navigationIntegration],
+  // On by default; set explicitly so a frozen UI shows up as an App Hang
+  // rather than only as a WatchdogTermination (REACT-NATIVE-F).
+  enableAppHangTracking: true,
 });
 
 SplashScreen.preventAutoHideAsync();

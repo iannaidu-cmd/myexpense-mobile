@@ -66,7 +66,16 @@ export function ConfirmModal({
   const resolvedIcon = icon ?? (destructive ? "trash.fill" : "exclamationmark.triangle.fill");
 
   return (
-    <Modal visible={visible} transparent animationType="none" statusBarTranslucent>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="none"
+      statusBarTranslucent
+      // iOS Modal defaults to portrait only, but iPads run the app in any
+      // orientation (multitasking), so allow them all.
+      supportedOrientations={["portrait", "portrait-upside-down", "landscape-left", "landscape-right"]}
+      onRequestClose={onCancel}
+    >
       <TouchableWithoutFeedback onPress={onCancel}>
         <Animated.View
           style={{

@@ -9,11 +9,12 @@ import {
   useSubscriptionStore,
 } from "@/stores/subscriptionStore";
 import { colour, space, typography } from "@/tokens";
+import * as Sentry from "@sentry/react-native";
 import * as Haptics from "expo-haptics";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useRef, useState } from "react";
-import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { InteractionManager, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { type PurchasesPackage } from "react-native-purchases";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { safeBack } from "@/lib/navigation";
@@ -37,6 +38,11 @@ async function syncPremiumStatus(): Promise<void> {
     await useAuthStore.getState().refreshPremiumStatus().catch(() => {});
   }
 }
+
+// How long to wait after leaving the paywall before showing a notice. The
+// native stack doesn't register its sheet-dismiss animation with
+// InteractionManager, so this covers it (iOS takes ~0.35–0.5s).
+const SHEET_DISMISS_MS = 600;
 
 // Pro access is decided by Supabase (profiles, kept in sync by the webhook),
 // not by RevenueCat. The two can disagree: e.g. a refunded user is switched
@@ -230,14 +236,49 @@ export default function PaywallUpgradeScreen() {
     };
   }, []);
 
+  // ── Purchase / restore in progress ────────────────────────────────────────
+  // While one runs, its own success path does the navigating. Letting the
+  // isPremium redirect below fire as well left the paywall sheet being
+  // dismissed while the success notice was presented over it; on iPad that
+  // Modal stayed on screen but ignored taps (Sentry REACT-NATIVE-F, 1.2.9).
+  // The ref is for the effect, the state keeps the paywall drawn meanwhile.
+  const inFlightRef = useRef(false);
+  const [inFlight, setInFlightState] = useState(false);
+  const setInFlight = (value: boolean) => {
+    inFlightRef.current = value;
+    setInFlightState(value);
+    // The redirect skipped while busy won't re-run on its own.
+    if (!value && useAuthStore.getState().isPremium) {
+      router.replace("/(tabs)/settings" as any);
+    }
+  };
+
+  // Leave the paywall first, and only show the notice once the sheet has
+  // finished going away. Never present a Modal during a screen transition.
+  const leaveThenNotify = (via: string, notice: Parameters<typeof showNotice>[0]) => {
+    closeVia.current = via;
+    router.replace("/(tabs)/settings" as any);
+    InteractionManager.runAfterInteractions(() => {
+      setTimeout(() => {
+        Sentry.addBreadcrumb({ category: "paywall", message: "notice shown", data: { title: notice.title } });
+        showNotice({
+          ...notice,
+          onConfirm: () => {
+            Sentry.addBreadcrumb({ category: "paywall", message: "notice confirmed", data: { title: notice.title } });
+          },
+        });
+      }, SHEET_DISMISS_MS);
+    });
+  };
+
   // ── Dev / premium bypass — skip paywall entirely ──────────────────────────
   useEffect(() => {
-    if (isPremium) {
+    if (isPremium && !inFlightRef.current) {
       router.replace("/(tabs)/settings" as any);
     }
   }, [isPremium]);
 
-  if (isPremium) return null;
+  if (isPremium && !inFlight) return null;
 
   const monthlyPkg = packages.find((p) => p.identifier === PACKAGE_MONTHLY);
   const annualPkg = packages.find((p) => p.identifier === PACKAGE_ANNUAL);
@@ -286,8 +327,10 @@ export default function PaywallUpgradeScreen() {
       retried_offerings: retriedOfferings,
     });
     // purchase_result is sent by the store, which sees the raw error.
+    setInFlight(true);
     const success = await purchasePackage(pkg);
     if (!success) {
+      setInFlight(false);
       const { error, alreadyOwned } = useSubscriptionStore.getState();
       if (alreadyOwned) {
         showStillInStoreNotice();
@@ -297,22 +340,21 @@ export default function PaywallUpgradeScreen() {
       return;
     }
     await syncPremiumStatus();
-    trackFunnel("pro_synced", { via: "purchase", is_premium: useAuthStore.getState().isPremium });
+    const isPremiumNow = useAuthStore.getState().isPremium;
+    trackFunnel("pro_synced", { via: "purchase", is_premium: isPremiumNow });
+    Sentry.addBreadcrumb({ category: "paywall", message: "purchase success", data: { is_premium: isPremiumNow } });
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    showNotice({
+    leaveThenNotify("purchased", {
       title: "Welcome to Pro!",
       message: "You can now use every MyExpense feature, as much as you like.",
       tone: "success",
       icon: "crown.fill",
       confirmLabel: "Let's go",
-      onConfirm: () => {
-        closeVia.current = "purchased";
-        safeBack(router);
-      },
     });
   };
 
   const handleRestore = async () => {
+    setInFlight(true);
     const restored = await restorePurchases();
     if (restored) {
       await syncPremiumStatus();
@@ -320,20 +362,19 @@ export default function PaywallUpgradeScreen() {
       trackFunnel("pro_synced", { via: "restore", is_premium: isPremiumNow });
       trackFunnel("restore_result", { outcome: isPremiumNow ? "restored" : "still_in_store" });
       if (!isPremiumNow) {
+        setInFlight(false);
         showStillInStoreNotice();
         return;
       }
-      showNotice({
+      Sentry.addBreadcrumb({ category: "paywall", message: "restore success" });
+      leaveThenNotify("restored", {
         title: "Pro restored",
         message: "Your Pro subscription is back on.",
         tone: "success",
         icon: "crown.fill",
-        onConfirm: () => {
-          closeVia.current = "restored";
-          safeBack(router);
-        },
       });
     } else {
+      setInFlight(false);
       const storeError = useSubscriptionStore.getState().error;
       trackFunnel("restore_result", {
         outcome: storeError ? "failed" : "nothing",

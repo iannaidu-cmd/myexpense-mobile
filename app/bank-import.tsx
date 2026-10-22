@@ -740,7 +740,7 @@ export default function BankImportScreen() {
               trackFunnel("limit_action", { feature: "bank_import", action: "not_now" });
               safeBack(router);
             }}
-            style={{ marginTop: 16 }}
+            style={{ marginTop: space.lg }}
           >
             <Text style={{ ...typography.bodyS, color: colour.textSub }}>Go back</Text>
           </TouchableOpacity>
