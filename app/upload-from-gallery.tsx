@@ -113,6 +113,16 @@ export default function UploadFromGalleryScreen() {
 
   const handleUpload = async () => {
     if (!pickedUri || !user) return;
+    // Re-count at upload time: the mount check runs once, and a scan from the
+    // camera may have used up the allowance since. Fails open on a count error.
+    if (!isPremium) {
+      const count = await receiptService.countThisMonth(user.id).catch(() => null);
+      if (count !== null && count >= FREE_SCAN_LIMIT) {
+        trackFunnel("limit_reached", { feature: "scan", limit: FREE_SCAN_LIMIT, count });
+        setScanBlocked(true);
+        return;
+      }
+    }
     setUploading(true);
     try {
       const fileName = `receipt_${Date.now()}.jpg`;

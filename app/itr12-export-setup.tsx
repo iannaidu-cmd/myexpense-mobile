@@ -189,6 +189,17 @@ export default function ITR12ExportSetupScreen() {
       showNotice({ title: "No expenses yet", message: "Add some expenses first, then export them.", tone: "info" });
       return;
     }
+    // Re-count at export time: the mount check runs once, so exporting again
+    // without leaving this screen could otherwise go past the cap. Fails open
+    // on a count error.
+    if (!isPremium) {
+      const count = await countItr12ExportsThisMonth(user.id).catch(() => null);
+      if (count !== null && count >= FREE_ITR12_EXPORT_LIMIT) {
+        trackFunnel("limit_reached", { feature: "itr12_export", limit: FREE_ITR12_EXPORT_LIMIT, count });
+        setExportLimitReached(true);
+        return;
+      }
+    }
     setExporting(true);
     try {
       if (format === "pdf" || format === "both") {
