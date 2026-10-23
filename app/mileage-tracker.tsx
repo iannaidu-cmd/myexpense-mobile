@@ -118,7 +118,7 @@ export default function MileageTrackerScreen() {
     refreshPremiumStatus().finally(() => setPremiumChecked(true));
   }, [isInitialised, user]);
 
-  // Enforce the free-tier trip cap (12/month) once premium status is known.
+  // Enforce the free-tier trip cap (12 in total, never monthly) once premium status is known.
   // One "use" = one saved trip, counted directly off mileage_trips — no
   // separate log table needed, unlike bank import / ITR12 export, which
   // don't otherwise write a per-use row anywhere.
@@ -130,7 +130,7 @@ export default function MileageTrackerScreen() {
       return;
     }
     mileageService
-      .countThisMonth(user.id)
+      .countAll(user.id)
       .then((count) => {
         if (count >= FREE_MILEAGE_TRIP_LIMIT) {
           trackFunnel("limit_reached", { feature: "mileage", limit: FREE_MILEAGE_TRIP_LIMIT, count });
@@ -554,10 +554,10 @@ export default function MileageTrackerScreen() {
         <MXHeader title="Mileage Tracker" showBack />
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 32 }}>
           <Text style={{ ...typography.bodyM, fontWeight: "800", fontSize: 20, color: colour.text, marginBottom: 12, textAlign: "center" }}>
-            Monthly Trip Limit Reached
+            You've Used Your Free Trips
           </Text>
           <Text style={{ ...typography.bodyS, color: colour.textSub, textAlign: "center", marginBottom: 32 }}>
-            Free accounts can log {FREE_MILEAGE_TRIP_LIMIT} trips a month. Upgrade to Pro for unlimited mileage tracking.
+            Free accounts get {FREE_MILEAGE_TRIP_LIMIT} trips free. Upgrade to Pro for unlimited mileage tracking.
           </Text>
           <TouchableOpacity
             onPress={() => {

@@ -201,12 +201,12 @@ export default function MileageTripEditScreen() {
         // Same free-tier cap as GPS trips. Fails open on a count error, like
         // the tracker, so a network blip doesn't block logging.
         if (!isPremium) {
-          const count = await mileageService.countThisMonth(user.id).catch(() => null);
+          const count = await mileageService.countAll(user.id).catch(() => null);
           if (count !== null && count >= FREE_MILEAGE_TRIP_LIMIT) {
             trackFunnel("limit_reached", { feature: "mileage", limit: FREE_MILEAGE_TRIP_LIMIT, count });
             showNotice({
-              title: "You've used this month's trips",
-              message: `Free accounts can log ${FREE_MILEAGE_TRIP_LIMIT} trips a month. Upgrade to Pro to log as many as you like.`,
+              title: "You've used your free trips",
+              message: `Free accounts get ${FREE_MILEAGE_TRIP_LIMIT} trips free. Upgrade to Pro to log as many as you like.`,
               icon: "crown.fill",
               confirmLabel: "Upgrade to Pro",
               cancelLabel: "Not now",

@@ -51,7 +51,7 @@ function buildFaqs(isPremium: boolean): Faq[] {
     },
     {
       q: "What is the difference between Free and Pro?",
-      a: `The Free plan includes ${FREE_SCAN_LIMIT} receipt scans, ${FREE_EXPENSE_LIMIT} manual expenses, ${FREE_MILEAGE_TRIP_LIMIT} mileage trips and ${FREE_ITR12_EXPORT_LIMIT} tax report exports every calendar month. Pro removes these monthly limits, so you can scan, log and export as much as you need.`,
+      a: `The Free plan includes ${FREE_SCAN_LIMIT} receipt scans, ${FREE_EXPENSE_LIMIT} manual expenses and ${FREE_ITR12_EXPORT_LIMIT} tax report exports every calendar month, plus ${FREE_MILEAGE_TRIP_LIMIT} mileage trips free. Pro removes every limit, so you can scan, log and export as much as you need.`,
       link: { label: isPremium ? "Manage your subscription" : "See Pro", route: subscriptionRoute },
     },
     {
