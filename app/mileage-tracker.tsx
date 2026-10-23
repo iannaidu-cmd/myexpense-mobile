@@ -390,7 +390,21 @@ export default function MileageTrackerScreen() {
   }, []);
 
   // ── Controls ──────────────────────────────────────────────────────────────
-  const handleStart = useCallback(() => setShowPurpose(true), []);
+  // Re-count before each new trip: the mount check runs once, so a free user
+  // who saves a trip and starts another without leaving could go past the
+  // cap. A trip already running is never blocked from saving. Fails open on
+  // a count error.
+  const handleStart = useCallback(async () => {
+    if (!isPremium && user) {
+      const count = await mileageService.countAll(user.id).catch(() => null);
+      if (count !== null && count >= FREE_MILEAGE_TRIP_LIMIT) {
+        trackFunnel("limit_reached", { feature: "mileage", limit: FREE_MILEAGE_TRIP_LIMIT, count });
+        setTripLimitReached(true);
+        return;
+      }
+    }
+    setShowPurpose(true);
+  }, [isPremium, user]);
 
   const confirmStart = useCallback(async () => {
     setShowPurpose(false);

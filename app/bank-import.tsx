@@ -626,6 +626,17 @@ export default function BankImportScreen() {
       return;
     }
 
+    // Re-count at import time: the mount check runs once, so staying on this
+    // screen could otherwise import past the cap. Fails open on a count error.
+    if (!isPremium) {
+      const count = await countBankImportsThisMonth(user.id).catch(() => null);
+      if (count !== null && count >= FREE_BANK_IMPORT_LIMIT) {
+        trackFunnel("limit_reached", { feature: "bank_import", limit: FREE_BANK_IMPORT_LIMIT, count });
+        setImportLimitReached(true);
+        return;
+      }
+    }
+
     setImporting(true);
     try {
       const expenseEntries = toImport.filter((t) => t.type !== 'income');

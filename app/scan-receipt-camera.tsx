@@ -248,8 +248,23 @@ export default function ScanReceiptCameraScreen() {
     }
   };
 
+  // The mount-time check above runs once, so a free user who stays on this
+  // screen could otherwise scan past the cap. Re-count before every scan.
+  // Fails open on a count error, like the mount check.
+  const scanAllowed = async (): Promise<boolean> => {
+    if (isPremium || !user) return true;
+    const count = await receiptService.countThisMonth(user.id).catch(() => null);
+    if (count !== null && count >= FREE_SCAN_LIMIT) {
+      trackFunnel("limit_reached", { feature: "scan", limit: FREE_SCAN_LIMIT, count });
+      setScanBlocked(true);
+      return false;
+    }
+    return true;
+  };
+
   const handleCapture = async () => {
     if (!cameraRef.current || !cameraReady || uploading) return;
+    if (!(await scanAllowed())) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     animateCapture();
     let photoUri: string | undefined;
@@ -267,6 +282,7 @@ export default function ScanReceiptCameraScreen() {
   };
 
   const handleGallery = async () => {
+    if (!(await scanAllowed())) return;
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       quality: 0.8,
