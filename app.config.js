@@ -31,7 +31,7 @@ const facebookPlugin =
 const config = {
   name: "MyExpense",
   slug: "MyExpense",
-  version: "1.2.10",
+  version: "1.2.11",
   orientation: "portrait",
   icon: "./assets/images/icon.png",
   scheme: "myexpense",
@@ -40,7 +40,7 @@ const config = {
     supportsTablet: true,
     requiresFullScreen: true,
     bundleIdentifier: "co.za.myexpense",
-    buildNumber: "93",
+    buildNumber: "94",
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false,
       NSCameraUsageDescription:
@@ -61,7 +61,7 @@ const config = {
   },
   android: {
     package: "co.za.myexpense.myapp",
-    versionCode: 51,
+    versionCode: 52,
     config: {
       googleMaps: {
         apiKey: process.env.GOOGLE_MAPS_API_KEY,
