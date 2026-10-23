@@ -375,20 +375,3 @@ export async function logBankImport(userId: string): Promise<void> {
   const { error } = await supabase.from("bank_import_log").insert({ user_id: userId });
   if (error) throw new Error(error.message);
 }
-
-// Deliberately NOT cached — gates entry to the whole screen, so it must
-// always reflect the true current count.
-export async function countBankImportsThisMonth(userId: string): Promise<number> {
-  const startOfMonth = new Date();
-  startOfMonth.setDate(1);
-  startOfMonth.setHours(0, 0, 0, 0);
-
-  const { count, error } = await supabase
-    .from("bank_import_log")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", userId)
-    .gte("created_at", startOfMonth.toISOString());
-
-  if (error) throw new Error(error.message);
-  return count ?? 0;
-}

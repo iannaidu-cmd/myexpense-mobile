@@ -4,11 +4,12 @@ import { InfoBanner } from "@/components/InfoBanner";
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { FREE_ITR12_EXPORT_LIMIT } from "@/constants/freeTier";
+import { FREE_USE_LIMIT, FREE_USES_DONE_MESSAGE, FREE_USES_DONE_TITLE } from "@/constants/freeTier";
+import { countFreeUses } from "@/services/freeUsageService";
 import { exportExpensesCSV } from "@/services/csvExportService";
 import { expenseService } from "@/services/expenseService";
 import { incomeService } from "@/services/incomeService";
-import { countItr12ExportsThisMonth, logItr12Export } from "@/services/itr12ExportService";
+import { logItr12Export } from "@/services/itr12ExportService";
 import { profileService } from "@/services/profileService";
 import { generateITR12PDF } from "@/services/pdfExportService";
 import { getMarginalRate } from "@/lib/taxRules";
@@ -99,9 +100,8 @@ export default function ITR12ExportSetupScreen() {
     refreshPremiumStatus().finally(() => setPremiumChecked(true));
   }, [isInitialised, user]);
 
-  // Enforce the free-tier export cap (12/month) once premium status is
-  // known. One "use" = one successful export (any format), logged to
-  // itr12_export_log since exports don't otherwise write a row anywhere.
+  // Enforce the shared free-use cap once premium status is known. One
+  // successful export (any format) is one use, logged to itr12_export_log.
   // Fails open on a count-check error — a network blip shouldn't block an export.
   useEffect(() => {
     if (!premiumChecked || !user) return;
@@ -109,10 +109,10 @@ export default function ITR12ExportSetupScreen() {
       setExportGateReady(true);
       return;
     }
-    countItr12ExportsThisMonth(user.id)
+    countFreeUses(user.id)
       .then((count) => {
-        if (count >= FREE_ITR12_EXPORT_LIMIT) {
-          trackFunnel("limit_reached", { feature: "itr12_export", limit: FREE_ITR12_EXPORT_LIMIT, count });
+        if (count >= FREE_USE_LIMIT) {
+          trackFunnel("limit_reached", { feature: "itr12_export", limit: FREE_USE_LIMIT, count });
           setExportLimitReached(true);
         }
       })
@@ -193,9 +193,9 @@ export default function ITR12ExportSetupScreen() {
     // without leaving this screen could otherwise go past the cap. Fails open
     // on a count error.
     if (!isPremium) {
-      const count = await countItr12ExportsThisMonth(user.id).catch(() => null);
-      if (count !== null && count >= FREE_ITR12_EXPORT_LIMIT) {
-        trackFunnel("limit_reached", { feature: "itr12_export", limit: FREE_ITR12_EXPORT_LIMIT, count });
+      const count = await countFreeUses(user.id).catch(() => null);
+      if (count !== null && count >= FREE_USE_LIMIT) {
+        trackFunnel("limit_reached", { feature: "itr12_export", limit: FREE_USE_LIMIT, count });
         setExportLimitReached(true);
         return;
       }
@@ -241,10 +241,10 @@ export default function ITR12ExportSetupScreen() {
         <MXHeader title="Export setup" showBack />
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 32 }}>
           <Text style={{ ...typography.bodyM, fontWeight: "800", fontSize: 20, color: colour.text, marginBottom: 12, textAlign: "center" }}>
-            Monthly Export Limit Reached
+            {FREE_USES_DONE_TITLE}
           </Text>
           <Text style={{ ...typography.bodyS, color: colour.textSub, textAlign: "center", marginBottom: 32 }}>
-            Free accounts get {FREE_ITR12_EXPORT_LIMIT} ITR12 exports a month. Upgrade to Pro for unlimited exports.
+            {FREE_USES_DONE_MESSAGE}
           </Text>
           <TouchableOpacity
             onPress={() => {

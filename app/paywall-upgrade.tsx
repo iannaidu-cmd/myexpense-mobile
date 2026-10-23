@@ -1,12 +1,5 @@
 import { showNotice } from "@/components/NoticeHost";
-import {
-  FREE_BANK_IMPORT_LIMIT,
-  FREE_EXPENSE_LIMIT,
-  FREE_ITR12_EXPORT_LIMIT,
-  FREE_LOGBOOK_EXPORT_LIMIT,
-  FREE_MILEAGE_TRIP_LIMIT,
-  FREE_SCAN_LIMIT,
-} from "@/constants/freeTier";
+import { FREE_USES_SUMMARY } from "@/constants/freeTier";
 import { MXButton } from "@/components/MXButton";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { errorText, trackFunnel } from "@/services/funnelService";
@@ -35,14 +28,9 @@ const FEATURES: { label: string; icon: "camera.fill" | "car.fill" | "chart.bar.f
   { label: "Unlimited exports, anytime", icon: "square.and.arrow.up" },
 ];
 
-// Plain-language summary of the free plan, built from constants/freeTier.ts so
-// it never drifts from the real caps. Trips are a total allowance, never
-// monthly (mileageService.countAll), so they must stay out of "a month".
-const FREE_PLAN_LINE =
-  `The free plan includes ${FREE_SCAN_LIMIT} receipt scans, ${FREE_EXPENSE_LIMIT} expenses, ` +
-  `${FREE_BANK_IMPORT_LIMIT} bank imports, ${FREE_ITR12_EXPORT_LIMIT} tax report exports and ` +
-  `${FREE_LOGBOOK_EXPORT_LIMIT} logbook exports a month, plus ${FREE_MILEAGE_TRIP_LIMIT} trips free. ` +
-  `Pro removes every limit.`;
+// Plain-language summary of the free plan, from constants/freeTier.ts so it
+// never drifts from the real cap (one shared allowance, never monthly).
+const FREE_PLAN_LINE = `${FREE_USES_SUMMARY} Pro removes the limit.`;
 
 // The RevenueCat webhook (supabase/functions/revenuecat-webhook) syncs
 // profiles.subscription shortly after a purchase, but not synchronously with

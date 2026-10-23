@@ -5,9 +5,9 @@ import { MXTabBar } from "@/components/MXTabBar";
 import { SuccessModal } from "@/components/SuccessModal";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { CATEGORIES, NON_DEDUCTIBLE_LABEL } from "@/constants/categories";
-import { FREE_BANK_IMPORT_LIMIT } from "@/constants/freeTier";
+import { FREE_USE_LIMIT, FREE_USES_DONE_MESSAGE, FREE_USES_DONE_TITLE } from "@/constants/freeTier";
+import { countFreeUses } from "@/services/freeUsageService";
 import {
-  countBankImportsThisMonth,
   logBankImport,
   ParsedTransaction,
   pickAndParseStatement,
@@ -515,11 +515,8 @@ export default function BankImportScreen() {
     refreshPremiumStatus().finally(() => setPremiumChecked(true));
   }, [isInitialised, user]);
 
-  // Enforce the free-tier import-session cap (12/month) once premium status
-  // is known. One "use" = one completed import session (not one per
-  // transaction) — a single statement can still add many expenses at once,
-  // same as before, just capped at 12 sessions/month for free accounts
-  // instead of blocked outright.
+  // Enforce the shared free-use cap once premium status is known. One import
+  // session is one use, however many transactions it adds.
   // Fails open on a count-check error — a network blip shouldn't block an import.
   useEffect(() => {
     if (!premiumChecked || !user) return;
@@ -527,10 +524,10 @@ export default function BankImportScreen() {
       setImportGateReady(true);
       return;
     }
-    countBankImportsThisMonth(user.id)
+    countFreeUses(user.id)
       .then((count) => {
-        if (count >= FREE_BANK_IMPORT_LIMIT) {
-          trackFunnel("limit_reached", { feature: "bank_import", limit: FREE_BANK_IMPORT_LIMIT, count });
+        if (count >= FREE_USE_LIMIT) {
+          trackFunnel("limit_reached", { feature: "bank_import", limit: FREE_USE_LIMIT, count });
           setImportLimitReached(true);
         }
       })
@@ -629,9 +626,9 @@ export default function BankImportScreen() {
     // Re-count at import time: the mount check runs once, so staying on this
     // screen could otherwise import past the cap. Fails open on a count error.
     if (!isPremium) {
-      const count = await countBankImportsThisMonth(user.id).catch(() => null);
-      if (count !== null && count >= FREE_BANK_IMPORT_LIMIT) {
-        trackFunnel("limit_reached", { feature: "bank_import", limit: FREE_BANK_IMPORT_LIMIT, count });
+      const count = await countFreeUses(user.id).catch(() => null);
+      if (count !== null && count >= FREE_USE_LIMIT) {
+        trackFunnel("limit_reached", { feature: "bank_import", limit: FREE_USE_LIMIT, count });
         setImportLimitReached(true);
         return;
       }
@@ -732,10 +729,10 @@ export default function BankImportScreen() {
         <MXHeader title="Import transactions" showBack />
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 32 }}>
           <Text style={{ ...typography.bodyM, fontWeight: "800", fontSize: 20, color: colour.text, marginBottom: 12, textAlign: "center" }}>
-            Monthly Import Limit Reached
+            {FREE_USES_DONE_TITLE}
           </Text>
           <Text style={{ ...typography.bodyS, color: colour.textSub, textAlign: "center", marginBottom: 32 }}>
-            Free accounts get {FREE_BANK_IMPORT_LIMIT} bank statement imports a month. Upgrade to Pro for unlimited imports.
+            {FREE_USES_DONE_MESSAGE}
           </Text>
           <TouchableOpacity
             onPress={() => {

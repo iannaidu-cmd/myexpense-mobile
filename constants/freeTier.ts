@@ -1,32 +1,29 @@
-// ─── Free-tier Usage Limits ───────────────────────────────────────────────────
-// "Strict hybrid" caps for non-paying users. Update here only — never
-// hardcode these numbers in screens/services.
+// ─── Free-tier Usage Limit ────────────────────────────────────────────────────
+// Free accounts get one shared allowance of uses, in total, across every
+// limited feature. It never resets. Update here only - never hardcode the
+// number in screens/services. Counted by services/freeUsageService.ts.
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Free-tier cap: OCR receipt scans per calendar month. */
-export const FREE_SCAN_LIMIT = 12;
+/**
+ * Free-tier cap: uses in total, shared and never reset. One use = one receipt
+ * scan or upload, one expense added by hand, one mileage trip, one bank
+ * import (however many transactions), one tax report export or one logbook
+ * export. The next use after this goes to the paywall.
+ */
+export const FREE_USE_LIMIT = 12;
 
-/** Free-tier cap: manually-entered expenses per calendar month. */
-export const FREE_EXPENSE_LIMIT = 12;
+// Shared plain-language copy, so every screen describes the allowance the same way.
+export const FREE_USES_SUMMARY =
+  `The free plan gives you ${FREE_USE_LIMIT} free uses in total. ` +
+  `Each receipt scan, expense, mileage trip, bank import or export uses one.`;
 
-/** Free-tier cap: saved mileage trips in total. Never per month: the copy is always "12 trips free". */
-export const FREE_MILEAGE_TRIP_LIMIT = 12;
+export const FREE_USES_DONE_TITLE = `You've used your ${FREE_USE_LIMIT} free uses`;
 
-/** Free-tier cap: bank statement import sessions per calendar month. Previously Pro-only with zero free access. */
-export const FREE_BANK_IMPORT_LIMIT = 12;
+export const FREE_USES_DONE_MESSAGE =
+  `Free accounts get ${FREE_USE_LIMIT} free uses in total, shared across scans, expenses, ` +
+  `trips, bank imports and exports. Upgrade to Pro to keep going with no limits.`;
 
-/** Free-tier cap: ITR12 exports per calendar month. Previously Pro-only with zero free access. */
-export const FREE_ITR12_EXPORT_LIMIT = 12;
-
-/** Free-tier cap: mileage logbook exports per calendar month. Gated the same way as ITR12 exports. */
-export const FREE_LOGBOOK_EXPORT_LIMIT = 12;
-
-// AsyncStorage key for the "you have N free scans this month" heads-up shown
-// the first time a free (non-premium) user opens Scan each calendar month —
-// keyed by year-month so it naturally resets on its own every month, no
-// cleanup job needed. Shared by every scan entry point (scan-receipt-camera,
-// upload-from-gallery) so showing it from one marks it seen for the other.
-export function scanAllowanceNoticeKey(date: Date = new Date()): string {
-  const ym = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
-  return `@myexpense:seen_scan_allowance_notice:${ym}`;
-}
+// AsyncStorage key for the one-off "you have N free uses" heads-up shown the
+// first time a free user opens Scan. Shared by every scan entry point
+// (scan-receipt-camera, upload-from-gallery) so it only ever shows once.
+export const FREE_USES_NOTICE_KEY = "@myexpense:seen_free_uses_notice";

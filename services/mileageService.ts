@@ -90,19 +90,6 @@ export const mileageService = {
     return (data ?? []).reduce((sum, t) => sum + Number(t.distance_km), 0);
   },
 
-  // Deliberately NOT cached — gates a write (starting a new trip), so it
-  // must always reflect the true current count. Unlike scans and expenses,
-  // the free trip allowance is a total, never per month.
-  countAll: async (userId: string): Promise<number> => {
-    const { count, error } = await supabase
-      .from("mileage_trips")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", userId);
-
-    if (error) throw new Error(error.message);
-    return count ?? 0;
-  },
-
   createTrip: async (userId: string, trip: NewMileageTrip): Promise<MileageTrip> => {
     const { data, error } = await supabase
       .from("mileage_trips")

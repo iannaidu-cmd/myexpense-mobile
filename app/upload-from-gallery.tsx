@@ -4,9 +4,9 @@ import { AnnouncementModal } from "@/components/AnnouncementModal";
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { FREE_SCAN_LIMIT, scanAllowanceNoticeKey } from "@/constants/freeTier";
+import { FREE_USE_LIMIT, FREE_USES_DONE_MESSAGE, FREE_USES_DONE_TITLE, FREE_USES_NOTICE_KEY, FREE_USES_SUMMARY } from "@/constants/freeTier";
+import { countFreeUses } from "@/services/freeUsageService";
 import { receiptState } from "@/lib/receiptState";
-import { receiptService } from "@/services/receiptService";
 import { useAuthStore } from "@/stores/authStore";
 import { colour, radius, space, typography } from "@/tokens";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -46,8 +46,8 @@ export default function UploadFromGalleryScreen() {
     refreshPremiumStatus().finally(() => setPremiumChecked(true));
   }, [isInitialised, user]);
 
-  // Enforce the free-tier scan cap (shared with scan-receipt-camera.tsx — a
-  // gallery upload spends a scan exactly like a camera capture does).
+  // Enforce the shared free-use cap - a gallery upload spends a use exactly
+  // like a camera capture does.
   // Fails open on a count-check error — a network blip shouldn't block a scan.
   useEffect(() => {
     if (!premiumChecked || !user) return;
@@ -55,11 +55,10 @@ export default function UploadFromGalleryScreen() {
       setScanGateReady(true);
       return;
     }
-    receiptService
-      .countThisMonth(user.id)
+    countFreeUses(user.id)
       .then((count) => {
-        if (count >= FREE_SCAN_LIMIT) {
-          trackFunnel("limit_reached", { feature: "scan", limit: FREE_SCAN_LIMIT, count });
+        if (count >= FREE_USE_LIMIT) {
+          trackFunnel("limit_reached", { feature: "scan", limit: FREE_USE_LIMIT, count });
           setScanBlocked(true);
         }
       })
@@ -67,19 +66,18 @@ export default function UploadFromGalleryScreen() {
       .finally(() => setScanGateReady(true));
   }, [premiumChecked, isPremium, user]);
 
-  // Once-per-calendar-month heads-up telling free users their scan allowance
-  // — shared AsyncStorage key with scan-receipt-camera.tsx, so it only ever
-  // shows once a month regardless of which entry point the user reaches first.
+  // One-off heads-up about free uses - shared AsyncStorage key with
+  // scan-receipt-camera.tsx, so it only ever shows once.
   useEffect(() => {
     if (!scanGateReady || isPremium || scanBlocked) return;
-    AsyncStorage.getItem(scanAllowanceNoticeKey()).then((seen) => {
+    AsyncStorage.getItem(FREE_USES_NOTICE_KEY).then((seen) => {
       if (!seen) setShowAllowanceNotice(true);
     });
   }, [scanGateReady, isPremium, scanBlocked]);
 
   const dismissAllowanceNotice = () => {
     setShowAllowanceNotice(false);
-    AsyncStorage.setItem(scanAllowanceNoticeKey(), "1").catch(() => {});
+    AsyncStorage.setItem(FREE_USES_NOTICE_KEY, "1").catch(() => {});
   };
 
   const openPicker = useCallback(async () => {
@@ -116,9 +114,9 @@ export default function UploadFromGalleryScreen() {
     // Re-count at upload time: the mount check runs once, and a scan from the
     // camera may have used up the allowance since. Fails open on a count error.
     if (!isPremium) {
-      const count = await receiptService.countThisMonth(user.id).catch(() => null);
-      if (count !== null && count >= FREE_SCAN_LIMIT) {
-        trackFunnel("limit_reached", { feature: "scan", limit: FREE_SCAN_LIMIT, count });
+      const count = await countFreeUses(user.id).catch(() => null);
+      if (count !== null && count >= FREE_USE_LIMIT) {
+        trackFunnel("limit_reached", { feature: "scan", limit: FREE_USE_LIMIT, count });
         setScanBlocked(true);
         return;
       }
@@ -204,10 +202,10 @@ export default function UploadFromGalleryScreen() {
         <MXHeader title="Upload receipt" showBack />
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 32 }}>
           <Text style={[typography.bodyM, { fontWeight: "800", fontSize: 20, color: colour.text, marginBottom: 12, textAlign: "center" }]}>
-            Monthly Scan Limit Reached
+            {FREE_USES_DONE_TITLE}
           </Text>
           <Text style={[typography.bodyS, { color: colour.textSub, textAlign: "center", marginBottom: 32 }]}>
-            Free accounts get {FREE_SCAN_LIMIT} receipt scans a month. Upgrade to Pro for unlimited scanning, or add this expense manually.
+            {FREE_USES_DONE_MESSAGE}
           </Text>
           <TouchableOpacity
             onPress={() => {
@@ -220,12 +218,12 @@ export default function UploadFromGalleryScreen() {
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => {
-              trackFunnel("limit_action", { feature: "scan", action: "add_manually" });
-              router.replace("/(tabs)/add-expense" as any);
+              trackFunnel("limit_action", { feature: "scan", action: "not_now" });
+              safeBack(router);
             }}
             style={{ marginTop: 16 }}
           >
-            <Text style={[typography.bodyS, { color: colour.textSub }]}>Add manually instead</Text>
+            <Text style={[typography.bodyS, { color: colour.textSub }]}>Not now</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -360,8 +358,8 @@ export default function UploadFromGalleryScreen() {
         icon="camera.fill"
         iconColour={colour.primary}
         eyebrow="Free plan"
-        title={`You have ${FREE_SCAN_LIMIT} free scans this month`}
-        subtitle="Free accounts can scan up to this many receipts a month. Upgrade to Pro anytime for unlimited scanning."
+        title={`You have ${FREE_USE_LIMIT} free uses`}
+        subtitle={`${FREE_USES_SUMMARY} Upgrade to Pro anytime for no limits.`}
         primaryLabel="Got it"
         onPrimary={dismissAllowanceNotice}
         onClose={dismissAllowanceNotice}

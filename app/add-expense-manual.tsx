@@ -8,7 +8,8 @@ import { MXTabBar } from "@/components/MXTabBar";
 import { SuccessModal } from "@/components/SuccessModal";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { CATEGORIES } from "@/constants/categories";
-import { FREE_EXPENSE_LIMIT } from "@/constants/freeTier";
+import { FREE_USE_LIMIT, FREE_USES_DONE_MESSAGE, FREE_USES_DONE_TITLE } from "@/constants/freeTier";
+import { countFreeUses } from "@/services/freeUsageService";
 import { expenseService } from "@/services/expenseService";
 import { useAuthStore } from "@/stores/authStore";
 import { useExpenseStore } from "@/stores/expenseStore";
@@ -206,9 +207,9 @@ export default function AddExpenseScreen() {
     setSaving(true);
 
     if (!isPremium) {
-      const count = await expenseService.countThisMonth(user.id).catch(() => null);
-      if (count !== null && count >= FREE_EXPENSE_LIMIT) {
-        trackFunnel("limit_reached", { feature: "expense", limit: FREE_EXPENSE_LIMIT, count });
+      const count = await countFreeUses(user.id).catch(() => null);
+      if (count !== null && count >= FREE_USE_LIMIT) {
+        trackFunnel("limit_reached", { feature: "expense", limit: FREE_USE_LIMIT, count });
         setSaving(false);
         setShowLimitConfirm(true);
         return;
@@ -861,8 +862,8 @@ export default function AddExpenseScreen() {
 
       <ConfirmModal
         visible={showLimitConfirm}
-        title="Monthly limit reached"
-        message={`Free accounts can log ${FREE_EXPENSE_LIMIT} expenses a month. Upgrade to Pro for unlimited expense tracking.`}
+        title={FREE_USES_DONE_TITLE}
+        message={FREE_USES_DONE_MESSAGE}
         confirmLabel="Upgrade"
         cancelLabel="Not now"
         destructive={false}

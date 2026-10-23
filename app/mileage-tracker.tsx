@@ -11,7 +11,8 @@ import { SectionEyebrow } from "@/components/MXSection";
 import { useNotice } from "@/components/useNotice";
 import { VehiclePicker } from "@/components/VehiclePicker";
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from "@/components/maps";
-import { FREE_MILEAGE_TRIP_LIMIT } from "@/constants/freeTier";
+import { FREE_USE_LIMIT, FREE_USES_DONE_MESSAGE, FREE_USES_DONE_TITLE } from "@/constants/freeTier";
+import { countFreeUses } from "@/services/freeUsageService";
 import { TRIP_PURPOSES } from "@/constants/tripPurposes";
 import { localISODate } from "@/lib/dateInput";
 import { taxYearForDate } from "@/lib/taxRules";
@@ -118,7 +119,7 @@ export default function MileageTrackerScreen() {
     refreshPremiumStatus().finally(() => setPremiumChecked(true));
   }, [isInitialised, user]);
 
-  // Enforce the free-tier trip cap (12 in total, never monthly) once premium status is known.
+  // Enforce the shared free-use cap (in total, never monthly) once premium status is known.
   // One "use" = one saved trip, counted directly off mileage_trips — no
   // separate log table needed, unlike bank import / ITR12 export, which
   // don't otherwise write a per-use row anywhere.
@@ -129,11 +130,10 @@ export default function MileageTrackerScreen() {
       setMileageGateReady(true);
       return;
     }
-    mileageService
-      .countAll(user.id)
+    countFreeUses(user.id)
       .then((count) => {
-        if (count >= FREE_MILEAGE_TRIP_LIMIT) {
-          trackFunnel("limit_reached", { feature: "mileage", limit: FREE_MILEAGE_TRIP_LIMIT, count });
+        if (count >= FREE_USE_LIMIT) {
+          trackFunnel("limit_reached", { feature: "mileage", limit: FREE_USE_LIMIT, count });
           setTripLimitReached(true);
         }
       })
@@ -396,9 +396,9 @@ export default function MileageTrackerScreen() {
   // a count error.
   const handleStart = useCallback(async () => {
     if (!isPremium && user) {
-      const count = await mileageService.countAll(user.id).catch(() => null);
-      if (count !== null && count >= FREE_MILEAGE_TRIP_LIMIT) {
-        trackFunnel("limit_reached", { feature: "mileage", limit: FREE_MILEAGE_TRIP_LIMIT, count });
+      const count = await countFreeUses(user.id).catch(() => null);
+      if (count !== null && count >= FREE_USE_LIMIT) {
+        trackFunnel("limit_reached", { feature: "mileage", limit: FREE_USE_LIMIT, count });
         setTripLimitReached(true);
         return;
       }
@@ -568,10 +568,10 @@ export default function MileageTrackerScreen() {
         <MXHeader title="Mileage Tracker" showBack />
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 32 }}>
           <Text style={{ ...typography.bodyM, fontWeight: "800", fontSize: 20, color: colour.text, marginBottom: 12, textAlign: "center" }}>
-            You've Used Your Free Trips
+            {FREE_USES_DONE_TITLE}
           </Text>
           <Text style={{ ...typography.bodyS, color: colour.textSub, textAlign: "center", marginBottom: 32 }}>
-            Free accounts get {FREE_MILEAGE_TRIP_LIMIT} trips free. Upgrade to Pro for unlimited mileage tracking.
+            {FREE_USES_DONE_MESSAGE}
           </Text>
           <TouchableOpacity
             onPress={() => {

@@ -215,18 +215,4 @@ export const logbookExportService = {
     const { error } = await supabase.from("logbook_export_log").insert({ user_id: userId });
     if (error) throw new Error(error.message);
   },
-
-  // Deliberately NOT cached — gates a free-tier action.
-  countThisMonth: async (userId: string): Promise<number> => {
-    const startOfMonth = new Date();
-    startOfMonth.setDate(1);
-    startOfMonth.setHours(0, 0, 0, 0);
-    const { count, error } = await supabase
-      .from("logbook_export_log")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", userId)
-      .gte("created_at", startOfMonth.toISOString());
-    if (error) throw new Error(error.message);
-    return count ?? 0;
-  },
 };

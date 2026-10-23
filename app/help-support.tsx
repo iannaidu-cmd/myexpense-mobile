@@ -3,12 +3,7 @@ import { NoteCard, SectionEyebrow } from "@/components/MXSection";
 import { MXTabBar } from "@/components/MXTabBar";
 import { showNotice } from "@/components/NoticeHost";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import {
-  FREE_EXPENSE_LIMIT,
-  FREE_ITR12_EXPORT_LIMIT,
-  FREE_MILEAGE_TRIP_LIMIT,
-  FREE_SCAN_LIMIT,
-} from "@/constants/freeTier";
+import { FREE_USES_SUMMARY } from "@/constants/freeTier";
 import { useAuthStore } from "@/stores/authStore";
 import { colour, radius, space, typography } from "@/tokens";
 import * as Application from "expo-application";
@@ -51,7 +46,7 @@ function buildFaqs(isPremium: boolean): Faq[] {
     },
     {
       q: "What is the difference between Free and Pro?",
-      a: `The Free plan includes ${FREE_SCAN_LIMIT} receipt scans, ${FREE_EXPENSE_LIMIT} manual expenses and ${FREE_ITR12_EXPORT_LIMIT} tax report exports every calendar month, plus ${FREE_MILEAGE_TRIP_LIMIT} mileage trips free. Pro removes every limit, so you can scan, log and export as much as you need.`,
+      a: `${FREE_USES_SUMMARY} Pro removes the limit, so you can scan, log and export as much as you need.`,
       link: { label: isPremium ? "Manage your subscription" : "See Pro", route: subscriptionRoute },
     },
     {
