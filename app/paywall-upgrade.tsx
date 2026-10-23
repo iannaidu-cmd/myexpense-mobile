@@ -1,4 +1,12 @@
 import { showNotice } from "@/components/NoticeHost";
+import {
+  FREE_BANK_IMPORT_LIMIT,
+  FREE_EXPENSE_LIMIT,
+  FREE_ITR12_EXPORT_LIMIT,
+  FREE_LOGBOOK_EXPORT_LIMIT,
+  FREE_MILEAGE_TRIP_LIMIT,
+  FREE_SCAN_LIMIT,
+} from "@/constants/freeTier";
 import { MXButton } from "@/components/MXButton";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { errorText, trackFunnel } from "@/services/funnelService";
@@ -21,15 +29,24 @@ import { safeBack } from "@/lib/navigation";
 import { openStoreSubscription, storeNameFor } from "@/lib/storeSubscriptions";
 
 const FEATURES: { label: string; icon: "camera.fill" | "car.fill" | "chart.bar.fill" | "square.and.arrow.up" }[] = [
-  { label: "Unlimited receipt scanning & OCR", icon: "camera.fill" },
-  { label: "Automatic mileage tracking", icon: "car.fill" },
-  { label: "ITR12-ready category reports", icon: "chart.bar.fill" },
+  { label: "Unlimited receipt scanning", icon: "camera.fill" },
+  { label: "Unlimited mileage trips and logbook", icon: "car.fill" },
+  { label: "Tax-ready reports by expense type", icon: "chart.bar.fill" },
   { label: "Unlimited exports, anytime", icon: "square.and.arrow.up" },
 ];
 
+// Plain-language summary of the free plan, built from constants/freeTier.ts so
+// it never drifts from the real caps. Trips are a total allowance, never
+// monthly (mileageService.countAll), so they must stay out of "a month".
+const FREE_PLAN_LINE =
+  `The free plan includes ${FREE_SCAN_LIMIT} receipt scans, ${FREE_EXPENSE_LIMIT} expenses, ` +
+  `${FREE_BANK_IMPORT_LIMIT} bank imports, ${FREE_ITR12_EXPORT_LIMIT} tax report exports and ` +
+  `${FREE_LOGBOOK_EXPORT_LIMIT} logbook exports a month, plus ${FREE_MILEAGE_TRIP_LIMIT} trips free. ` +
+  `Pro removes every limit.`;
+
 // The RevenueCat webhook (supabase/functions/revenuecat-webhook) syncs
 // profiles.subscription shortly after a purchase, but not synchronously with
-// the purchase call returning — refresh once immediately, then once more
+// the purchase call returning - refresh once immediately, then once more
 // after a short delay in case the webhook hasn't landed yet.
 async function syncPremiumStatus(): Promise<void> {
   await useAuthStore.getState().refreshPremiumStatus().catch(() => {});
@@ -271,7 +288,7 @@ export default function PaywallUpgradeScreen() {
     });
   };
 
-  // ── Dev / premium bypass — skip paywall entirely ──────────────────────────
+  // ── Dev / premium bypass - skip paywall entirely ──────────────────────────
   useEffect(() => {
     if (isPremium && !inFlightRef.current) {
       router.replace("/(tabs)/settings" as any);
@@ -299,7 +316,7 @@ export default function PaywallUpgradeScreen() {
     let pkg = selectedPkg;
     let retriedOfferings = false;
     if (!pkg) {
-      // Offerings may have failed on open (no network, store hiccup) — the
+      // Offerings may have failed on open (no network, store hiccup) - the
       // store never retries on its own, so fetch again before giving up.
       retriedOfferings = true;
       await refresh("paywall_retry").catch(() => {});
@@ -465,7 +482,7 @@ export default function PaywallUpgradeScreen() {
             marginBottom: space.xxl,
           }}
         >
-          Unlimited receipt scanning, automatic ITR12 categorisation and full SARS-ready reports.
+          Scan every receipt, log every trip and export SARS-ready reports whenever you need them.
         </Text>
 
         <View style={{ gap: space.md, marginBottom: space.xxl }}>
@@ -473,6 +490,17 @@ export default function PaywallUpgradeScreen() {
             <FeatureRow key={f.label} {...f} />
           ))}
         </View>
+
+        <Text
+          style={{
+            ...typography.bodyS,
+            color: colour.onNoir2,
+            marginTop: -space.md,
+            marginBottom: space.xxl,
+          }}
+        >
+          {FREE_PLAN_LINE}
+        </Text>
 
         <View style={{ gap: space.sm, marginBottom: space.lg }}>
           <PlanRow

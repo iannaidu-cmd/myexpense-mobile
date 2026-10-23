@@ -9,7 +9,7 @@ export const FREE_SCAN_LIMIT = 12;
 /** Free-tier cap: manually-entered expenses per calendar month. */
 export const FREE_EXPENSE_LIMIT = 12;
 
-/** Free-tier cap: saved mileage trips per calendar month. Previously Pro-only with zero free access. */
+/** Free-tier cap: saved mileage trips in total. Never per month: the copy is always "12 trips free". */
 export const FREE_MILEAGE_TRIP_LIMIT = 12;
 
 /** Free-tier cap: bank statement import sessions per calendar month. Previously Pro-only with zero free access. */
