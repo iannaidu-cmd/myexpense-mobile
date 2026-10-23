@@ -8,7 +8,8 @@ import { MXTabBar } from "@/components/MXTabBar";
 import { SuccessModal } from "@/components/SuccessModal";
 import { useNotice } from "@/components/useNotice";
 import { VehiclePicker } from "@/components/VehiclePicker";
-import { FREE_MILEAGE_TRIP_LIMIT } from "@/constants/freeTier";
+import { FREE_USE_LIMIT, FREE_USES_DONE_MESSAGE, FREE_USES_DONE_TITLE } from "@/constants/freeTier";
+import { countFreeUses } from "@/services/freeUsageService";
 import { TRIP_PURPOSES } from "@/constants/tripPurposes";
 import {
   displayDateToISO,
@@ -201,12 +202,12 @@ export default function MileageTripEditScreen() {
         // Same free-tier cap as GPS trips. Fails open on a count error, like
         // the tracker, so a network blip doesn't block logging.
         if (!isPremium) {
-          const count = await mileageService.countAll(user.id).catch(() => null);
-          if (count !== null && count >= FREE_MILEAGE_TRIP_LIMIT) {
-            trackFunnel("limit_reached", { feature: "mileage", limit: FREE_MILEAGE_TRIP_LIMIT, count });
+          const count = await countFreeUses(user.id).catch(() => null);
+          if (count !== null && count >= FREE_USE_LIMIT) {
+            trackFunnel("limit_reached", { feature: "mileage", limit: FREE_USE_LIMIT, count });
             showNotice({
-              title: "You've used your free trips",
-              message: `Free accounts get ${FREE_MILEAGE_TRIP_LIMIT} trips free. Upgrade to Pro to log as many as you like.`,
+              title: FREE_USES_DONE_TITLE,
+              message: FREE_USES_DONE_MESSAGE,
               icon: "crown.fill",
               confirmLabel: "Upgrade to Pro",
               cancelLabel: "Not now",

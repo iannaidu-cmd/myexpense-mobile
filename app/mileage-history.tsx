@@ -7,7 +7,8 @@ import { MXTabBar } from "@/components/MXTabBar";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useNotice } from "@/components/useNotice";
 import { VehiclePicker } from "@/components/VehiclePicker";
-import { FREE_LOGBOOK_EXPORT_LIMIT } from "@/constants/freeTier";
+import { FREE_USE_LIMIT, FREE_USES_DONE_MESSAGE, FREE_USES_DONE_TITLE } from "@/constants/freeTier";
+import { countFreeUses } from "@/services/freeUsageService";
 import { useAppForeground } from "@/hooks/use-app-foreground";
 import { claimsVehicleCostsAsBusiness, EMPLOYEE_VEHICLE_NOTE } from "@/lib/workType";
 import { logbookExportService } from "@/services/logbookExportService";
@@ -123,17 +124,17 @@ export default function MileageHistoryScreen() {
     }
   };
 
-  // ── Logbook export — free-tier gated like the ITR12 export ──────────────
+  // ── Logbook export - spends a shared free use, like the ITR12 export ────
   // Fails open on a count-check error, same as the ITR12 export.
   const openExport = async () => {
     if (!user) return;
     if (!isPremium) {
-      const count = await logbookExportService.countThisMonth(user.id).catch(() => null);
-      if (count !== null && count >= FREE_LOGBOOK_EXPORT_LIMIT) {
-        trackFunnel("limit_reached", { feature: "logbook_export", limit: FREE_LOGBOOK_EXPORT_LIMIT, count });
+      const count = await countFreeUses(user.id).catch(() => null);
+      if (count !== null && count >= FREE_USE_LIMIT) {
+        trackFunnel("limit_reached", { feature: "logbook_export", limit: FREE_USE_LIMIT, count });
         showNotice({
-          title: "You've used this month's exports",
-          message: `Free accounts can export the logbook ${FREE_LOGBOOK_EXPORT_LIMIT} times a month. Upgrade to Pro to export as often as you like.`,
+          title: FREE_USES_DONE_TITLE,
+          message: FREE_USES_DONE_MESSAGE,
           icon: "crown.fill",
           confirmLabel: "Upgrade to Pro",
           cancelLabel: "Not now",
