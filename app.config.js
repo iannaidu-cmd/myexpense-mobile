@@ -40,7 +40,7 @@ const config = {
     supportsTablet: true,
     requiresFullScreen: true,
     bundleIdentifier: "co.za.myexpense",
-    buildNumber: "96",
+    buildNumber: "97",
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false,
       NSCameraUsageDescription:
