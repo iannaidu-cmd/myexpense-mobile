@@ -253,7 +253,7 @@ export default function ProfileScreen() {
                     label: "Full Name",
                     value: fullName,
                     setter: setFullName,
-                    placeholder: "e.g. Ian Naidu",
+                    placeholder: "e.g. Jessica Taylor",
                     editable: true,
                   },
                   {

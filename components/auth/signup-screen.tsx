@@ -300,7 +300,7 @@ export function SignupScreen() {
             <View style={{ gap: 18 }}>
               <AuthField
                 label="Full name" value={name} onChangeText={setName}
-                placeholder="e.g. Ian Naidu" autoCapitalize="words"
+                placeholder="e.g. Jessica Taylor" autoCapitalize="words"
                 autoCorrect={false} autoComplete="name" error={errors.name}
               />
               <AuthField
