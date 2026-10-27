@@ -46,7 +46,7 @@ describe("retirementSeveranceLumpSumTax", () => {
   });
 
   it("charges 18% on the amount between R550,000 and R770,000", () => {
-    // Ian's case: R707,919.65 severance pay, first lump sum ever.
+    // Jessica's case: R707,919.65 severance pay, first lump sum ever.
     // (707,919.65 - 550,000) * 0.18 = 28,425.537 -> rounds to 28,426
     expect(retirementSeveranceLumpSumTax(707_919.65)).toBe(28_426);
   });

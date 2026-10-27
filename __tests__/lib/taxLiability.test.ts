@@ -199,7 +199,7 @@ describe("calculateTaxLiability — retirement/severance lump sums", () => {
     expect(result.finalLiability).toBe(result.taxAfterCredits + result.lumpSumTax);
   });
 
-  it("Ian's case: R707,919.65 severance is taxed far more favourably than folding it into normal income would suggest", () => {
+  it("Jessica's case: R707,919.65 severance is taxed far more favourably than folding it into normal income would suggest", () => {
     // Normal income for the year (salary/bonus/leave, excluding severance): R291,482.27
     // Severance: R707,919.65, taxed separately, first lump sum ever
     // Tax already paid (PAYE R94,073.26 + directive tax on the lump sum R30,654.09): R124,727.35
@@ -257,7 +257,7 @@ describe("calculateTaxLiability — actual SARS directive override", () => {
     const result = calculateTaxLiability(
       baseInput({ retirementSeveranceLumpSum: 707919.65, actualLumpSumTax: 30654.09 }),
     );
-    // The estimate for this amount would be ~R28,426 (see the "Ian's case"
+    // The estimate for this amount would be ~R28,426 (see the "Jessica's case"
     // test above) — the actual directive figure is used instead.
     expect(result.lumpSumTax).toBe(30654.09);
     expect(result.lumpSumEntries).toEqual([
@@ -298,7 +298,7 @@ describe("calculateTaxLiability — actual SARS directive override", () => {
     ]);
   });
 
-  it("Ian's case: three lump sums in the same year use their real SARS directive amounts, not the combined-estimate table", () => {
+  it("Jessica's case: three lump sums in the same year use their real SARS directive amounts, not the combined-estimate table", () => {
     // Severance (R707,919.65) plus two further lump sums received the same
     // tax year (e.g. share scheme vesting payouts), each with its own
     // issued SARS directive.

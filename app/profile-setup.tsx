@@ -164,7 +164,7 @@ export default function ProfileSetupScreen() {
                 setFullName(t);
                 setErrors((e) => ({ ...e, fullName: undefined }));
               }}
-              placeholder="e.g. Ian Naidu"
+              placeholder="e.g. Jessica Taylor"
               placeholderTextColor={colour.textHint}
               style={{
                 ...typography.bodyM,
