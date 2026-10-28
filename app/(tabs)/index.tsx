@@ -9,6 +9,7 @@ import { profileService } from "@/services/profileService";
 import { taxLiabilityService } from "@/services/taxLiabilityService";
 import { GRACE_PERIOD_DAYS, useAuthStore } from "@/stores/authStore";
 import { useExpenseStore } from "@/stores/expenseStore";
+import { seasonalPopup, SeasonalPopupKind } from "@/lib/seasonalPopups";
 import { colour, radius, space, typography } from "@/tokens";
 import { AppReleaseInfo, Expense, TaxLiabilityEstimate } from "@/types/database";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -44,14 +45,10 @@ const formatDate = (dateStr: string) => {
 };
 
 // ── Once-off dashboard popups ─────────────────────────────────────────────────
-// Two separate notices in chronological order. Dates + keys are specific to
-// the current cycle and must be hand-updated (with bumped keys) each year:
-// - period2: provisional tax period 2 for the 2026/27 tax year (see
-//   lib/taxRules.ts and app/provisional-tax.tsx for the same figures).
-// - taxSeasonOpen: SARS eFiling opening for the 2025/26 tax year (the one
-//   that just ended) — this is a *different*, already-completed tax year
-//   from the one period2 is tracking, which is why its date (13 Jul 2026)
-//   falls before it rather than after.
+// Two seasonal notices whose dates, wording and storage keys are derived from
+// the calendar in lib/seasonalPopups.ts, so they roll forward every year:
+// - taxSeasonOpen: SARS eFiling opening for the tax year that just ended.
+// - period2: provisional tax period 2 of the tax year currently running.
 // A "period1" notice (tax year started 1 Mar) used to exist here too, but
 // was removed: every new user installing after 1 Mar sees it as already due,
 // so it fired back-to-back with taxSeasonOpen on first launch for anyone
@@ -65,14 +62,8 @@ type PopupKind = "taxSeasonOpen" | "period2" | "billingIssue";
 // app restarts; this only closes the gap within a single session.
 const dismissedThisSession = new Set<PopupKind>();
 
-const TAX_SEASON_TRIGGER_DATE = new Date(2026, 6, 13); // 13 Jul 2026 — eFiling opens for manual submissions (not 1 Jul, which is only auto-assessment notices)
-const TAX_SEASON_POPUP_KEY = "@myexpense:seen_tax_season_popup_v3_2026";
-
-const PERIOD2_TRIGGER_DATE = new Date(2026, 8, 1); // 1 Sep 2026
-const PERIOD2_POPUP_KEY = "@myexpense:seen_period2_popup_v2_2026";
-
-// Keyed by the exact billing_issue_detected_at timestamp (not a static key
-// like the two above) so a resolved-then-recurring billing issue re-shows
+// Keyed by the exact billing_issue_detected_at timestamp (not a calendar key
+// like the two seasonal popups) so a resolved-then-recurring billing issue re-shows
 // the warning instead of staying silently suppressed by an old dismissal.
 function billingIssuePopupKey(detectedAtIso: string): string {
   return `@myexpense:seen_billing_issue_popup:${detectedAtIso}`;
@@ -88,44 +79,22 @@ type PopupContent = {
   primaryLabel: string;
 };
 
-const POPUP_CONTENT: Record<Exclude<PopupKind, "billingIssue">, PopupContent> = {
-  taxSeasonOpen: {
-    icon: "doc.text.fill",
-    iconColour: colour.primary,
-    // Must match the year in the comment above (the already-completed year
-    // being filed, not the currently-running one) — previously drifted out
-    // of sync and said "2026/27" here while the trigger date/comment both
-    // meant 2025/26.
-    eyebrow: "Tax season 2025/26",
-    title: "Tax season is open",
-    subtitle: "SARS eFiling is open for manual submissions. Start on your ITR12 now, so October doesn't sneak up on you.",
-    rows: [
-      { label: "eFiling opened", value: "13 Jul 2026" },
-      { label: "Non-provisional deadline", value: "23 Oct 2026" },
-      { label: "Provisional & trusts deadline", value: "22 Jan 2027" },
-    ],
-    primaryLabel: "Start preparing",
-  },
-  period2: {
-    icon: "calendar",
-    iconColour: colour.warning,
-    eyebrow: "Period 2 of 2",
-    title: "Your second period has started",
-    subtitle: "Halfway through the tax year. Keep logging so your next estimate stays accurate.",
-    rows: [
-      { label: "Track expenses from", value: "1 Sep 2026" },
-      { label: "Track expenses until", value: "28 Feb 2027" },
-      { label: "Pay your estimate by", value: "28 Feb 2027" },
-    ],
-    primaryLabel: "Continue tracking",
-  },
+// Icon + button for the seasonal popups; their dates and wording come from
+// lib/seasonalPopups.ts.
+const SEASONAL_POPUP_CHROME: Record<SeasonalPopupKind, Pick<PopupContent, "icon" | "iconColour" | "primaryLabel">> = {
+  taxSeasonOpen: { icon: "doc.text.fill", iconColour: colour.primary, primaryLabel: "Start preparing" },
+  period2: { icon: "calendar", iconColour: colour.warning, primaryLabel: "Continue tracking" },
 };
 
-// billingIssue's rows depend on billingIssueDetectedAt (when the card
-// failure happened), so it can't live in the static POPUP_CONTENT table
-// above — resolved at render/check time instead.
-function getPopupContent(kind: PopupKind, billingIssueDetectedAt: string | null): PopupContent {
-  if (kind !== "billingIssue") return POPUP_CONTENT[kind];
+// Content is resolved at render/check time: the seasonal popups' dates come
+// from the calendar, and billingIssue's rows depend on billingIssueDetectedAt.
+// Returns null only if a seasonal popup's window has closed since it was
+// shown (left open across midnight on its last day).
+function getPopupContent(kind: PopupKind, billingIssueDetectedAt: string | null): PopupContent | null {
+  if (kind !== "billingIssue") {
+    const popup = seasonalPopup(kind);
+    return popup ? { ...SEASONAL_POPUP_CHROME[kind], ...popup.content } : null;
+  }
 
   const deadline = billingIssueDetectedAt
     ? new Date(new Date(billingIssueDetectedAt).getTime() + GRACE_PERIOD_DAYS * 86_400_000)
@@ -284,14 +253,12 @@ export default function HomeScreen() {
       const seenBilling = await AsyncStorage.getItem(billingIssuePopupKey(billingIssueDetectedAt));
       if (!seenBilling) return "billingIssue";
     }
-    const [seenTaxSeason, seenP2] = await Promise.all([
-      AsyncStorage.getItem(TAX_SEASON_POPUP_KEY),
-      AsyncStorage.getItem(PERIOD2_POPUP_KEY),
-    ]);
-    const now = new Date();
-    // Checked in chronological trigger-date order: 13 Jul → 1 Sep.
-    if (!seenTaxSeason && now >= TAX_SEASON_TRIGGER_DATE) return "taxSeasonOpen";
-    if (!seenP2 && now >= PERIOD2_TRIGGER_DATE) return "period2";
+    // Checked in chronological trigger-date order: 13 Jul → 1 Sep. Each
+    // returns null outside its window, so only popups currently open count.
+    for (const kind of ["taxSeasonOpen", "period2"] as const) {
+      const popup = seasonalPopup(kind);
+      if (popup && !(await AsyncStorage.getItem(popup.key))) return kind;
+    }
     return null;
   }, [billingIssueDetectedAt]);
 
@@ -312,8 +279,8 @@ export default function HomeScreen() {
       if (billingIssueDetectedAt) await AsyncStorage.setItem(billingIssuePopupKey(billingIssueDetectedAt), "1");
       return;
     }
-    const key = kind === "period2" ? PERIOD2_POPUP_KEY : TAX_SEASON_POPUP_KEY;
-    await AsyncStorage.setItem(key, "1");
+    const popup = seasonalPopup(kind);
+    if (popup) await AsyncStorage.setItem(popup.key, "1");
   }, [billingIssueDetectedAt]);
 
   // Dismiss via X/backdrop — stays on the dashboard. If another popup is
@@ -801,6 +768,7 @@ export default function HomeScreen() {
 
       {duePopup && (() => {
         const content = getPopupContent(duePopup, billingIssueDetectedAt);
+        if (!content) return null;
         return (
           <AnnouncementModal
             visible
