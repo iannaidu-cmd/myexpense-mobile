@@ -1,10 +1,12 @@
 import { BiometricToggle } from "@/components/BiometricToggle";
 import { ConfirmModal } from "@/components/ConfirmModal";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { getCurrentTaxYear } from "@/lib/taxRules";
 import { profileService } from "@/services/profileService";
 import { useAuthStore } from "@/stores/authStore";
 import { floorRatio, useHomeOfficeStore } from "@/stores/homeOfficeStore";
 import { colour, radius, space, typography } from "@/tokens";
+import * as Application from "expo-application";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import {
@@ -251,9 +253,9 @@ export default function SettingsTabScreen() {
             padding: space.lg, borderWidth: 1, borderColor: colour.borderLight,
           }}>
             {[
-              { label: "Version",       value: "1.0.0" },
+              { label: "Version",       value: Application.nativeApplicationVersion ?? "—" },
               { label: "Compliance",    value: "POPIA ✓", valueColor: colour.accentDeep },
-              { label: "Tax standard",  value: "SARS ITR12 2024/25" },
+              { label: "Tax standard",  value: `SARS ITR12 ${getCurrentTaxYear()}` },
             ].map((row, i, arr) => (
               <View key={row.label} style={{
                 flexDirection: "row", justifyContent: "space-between",
