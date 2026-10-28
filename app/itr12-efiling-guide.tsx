@@ -212,7 +212,7 @@ export default function ITR12EFilingGuideScreen() {
           >
             <IconSymbol name="calendar" size={15} color={colour.accent} />
             <Text style={{ color: colour.onNoir, fontSize: 13, fontWeight: "700" }}>
-              SARS Key Dates — 2024/25
+              SARS Key Dates — {filingYearLabel}
             </Text>
           </View>
           {KEY_DATES.map((d, i) => (

@@ -272,6 +272,7 @@ export default function ProvisionalTaxScreen() {
   const provisionalTax = Math.max(0, grossTax - payeAlreadyPaid);
   const irp61 = Math.round(provisionalTax * 0.5);
   const irp62 = provisionalTax - irp61;
+  const activeStartYear = parseInt(activeTaxYear.split("/")[0], 10);
 
   const deadlines = buildDeadlines();
   const today = new Date();
@@ -444,11 +445,11 @@ export default function ProvisionalTaxScreen() {
                         Split into 2 payments:
                       </Text>
                       <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                        <Text style={{ fontSize: 12, color: colour.onNoir2 }}>1st payment (Aug 2026)</Text>
+                        <Text style={{ fontSize: 12, color: colour.onNoir2 }}>1st payment (Aug {activeStartYear})</Text>
                         <Text style={{ fontSize: 12, fontWeight: "700", color: colour.onNoir }}>{fmt(irp61)}</Text>
                       </View>
                       <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                        <Text style={{ fontSize: 12, color: colour.onNoir2 }}>2nd payment (Feb 2027)</Text>
+                        <Text style={{ fontSize: 12, color: colour.onNoir2 }}>2nd payment (Feb {activeStartYear + 1})</Text>
                         <Text style={{ fontSize: 12, fontWeight: "700", color: colour.onNoir }}>{fmt(irp62)}</Text>
                       </View>
                     </View>
