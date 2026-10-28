@@ -90,6 +90,8 @@ const MAPPING = {
   "mappin": "location-on",
   "arrow.up": "arrow-upward",
   "arrow.down": "arrow-downward",
+  "arrow.down.left": "south-west",
+  "arrow.up.right": "north-east",
   "exclamationmark.triangle": "warning",
   "percent": "percent",
   "laptopcomputer": "laptop",

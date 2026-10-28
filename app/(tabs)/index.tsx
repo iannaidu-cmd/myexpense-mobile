@@ -598,7 +598,7 @@ export default function HomeScreen() {
                   width: 28, height: 28, borderRadius: 8,
                   backgroundColor: colour.brandTeal + "2E", alignItems: "center", justifyContent: "center",
                 }}>
-                  <Text style={{ fontSize: 14, color: colour.text }}>+</Text>
+                  <IconSymbol name="arrow.down.left" size={15} color={colour.text} weight="semibold" />
                 </View>
                 <Text style={{ fontSize: 13, fontWeight: "600", color: colour.text }}>Add income</Text>
               </TouchableOpacity>
@@ -615,7 +615,7 @@ export default function HomeScreen() {
                   width: 28, height: 28, borderRadius: 8,
                   backgroundColor: colour.primary50, alignItems: "center", justifyContent: "center",
                 }}>
-                  <Text style={{ fontSize: 14, color: colour.accentDeep }}>−</Text>
+                  <IconSymbol name="arrow.up.right" size={15} color={colour.accentDeep} weight="semibold" />
                 </View>
                 <Text style={{ fontSize: 13, fontWeight: "600", color: colour.text }}>Add expense</Text>
               </TouchableOpacity>

@@ -33,6 +33,8 @@ const SF_TO_MATERIAL: Record<
   pencil: "edit",
   "arrow.right": "arrow-forward",
   "arrow.left": "arrow-back",
+  "arrow.down.left": "south-west",
+  "arrow.up.right": "north-east",
   "info.circle": "info",
   "exclamationmark.circle": "error",
   "checkmark.circle.fill": "check-circle",
