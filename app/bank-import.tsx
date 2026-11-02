@@ -1,4 +1,5 @@
 import { trackFunnel } from "@/services/funnelService";
+import { logExpenseCreated } from "@/lib/analytics";
 import { showNotice } from "@/components/NoticeHost";
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
@@ -682,6 +683,7 @@ export default function BankImportScreen() {
         ),
       ]);
       await logBankImport(user.id).catch((e) => console.warn("logBankImport failed:", e.message));
+      if (freshExpenses.length > 0) logExpenseCreated("bank_import", freshExpenses.length);
       setImportedCount(freshExpenses.length);
       setImportedIncomeCount(incomeEntries.length);
       setSkippedCount(skipped);

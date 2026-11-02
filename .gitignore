@@ -56,3 +56,8 @@ supabase/.temp/
 
 .env.local
 .claude/
+
+# Firebase config: kept out of this public repo, served to EAS builds as
+# file env vars GOOGLE_SERVICES_PLIST / GOOGLE_SERVICES_JSON (app.config.js)
+GoogleService-Info.plist
+google-services.json

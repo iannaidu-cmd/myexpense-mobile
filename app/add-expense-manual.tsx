@@ -1,4 +1,5 @@
 import { trackFunnel, trackFirstAction } from "@/services/funnelService";
+import { logExpenseCreated } from "@/lib/analytics";
 import { showNotice } from "@/components/NoticeHost";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ConfirmModal } from "@/components/ConfirmModal";
@@ -284,6 +285,7 @@ export default function AddExpenseScreen() {
 
       setSuccessMessage(`R ${savedAmount.toLocaleString("en-ZA", { minimumFractionDigits: 2 })} at ${vendor.trim()} has been saved.`);
       trackFirstAction("expense_manual");
+      logExpenseCreated("manual");
       setSuccessVisible(true);
     } catch {
       showNotice({ title: "Couldn't save this expense", message: "Please check your internet connection and try again." });

@@ -19,6 +19,10 @@ updates:
       # Major expo SDK upgrades require manual migration
       - dependency-name: expo
         update-types: ["version-update:semver-major"]
+      # Pinned to 26.x: v27 (Firebase iOS 13) is SPM-only and needs dynamic
+      # frameworks. Moving to it is a separate task, see app.config.js.
+      - dependency-name: "@react-native-firebase/*"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: github-actions
     directory: /

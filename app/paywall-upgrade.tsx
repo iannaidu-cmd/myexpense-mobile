@@ -3,6 +3,7 @@ import { FREE_USES_SUMMARY } from "@/constants/freeTier";
 import { MXButton } from "@/components/MXButton";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { errorText, trackFunnel } from "@/services/funnelService";
+import { logPaywallViewed } from "@/lib/analytics";
 import { useAuthStore } from "@/stores/authStore";
 import {
   PACKAGE_ANNUAL,
@@ -198,6 +199,7 @@ export default function PaywallUpgradeScreen() {
       if (!tracked.current) return;
       if (!viewedSent.current) {
         trackFunnel("paywall_viewed", { from, prices_from_store: "pending" });
+        logPaywallViewed(from);
       }
       trackFunnel("paywall_closed", {
         via: closeVia.current,
@@ -224,6 +226,7 @@ export default function PaywallUpgradeScreen() {
         const hasMonthly = loaded.some((p) => p.identifier === PACKAGE_MONTHLY);
         const hasAnnual = loaded.some((p) => p.identifier === PACKAGE_ANNUAL);
         trackFunnel("paywall_viewed", { from, prices_from_store: hasMonthly && hasAnnual });
+        logPaywallViewed(from);
         if (!hasMonthly || !hasAnnual) {
           trackFunnel("paywall_prices_fallback", {
             from,

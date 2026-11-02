@@ -4,6 +4,7 @@ import Purchases, {
 } from "react-native-purchases";
 import { create } from "zustand";
 import { errorText, trackFunnel } from "@/services/funnelService";
+import { logSubscriptionPurchase } from "@/lib/analytics";
 
 // ─── Subscription Store ───────────────────────────────────────────────────────
 // Wraps RevenueCat state. Import anywhere with:
@@ -126,6 +127,15 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
       // no_entitlement: the store sheet completed but RevenueCat does not
       // report Pro as active, which the paywall currently shows nothing for.
       trackFunnel("purchase_result", { plan, outcome: isPro ? "ok" : "no_entitlement" });
+      if (isPro) {
+        logSubscriptionPurchase({
+          plan,
+          productId: pkg.product.identifier,
+          price: pkg.product.price,
+          currency: pkg.product.currencyCode,
+          freeTrial: pkg.product.introPrice?.price === 0,
+        });
+      }
       return isPro;
     } catch (e: any) {
       // User cancelled — not a real error

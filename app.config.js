@@ -31,7 +31,7 @@ const facebookPlugin =
 const config = {
   name: "MyExpense",
   slug: "MyExpense",
-  version: "1.2.14",
+  version: "1.2.15",
   orientation: "portrait",
   icon: "./assets/images/icon.png",
   scheme: "myexpense",
@@ -40,7 +40,8 @@ const config = {
     supportsTablet: true,
     requiresFullScreen: true,
     bundleIdentifier: "co.za.myexpense",
-    buildNumber: "98",
+    googleServicesFile: process.env.GOOGLE_SERVICES_PLIST ?? "./GoogleService-Info.plist",
+    buildNumber: "99",
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false,
       NSCameraUsageDescription:
@@ -61,7 +62,8 @@ const config = {
   },
   android: {
     package: "co.za.myexpense.myapp",
-    versionCode: 55,
+    googleServicesFile: process.env.GOOGLE_SERVICES_JSON ?? "./google-services.json",
+    versionCode: 56,
     config: {
       googleMaps: {
         apiKey: process.env.GOOGLE_MAPS_API_KEY,
@@ -111,8 +113,19 @@ const config = {
           enableProguardInReleaseBuilds: true,
           enableShrinkResourcesInReleaseBuilds: true,
         },
+        // React Native Firebase needs Firebase linked as static frameworks.
+        ios: {
+          useFrameworks: "static",
+        },
       },
     ],
+    // Firebase Analytics (GA4), see lib/analytics.ts. Pinned to RNFB 26:
+    // Firebase iOS 12 still ships via CocoaPods, which static frameworks need
+    // (disableSPM). RNFB 27 / Firebase 13 is SPM-only and needs dynamic ones.
+    // withoutAdIdSupport leaves out IDFA collection, so no App Tracking
+    // Transparency prompt is needed (matches the Meta setup above).
+    ["@react-native-firebase/app", { ios: { disableSPM: true } }],
+    ["@react-native-firebase/analytics", { ios: { withoutAdIdSupport: true } }],
     [
       "expo-splash-screen",
       {
