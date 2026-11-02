@@ -14,6 +14,7 @@ import {
 import { signInWithApple } from "@/services/appleAuthService";
 import { signInWithFacebook } from "@/services/facebookAuthService";
 import { signInWithGoogle } from "@/services/googleAuthService";
+import { logLogin } from "@/lib/analytics";
 import { errorText, trackFunnel, trackOAuthResult } from "@/services/funnelService";
 import { useAuthStore } from "@/stores/authStore";
 import { colour, radius } from "@/tokens";
@@ -242,6 +243,7 @@ export function SigninScreen() {
     try {
       await signIn(email, password);
       trackFunnel("sign_in_ok", { method: "email" });
+      logLogin("email");
     } catch (err) {
       trackFunnel("sign_in_failed", { method: "email", error: errorText(err) });
       setErrors({ password: "Invalid email or password. Please try again." });
@@ -286,6 +288,7 @@ export function SigninScreen() {
     try {
       const result = await signInWithGoogle();
       trackOAuthResult("google", "sign-in", result);
+      if (result.success) logLogin("google");
       if (result.success) router.replace("/(tabs)");
       else if (result.error !== "cancelled") showNotice({ title: "Couldn't sign in with Google", message: "Please try again." });
     } finally { setGoogleLoading(false); }
@@ -297,6 +300,7 @@ export function SigninScreen() {
     try {
       const result = await signInWithFacebook();
       trackOAuthResult("facebook", "sign-in", result);
+      if (result.success) logLogin("facebook");
       if (!result.success && result.error !== "cancelled") showNotice({ title: "Couldn't sign in with Facebook", message: "Please try again." });
     } finally { setFbLoading(false); }
   };
@@ -307,6 +311,7 @@ export function SigninScreen() {
     try {
       const result = await signInWithApple();
       trackOAuthResult("apple", "sign-in", result);
+      if (result.success) logLogin("apple");
       if (result.success) router.replace("/(tabs)");
       else if (result.error !== "cancelled") showNotice({ title: "Couldn't sign in with Apple", message: "Please try again." });
     } finally { setAppleLoading(false); }

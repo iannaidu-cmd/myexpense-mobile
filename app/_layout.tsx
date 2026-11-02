@@ -5,6 +5,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { configurePurchases } from "@/lib/purchases";
 import { promptPlayUpdateIfAvailable } from "@/lib/playInAppUpdate";
 import { isFirstOpen, setFunnelUser, trackFunnel } from "@/services/funnelService";
+import { logScreen } from "@/lib/analytics";
 import * as Sentry from "@sentry/react-native";
 import {
     registerForPushNotifications,
@@ -362,6 +363,14 @@ function FunnelTracker() {
     if (!isInitialised || !screen || !FUNNEL_SCREENS.has(screen)) return;
     trackFunnel("screen", { name: screen, signed_in: !!user });
   }, [isInitialised, screen]);
+
+  // GA4 gets every screen, by route pattern (e.g. "(tabs)/reports"), not path,
+  // so dynamic IDs never end up in screen names.
+  const route = segments.join("/") || "index";
+  useEffect(() => {
+    if (!isInitialised) return;
+    logScreen(route);
+  }, [isInitialised, route]);
 
   return null;
 }
