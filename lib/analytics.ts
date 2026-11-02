@@ -40,6 +40,25 @@ function log(name: string, params?: Record<string, string | number | boolean | n
   }
 }
 
+/**
+ * Whether GA4 is actually running in this build, for the ga4_status funnel
+ * event (ga() switches off silently, so this is the only outside signal).
+ * Never throws and resolves within 3 seconds.
+ */
+export async function analyticsStatus(): Promise<{ available: boolean; instance_id: boolean }> {
+  const g = ga();
+  if (!g) return { available: false, instance_id: false };
+  try {
+    const id = await Promise.race([
+      g.api.getAppInstanceId(g.instance),
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000)),
+    ]);
+    return { available: true, instance_id: !!id };
+  } catch {
+    return { available: true, instance_id: false };
+  }
+}
+
 /** GA4 recommended sign_up event, for a new account. */
 export function logSignUp(method: string) {
   log("sign_up", { method });
