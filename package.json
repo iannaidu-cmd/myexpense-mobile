@@ -30,7 +30,7 @@
     "@react-native-community/netinfo": "11.4.1",
     "@react-native-firebase/analytics": "26.4.1",
     "@react-native-firebase/app": "26.4.1",
-    "@react-navigation/bottom-tabs": "^7.4.0",
+    "@react-navigation/bottom-tabs": "^7.21.0",
     "@react-navigation/native": "^7.1.8",
     "@sentry/react-native": "~7.2.0",
     "@supabase/supabase-js": "^2.105.0",
