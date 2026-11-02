@@ -35,4 +35,9 @@ describe("analytics without the Firebase native module", () => {
       a.logScreen("(tabs)/reports");
     }).not.toThrow();
   });
+
+  it("reports GA4 as unavailable for the ga4_status event", async () => {
+    const { analyticsStatus } = require("@/lib/analytics");
+    await expect(analyticsStatus()).resolves.toEqual({ available: false, instance_id: false });
+  });
 });

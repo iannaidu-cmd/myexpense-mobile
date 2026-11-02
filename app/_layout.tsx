@@ -5,7 +5,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { configurePurchases } from "@/lib/purchases";
 import { promptPlayUpdateIfAvailable } from "@/lib/playInAppUpdate";
 import { isFirstOpen, setFunnelUser, trackFunnel } from "@/services/funnelService";
-import { logScreen } from "@/lib/analytics";
+import { analyticsStatus, logScreen } from "@/lib/analytics";
 import * as Sentry from "@sentry/react-native";
 import {
     registerForPushNotifications,
@@ -356,6 +356,9 @@ function FunnelTracker() {
     if (!opened.current) {
       opened.current = true;
       trackFunnel("app_open", { first: isFirstOpen(), signed_in: !!user });
+      analyticsStatus()
+        .then((s) => trackFunnel("ga4_status", s))
+        .catch(() => {});
     }
   }, [isInitialised, user?.id]);
 
