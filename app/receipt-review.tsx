@@ -1,5 +1,5 @@
 import { trackFirstAction } from "@/services/funnelService";
-import { logExpenseAdded, logFirstReceiptScanned } from "@/lib/analytics";
+import { logExpenseCreated, logFirstReceiptScanned } from "@/lib/analytics";
 import { showNotice } from "@/components/NoticeHost";
 import { InfoBanner } from "@/components/InfoBanner";
 import { MXHeader } from "@/components/MXHeader";
@@ -279,7 +279,7 @@ export default function ReceiptReviewScreen() {
 
       setSuccessMessage(`${vendor} — R ${savedAmount.toLocaleString("en-ZA", { minimumFractionDigits: 2 })} saved${hasReceipt ? " with receipt" : ""}.`);
       trackFirstAction("receipt_scan");
-      logExpenseAdded("receipt_scan");
+      logExpenseCreated("receipt_scan");
       logFirstReceiptScanned();
       setSuccessVisible(true);
     } catch {

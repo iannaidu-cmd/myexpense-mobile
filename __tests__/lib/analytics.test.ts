@@ -22,7 +22,7 @@ describe("analytics without the Firebase native module", () => {
     expect(() => {
       a.logSignUp("email");
       a.logLogin("google");
-      a.logExpenseAdded("manual");
+      a.logExpenseCreated("manual");
       a.logFirstReceiptScanned();
       a.logPaywallViewed("home");
       a.logSubscriptionPurchase({

@@ -225,6 +225,7 @@ export function SigninScreen() {
         return;
       }
       await saveBiometricSession(data.session.user.email ?? stored.email, data.session.access_token, data.session.refresh_token);
+      logLogin("biometric");
       useAuthStore.setState({ user: { id: data.session.user.id, email: data.session.user.email ?? "" }, isAuthenticated: true });
       router.replace("/(tabs)");
     } catch {

@@ -50,8 +50,9 @@ export function logLogin(method: string) {
   log("login", { method });
 }
 
-export function logExpenseAdded(source: "manual" | "receipt_scan") {
-  log("expense_added", { source });
+/** A bank import sends one event for the batch, with how many were created. */
+export function logExpenseCreated(source: "manual" | "receipt_scan" | "bank_import", count = 1) {
+  log("expense_created", { source, count });
 }
 
 const storage = new MMKV({ id: "myexpense-analytics" });
