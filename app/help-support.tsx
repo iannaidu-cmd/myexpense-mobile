@@ -26,8 +26,9 @@ type Faq = { q: string; a: string; link?: { label: string; route: Href } };
 // ─── FAQ data ─────────────────────────────────────────────────────────────────
 // Directions match the real tab bar (Home · Track · + · Reports · Me), and each
 // answer that sends the user somewhere carries a link straight there.
-function buildFaqs(isPremium: boolean): Faq[] {
-  const subscriptionRoute: Href = isPremium ? "/subscription-manage" : "/paywall-upgrade?from=help";
+// isPaid, not isPremium: promo users still get offered Pro.
+function buildFaqs(isPaid: boolean): Faq[] {
+  const subscriptionRoute: Href = isPaid ? "/subscription-manage" : "/paywall-upgrade?from=help";
   return [
     {
       q: "How do I scan a receipt?",
@@ -47,7 +48,7 @@ function buildFaqs(isPremium: boolean): Faq[] {
     {
       q: "What is the difference between Free and Pro?",
       a: `${FREE_USES_SUMMARY} Pro removes the limit, so you can scan, log and export as much as you need.`,
-      link: { label: isPremium ? "Manage your subscription" : "See Pro", route: subscriptionRoute },
+      link: { label: isPaid ? "Manage your subscription" : "See Pro", route: subscriptionRoute },
     },
     {
       q: "How do I track mileage?",
@@ -197,8 +198,8 @@ function LinkRow({
 // ─── Screen ───────────────────────────────────────────────────────────────────
 export default function HelpSupportScreen() {
   const router = useRouter();
-  const isPremium = useAuthStore((s) => s.isPremium);
-  const faqs = buildFaqs(isPremium);
+  const isPaid = useAuthStore((s) => s.hasPaidSubscription || s.isDevUser);
+  const faqs = buildFaqs(isPaid);
   const version = Application.nativeApplicationVersion;
   const build = Application.nativeBuildVersion;
 

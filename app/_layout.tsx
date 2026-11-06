@@ -601,10 +601,8 @@ function RootLayout() {
         {/* ── Paywall ── */}
         <Stack.Screen
           name="paywall-upgrade"
-          options={{
-            headerShown: false,
-            presentation: "modal",
-          }}
+          // A normal screen, not a modal, so the bottom tab bar stays visible.
+          options={{ headerShown: false }}
         />
         <Stack.Screen
           name="subscription-manage"

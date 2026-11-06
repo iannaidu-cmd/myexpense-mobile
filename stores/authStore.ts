@@ -5,6 +5,7 @@ import { profileService } from "@/services/profileService";
 import { supabase, setVerifierWriteHook } from "@/lib/supabase";
 import { ACTIVE_TAX_YEAR } from "@/types/database";
 import { create } from "zustand";
+import { deriveProfileFlags, SIGNED_OUT_FLAGS, type ProfileFlags } from "@/lib/accessFlags";
 
 // @supabase/supabase-js derives the storage key from the project URL:
 // sb-{project-ref}-auth-token  →  sb-{project-ref}-auth-token-code-verifier
@@ -15,7 +16,7 @@ const SUPABASE_CV_KEY = `sb-${_projectRef}-auth-token-code-verifier`;
 // a copy here so auth/callback can restore it before the PKCE exchange.
 export const SUPABASE_CV_BACKUP_KEY = `myexpense-pkce-verifier-backup`;
 
-// In-memory verifier — survives _removeSession() and initialise() restoring
+// In-memory verifier, survives _removeSession() and initialise() restoring
 // stale values from previous sessions into SUPABASE_CV_KEY.
 // Cleared after a successful exchange or sign-out.
 let _memPkceVerifier: string | null = null;
@@ -37,7 +38,7 @@ function parseStoredVerifier(raw: string): string {
 }
 
 // Register a storage-level hook so we capture the verifier the instant auth-js
-// writes it — covers signUp(), resend(), and any future PKCE flow. More
+// writes it, covers signUp(), resend(), and any future PKCE flow. More
 // reliable than reading CV_KEY after-the-fact (no timing or ordering concerns).
 setVerifierWriteHook((rawValue) => {
   const verifier = parseStoredVerifier(rawValue);
@@ -74,12 +75,21 @@ interface AuthState {
   isInitialised: boolean;
   hasCompletedOnboarding: boolean;
   isDevUser: boolean;
+  /** Decides feature ACCESS: dev users, active promos and paid subscriptions.
+   *  Never use it to decide whether to offer an upgrade; use hasPaidSubscription. */
   isPremium: boolean;
+  /** True when the profile has a paid plan ("pro" or "business") whose grace
+   *  period hasn't run out. Decides whether to offer an upgrade. */
+  hasPaidSubscription: boolean;
+  /** True during the free sign-up promo: promo active, no paid plan, not a dev user. */
+  isPromo: boolean;
+  /** When the promo ends (ISO), or null if there is none. */
+  promoExpiresAt: string | null;
   /** True when a paid subscription's renewal failed 7+ days ago and hasn't recovered. */
   isAccessBlocked: boolean;
-  /** ISO timestamp of an unresolved billing issue still within its grace period — null otherwise. */
+  /** ISO timestamp of an unresolved billing issue still within its grace period, null otherwise. */
   billingIssueDetectedAt: string | null;
-  /** When the user requested account deletion — null if no pending request. */
+  /** When the user requested account deletion, null if no pending request. */
   deletionRequestedAt: string | null;
   /** True while a deletion request is pending (i.e. deletionRequestedAt is set). */
   isPendingDeletion: boolean;
@@ -104,11 +114,8 @@ interface AuthState {
   updatePassword: (newPassword: string) => Promise<void>;
 }
 
-// Failed-renewal payments get this many days of continued access before
-// isAccessBlocked flips true. Only applies to users who already have a paid
-// subscription with an unresolved billing issue — never to dev users or
-// active promo_expires_at grants (checked first, see below).
-export const GRACE_PERIOD_DAYS = 7;
+// GRACE_PERIOD_DAYS moved to lib/accessFlags.ts; re-exported for existing imports.
+export { GRACE_PERIOD_DAYS } from "@/lib/accessFlags";
 
 // ─── Terms consent ────────────────────────────────────────────────────────────
 // The sign-up screen won't continue until "I agree to the Terms" is ticked,
@@ -143,19 +150,8 @@ async function recordPendingTermsConsent(userId: string): Promise<boolean> {
 }
 
 // ─── Helper: fetch premium status from profiles ───────────────────────────────
-async function fetchPremiumStatus(userId: string): Promise<{
-  isDevUser: boolean;
-  isPremium: boolean;
-  isAccessBlocked: boolean;
-  /** ISO timestamp of an unresolved billing issue still within its grace
-   *  window (i.e. access hasn't been blocked yet) — null otherwise. Lets the
-   *  UI warn the user their card failed while access is still unaffected. */
-  billingIssueDetectedAt: string | null;
-  deletionRequestedAt: string | null;
-  isPendingDeletion: boolean;
-  termsAccepted: boolean;
-  needsProfileSetup: boolean;
-}> {
+// The rules themselves live in lib/accessFlags.ts (unit tested).
+async function fetchPremiumStatus(userId: string): Promise<ProfileFlags> {
   const { data } = await supabase
     .from("profiles")
     .select(
@@ -163,32 +159,7 @@ async function fetchPremiumStatus(userId: string): Promise<{
     )
     .eq("id", userId)
     .single();
-
-  const isDevUser = data?.is_dev_user === true;
-  const promoActive = data?.promo_expires_at
-    ? new Date(data.promo_expires_at) > new Date()
-    : false;
-  const hasPaidSubscription =
-    data?.subscription === "pro" || data?.subscription === "business";
-
-  const graceDeadlineMs = data?.billing_issue_detected_at
-    ? new Date(data.billing_issue_detected_at).getTime() + GRACE_PERIOD_DAYS * 86_400_000
-    : null;
-  const graceExpired = graceDeadlineMs !== null && Date.now() > graceDeadlineMs;
-
-  const isPremium = isDevUser || promoActive || (hasPaidSubscription && !graceExpired);
-  const isAccessBlocked = !isDevUser && !promoActive && hasPaidSubscription && graceExpired;
-  const billingIssueDetectedAt =
-    !isDevUser && !promoActive && hasPaidSubscription && data?.billing_issue_detected_at && !graceExpired
-      ? data.billing_issue_detected_at
-      : null;
-  const deletionRequestedAt = data?.deletion_requested_at ?? null;
-  const isPendingDeletion = deletionRequestedAt !== null;
-  const termsAccepted = !!data?.terms_accepted_at;
-  // Only when the row actually loaded: a failed fetch shouldn't send anyone
-  // to Profile setup.
-  const needsProfileSetup = data ? !data.work_type : false;
-  return { isDevUser, isPremium, isAccessBlocked, billingIssueDetectedAt, deletionRequestedAt, isPendingDeletion, termsAccepted, needsProfileSetup };
+  return deriveProfileFlags(data);
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -196,14 +167,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   isAuthenticated: false,
   isInitialised: false,
   hasCompletedOnboarding: false,
-  isDevUser: false,
-  isPremium: false,
-  isAccessBlocked: false,
-  billingIssueDetectedAt: null,
-  deletionRequestedAt: null,
-  isPendingDeletion: false,
-  termsAccepted: false,
-  needsProfileSetup: false,
+  ...SIGNED_OUT_FLAGS,
   pendingEmailVerification: null,
 
   // ── Initialise: restore session on app launch ─────────────────────────────
@@ -228,7 +192,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
 
       if (error) {
-        // Stale or rotated refresh token — wipe local storage so the next
+        // Stale or rotated refresh token, wipe local storage so the next
         // launch starts clean, but restore the verifier so an in-progress
         // OAuth flow (app killed mid-flow, relaunched from deep link) can
         // still complete its exchange.
@@ -241,22 +205,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         // Start pre-fetching data in parallel with fetchPremiumStatus so the
         // query cache is warm by the time the splash fades.
         prefetchUserData(session.user.id);
-        const { isDevUser, isPremium, isAccessBlocked, billingIssueDetectedAt, deletionRequestedAt, isPendingDeletion, termsAccepted, needsProfileSetup } =
-          await fetchPremiumStatus(session.user.id);
+        const flags = await fetchPremiumStatus(session.user.id);
         set({
           user: { id: session.user.id, email: session.user.email ?? "" },
           isAuthenticated: true,
           isInitialised: true,
-          isDevUser,
-          isPremium,
-          isAccessBlocked,
-          billingIssueDetectedAt,
-          deletionRequestedAt,
-          isPendingDeletion,
-          termsAccepted,
-          needsProfileSetup,
+          ...flags,
         });
-        if (!termsAccepted) {
+        if (!flags.termsAccepted) {
           recordPendingTermsConsent(session.user.id).then((ok) => { if (ok) set({ termsAccepted: true }); });
         }
       } else {
@@ -267,11 +223,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         data: { subscription },
       } = supabase.auth.onAuthStateChange((event, session) => {
         // INITIAL_SESSION fires immediately on registration and duplicates the
-        // getSession() call above — skip it to avoid a double state update.
+        // getSession() call above, skip it to avoid a double state update.
         if (event === 'INITIAL_SESSION') return;
         if (session?.user) {
           // Guard: only authenticate if the email is confirmed (or there is no
-          // email — e.g. anonymous / OAuth without email). When email
+          // email, e.g. anonymous / OAuth without email). When email
           // confirmation is required, Supabase fires SIGNED_IN with a
           // temporary session before the user confirms, then fires SIGNED_OUT
           // moments later. Without this check that cycle sends the user to
@@ -292,29 +248,22 @@ export const useAuthStore = create<AuthState>((set, get) => ({
               pendingEmailVerification: null,
             });
             fetchPremiumStatus(session.user.id)
-              .then(({ isDevUser, isPremium, isAccessBlocked, billingIssueDetectedAt, deletionRequestedAt, isPendingDeletion, termsAccepted, needsProfileSetup }) => {
-                set({ isDevUser, isPremium, isAccessBlocked, billingIssueDetectedAt, deletionRequestedAt, isPendingDeletion, termsAccepted, needsProfileSetup });
-                if (!termsAccepted) {
+              .then((flags) => {
+                set(flags);
+                if (!flags.termsAccepted) {
                   recordPendingTermsConsent(session.user.id).then((ok) => { if (ok) set({ termsAccepted: true }); });
                 }
               })
               .catch(() => {});
           } else {
-            // Email not yet confirmed — keep as pending, don't authenticate.
+            // Email not yet confirmed, keep as pending, don't authenticate.
             set({ pendingEmailVerification: session.user.email ?? null });
           }
         } else {
           set({
             user: null,
             isAuthenticated: false,
-            isDevUser: false,
-            isPremium: false,
-            isAccessBlocked: false,
-            billingIssueDetectedAt: null,
-            deletionRequestedAt: null,
-            isPendingDeletion: false,
-            termsAccepted: false,
-            needsProfileSetup: false,
+            ...SIGNED_OUT_FLAGS,
           });
         }
       });
@@ -330,9 +279,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   refreshPremiumStatus: async () => {
     const { user } = get();
     if (!user) return;
-    const { isDevUser, isPremium, isAccessBlocked, billingIssueDetectedAt, deletionRequestedAt, isPendingDeletion, termsAccepted, needsProfileSetup } =
-      await fetchPremiumStatus(user.id);
-    set({ isDevUser, isPremium, isAccessBlocked, billingIssueDetectedAt, deletionRequestedAt, isPendingDeletion, termsAccepted, needsProfileSetup });
+    const flags = await fetchPremiumStatus(user.id);
+    set(flags);
   },
 
   // ── Request account deletion (starts the 30-day grace period) ─────────────
@@ -364,7 +312,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const { user } = get();
     if (!user) return;
     const now = new Date().toISOString();
-    // Plain update without .select().single() — avoids PGRST116 when the profile
+    // Plain update without .select().single(), avoids PGRST116 when the profile
     // row doesn't exist yet (new OAuth users whose trigger hasn't run).
     // 0 rows affected = no error; the in-memory flag is enough to ungate the UI.
     const { error } = await supabase
@@ -407,19 +355,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     // When email confirmation is required, session is null. Set
     // pendingEmailVerification so AuthGate routes to the verification screen.
     if (data.user && data.session) {
-      const { isDevUser, isPremium, isAccessBlocked, billingIssueDetectedAt, deletionRequestedAt, isPendingDeletion, termsAccepted, needsProfileSetup } =
-        await fetchPremiumStatus(data.user.id);
+      const flags = await fetchPremiumStatus(data.user.id);
       set({
         user: { id: data.user.id, email: data.user.email ?? "" },
         isAuthenticated: true,
-        isDevUser,
-        isPremium,
-        isAccessBlocked,
-        billingIssueDetectedAt,
-        deletionRequestedAt,
-        isPendingDeletion,
-        termsAccepted,
-        needsProfileSetup,
+        ...flags,
         pendingEmailVerification: null,
       });
     } else if (data.user) {
@@ -455,7 +395,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     });
     if (error) throw new Error(error.message);
     // Auth state (isAuthenticated, user, premium flags) is set by the
-    // onAuthStateChange callback which auth-js fires — and awaits — inside
+    // onAuthStateChange callback which auth-js fires, and awaits, inside
     // signInWithPassword before this line is reached. No second DB round-trip
     // needed here.
   },
@@ -467,14 +407,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({
       user: null,
       isAuthenticated: false,
-      isDevUser: false,
-      isPremium: false,
-      isAccessBlocked: false,
-      billingIssueDetectedAt: null,
-      deletionRequestedAt: null,
-      isPendingDeletion: false,
-      termsAccepted: false,
-      needsProfileSetup: false,
+      ...SIGNED_OUT_FLAGS,
     });
   },
 
@@ -482,11 +415,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   // Deliberately bypasses supabase.auth.resetPasswordForEmail(): the client
   // is configured flowType: "pkce", so the SDK attaches a code_challenge to
   // every email-link request, including this one. A PKCE code can only be
-  // redeemed by whoever holds the matching code_verifier — which lives only
-  // in this exact app install's AsyncStorage — so a link opened on another
+  // redeemed by whoever holds the matching code_verifier, which lives only
+  // in this exact app install's AsyncStorage, so a link opened on another
   // device or in a browser can never complete the exchange. A raw request to
   // /auth/v1/recover with no code_challenge makes GoTrue fall back to
-  // issuing a real access_token/refresh_token pair directly on redirect —
+  // issuing a real access_token/refresh_token pair directly on redirect -
   // self-contained bearer tokens any client can redeem, which is what makes
   // the website's cross-device/desktop reset form possible at all.
   resetPassword: async (email) => {
