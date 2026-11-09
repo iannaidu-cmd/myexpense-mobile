@@ -275,7 +275,7 @@ export function SubscriptionScreen({ defaultFrom }: { defaultFrom: string }) {
     return () => {
       if (!tracked.current) return;
       if (!viewedSent.current) {
-        trackFunnel("paywall_viewed", { from, prices_from_store: "pending" });
+        trackFunnel("paywall_viewed", { from, prices_from_store: "pending", promo: useAuthStore.getState().isPromo });
         logPaywallViewed(from);
       }
       trackFunnel("paywall_closed", {
@@ -302,7 +302,11 @@ export function SubscriptionScreen({ defaultFrom }: { defaultFrom: string }) {
         const loaded = useSubscriptionStore.getState().packages;
         const hasMonthly = loaded.some((p) => p.identifier === PACKAGE_MONTHLY);
         const hasAnnual = loaded.some((p) => p.identifier === PACKAGE_ANNUAL);
-        trackFunnel("paywall_viewed", { from, prices_from_store: hasMonthly && hasAnnual });
+        trackFunnel("paywall_viewed", {
+          from,
+          prices_from_store: hasMonthly && hasAnnual,
+          promo: useAuthStore.getState().isPromo,
+        });
         logPaywallViewed(from);
         if (!hasMonthly || !hasAnnual) {
           trackFunnel("paywall_prices_fallback", {

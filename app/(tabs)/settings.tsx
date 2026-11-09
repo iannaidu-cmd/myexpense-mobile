@@ -69,7 +69,7 @@ const BASE_SECTIONS: {
 
 export default function SettingsTabScreen() {
   const router = useRouter();
-  const { user, signOut, isDevUser, hasPaidSubscription, isPromo, promoExpiresAt, refreshPremiumStatus } = useAuthStore();
+  const { user, signOut, isDevUser, hasPaidSubscription, isPromo, refreshPremiumStatus } = useAuthStore();
   const { setting: homeOfficeSetting, load: loadHomeOffice } = useHomeOfficeStore();
   const [fullName, setFullName] = useState("");
   // "business" has no matching RevenueCat product/entitlement yet, intentional
@@ -112,9 +112,6 @@ export default function SettingsTabScreen() {
       if (item.route === "/paywall-upgrade") {
         // Offer the upgrade unless they actually pay. isPremium also covers
         // the sign-up promo, so it can't decide this.
-        const promoEnds = promoExpiresAt
-          ? new Date(promoExpiresAt).toLocaleDateString("en-ZA", { day: "numeric", month: "long" })
-          : null;
         return {
           ...item,
           sub: isDevUser
@@ -122,7 +119,7 @@ export default function SettingsTabScreen() {
             : hasPaidSubscription
             ? "Pro plan · Active"
             : isPromo
-            ? `Free trial${promoEnds ? ` until ${promoEnds}` : ""} · Upgrade to Pro`
+            ? "Free trial · Upgrade to Pro"
             : "Free plan · Upgrade to Pro",
           route: hasPaidSubscription || isDevUser ? "/subscription-manage" : "/paywall-upgrade?from=settings",
         };
