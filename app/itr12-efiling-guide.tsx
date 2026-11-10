@@ -33,7 +33,7 @@ function getSteps(taxYearTip: string) {
       number: "2",
       title: "Log into SARS eFiling",
       icon: "lock.fill",
-      action: { label: "Open SARS eFiling", url: "https://www.sarsefiling.co.za" },
+      action: { label: "Open SARS eFiling", url: "https://secure.sarsefiling.co.za/app/login" },
       tip: "Use the SARS MobiApp as an alternative to the website.",
       description:
         "Visit the SARS eFiling portal and log in with your username and password. If you don't have an account, register at sarsefiling.co.za.",
