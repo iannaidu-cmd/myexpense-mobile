@@ -69,16 +69,16 @@ const BASE_SECTIONS: {
 
 export default function SettingsTabScreen() {
   const router = useRouter();
-  const { user, signOut, isPremium, isDevUser, refreshPremiumStatus } = useAuthStore();
+  const { user, signOut, isDevUser, hasPaidSubscription, isPromo, refreshPremiumStatus } = useAuthStore();
   const { setting: homeOfficeSetting, load: loadHomeOffice } = useHomeOfficeStore();
   const [fullName, setFullName] = useState("");
-  // "business" has no matching RevenueCat product/entitlement yet — intentional
+  // "business" has no matching RevenueCat product/entitlement yet, intentional
   // scaffolding for a future business-tier plan, not reachable via any current
   // purchase flow. Keep the type and label in place until that plan ships.
   const [subscription, setSubscription] = useState<"free" | "pro" | "business">("free");
   const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
 
-  // isPremium is otherwise only read at launch — re-check on every visit so a
+  // Access state is otherwise only read at launch, re-check on every visit so a
   // subscription that expired mid-session doesn't keep showing as active.
   useFocusEffect(
     useCallback(() => {
@@ -94,7 +94,7 @@ export default function SettingsTabScreen() {
         setFullName(p.full_name ?? "");
         setSubscription(p.subscription ?? "free");
       }
-    }).catch(() => {}); // network blip — keep the placeholder (Sentry REACT-NATIVE-H)
+    }).catch(() => {}); // network blip, keep the placeholder (Sentry REACT-NATIVE-H)
   }, [user]);
 
   const initials =
@@ -110,14 +110,18 @@ export default function SettingsTabScreen() {
     ...section,
     items: section.items.map((item) => {
       if (item.route === "/paywall-upgrade") {
+        // Offer the upgrade unless they actually pay. isPremium also covers
+        // the sign-up promo, so it can't decide this.
         return {
           ...item,
           sub: isDevUser
             ? "Developer access · All features unlocked"
-            : isPremium
+            : hasPaidSubscription
             ? "Pro plan · Active"
+            : isPromo
+            ? "Free trial · Upgrade to Pro"
             : "Free plan · Upgrade to Pro",
-          route: isPremium ? "/subscription-manage" : "/paywall-upgrade?from=settings",
+          route: hasPaidSubscription || isDevUser ? "/subscription-manage" : "/paywall-upgrade?from=settings",
         };
       }
       if (item.route === "/home-office-setup") {
@@ -253,7 +257,7 @@ export default function SettingsTabScreen() {
             padding: space.lg, borderWidth: 1, borderColor: colour.borderLight,
           }}>
             {[
-              { label: "Version",       value: Application.nativeApplicationVersion ?? "—" },
+              { label: "Version",       value: Application.nativeApplicationVersion ?? "Unknown" },
               { label: "Compliance",    value: "POPIA ✓", valueColor: colour.accentDeep },
               { label: "Tax standard",  value: `SARS ITR12 ${getCurrentTaxYear()}` },
             ].map((row, i, arr) => (
