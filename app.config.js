@@ -31,7 +31,7 @@ const facebookPlugin =
 const config = {
   name: "MyExpense",
   slug: "MyExpense",
-  version: "1.2.17",
+  version: "1.2.18",
   orientation: "portrait",
   icon: "./assets/images/icon.png",
   scheme: "myexpense",
@@ -41,7 +41,7 @@ const config = {
     requiresFullScreen: true,
     bundleIdentifier: "co.za.myexpense",
     googleServicesFile: process.env.GOOGLE_SERVICES_PLIST ?? "./GoogleService-Info.plist",
-    buildNumber: "103",
+    buildNumber: "104",
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false,
       NSCameraUsageDescription:
@@ -63,7 +63,7 @@ const config = {
   android: {
     package: "co.za.myexpense.myapp",
     googleServicesFile: process.env.GOOGLE_SERVICES_JSON ?? "./google-services.json",
-    versionCode: 60,
+    versionCode: 61,
     config: {
       googleMaps: {
         apiKey: process.env.GOOGLE_MAPS_API_KEY,
