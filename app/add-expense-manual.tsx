@@ -12,6 +12,7 @@ import { CATEGORIES } from "@/constants/categories";
 import { FREE_USE_LIMIT, FREE_USES_DONE_MESSAGE, FREE_USES_DONE_TITLE } from "@/constants/freeTier";
 import { countFreeUses } from "@/services/freeUsageService";
 import { expenseService } from "@/services/expenseService";
+import { scheduleReceiptReminder } from "@/services/notificationService";
 import { useAuthStore } from "@/stores/authStore";
 import { useExpenseStore } from "@/stores/expenseStore";
 import { floorRatio, useHomeOfficeStore } from "@/stores/homeOfficeStore";
@@ -261,7 +262,7 @@ export default function AddExpenseScreen() {
 
       const savedAmount = parseFloat((rawAmount * pct).toFixed(2));
 
-      await expenseService.addExpense(user.id, {
+      const saved = await expenseService.addExpense(user.id, {
         vendor: vendor.trim(),
         amount: savedAmount,
         category,
@@ -275,6 +276,10 @@ export default function AddExpenseScreen() {
         business_use_pct: apportioned ? parseFloat((pct * 100).toFixed(2)) : null,
         vehicle_id: category === "Vehicle Expenses" ? vehicleId : null,
       });
+      // Manual entries never have a receipt, so nudge for business ones.
+      if (saved.is_deductible) {
+        scheduleReceiptReminder(saved.id, saved.vendor, savedAmount);
+      }
 
       setAmount("");
       setVendor("");

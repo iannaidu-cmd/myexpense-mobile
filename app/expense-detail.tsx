@@ -7,6 +7,7 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { taxYearForDate } from "@/lib/taxRules";
 import { expenseService } from "@/services/expenseService";
 import { incomeService } from "@/services/incomeService";
+import { cancelReceiptReminders } from "@/services/notificationService";
 import { useAuthStore } from "@/stores/authStore";
 import { colour, radius, space, typography } from "@/tokens";
 import { ACTIVE_TAX_YEAR } from "@/types/database";
@@ -281,6 +282,7 @@ export default function ExpenseDetailScreen() {
         tax_year: taxYearForDate(expense.expense_date),
       });
       await expenseService.deleteExpense(expense.id);
+      cancelReceiptReminders([expense.id]);
       router.replace("/income-history" as any);
     } catch {
       showNotice({ title: "Couldn't move this to income", message: "Please check your internet connection and try again." });
@@ -294,6 +296,7 @@ export default function ExpenseDetailScreen() {
     setDeleting(true);
     try {
       await expenseService.deleteExpense(expense.id);
+      cancelReceiptReminders([expense.id]);
       safeBack(router);
     } catch {
       showNotice({ title: "Couldn't delete this expense", message: "Please check your internet connection and try again." });

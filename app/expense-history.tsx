@@ -3,6 +3,7 @@ import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { expenseService } from "@/services/expenseService";
+import { cancelReceiptReminders } from "@/services/notificationService";
 import { useAuthStore } from "@/stores/authStore";
 import { colour, radius, space, typography } from "@/tokens";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -113,6 +114,7 @@ export default function ExpenseHistoryScreen() {
     setEditMode(false);
     try {
       await Promise.all(ids.map((id) => expenseService.deleteExpense(id)));
+      cancelReceiptReminders(ids);
     } catch {
       // silent
     }

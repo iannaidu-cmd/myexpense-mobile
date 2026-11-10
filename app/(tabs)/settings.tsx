@@ -48,7 +48,7 @@ const BASE_SECTIONS: {
   {
     title: "Preferences",
     items: [
-      { icon: "bell.fill",      label: "Notifications",   sub: "Push, email & filing reminders", route: "/notifications-settings" },
+      { icon: "bell.fill",      label: "Notifications",   sub: "Reminders and SARS dates", route: "/notifications-settings" },
     ],
   },
   {
