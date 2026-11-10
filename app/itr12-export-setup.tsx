@@ -429,24 +429,30 @@ export default function ITR12ExportSetupScreen() {
                 marginBottom: space.md,
               }}
             >
+              {/* VAT and summary only change the PDF. The CSV always has a VAT
+                  column and every line, so hide them for a CSV-only export. */}
+              {format !== "csv" && (
+                <ToggleRow
+                  label="VAT details"
+                  sub="Show the VAT on each expense and your VAT total"
+                  value={includeVAT}
+                  onToggle={() => setIncludeVAT((v) => !v)}
+                />
+              )}
               <ToggleRow
-                label="VAT Details"
-                sub="Include VAT amounts and supplier VAT numbers"
-                value={includeVAT}
-                onToggle={() => setIncludeVAT((v) => !v)}
-              />
-              <ToggleRow
-                label="Personal Expenses"
+                label="Personal expenses"
                 sub="Include non-deductible items for reference"
                 value={includePersonal}
                 onToggle={() => setIncludePersonal((v) => !v)}
               />
-              <ToggleRow
-                label="Summary Only"
-                sub="Top-level totals without line items"
-                value={summaryOnly}
-                onToggle={() => setSummaryOnly((v) => !v)}
-              />
+              {format !== "csv" && (
+                <ToggleRow
+                  label="Summary only"
+                  sub={format === "both" ? "PDF shows totals only. The CSV still lists every expense." : "Totals only, without each expense listed"}
+                  value={summaryOnly}
+                  onToggle={() => setSummaryOnly((v) => !v)}
+                />
+              )}
             </View>
 
             {/* ── Export summary card ── */}
