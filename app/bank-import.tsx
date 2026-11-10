@@ -16,6 +16,7 @@ import {
 import { taxYearForDate } from "@/lib/taxRules";
 import { expenseService } from "@/services/expenseService";
 import { incomeService } from "@/services/incomeService";
+import { scheduleBankImportReceiptReminder } from "@/services/notificationService";
 import { useAuthStore } from "@/stores/authStore";
 import { useExpenseStore } from "@/stores/expenseStore";
 import { colour, radius, space, typography } from "@/tokens";
@@ -684,6 +685,8 @@ export default function BankImportScreen() {
       ]);
       await logBankImport(user.id).catch((e) => console.warn("logBankImport failed:", e.message));
       if (freshExpenses.length > 0) logExpenseCreated("bank_import", freshExpenses.length);
+      // Imported rows never have receipts. One grouped nudge, not one per row.
+      scheduleBankImportReceiptReminder(freshExpenses.filter((tx) => tx.isDeductible).length);
       setImportedCount(freshExpenses.length);
       setImportedIncomeCount(incomeEntries.length);
       setSkippedCount(skipped);

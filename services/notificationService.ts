@@ -56,7 +56,10 @@ async function isAlreadyScheduled(identifier: string): Promise<boolean> {
 // clears every OS-level alarm regardless of whether Expo still knows about
 // it, which actually removes the orphan. Gated to run once per install so it
 // doesn't itself re-trigger the same race on every relaunch.
-const DEDUP_RESET_KEY = "@myexpense:notif_dedup_reset_v1";
+//
+// v2 also clears reminders scheduled with the old wording, since the
+// isAlreadyScheduled guard would otherwise keep them forever.
+const DEDUP_RESET_KEY = "@myexpense:notif_dedup_reset_v2";
 
 export async function resetDuplicateNotificationsOnce(): Promise<void> {
   const alreadyReset = await AsyncStorage.getItem(DEDUP_RESET_KEY);
@@ -65,13 +68,55 @@ export async function resetDuplicateNotificationsOnce(): Promise<void> {
   await AsyncStorage.setItem(DEDUP_RESET_KEY, "1");
 }
 
+// ─── User preferences (Me > Notifications) ───────────────────────────────────
+// Stored on the device. Every scheduling path reads these, so a reminder the
+// user switched off is never put back on the next app open.
+export const NOTIFICATION_PREFS_KEY = "mx_notification_prefs";
+
+export interface NotificationPrefs {
+  weeklyReminder: boolean;
+  sarsDeadlines: boolean;
+  receiptReminders: boolean;
+  monthlyReport: boolean;
+}
+
+export const DEFAULT_NOTIFICATION_PREFS: NotificationPrefs = {
+  weeklyReminder: true,
+  sarsDeadlines: true,
+  receiptReminders: true,
+  monthlyReport: true,
+};
+
+export async function getNotificationPrefs(): Promise<NotificationPrefs> {
+  try {
+    const raw = await AsyncStorage.getItem(NOTIFICATION_PREFS_KEY);
+    return raw ? { ...DEFAULT_NOTIFICATION_PREFS, ...JSON.parse(raw) } : DEFAULT_NOTIFICATION_PREFS;
+  } catch {
+    return DEFAULT_NOTIFICATION_PREFS;
+  }
+}
+
+export async function saveNotificationPrefs(prefs: NotificationPrefs): Promise<void> {
+  await AsyncStorage.setItem(NOTIFICATION_PREFS_KEY, JSON.stringify(prefs));
+}
+
+/** Schedules the reminders the user has switched on and cancels the rest.
+ *  Safe to call on every app open: scheduling is a no-op once set. */
+export async function syncScheduledReminders(): Promise<void> {
+  const prefs = await getNotificationPrefs();
+  await (prefs.weeklyReminder ? scheduleWeeklyExpenseReminder() : cancelWeeklyExpenseReminder());
+  await (prefs.monthlyReport ? scheduleMonthlyReportReminder() : cancelMonthlyReportReminder());
+  await (prefs.sarsDeadlines ? scheduleSARSDeadlineReminders() : cancelSARSDeadlineReminders());
+  if (!prefs.receiptReminders) await cancelAllReceiptReminders();
+}
+
 export async function scheduleWeeklyExpenseReminder(): Promise<void> {
   if (await isAlreadyScheduled("weekly-expense-reminder")) return;
   await Notifications.scheduleNotificationAsync({
     identifier: "weekly-expense-reminder",
     content: {
       title: "Don't forget your expenses",
-      body: "Track this week's business expenses to keep your ITR12 ready.",
+      body: "Add this week's business expenses so your tax return is ready when you need it.",
       data: { route: "/(tabs)" },
     },
     trigger: {
@@ -88,8 +133,8 @@ export async function scheduleMonthlyReportReminder(): Promise<void> {
   await Notifications.scheduleNotificationAsync({
     identifier: "monthly-report-reminder",
     content: {
-      title: "Your monthly expense report is ready",
-      body: "Review last month's deductions and tax savings.",
+      title: "Time to check last month",
+      body: "Look over last month's expenses and see what you can claim back from SARS.",
       data: { route: "/(tabs)/reports" },
     },
     trigger: {
@@ -113,8 +158,8 @@ export async function scheduleSARSDeadlineReminders(): Promise<void> {
     await Notifications.scheduleNotificationAsync({
       identifier: "sars-auto-assessment-start",
       content: {
-        title: "SARS Deadline Reminder",
-        body: "SARS auto-assessment notices start going out today. Check your SMS/email — you may be auto-assessed.",
+        title: "SARS filing season starts today",
+        body: "SARS starts sending auto-assessments today. Check your SMS and email in case you get one.",
         data: { route: "/itr12-export-setup" },
       },
       trigger: {
@@ -129,8 +174,8 @@ export async function scheduleSARSDeadlineReminders(): Promise<void> {
     await Notifications.scheduleNotificationAsync({
       identifier: "sars-efiling-open",
       content: {
-        title: "SARS Deadline Reminder",
-        body: "SARS eFiling opens today. Start preparing your ITR12.",
+        title: "SARS eFiling opens today",
+        body: "You can now file your tax return. Start getting your expenses ready.",
         data: { route: "/itr12-export-setup" },
       },
       trigger: {
@@ -145,7 +190,7 @@ export async function scheduleSARSDeadlineReminders(): Promise<void> {
     {
       id: "sars-nonprovisional-deadline",
       date: new Date(year, 9, 23, 8, 0, 0),
-      body: "SARS non-provisional taxpayer deadline is approaching (23 Oct).",
+      body: "The last day to file your tax return is 23 October. Get your expenses ready now.",
     },
     {
       // Provisional/trust filing deadline is 22 Jan — the *next* occurrence:
@@ -160,7 +205,7 @@ export async function scheduleSARSDeadlineReminders(): Promise<void> {
         22,
         8, 0, 0,
       ),
-      body: "SARS provisional taxpayer deadline is approaching (22 Jan).",
+      body: "If you pay provisional tax, the last day to file your tax return is 22 January.",
     },
   ];
 
@@ -170,7 +215,7 @@ export async function scheduleSARSDeadlineReminders(): Promise<void> {
       await Notifications.scheduleNotificationAsync({
         identifier: id,
         content: {
-          title: "SARS Deadline Reminder",
+          title: "SARS deadline in one week",
           body,
           data: { route: "/itr12-export-setup" },
         },
@@ -200,28 +245,93 @@ export async function cancelSARSDeadlineReminders(): Promise<void> {
   ]).catch(() => {});
 }
 
+// ─── Receipt reminders ───────────────────────────────────────────────────────
+// One nudge 24 hours after a business expense is saved without a receipt.
+// Never throws: a reminder failing must not fail the save that triggered it.
+const RECEIPT_REMINDER_DELAY_SECONDS = 24 * 60 * 60;
+const RECEIPT_PREFIX = "receipt-";
+const BANK_IMPORT_RECEIPT_ID = `${RECEIPT_PREFIX}bank-import`;
+
 export async function scheduleReceiptReminder(
   expenseId: string,
   vendorName: string,
   amount: number,
 ): Promise<void> {
-  await Notifications.scheduleNotificationAsync({
-    identifier: `receipt-${expenseId}`,
-    content: {
-      title: "Receipt still missing",
-      body: `Add a receipt for ${vendorName} (R${amount.toFixed(2)}) to support your deduction.`,
-      data: { route: "/(tabs)" },
-    },
-    trigger: {
-      type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
-      seconds: 24 * 60 * 60, // 24 hours
-      repeats: false,
-    },
-  });
+  try {
+    if (!(await getNotificationPrefs()).receiptReminders) return;
+    const rands = amount.toLocaleString("en-ZA", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    await Notifications.scheduleNotificationAsync({
+      identifier: `${RECEIPT_PREFIX}${expenseId}`,
+      content: {
+        title: "Add your receipt",
+        body: `Add the receipt for ${vendorName} (R ${rands}). Keeping it helps if SARS asks for proof.`,
+        data: { route: `/expense-detail?id=${expenseId}` },
+      },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+        seconds: RECEIPT_REMINDER_DELAY_SECONDS,
+        repeats: false,
+      },
+    });
+  } catch (e) {
+    console.warn("Receipt reminder not scheduled:", e);
+  }
+}
+
+/** One grouped reminder for a bank import, instead of one per row. A later
+ *  import replaces it, with that import's count. */
+export async function scheduleBankImportReceiptReminder(count: number): Promise<void> {
+  if (count <= 0) return;
+  try {
+    if (!(await getNotificationPrefs()).receiptReminders) return;
+    await Notifications.cancelScheduledNotificationAsync(BANK_IMPORT_RECEIPT_ID).catch(() => {});
+    await Notifications.scheduleNotificationAsync({
+      identifier: BANK_IMPORT_RECEIPT_ID,
+      content: {
+        title: "Add receipts for your imported expenses",
+        body: `You imported ${count} business ${count === 1 ? "expense" : "expenses"} from your bank statement. Add the receipts in case SARS asks for proof.`,
+        data: { route: "/expense-history" },
+      },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+        seconds: RECEIPT_REMINDER_DELAY_SECONDS,
+        repeats: false,
+      },
+    });
+  } catch (e) {
+    console.warn("Bank import receipt reminder not scheduled:", e);
+  }
 }
 
 export async function cancelReceiptReminder(expenseId: string): Promise<void> {
-  await Notifications.cancelScheduledNotificationAsync(`receipt-${expenseId}`);
+  await Notifications.cancelScheduledNotificationAsync(`${RECEIPT_PREFIX}${expenseId}`);
+}
+
+/** For deletes. Never throws. */
+export async function cancelReceiptReminders(expenseIds: string[]): Promise<void> {
+  await Promise.all(expenseIds.map((id) => cancelReceiptReminder(id).catch(() => {})));
+}
+
+export async function cancelAllReceiptReminders(): Promise<void> {
+  const scheduled = await Notifications.getAllScheduledNotificationsAsync().catch(() => []);
+  await Promise.all(
+    scheduled
+      .filter((n) => n.identifier.startsWith(RECEIPT_PREFIX))
+      .map((n) => Notifications.cancelScheduledNotificationAsync(n.identifier).catch(() => {})),
+  );
+}
+
+/** "granted", "denied" (must go to phone settings) or "undetermined" (we can ask). */
+export async function getNotificationPermission(): Promise<"granted" | "denied" | "undetermined"> {
+  if (Platform.OS === "web") return "denied";
+  const { status, canAskAgain } = await Notifications.getPermissionsAsync();
+  if (status === "granted") return "granted";
+  return canAskAgain ? "undetermined" : "denied";
+}
+
+export async function requestNotificationPermission(): Promise<boolean> {
+  const { status } = await Notifications.requestPermissionsAsync();
+  return status === "granted";
 }
 
 export function setupNotificationResponseHandler(

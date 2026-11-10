@@ -1,36 +1,30 @@
 import { InfoBanner } from "@/components/InfoBanner";
 import { MXBackHeader } from "@/components/MXBackHeader";
+import { MXButton } from "@/components/MXButton";
 import { MXTabBar } from "@/components/MXTabBar";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { colour, radius, space, typography } from "@/tokens";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import React, { useEffect, useState } from "react";
-import { ScrollView, StatusBar, Switch, Text, View } from "react-native";
+import React, { useCallback, useEffect, useState } from "react";
+import { AppState, Linking, ScrollView, StatusBar, Switch, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
+  cancelAllReceiptReminders,
   cancelMonthlyReportReminder,
   cancelSARSDeadlineReminders,
   cancelWeeklyExpenseReminder,
+  DEFAULT_NOTIFICATION_PREFS,
+  getNotificationPermission,
+  getNotificationPrefs,
+  requestNotificationPermission,
+  saveNotificationPrefs,
   scheduleMonthlyReportReminder,
   scheduleSARSDeadlineReminders,
   scheduleWeeklyExpenseReminder,
+  syncScheduledReminders,
+  type NotificationPrefs,
 } from "@/services/notificationService";
 
-const STORAGE_KEY = "mx_notification_prefs";
-
-interface NotificationPrefs {
-  weeklyReminder: boolean;
-  sarsDeadlines: boolean;
-  receiptReminders: boolean;
-  monthlyReport: boolean;
-}
-
-const DEFAULTS: NotificationPrefs = {
-  weeklyReminder: true,
-  sarsDeadlines: true,
-  receiptReminders: true,
-  monthlyReport: true,
-};
+type Permission = "granted" | "denied" | "undetermined" | "unknown";
 
 // ─── Row ──────────────────────────────────────────────────────────────────────
 function PreferenceRow({
@@ -110,21 +104,39 @@ function SectionHeader({ title }: { title: string }) {
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 export default function NotificationsSettingsScreen() {
-  const [prefs, setPrefs] = useState<NotificationPrefs>(DEFAULTS);
-  const [loaded, setLoaded] = useState(false);
+  const [prefs, setPrefs] = useState<NotificationPrefs>(DEFAULT_NOTIFICATION_PREFS);
+  const [permission, setPermission] = useState<Permission>("unknown");
 
   useEffect(() => {
-    AsyncStorage.getItem(STORAGE_KEY)
-      .then((raw) => {
-        if (raw) setPrefs({ ...DEFAULTS, ...JSON.parse(raw) });
-      })
-      .finally(() => setLoaded(true));
+    getNotificationPrefs().then(setPrefs);
   }, []);
+
+  // Re-check when they come back from the phone's settings.
+  const checkPermission = useCallback(() => {
+    getNotificationPermission().then(setPermission).catch(() => setPermission("unknown"));
+  }, []);
+  useEffect(() => {
+    checkPermission();
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state === "active") checkPermission();
+    });
+    return () => sub.remove();
+  }, [checkPermission]);
+
+  const turnOnNotifications = async () => {
+    if (permission === "undetermined") {
+      const granted = await requestNotificationPermission().catch(() => false);
+      checkPermission();
+      if (granted) syncScheduledReminders().catch(() => {});
+    } else {
+      Linking.openSettings();
+    }
+  };
 
   const update = (key: keyof NotificationPrefs) => async (value: boolean) => {
     const next = { ...prefs, [key]: value };
     setPrefs(next);
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    await saveNotificationPrefs(next);
 
     try {
       if (key === "weeklyReminder") {
@@ -136,10 +148,13 @@ export default function NotificationsSettingsScreen() {
       if (key === "sarsDeadlines") {
         value ? await scheduleSARSDeadlineReminders() : await cancelSARSDeadlineReminders();
       }
-      // receiptReminders: per-expense notifications are checked at creation time
-      // in add-expense.tsx — there is no global set to cancel here.
-    } catch {
-      // Scheduling errors are non-fatal — works only in EAS builds
+      // Receipt reminders are scheduled when an expense is saved. Turning
+      // them on applies from the next save; turning them off clears any pending.
+      if (key === "receiptReminders" && !value) {
+        await cancelAllReceiptReminders();
+      }
+    } catch (e) {
+      console.warn("Notification preference change not applied:", e);
     }
   };
 
@@ -156,10 +171,24 @@ export default function NotificationsSettingsScreen() {
         contentContainerStyle={{ paddingBottom: space["5xl"] }}
         showsVerticalScrollIndicator={false}
       >
-        <InfoBanner
-          body="Push notifications activate in the production build. Your preferences are saved and will apply automatically."
-          style={{ margin: space.lg }}
-        />
+        {permission === "denied" || permission === "undetermined" ? (
+          <View style={{ margin: space.lg, gap: space.md }}>
+            <InfoBanner
+              icon="bell.fill"
+              title="Notifications are off"
+              body={
+                permission === "denied"
+                  ? "MyExpense can't send you reminders. Turn notifications on in your phone's settings."
+                  : "Allow notifications so MyExpense can send you these reminders."
+              }
+            />
+            <MXButton
+              label={permission === "denied" ? "Open phone settings" : "Turn on notifications"}
+              variant="secondary"
+              onPress={turnOnNotifications}
+            />
+          </View>
+        ) : null}
 
         {/* Reminders */}
         <SectionHeader title="Reminders" />
@@ -172,29 +201,29 @@ export default function NotificationsSettingsScreen() {
         >
           <PreferenceRow
             icon="chart.bar.fill"
-            label="Weekly expense summary"
-            sub="Reminder to log and review expenses each week"
+            label="Weekly reminder"
+            sub="Every Monday morning, a reminder to add your expenses"
             value={prefs.weeklyReminder}
             onToggle={update("weeklyReminder")}
           />
           <PreferenceRow
             icon="calendar"
-            label="Monthly report ready"
-            sub="Notification when your monthly report is available"
+            label="Monthly check-in"
+            sub="On the 1st, a reminder to look over last month"
             value={prefs.monthlyReport}
             onToggle={update("monthlyReport")}
           />
           <PreferenceRow
             icon="doc.text.fill"
             label="Receipt reminders"
-            sub="Nudge to attach a receipt to unverified expenses"
+            sub="The day after you add a business expense with no receipt"
             value={prefs.receiptReminders}
             onToggle={update("receiptReminders")}
           />
         </View>
 
-        {/* SARS & Tax */}
-        <SectionHeader title="Tax & Filing" />
+        {/* SARS */}
+        <SectionHeader title="Tax and filing" />
         <View
           style={{
             borderTopWidth: 1,
@@ -204,8 +233,8 @@ export default function NotificationsSettingsScreen() {
         >
           <PreferenceRow
             icon="flag.fill"
-            label="SARS filing deadlines"
-            sub="Alerts before the ITR12 submission window closes"
+            label="SARS filing dates"
+            sub="When filing season opens and a week before each deadline"
             value={prefs.sarsDeadlines}
             onToggle={update("sarsDeadlines")}
           />

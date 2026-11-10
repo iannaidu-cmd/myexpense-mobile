@@ -525,7 +525,7 @@ export default function ProvisionalTaxScreen() {
               {[
                 {
                   step: "1",
-                  text: "Log in to SARS eFiling (efiling.sars.gov.za)",
+                  text: "Log in to SARS eFiling (sarsefiling.co.za)",
                 },
                 {
                   step: "2",

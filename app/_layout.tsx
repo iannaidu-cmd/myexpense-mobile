@@ -11,10 +11,8 @@ import {
     registerForPushNotifications,
     resetDuplicateNotificationsOnce,
     savePushToken,
-    scheduleMonthlyReportReminder,
-    scheduleSARSDeadlineReminders,
-    scheduleWeeklyExpenseReminder,
     setupNotificationResponseHandler,
+    syncScheduledReminders,
 } from "@/services/notificationService";
 import { useAuthStore } from "@/stores/authStore";
 import { useSubscriptionStore } from "@/stores/subscriptionStore";
@@ -403,9 +401,8 @@ function NotificationSetup() {
 
       try {
         await resetDuplicateNotificationsOnce();
-        await scheduleWeeklyExpenseReminder();
-        await scheduleMonthlyReportReminder();
-        await scheduleSARSDeadlineReminders();
+        // Only the reminders switched on in Me > Notifications.
+        await syncScheduledReminders();
       } catch (e) {
         console.warn("Local notification scheduling failed:", e);
       }
