@@ -19,6 +19,8 @@ import { incomeService } from "@/services/incomeService";
 import { scheduleBankImportReceiptReminder } from "@/services/notificationService";
 import { useAuthStore } from "@/stores/authStore";
 import { useExpenseStore } from "@/stores/expenseStore";
+import { floorRatio, useHomeOfficeStore } from "@/stores/homeOfficeStore";
+import { apportion, isHomeOfficeCategory, pctFromRatio } from "@/lib/homeOffice";
 import { colour, radius, space, typography } from "@/tokens";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -506,6 +508,8 @@ type FilterTab = "All" | "Deductible" | "Personal" | "Income";
 export default function BankImportScreen() {
   const router = useRouter();
   const { user, isPremium, isInitialised, refreshPremiumStatus } = useAuthStore();
+  const { setting: homeOfficeSetting, load: loadHomeOffice } = useHomeOfficeStore();
+  useEffect(() => { if (user) loadHomeOffice(user.id); }, [user, loadHomeOffice]);
   const { activeTaxYear } = useExpenseStore();
 
   const [premiumChecked, setPremiumChecked] = useState(false);
@@ -645,8 +649,13 @@ export default function BankImportScreen() {
       await expenseService.removeDuplicates(user.id, activeTaxYear);
       const existing = await expenseService.getAllExpenses(user.id);
       const existingKeys = new Set(
-        existing.map((e) => `${e.vendor}|${Number(e.amount).toFixed(2)}|${e.expense_date}`),
+        // Full amount: a home office row's amount is only the claimable share,
+        // so comparing it to the bank amount would import it again.
+        existing.map((e) => `${e.vendor}|${Number(e.gross_amount ?? e.amount).toFixed(2)}|${e.expense_date}`),
       );
+      // No setup yet: claim 100% but record it, so saving the setup later
+      // can update these rows.
+      const homeOfficeRatio = homeOfficeSetting ? floorRatio(homeOfficeSetting) : 1;
       const freshExpenses = expenseEntries.filter(
         (tx) => !existingKeys.has(`${tx.vendor}|${tx.amount.toFixed(2)}|${tx.date}`),
       );
@@ -662,17 +671,20 @@ export default function BankImportScreen() {
       }
 
       await Promise.all([
-        ...freshExpenses.map((tx) =>
-          expenseService.addExpense(user.id, {
+        ...freshExpenses.map((tx) => {
+          const homeOffice = tx.isDeductible && isHomeOfficeCategory(tx.suggestedCategory);
+          return expenseService.addExpense(user.id, {
             vendor: tx.vendor,
-            amount: tx.amount,
+            amount: homeOffice ? apportion(tx.amount, homeOfficeRatio) : tx.amount,
             category: tx.suggestedCategory,
             tax_year: taxYearForDate(tx.date),
             expense_date: tx.date,
             is_deductible: tx.isDeductible,
             notes: `Imported from bank statement`,
-          }),
-        ),
+            gross_amount: homeOffice ? tx.amount : null,
+            business_use_pct: homeOffice ? pctFromRatio(homeOfficeRatio) : null,
+          });
+        }),
         ...incomeEntries.map((tx) =>
           incomeService.addIncome(user.id, {
             amount: tx.amount,

@@ -6,6 +6,9 @@ import {
 } from "@/services/homeOfficeService";
 
 export type { ArrangementType, HomeOfficeSetting };
+// The rules live in lib/homeOffice.ts (unit tested). Re-exported so existing
+// imports from the store keep working.
+export { annualDeductible, floorRatio } from "@/lib/homeOffice";
 
 interface HomeOfficeStore {
   setting: HomeOfficeSetting | null;
@@ -13,16 +16,6 @@ interface HomeOfficeStore {
   load: (userId: string) => Promise<void>;
   save: (userId: string, s: HomeOfficeSetting) => Promise<void>;
   clear: (userId: string) => Promise<void>;
-}
-
-export function floorRatio(s: HomeOfficeSetting | null): number {
-  if (!s || s.totalM2 <= 0) return 0;
-  return Math.min(s.officeM2 / s.totalM2, 1);
-}
-
-export function annualDeductible(s: HomeOfficeSetting | null): number {
-  if (!s || s.arrangementType === "none") return 0;
-  return Math.round(s.annualCost * floorRatio(s));
 }
 
 export const useHomeOfficeStore = create<HomeOfficeStore>((set, get) => ({
@@ -41,11 +34,11 @@ export const useHomeOfficeStore = create<HomeOfficeStore>((set, get) => ({
 
   save: async (userId, s) => {
     await homeOfficeService.saveSetting(userId, s);
-    set({ setting: s });
+    set({ setting: s, isLoaded: true });
   },
 
   clear: async (userId) => {
     await homeOfficeService.deleteSetting(userId);
-    set({ setting: null });
+    set({ setting: null, isLoaded: true });
   },
 }));

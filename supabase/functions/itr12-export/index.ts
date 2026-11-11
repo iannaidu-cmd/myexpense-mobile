@@ -1,6 +1,8 @@
 // supabase/functions/itr12-export/index.ts
 // Generates a formatted ITR12 eFiling reference workbook for the authenticated user.
 // Deploy: npx supabase functions deploy itr12-export
+// Not called by the app (exports use services/pdfExportService.ts). It does
+// not read home_office_settings, so its totals leave out the setup claim.
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";

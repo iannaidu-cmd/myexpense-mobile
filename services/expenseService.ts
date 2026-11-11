@@ -2,6 +2,8 @@ import { CATEGORY_PARTIAL_CAPS } from "@/constants/categories";
 import { getCached, invalidatePrefix, setCached } from "@/lib/queryCache";
 import { supabase } from "@/lib/supabase";
 import { claimableInputVat } from "@/lib/vat";
+import { HOME_OFFICE_CATEGORY, setupClaimDescription, setupClaimForYear } from "@/lib/homeOffice";
+import { homeOfficeService, type HomeOfficeSetting } from "@/services/homeOfficeService";
 import type { Expense, NewExpense, UpdateExpense } from "@/types/database";
 
 // Income-tax-deductible base of one expense row. A registered VAT vendor
@@ -24,6 +26,21 @@ export function deductibleBase(
   if (!vatRegistered) return Number(e.amount);
   return Math.max(0, Number(e.amount) - claimableInputVat(e));
 }
+
+export interface HomeOfficeSetupClaim {
+  /** Rands added to the Home Office claim from the setup screen (0 if none). */
+  amount: number;
+  /** "Home office setup: 10% of R 120 000 annual rent", or null when amount is 0. */
+  description: string | null;
+}
+
+// Never fails the totals: without the setting there is simply no setup claim.
+function loadHomeOfficeSetting(userId: string): Promise<HomeOfficeSetting | null> {
+  return homeOfficeService.getSetting(userId).catch(() => null);
+}
+
+const isLoggedHomeOffice = (e: { category: string; is_deductible: boolean }) =>
+  e.is_deductible && e.category === HOME_OFFICE_CATEGORY;
 
 export interface ExpenseTotals {
   totalExpenses: number;
@@ -137,23 +154,31 @@ export const expenseService = {
     const cached = getCached<ExpenseTotals>(key);
     if (cached) return cached;
 
-    const { data, error } = await supabase
-      .from("expenses")
-      .select("amount, is_deductible, category, vat_amount, business_use_pct")
-      .eq("user_id", userId)
-      .eq("tax_year", taxYear);
+    const [{ data, error }, homeOffice] = await Promise.all([
+      supabase
+        .from("expenses")
+        .select("amount, is_deductible, category, vat_amount, business_use_pct")
+        .eq("user_id", userId)
+        .eq("tax_year", taxYear),
+      loadHomeOfficeSetting(userId),
+    ]);
 
     if (error) throw new Error(error.message);
 
     const expenses = data ?? [];
+    // Rent or bond interest entered on the Home office setup screen. Counts as
+    // a deduction only (it isn't a logged expense or receipt) and carries no
+    // claimable VAT. See lib/homeOffice.ts for the no-double-count rule.
+    const setupClaim = setupClaimForYear(homeOffice, taxYear, expenses.filter(isLoggedHomeOffice).length);
     const result: ExpenseTotals = {
       totalExpenses: expenses.reduce((sum, e) => sum + Number(e.amount), 0),
-      totalDeductions: expenses
-        .filter((e) => e.is_deductible)
-        .reduce((sum, e) => {
-          const cap = CATEGORY_PARTIAL_CAPS[e.category] ?? 1;
-          return sum + deductibleBase(e, vatRegistered) * cap;
-        }, 0),
+      totalDeductions:
+        expenses
+          .filter((e) => e.is_deductible)
+          .reduce((sum, e) => {
+            const cap = CATEGORY_PARTIAL_CAPS[e.category] ?? 1;
+            return sum + deductibleBase(e, vatRegistered) * cap;
+          }, 0) + setupClaim,
       receiptCount: expenses.length,
     };
     setCached(key, result);
@@ -219,7 +244,7 @@ export const expenseService = {
   removeDuplicates: async (userId: string, taxYear: string): Promise<number> => {
     const { data, error } = await supabase
       .from("expenses")
-      .select("id, vendor, amount, expense_date, created_at")
+      .select("id, vendor, amount, gross_amount, expense_date, created_at")
       .eq("user_id", userId)
       .eq("tax_year", taxYear)
       .order("created_at", { ascending: true });
@@ -231,7 +256,8 @@ export const expenseService = {
     const duplicateIds: string[] = [];
 
     for (const e of expenses) {
-      const key = `${e.vendor}|${Number(e.amount).toFixed(2)}|${e.expense_date}`;
+      // Full amount: an apportioned row's amount is only the claimable share.
+      const key = `${e.vendor}|${Number(e.gross_amount ?? e.amount).toFixed(2)}|${e.expense_date}`;
       if (seen.has(key)) {
         duplicateIds.push(e.id);
       } else {
@@ -265,22 +291,49 @@ export const expenseService = {
     const cached = getCached<Record<string, number>>(key);
     if (cached) return cached;
 
-    const { data, error } = await supabase
-      .from("expenses")
-      .select("category, amount, vat_amount, business_use_pct, is_deductible")
-      .eq("user_id", userId)
-      .eq("tax_year", taxYear)
-      .eq("is_deductible", true);
+    const [{ data, error }, homeOffice] = await Promise.all([
+      supabase
+        .from("expenses")
+        .select("category, amount, vat_amount, business_use_pct, is_deductible")
+        .eq("user_id", userId)
+        .eq("tax_year", taxYear)
+        .eq("is_deductible", true),
+      loadHomeOfficeSetting(userId),
+    ]);
 
     if (error) throw new Error(error.message);
 
-    const result = (data ?? []).reduce<Record<string, number>>((acc, e) => {
+    const rows = data ?? [];
+    const result = rows.reduce<Record<string, number>>((acc, e) => {
       const cap = CATEGORY_PARTIAL_CAPS[e.category] ?? 1;
       acc[e.category] = (acc[e.category] ?? 0) + deductibleBase(e, vatRegistered) * cap;
       return acc;
     }, {});
+    // Same rule as getTotals, so the categories always add up to the total.
+    const setupClaim = setupClaimForYear(homeOffice, taxYear, rows.filter(isLoggedHomeOffice).length);
+    if (setupClaim > 0) {
+      result[HOME_OFFICE_CATEGORY] = (result[HOME_OFFICE_CATEGORY] ?? 0) + setupClaim;
+    }
     setCached(key, result);
     return result;
+  },
+
+  // ── The Home Office amount that comes from the setup screen ──────────────
+  // For labelling it on the export preview, category breakdown and PDF.
+  getHomeOfficeSetupClaim: async (userId: string, taxYear: string): Promise<HomeOfficeSetupClaim> => {
+    const [{ count, error }, homeOffice] = await Promise.all([
+      supabase
+        .from("expenses")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", userId)
+        .eq("tax_year", taxYear)
+        .eq("is_deductible", true)
+        .eq("category", HOME_OFFICE_CATEGORY),
+      loadHomeOfficeSetting(userId),
+    ]);
+    if (error) throw new Error(error.message);
+    const amount = setupClaimForYear(homeOffice, taxYear, count ?? 0);
+    return { amount, description: amount > 0 && homeOffice ? setupClaimDescription(homeOffice) : null };
   },
 
   // ── Upload receipt and link to expense ────────────────────────────────────

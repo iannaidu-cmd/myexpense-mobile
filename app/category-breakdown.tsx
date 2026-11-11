@@ -73,6 +73,8 @@ export default function CategoryBreakdownScreen() {
   const { activeTaxYear } = useExpenseStore();
   const [loading, setLoading] = useState(true);
   const [breakdown, setBreakdown] = useState<Record<string, number>>({});
+  // "Home office setup: 10% of R 120 000 annual rent" when that's the claim.
+  const [homeOfficeSetupLabel, setHomeOfficeSetupLabel] = useState<string | null>(null);
   const [totalDeductions, setTotalDeductions] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>("All");
@@ -138,11 +140,13 @@ export default function CategoryBreakdownScreen() {
     try {
       const profile = await profileService.getProfile(user.id);
       const vatRegistered = profile?.vat_registered ?? false;
-      const [byCategory, totals] = await Promise.all([
+      const [byCategory, totals, setupClaim] = await Promise.all([
         expenseService.getByCategory(user.id, activeTaxYear, vatRegistered),
         expenseService.getTotals(user.id, activeTaxYear, vatRegistered),
+        expenseService.getHomeOfficeSetupClaim(user.id, activeTaxYear).catch(() => null),
       ]);
       setBreakdown(byCategory);
+      setHomeOfficeSetupLabel(setupClaim?.description ?? null);
       setTotalDeductions(totals.totalDeductions);
     } catch (e) {
       console.error("CategoryBreakdown load error:", e);
@@ -475,6 +479,11 @@ export default function CategoryBreakdownScreen() {
                     <Text style={{ ...typography.micro, color: C.success }}>
                       Home office: {(floorRatio(homeOfficeSetting) * 100).toFixed(1)}% ({homeOfficeSetting.officeM2}m² ÷ {homeOfficeSetting.totalM2}m²) · claimable so far this year: {fmt(selectedCat.amount)}
                     </Text>
+                    {homeOfficeSetupLabel && (
+                      <Text style={{ ...typography.micro, color: C.textSecondary, marginTop: space.xs }}>
+                        From setup. {homeOfficeSetupLabel}
+                      </Text>
+                    )}
                     <TouchableOpacity onPress={() => router.push('/home-office-setup' as any)} style={{ marginTop: space.xs }}>
                       <Text style={{ ...typography.micro, color: C.primary, fontWeight: '600' }}>Edit room sizes</Text>
                     </TouchableOpacity>

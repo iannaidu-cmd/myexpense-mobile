@@ -3,7 +3,7 @@
 // Uses expo-print to render HTML → PDF, and expo-sharing to share the file.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { expenseService } from "@/services/expenseService";
+import { expenseService, type HomeOfficeSetupClaim } from "@/services/expenseService";
 import { incomeService } from "@/services/incomeService";
 import { profileService } from "@/services/profileService";
 import { taxLiabilityService } from "@/services/taxLiabilityService";
@@ -88,9 +88,11 @@ function buildHTML(opts: {
   totalVAT: number;
   categoryBreakdown: Record<
     string,
-    { amount: number; code: string; count: number }
+    { amount: number; code: string; count: number | string }
   >;
   expenses: Expense[];
+  /** Home Office amount from the setup screen, when it's being claimed. */
+  homeOfficeSetup: HomeOfficeSetupClaim | null;
   includeVAT: boolean;
   includePersonal: boolean;
   summaryOnly: boolean;
@@ -105,6 +107,7 @@ function buildHTML(opts: {
     totalVAT,
     categoryBreakdown,
     expenses,
+    homeOfficeSetup,
     includeVAT,
     includePersonal,
     summaryOnly,
@@ -139,9 +142,23 @@ function buildHTML(opts: {
             new Date(a.expense_date).getTime(),
         );
 
-        if (rows.length === 0) return "";
+        if (rows.length === 0 && !homeOfficeSetup) return "";
 
-        const trs = rows
+        // Not a logged expense, so no date or receipt: show where it came from.
+        const setupTr = homeOfficeSetup
+          ? `
+          <tr>
+            <td>${esc(taxYear)}</td>
+            <td>${esc(homeOfficeSetup.description ?? "Home office setup")}</td>
+            <td>Home Office</td>
+            <td style="text-align:center">${getITR12Field("Home Office")}</td>
+            <td style="text-align:right">${fmtZAR(homeOfficeSetup.amount)}</td>
+            ${includeVAT ? '<td style="text-align:right">-</td>' : ""}
+            <td style="text-align:center">✓</td>
+          </tr>`
+          : "";
+
+        const trs = setupTr + rows
           .map(
             (e) => `
           <tr>
@@ -524,27 +541,31 @@ export async function generateITR12PDF(opts: PDFExportOptions): Promise<void> {
   // Fetch the rest in parallel. The tax liability estimate is optional
   // (most users won't have filled in the calculator yet) — a fetch failure
   // there shouldn't block the rest of the export, so it falls back to null.
-  const [expenses, incomeTotals, expenseTotals, byCategory, taxLiabilityEstimate] =
+  const [expenses, incomeTotals, expenseTotals, byCategory, taxLiabilityEstimate, setupClaim] =
     await Promise.all([
       expenseService.getExpenses(userId, taxYear),
       incomeService.getTotals(userId, taxYear),
       expenseService.getTotals(userId, taxYear, vatRegistered),
       expenseService.getByCategory(userId, taxYear, vatRegistered),
       taxLiabilityService.getEstimate(userId, taxYear).catch(() => null),
+      expenseService.getHomeOfficeSetupClaim(userId, taxYear),
     ]);
+  const homeOfficeSetup = setupClaim.amount > 0 ? setupClaim : null;
 
   // Build category breakdown: amounts from byCategory (already filtered to
   // is_deductible=true and capped via CATEGORY_PARTIAL_CAPS), counts from expenses.
   const categoryBreakdown: Record<
     string,
-    { amount: number; code: string; count: number }
+    { amount: number; code: string; count: number | string }
   > = {};
 
   for (const [cat, amount] of Object.entries(byCategory)) {
+    const count = expenses.filter((e) => e.category === cat && e.is_deductible).length;
     categoryBreakdown[cat] = {
       amount,
       code: getITR12Field(cat),
-      count: expenses.filter((e) => e.category === cat && e.is_deductible).length,
+      // The setup claim only applies when no Home Office expenses are logged.
+      count: cat === "Home Office" && homeOfficeSetup && count === 0 ? "From setup" : count,
     };
   }
 
@@ -569,6 +590,7 @@ export async function generateITR12PDF(opts: PDFExportOptions): Promise<void> {
     totalVAT,
     categoryBreakdown,
     expenses,
+    homeOfficeSetup,
     includeVAT,
     includePersonal,
     summaryOnly,

@@ -3,7 +3,7 @@
 // saves it to the device filesystem, then shares it via the native share sheet.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { deductibleBase, expenseService } from "@/services/expenseService";
+import { deductibleBase, expenseService, type HomeOfficeSetupClaim } from "@/services/expenseService";
 import { profileService } from "@/services/profileService";
 import type { Expense } from "@/types/database";
 import { ITR12_CATEGORIES } from "@/types/database";
@@ -31,7 +31,13 @@ function getITR12Field(category: string): string {
 // `vatRegistered` mirrors the same rule as expenseService.getTotals: a
 // registered VAT vendor claims input VAT back separately via VAT201, so
 // their income-tax-deductible amount for ITR12 excludes vat_amount.
-export function generateCSV(expenses: Expense[], vatRegistered = false): string {
+// `homeOfficeSetup` is the Home Office amount from the setup screen (rent or
+// bond interest x floor %). It isn't a logged expense, so it gets its own row.
+export function generateCSV(
+  expenses: Expense[],
+  vatRegistered = false,
+  homeOfficeSetup?: HomeOfficeSetupClaim & { taxYear: string },
+): string {
   // BOM for Excel to auto-detect UTF-8
   const BOM = "﻿";
 
@@ -71,7 +77,24 @@ export function generateCSV(expenses: Expense[], vatRegistered = false): string 
       ].join(",");
     });
 
-  return BOM + [HEADER, ...rows].join("\r\n");
+  const setupRow =
+    homeOfficeSetup && homeOfficeSetup.amount > 0
+      ? [
+          csvField(""),
+          csvField(homeOfficeSetup.description ?? "Home office setup"),
+          csvField("Home Office"),
+          csvField(getITR12Field("Home Office")),
+          csvField(homeOfficeSetup.amount.toFixed(2)),
+          csvField(""),
+          csvField(homeOfficeSetup.amount.toFixed(2)),
+          csvField("Y"),
+          csvField("From your home office setup, not a logged expense"),
+          csvField("N"),
+          csvField(homeOfficeSetup.taxYear),
+        ].join(",")
+      : null;
+
+  return BOM + [HEADER, ...(setupRow ? [setupRow] : []), ...rows].join("\r\n");
 }
 
 // ─── Public API ───────────────────────────────────────────────────────────────
@@ -85,15 +108,16 @@ export interface CSVExportOptions {
 export async function exportExpensesCSV(opts: CSVExportOptions): Promise<void> {
   const { userId, taxYear, includePersonal = false } = opts;
 
-  const [allExpenses, profile] = await Promise.all([
+  const [allExpenses, profile, setupClaim] = await Promise.all([
     expenseService.getExpenses(userId, taxYear),
     profileService.getProfile(userId),
+    expenseService.getHomeOfficeSetupClaim(userId, taxYear),
   ]);
   const expenses = includePersonal
     ? allExpenses
     : allExpenses.filter((e) => e.is_deductible);
 
-  const csv = generateCSV(expenses, profile?.vat_registered ?? false);
+  const csv = generateCSV(expenses, profile?.vat_registered ?? false, { ...setupClaim, taxYear });
 
   const fileName = `MyExpense_ITR12_${taxYear.replace("/", "-")}_${Date.now()}.csv`;
   const file = new File(Paths.cache, fileName);

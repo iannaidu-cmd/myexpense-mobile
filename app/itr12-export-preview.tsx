@@ -9,7 +9,7 @@ import { generateITR12PDF } from "@/services/pdfExportService";
 import { profileService } from "@/services/profileService";
 import { taxLiabilityService } from "@/services/taxLiabilityService";
 import { useAuthStore } from "@/stores/authStore";
-import { colour, radius, space } from "@/tokens";
+import { colour, radius, space, typography } from "@/tokens";
 import { ACTIVE_TAX_YEAR, TaxLiabilityEstimate } from "@/types/database";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useAppForeground } from "@/hooks/use-app-foreground";
@@ -75,6 +75,8 @@ export default function ITR12ExportPreviewScreen() {
   const [taxLiability, setTaxLiability] = useState<TaxLiabilityEstimate | null>(null);
   const [sharing, setSharing] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
+  // "Home office setup: 10% of R 120 000 annual rent" when that's the claim.
+  const [homeOfficeSetupLabel, setHomeOfficeSetupLabel] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     if (!user) {
@@ -85,14 +87,16 @@ export default function ITR12ExportPreviewScreen() {
     try {
       const prof = await profileService.getProfile(user.id);
       const vatRegistered = prof?.vat_registered ?? false;
-      const [byCategory, totals, incomeTotals, liabilityEstimate] = await Promise.all([
+      const [byCategory, totals, incomeTotals, liabilityEstimate, setupClaim] = await Promise.all([
         expenseService.getByCategory(user.id, taxYear, vatRegistered),
         expenseService.getTotals(user.id, taxYear, vatRegistered),
         incomeService.getTotals(user.id, taxYear),
         taxLiabilityService.getEstimate(user.id, taxYear).catch(() => null),
+        expenseService.getHomeOfficeSetupClaim(user.id, taxYear).catch(() => null),
       ]);
       setProfile(prof);
       setBreakdown(byCategory);
+      setHomeOfficeSetupLabel(setupClaim?.description ?? null);
       setTotalDeductions(totals.totalDeductions);
       setTotalIncome(incomeTotals.totalIncome);
       setTaxLiability(liabilityEstimate);
@@ -140,10 +144,10 @@ export default function ITR12ExportPreviewScreen() {
         "",
         profile?.vat_registered ? "ALLOWABLE DEDUCTIONS (EXCL. VAT)" : "ALLOWABLE DEDUCTIONS",
         "─────────────────────",
-        ...deductionRows.map(
-          ([cat, amt]) =>
-            `${(ITR12_FIELD[cat] ?? "Other Expenditure").padEnd(38)} ${fmt(amt)}`,
-        ),
+        ...deductionRows.flatMap(([cat, amt]) => [
+          `${(ITR12_FIELD[cat] ?? "Other Expenditure").padEnd(38)} ${fmt(amt)}`,
+          ...(cat === "Home Office" && homeOfficeSetupLabel ? [`  (${homeOfficeSetupLabel})`] : []),
+        ]),
         "─────────────────────",
         `${(profile?.vat_registered ? "TOTAL ALLOWABLE DEDUCTIONS (EXCL. VAT)" : "TOTAL ALLOWABLE DEDUCTIONS").padEnd(38)} ${fmt(totalDeductions)}`,
         "",
@@ -454,11 +458,16 @@ export default function ITR12ExportPreviewScreen() {
                         borderTopColor: colour.borderLight,
                       }}
                     >
-                      <Text
-                        style={{ flex: 2, fontSize: 12, color: colour.text }}
-                      >
-                        {cat}
-                      </Text>
+                      <View style={{ flex: 2 }}>
+                        <Text style={{ fontSize: 12, color: colour.text }}>
+                          {cat}
+                        </Text>
+                        {cat === "Home Office" && homeOfficeSetupLabel && (
+                          <Text style={{ ...typography.bodyXS, color: colour.textSub, marginTop: 2 }}>
+                            {homeOfficeSetupLabel}
+                          </Text>
+                        )}
+                      </View>
                       <Text
                         style={{
                           flex: 1,
@@ -567,6 +576,11 @@ export default function ITR12ExportPreviewScreen() {
                     eFiling field: {ITR12_FIELD[cat] ?? "Other Expenditure"} ·
                     Local Business Income (s6.6)
                   </Text>
+                  {cat === "Home Office" && homeOfficeSetupLabel && (
+                    <Text style={{ ...typography.bodyXS, color: colour.textSub, marginTop: 2 }}>
+                      {homeOfficeSetupLabel}
+                    </Text>
+                  )}
                   <View
                     style={{
                       height: 4,

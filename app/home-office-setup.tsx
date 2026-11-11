@@ -12,7 +12,11 @@ import {
   HomeOfficeSetting,
   useHomeOfficeStore,
 } from "@/stores/homeOfficeStore";
+import { formatRatio, HOME_OFFICE_CATEGORY, pctFromRatio } from "@/lib/homeOffice";
+import { expenseService } from "@/services/expenseService";
+import { homeOfficeService } from "@/services/homeOfficeService";
 import { useAuthStore } from "@/stores/authStore";
+import { ACTIVE_TAX_YEAR } from "@/types/database";
 import { colour, radius, space, typography } from "@/tokens";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -39,7 +43,7 @@ const ARRANGEMENTS: { key: ArrangementType; label: string; desc: string }[] = [
 ];
 
 const APPLIES_TO = [
-  { icon: "house.fill", label: "Home Office rent / bond interest", note: "100% at floor ratio" },
+  { icon: "house.fill", label: "Home office rent / bond interest", note: "Floor ratio" },
   { icon: "bolt.fill", label: "Electricity & utilities", note: "Floor ratio" },
   { icon: "wrench.fill", label: "Repairs & maintenance", note: "Floor ratio" },
   { icon: "building.2.fill", label: "Levies & rates", note: "Floor ratio" },
@@ -56,10 +60,20 @@ export default function HomeOfficeSetupScreen() {
   const [annualCost, setAnnualCost] = useState("");
   const [saving, setSaving] = useState(false);
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
+  // Deductible Home Office expenses already logged this tax year. When there
+  // are any, they are the claim and the setup cost is not added (no double count).
+  const [loggedCount, setLoggedCount] = useState<number | null>(null);
+  // After saving with a new floor %: existing expenses it would change.
+  const [reapply, setReapply] = useState<{ ratio: number; updatable: number; unknown: number } | null>(null);
+  const [reapplying, setReapplying] = useState(false);
 
   useEffect(() => {
     if (!user) return;
     load(user.id);
+    expenseService
+      .getExpenses(user.id, ACTIVE_TAX_YEAR)
+      .then((rows) => setLoggedCount(rows.filter((e) => e.is_deductible && e.category === HOME_OFFICE_CATEGORY).length))
+      .catch(() => setLoggedCount(null));
   }, [user]);
 
   // Separate from the load effect above: `load()` updates the store
@@ -71,7 +85,10 @@ export default function HomeOfficeSetupScreen() {
       setOfficeM2(String(setting.officeM2));
       setTotalM2(String(setting.totalM2));
       setArrangementType(setting.arrangementType);
-      setAnnualCost(setting.annualCost > 0 ? String(setting.annualCost) : "");
+      // Rent is entered per month but stored per year. Prefilling the yearly
+      // figure into the monthly field made a re-save claim 12 times the rent.
+      const shown = setting.arrangementType === "renting" ? setting.annualCost / 12 : setting.annualCost;
+      setAnnualCost(shown > 0 ? String(Math.round(shown * 100) / 100) : "");
     }
   }, [setting]);
 
@@ -87,34 +104,89 @@ export default function HomeOfficeSetupScreen() {
           officeM2: office,
           totalM2: total,
           arrangementType,
-          annualCost: arrangementType === "renting" ? annualRent : cost,
+          annualCost: arrangementType === "none" ? 0 : arrangementType === "renting" ? annualRent : cost,
+          costTaxYear: ACTIVE_TAX_YEAR,
         }
       : null;
 
   const ratio = floorRatio(previewSetting);
   const ratioPct = (ratio * 100).toFixed(1);
   const deductible = annualDeductible(previewSetting);
+  // Saved before the tax year was recorded: the cost claims nothing until re-saved.
+  const needsResave = !!setting && setting.annualCost > 0 && !setting.costTaxYear;
 
   const canSave = office > 0 && total > 0 && office <= total;
 
   const handleSave = async () => {
-    if (!canSave || !user) {
+    if (!canSave || !user || !previewSetting) {
       if (!canSave) showNotice({ title: "Check your measurements", message: "Your office can't be bigger than your whole home." });
       return;
     }
+    const previousRatio = setting ? floorRatio(setting) : null;
     setSaving(true);
     try {
-      await save(user.id, {
-        officeM2: office,
-        totalM2: total,
-        arrangementType,
-        annualCost: arrangementType === "renting" ? annualRent : cost,
-      });
+      await save(user.id, previewSetting);
+    } catch {
+      showNotice({ title: "Couldn't save your setup", message: "Please check your internet connection and try again." });
+      setSaving(false);
+      return;
+    }
+    try {
+      // A new or changed floor % doesn't change expenses already saved, so
+      // offer to update them.
+      if (previousRatio === null || pctFromRatio(previousRatio) !== pctFromRatio(ratio)) {
+        const { updatable, unknownCount } = await homeOfficeService.getReapplyCandidates(user.id, ACTIVE_TAX_YEAR, ratio);
+        if (updatable.length > 0 || unknownCount > 0) {
+          setReapply({ ratio, updatable: updatable.length, unknown: unknownCount });
+          return;
+        }
+      }
+      safeBack(router);
+    } catch {
+      // The setup itself saved; only the check of existing expenses failed.
       safeBack(router);
     } finally {
       setSaving(false);
     }
   };
+
+  const confirmReapply = async () => {
+    if (!user || !reapply || reapplying) return;
+    if (reapply.updatable === 0) {
+      setReapply(null);
+      safeBack(router);
+      return;
+    }
+    setReapplying(true);
+    try {
+      const n = await homeOfficeService.reapplyRatio(user.id, ACTIVE_TAX_YEAR, reapply.ratio);
+      setReapply(null);
+      showNotice({
+        title: "Expenses updated",
+        message: `${n} ${n === 1 ? "expense now claims" : "expenses now claim"} ${formatRatio(reapply.ratio)}.`,
+        tone: "success",
+      });
+      safeBack(router);
+    } catch {
+      setReapply(null);
+      showNotice({ title: "Couldn't update your expenses", message: "Your setup is saved. Please check your internet connection and save it again to retry." });
+    } finally {
+      setReapplying(false);
+    }
+  };
+
+  const reapplyMessage = (() => {
+    if (!reapply) return "";
+    const pct = formatRatio(reapply.ratio);
+    const older =
+      reapply.unknown > 0
+        ? ` ${reapply.unknown} older ${reapply.unknown === 1 ? "expense was" : "expenses were"} saved before we kept the full amount, so we can't update ${reapply.unknown === 1 ? "it" : "them"}. Open ${reapply.unknown === 1 ? "it" : "each one"} and check the amount.`
+        : "";
+    if (reapply.updatable === 0) {
+      return `Your home office now claims ${pct}.${older}`;
+    }
+    return `${reapply.updatable} home office, utilities and repairs ${reapply.updatable === 1 ? "expense" : "expenses"} this tax year will be updated to claim ${pct}. Check any home contents insurance or bond interest expenses yourself.${older}`;
+  })();
 
   const handleClear = () => {
     if (!user) return;
@@ -133,7 +205,7 @@ export default function HomeOfficeSetupScreen() {
       <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
       <MXHeader
         title="Home office setup"
-        subtitle="Proportional deduction · S11(a)"
+        subtitle="Claim the share of your home you work in"
         showBack
       />
 
@@ -147,16 +219,25 @@ export default function HomeOfficeSetupScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
+          {needsResave && (
+            <InfoBanner
+              icon="exclamationmark.triangle.fill"
+              title="Save your setup again"
+              body={`Your ${setting?.arrangementType === "owned" ? "bond interest" : "rent"} isn't being claimed yet. Check the details below and tap Save to add it to your ${ACTIVE_TAX_YEAR} tax year.`}
+              style={{ marginBottom: space.md }}
+            />
+          )}
+
           <InfoBanner
             icon="house.fill"
-            title="SARS S11(a) — Home office deduction"
-            body="Your office must be used exclusively and regularly for trade. The deductible portion is calculated as: office m² ÷ total property m² × qualifying costs."
+            title="Home office deduction"
+            body="Your office must be used only for work, and used regularly. You can claim the same share of your home costs as your office takes up of your home: office m² ÷ whole home m²."
             style={{ marginBottom: space.xl }}
           />
 
           {/* ── Floor area inputs ─────────────────────────────────────── */}
           <Text style={{ ...typography.labelM, color: colour.textSub, marginBottom: space.sm }}>
-            FLOOR AREA
+            Floor area
           </Text>
 
           <View style={{ flexDirection: "row", gap: space.md, marginBottom: space.md }}>
@@ -261,7 +342,7 @@ export default function HomeOfficeSetupScreen() {
               marginTop: office > 0 && total > 0 ? 0 : space.md,
             }}
           >
-            ARRANGEMENT TYPE
+            Do you own or rent?
           </Text>
 
           <View
@@ -333,7 +414,7 @@ export default function HomeOfficeSetupScreen() {
               <Text
                 style={{ ...typography.labelM, color: colour.textSub, marginBottom: space.sm }}
               >
-                {arrangementType === "owned" ? "ANNUAL BOND INTEREST" : "MONTHLY RENT"}
+                {arrangementType === "owned" ? "Bond interest for the year" : "Monthly rent"}
               </Text>
 
               <View
@@ -361,18 +442,18 @@ export default function HomeOfficeSetupScreen() {
               </View>
 
               {arrangementType === "owned" && (
-                <Text style={{ fontSize: 11, color: colour.textSub, marginBottom: space.xl }}>
-                  Bond interest only — not capital repayments. Get the split from your annual bond statement.
+                <Text style={{ ...typography.bodyXS, color: colour.textSub }}>
+                  Only the interest, not the amount you pay off the loan. Your yearly bond statement shows the split.
                 </Text>
               )}
               {arrangementType === "renting" && cost > 0 && (
-                <Text style={{ fontSize: 11, color: colour.textSub, marginBottom: space.xl }}>
-                  Annual rent = R {fmt(annualRent)} (R {fmt(cost)} × 12 months)
+                <Text style={{ ...typography.bodyXS, color: colour.textSub }}>
+                  Rent for the year: {fmt(annualRent)} ({fmt(cost)} × 12 months)
                 </Text>
               )}
-              {arrangementType === "renting" && cost === 0 && (
-                <View style={{ marginBottom: space.xl }} />
-              )}
+              <Text style={{ ...typography.bodyXS, color: colour.textSub, marginTop: space.xxs, marginBottom: space.xl }}>
+                For the {ACTIVE_TAX_YEAR} tax year
+              </Text>
             </>
           )}
 
@@ -382,7 +463,7 @@ export default function HomeOfficeSetupScreen() {
               <Text
                 style={{ ...typography.labelM, color: colour.textSub, marginBottom: space.sm }}
               >
-                ESTIMATED DEDUCTION
+                Estimated deduction
               </Text>
 
               <View
@@ -461,12 +542,25 @@ export default function HomeOfficeSetupScreen() {
                   </Text>
                 </View>
               </View>
+
+              {/* Where the claimable amount goes. Logged Home Office expenses
+                  win over the setup cost, so it is never counted twice. */}
+              {arrangementType !== "none" && deductible > 0 && loggedCount !== null && (
+                <InfoBanner
+                  body={
+                    loggedCount > 0
+                      ? `You've logged ${loggedCount} home office ${loggedCount === 1 ? "expense" : "expenses"} this tax year, so we claim ${loggedCount === 1 ? "that" : "those"} instead of the amount above.`
+                      : `We'll add ${fmt(deductible)} to your home office claim for the ${ACTIVE_TAX_YEAR} tax year.`
+                  }
+                  style={{ marginBottom: space.xl }}
+                />
+              )}
             </>
           )}
 
           {/* ── Applies to ────────────────────────────────────────────── */}
           <Text style={{ ...typography.labelM, color: colour.textSub, marginBottom: space.sm }}>
-            THIS RATIO APPLIES TO
+            This percentage applies to
           </Text>
 
           <View
@@ -518,7 +612,7 @@ export default function HomeOfficeSetupScreen() {
 
           {/* Save */}
           <MXButton
-            label={saving ? "Saving…" : "Save home office setup"}
+            label={saving ? "Saving..." : "Save home office setup"}
             variant="primary"
             size="L"
             onPress={handleSave}
@@ -541,12 +635,28 @@ export default function HomeOfficeSetupScreen() {
       <ConfirmModal
         visible={showRemoveConfirm}
         title="Remove home office setup"
-        message="This will clear your floor area ratio and disable the proportional calculation."
+        message="New expenses will be claimed in full and your rent or bond interest will no longer be claimed. Existing expenses keep their current amounts."
         confirmLabel="Remove"
         cancelLabel="Cancel"
         destructive
         onConfirm={confirmClear}
         onCancel={() => setShowRemoveConfirm(false)}
+      />
+
+      <ConfirmModal
+        visible={!!reapply}
+        title={reapply && reapply.updatable === 0 ? "Check your older expenses" : "Update your existing expenses?"}
+        message={reapplyMessage}
+        confirmLabel={reapplying ? "Updating..." : reapply && reapply.updatable === 0 ? "Got it" : "Update expenses"}
+        cancelLabel="Not now"
+        hideCancel={!!reapply && reapply.updatable === 0}
+        destructive={false}
+        icon="house.fill"
+        onConfirm={confirmReapply}
+        onCancel={() => {
+          setReapply(null);
+          safeBack(router);
+        }}
       />
     </SafeAreaView>
   );

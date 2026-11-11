@@ -18,6 +18,10 @@ interface ConfirmModalProps {
   cancelLabel?: string;
   onConfirm: () => void;
   onCancel: () => void;
+  /** Back button or tap outside. Defaults to onCancel. Set it when the
+   *  cancel button does something (e.g. "Save anyway") that a stray tap
+   *  should not trigger. */
+  onDismiss?: () => void;
   destructive?: boolean;
   icon?: string;
   /** Hide the secondary button — for a single-action info popup (e.g. "Got it"). */
@@ -32,6 +36,7 @@ export function ConfirmModal({
   cancelLabel = "Cancel",
   onConfirm,
   onCancel,
+  onDismiss,
   destructive = true,
   icon,
   hideCancel = false,
@@ -74,9 +79,9 @@ export function ConfirmModal({
       // iOS Modal defaults to portrait only, but iPads run the app in any
       // orientation (multitasking), so allow them all.
       supportedOrientations={["portrait", "portrait-upside-down", "landscape-left", "landscape-right"]}
-      onRequestClose={onCancel}
+      onRequestClose={onDismiss ?? onCancel}
     >
-      <TouchableWithoutFeedback onPress={onCancel}>
+      <TouchableWithoutFeedback onPress={onDismiss ?? onCancel}>
         <Animated.View
           style={{
             flex: 1,

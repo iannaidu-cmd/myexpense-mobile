@@ -11,6 +11,10 @@ import {
   validateVendor,
 } from "@/lib/validation";
 import { expenseService } from "@/services/expenseService";
+import { InfoBanner } from "@/components/InfoBanner";
+import { apportion, formatRatio, isHomeOfficeCategory, pctFromRatio } from "@/lib/homeOffice";
+import { useAuthStore } from "@/stores/authStore";
+import { floorRatio, useHomeOfficeStore } from "@/stores/homeOfficeStore";
 import { colour, radius, space, typography } from "@/tokens";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -60,7 +64,14 @@ export default function EditExpenseScreen() {
   const [notes, setNotes] = useState("");
   // % applied when the expense was first saved (null if never apportioned).
   const [businessUsePct, setBusinessUsePct] = useState<number | null>(null);
+  // Category the expense was saved with, to spot moves into or out of home office.
+  const [originalCategory, setOriginalCategory] = useState("");
   const [showCatModal, setShowCatModal] = useState(false);
+
+  const { user } = useAuthStore();
+  const { setting: homeOfficeSetting, load: loadHomeOffice } = useHomeOfficeStore();
+  useEffect(() => { if (user) loadHomeOffice(user.id); }, [user, loadHomeOffice]);
+  const homeOfficeRatio = homeOfficeSetting ? floorRatio(homeOfficeSetting) : 1;
 
   // Load existing expense on mount
   useEffect(() => {
@@ -72,6 +83,7 @@ export default function EditExpenseScreen() {
         setVendor(expense.vendor ?? "");
         setDate(expense.expense_date ? isoToDisplayDate(expense.expense_date) : "");
         setCategory(expense.category ?? "");
+        setOriginalCategory(expense.category ?? "");
         setNotes(expense.notes ?? "");
         setBusinessUsePct(expense.business_use_pct != null ? Number(expense.business_use_pct) : null);
         // Derive toggle state from saved is_deductible flag
@@ -89,6 +101,32 @@ export default function EditExpenseScreen() {
   // Personal toggle overrides category deductibility
   const isDeductible =
     expenseType === "business" ? (selectedCat?.deductible ?? false) : false;
+
+  // What gets saved for amount / gross_amount / business_use_pct. The amount
+  // field shows the claimable figure, so the full amount is worked back from
+  // the stored %. Moving into a home office category applies the floor %;
+  // moving out restores the full amount. Other changes keep the old behaviour.
+  const entered = parseFloat(amount);
+  const fullAmount =
+    businessUsePct != null && businessUsePct > 0
+      ? parseFloat((entered / (businessUsePct / 100)).toFixed(2))
+      : entered;
+  const movedIntoHomeOffice = isHomeOfficeCategory(category) && !isHomeOfficeCategory(originalCategory);
+  const movedOutOfHomeOffice = !isHomeOfficeCategory(category) && isHomeOfficeCategory(originalCategory);
+  const amountFields = (): { amount: number; gross_amount?: number | null; business_use_pct?: number | null } => {
+    if (movedIntoHomeOffice) {
+      return { amount: apportion(fullAmount, homeOfficeRatio), gross_amount: fullAmount, business_use_pct: pctFromRatio(homeOfficeRatio) };
+    }
+    if (movedOutOfHomeOffice) {
+      return { amount: fullAmount, gross_amount: null, business_use_pct: null };
+    }
+    return {
+      amount: entered,
+      // The amount here is the claimable (already apportioned) figure, so
+      // keep the stored full amount in step with it.
+      ...(businessUsePct != null && businessUsePct > 0 ? { gross_amount: fullAmount } : {}),
+    };
+  };
 
   const handleSave = async () => {
     const amountErr = validateAmount(amount);
@@ -111,12 +149,7 @@ export default function EditExpenseScreen() {
     try {
       await expenseService.updateExpense({
         id: id!,
-        amount: parseFloat(amount),
-        // The amount here is the claimable (already apportioned) figure, so
-        // keep the stored full amount in step with it.
-        ...(businessUsePct != null && businessUsePct > 0
-          ? { gross_amount: parseFloat((parseFloat(amount) / (businessUsePct / 100)).toFixed(2)) }
-          : {}),
+        ...amountFields(),
         vendor: vendor.trim(),
         expense_date: expenseDateIso,
         category: category,
@@ -338,6 +371,24 @@ export default function EditExpenseScreen() {
                 : selectedCat.section}
             </Text>
           </View>
+        )}
+
+        {/* Home office share. Same message as manual add. */}
+        {expenseType === "business" && isHomeOfficeCategory(category) && (
+          <InfoBanner
+            icon="house.fill"
+            title={homeOfficeSetting ? `We'll claim ${formatRatio(homeOfficeRatio)} based on your home office size` : "Home office size not set up yet"}
+            body={
+              homeOfficeSetting
+                ? `Your home office takes up ${formatRatio(homeOfficeRatio)} of your home (${homeOfficeSetting.officeM2}m² ÷ ${homeOfficeSetting.totalM2}m²).${
+                    entered > 0
+                      ? ` Claimable amount: R ${(movedIntoHomeOffice ? apportion(fullAmount, homeOfficeRatio) : entered).toLocaleString("en-ZA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                      : ""
+                  }`
+                : "We claim 100% until you set up your home office in the Me tab. Saving the setup later lets you update this expense."
+            }
+            style={{ marginBottom: space.lg }}
+          />
         )}
 
         {/* Vendor */}

@@ -10,6 +10,8 @@ import { CATEGORIES } from "@/constants/categories";
 import { expenseService } from "@/services/expenseService";
 import { useAuthStore } from "@/stores/authStore";
 import { floorRatio, useHomeOfficeStore } from "@/stores/homeOfficeStore";
+import { isHomeOfficeCategory } from "@/lib/homeOffice";
+import { ConfirmModal } from "@/components/ConfirmModal";
 import { logbookBusinessUse, useVehicleStore } from "@/stores/vehicleStore";
 import { mileageService } from "@/services/mileageService";
 import { colour, radius, space, typography } from "@/tokens";
@@ -44,7 +46,6 @@ const LOW_CONFIDENCE_THRESHOLD = 0.7;
 // Categories where only the home-office floor-area ratio is claimable —
 // mirrors add-expense-manual.tsx so a scanned receipt is deducted the same
 // way as one entered manually, instead of claiming the full receipt total.
-const HOME_OFFICE_CATS = ["Home Office", "Utilities", "Repairs & Maintenance"];
 
 function fieldBorderColour(isOcr: boolean, isLowConf: boolean): string {
   if (!isOcr) return colour.border;
@@ -149,8 +150,9 @@ export default function ReceiptReviewScreen() {
   const [successVisible, setSuccessVisible] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
 
-  const { setting: homeOfficeSetting, load: loadHomeOffice } = useHomeOfficeStore();
+  const { setting: homeOfficeSetting, isLoaded: homeOfficeLoaded, load: loadHomeOffice } = useHomeOfficeStore();
   useEffect(() => { if (user) loadHomeOffice(user.id); }, [user]);
+  const [showSetupPrompt, setShowSetupPrompt] = useState(false);
 
   const selectedCat = CATEGORIES_FOR_PICKER.find((c) => c.name === category);
 
@@ -158,7 +160,7 @@ export default function ReceiptReviewScreen() {
   const isDeductible =
     expenseType === "business" ? (selectedCat?.deductible ?? false) : false;
 
-  const isHomeOfficeCat = expenseType === "business" && HOME_OFFICE_CATS.includes(category);
+  const isHomeOfficeCat = expenseType === "business" && isHomeOfficeCategory(category);
   const homeOfficeRatio = homeOfficeSetting ? floorRatio(homeOfficeSetting) : 1;
 
   // Vehicle costs only count at the business-use % (same as manual entry).
@@ -231,8 +233,14 @@ export default function ReceiptReviewScreen() {
   const anyOcr = Object.values(ocrFields).some(Boolean);
   const anyLowConf = Object.values(lowConf).some(Boolean);
 
-  const handleSave = async () => {
+  const handleSave = async (skipSetupPrompt = false) => {
     if (!canSave || !user) return;
+    // Without a setup we'd claim 100%. Rows saved anyway keep gross_amount and
+    // business_use_pct 100, so saving the setup later can update them.
+    if (!skipSetupPrompt && isHomeOfficeCat && homeOfficeLoaded && !homeOfficeSetting) {
+      setShowSetupPrompt(true);
+      return;
+    }
     setSaving(true);
     try {
       let receiptUrl: string | undefined;
@@ -810,7 +818,7 @@ export default function ReceiptReviewScreen() {
 
         {/* Save */}
         <TouchableOpacity
-          onPress={handleSave}
+          onPress={() => handleSave()}
           disabled={!canSave || saving}
           style={{
             backgroundColor: canSave ? colour.primary : colour.surface2,
@@ -853,6 +861,25 @@ export default function ReceiptReviewScreen() {
         message={successMessage}
         primaryLabel="Go to dashboard"
         onPrimary={() => { setSuccessVisible(false); router.replace("/(tabs)"); }}
+      />
+
+      <ConfirmModal
+        visible={showSetupPrompt}
+        title="Set up your home office first?"
+        message="Without your office size we claim 100% of this expense. You can set it up now or save and update it later."
+        confirmLabel="Set up now"
+        cancelLabel="Save anyway"
+        destructive={false}
+        icon="house.fill"
+        onConfirm={() => {
+          setShowSetupPrompt(false);
+          router.push("/home-office-setup" as any);
+        }}
+        onCancel={() => {
+          setShowSetupPrompt(false);
+          handleSave(true);
+        }}
+        onDismiss={() => setShowSetupPrompt(false)}
       />
     </SafeAreaView>
   );
