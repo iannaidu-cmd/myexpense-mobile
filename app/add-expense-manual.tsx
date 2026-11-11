@@ -16,6 +16,7 @@ import { scheduleReceiptReminder } from "@/services/notificationService";
 import { useAuthStore } from "@/stores/authStore";
 import { useExpenseStore } from "@/stores/expenseStore";
 import { floorRatio, useHomeOfficeStore } from "@/stores/homeOfficeStore";
+import { isHomeOfficeCategory } from "@/lib/homeOffice";
 import { logbookBusinessUse, useVehicleStore, vehicleLabel } from "@/stores/vehicleStore";
 import { mileageService } from "@/services/mileageService";
 import { colour, radius } from "@/tokens";
@@ -125,8 +126,9 @@ export default function AddExpenseScreen() {
   const router = useRouter();
   const { user, isPremium } = useAuthStore();
   const { activeTaxYear } = useExpenseStore();
-  const { setting: homeOfficeSetting, load: loadHomeOffice } = useHomeOfficeStore();
+  const { setting: homeOfficeSetting, isLoaded: homeOfficeLoaded, load: loadHomeOffice } = useHomeOfficeStore();
   React.useEffect(() => { if (user) loadHomeOffice(user.id); }, [user]);
+  const [showSetupPrompt, setShowSetupPrompt] = useState(false);
   const [amount, setAmount] = useState("");
   const [vendor, setVendor] = useState("");
   const [date, setDate] = useState(
@@ -203,8 +205,16 @@ export default function AddExpenseScreen() {
   const selectedCat = ITR12_CATEGORIES.find((c) => c.label === category);
   const canSave = !!amount && parseFloat(amount) > 0 && !!vendor && !!category;
 
-  const handleSave = async () => {
+  const handleSave = async (skipSetupPrompt = false) => {
     if (!canSave || !user) return;
+
+    // Without a setup we'd claim 100%. Offer to set it up first; rows saved
+    // anyway keep gross_amount and business_use_pct 100, so saving the setup
+    // later can update them.
+    if (!skipSetupPrompt && expType === "business" && isHomeOfficeCategory(category) && homeOfficeLoaded && !homeOfficeSetting) {
+      setShowSetupPrompt(true);
+      return;
+    }
 
     setSaving(true);
 
@@ -230,7 +240,6 @@ export default function AddExpenseScreen() {
     try {
       const rawAmount = parseFloat(amount);
       const ratio = homeOfficeSetting ? floorRatio(homeOfficeSetting) : 1;
-      const HOME_OFFICE_CATS = ["Home Office", "Utilities", "Repairs & Maintenance"];
       let pct = 1;
       let overrideDeductible: boolean | undefined;
       // Whether a business-use/floor-area share was applied, so the full
@@ -240,7 +249,7 @@ export default function AddExpenseScreen() {
       if (category === "Telephone & Cell" || category === "Telephone & Internet") {
         pct = Math.min(Math.max(parseFloat(businessUsePct) || 100, 0), 100) / 100;
         apportioned = true;
-      } else if (HOME_OFFICE_CATS.includes(category)) {
+      } else if (isHomeOfficeCategory(category)) {
         pct = ratio;
         apportioned = true;
       } else if (category === "Insurance") {
@@ -822,7 +831,7 @@ export default function AddExpenseScreen() {
 
         {/* Save */}
         <TouchableOpacity
-          onPress={handleSave}
+          onPress={() => handleSave()}
           disabled={!canSave || saving}
           style={{
             marginHorizontal: 16,
@@ -884,6 +893,25 @@ export default function AddExpenseScreen() {
           trackFunnel("limit_action", { feature: "expense", action: "not_now" });
           setShowLimitConfirm(false);
         }}
+      />
+
+      <ConfirmModal
+        visible={showSetupPrompt}
+        title="Set up your home office first?"
+        message="Without your office size we claim 100% of this expense. You can set it up now or save and update it later."
+        confirmLabel="Set up now"
+        cancelLabel="Save anyway"
+        destructive={false}
+        icon="house.fill"
+        onConfirm={() => {
+          setShowSetupPrompt(false);
+          router.push("/home-office-setup" as any);
+        }}
+        onCancel={() => {
+          setShowSetupPrompt(false);
+          handleSave(true);
+        }}
+        onDismiss={() => setShowSetupPrompt(false)}
       />
     </SafeAreaView>
   );
