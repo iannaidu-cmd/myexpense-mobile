@@ -32,12 +32,14 @@ const KEYWORD_MAP: Array<[RegExp, string]> = [
   [/\b(uber|lyft|bolt\s*(za)?|taxify|indriver|gautrain)\b/i,               "Travel & Transport"],
   [/\b(telkom|mtn|vodacom|cell\s*c\b|rain\b|afrihost|webafrica|vox\s*telecom)\b/i, "Telephone & Internet"],
   [/\b(steers|kfc|mcdonald|nando|wimpy|chicken\s*licken|debonairs|spur\b|ocean\s*basket|pizza\s*hut|panarottis|fishaways|vida\s*e\s*caffe|bootlegger|barristers|hog\s*house|brassbel|cape\s*to\s*cuba)\b/i, "Meals & Entertainment"],
-  [/\b(woolworths\s*food|pick\s*n\s*pay|pnp\b|checkers\b|spar\b|kwik\s*spar|food\s*lovers|trader\s*joes|mr\s*d\s*food)\b/i, "Meals & Entertainment"],
+  // Grocery shops are household shopping, not business entertainment.
+  [/\b(woolworths\s*food|pick\s*n\s*pay|pnp\b|checkers\b|spar\b|kwik\s*spar|food\s*lovers|trader\s*joes|mr\s*d\s*food)\b/i, "Personal / Other"],
   [/\b(sanlam|old\s*mutual|discovery\s*(life|health)?|momentum\s*(life|health)?|liberty\s*life|hollard|santam|outsurance|miway|absa\s*insur)\b/i, "Insurance"],
   [/\b(eskom|city\s*power|joburg\s*water|rand\s*water|municipality|local\s*council|rates\s*and\s*taxes|prepaid\s*electricity)\b/i, "Utilities"],
   [/\b(postnet|dhl\b|courier\s*guy|fedex|ups\b|aramex|dawn\s*wing|skynet|meili\s*logist)\b/i, "Professional Fees"],
   [/\b(service\s*fee|monthly\s*fee|account\s*fee|admin\s*fee|bank\s*charge|transaction\s*fee|facility\s*fee|maintenance\s*fee|notification\s*fee)\b/i, "Bank Charges"],
-  [/\b(netflix|spotify|showmax|dstv)\b/i,                                  "Software & Subscriptions"],
+  // Streaming is personal, not business software.
+  [/\b(netflix|spotify|showmax|dstv)\b/i,                                  "Personal / Other"],
   [/\b(register\s*domai|domain)\b/i,                                       "Professional Fees"],
   [/\b(clicks|dischem|dis-chem)\b/i,                                       "Professional Fees"],
   [/\b(mica|hardware|pinelands\s*hard)\b/i,                                "Equipment & Tools"],

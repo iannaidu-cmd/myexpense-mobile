@@ -608,7 +608,7 @@ export default function AddExpenseScreen() {
           {category === "Meals & Entertainment" && (
             <View style={{ backgroundColor: colour.primary + "17", borderWidth: 1, borderColor: colour.primary + "29", borderRadius: radius.note, padding: 10, marginBottom: 10 }}>
               <Text style={{ fontSize: 12, color: colour.text, lineHeight: 18 }}>
-                SARS only allows 80% of meals and entertainment to be claimed. We apply this limit automatically when you save.
+                {"Only claim meals and entertainment for your business, like taking a client out. Your own meals don't count. Keep the slip and note who you met and why."}
               </Text>
             </View>
           )}

@@ -4,8 +4,8 @@ import { retirementSeveranceLumpSumTax } from "@/lib/taxRules";
 // ─── CATEGORY_PARTIAL_CAPS ────────────────────────────────────────────────────
 
 describe("CATEGORY_PARTIAL_CAPS", () => {
-  it("applies 80% cap to Meals & Entertainment (S23(o) SARS rule)", () => {
-    expect(CATEGORY_PARTIAL_CAPS["Meals & Entertainment"]).toBe(0.8);
+  it("claims Meals & Entertainment in full (s23(o) is bribes and fines, not entertainment)", () => {
+    expect(CATEGORY_PARTIAL_CAPS["Meals & Entertainment"]).toBeUndefined();
   });
 
   it("does not cap Travel & Transport (fully deductible)", () => {
@@ -21,10 +21,10 @@ describe("CATEGORY_PARTIAL_CAPS", () => {
     expect(Object.keys(CATEGORY_PARTIAL_CAPS)).toHaveLength(cappedCategories.length);
   });
 
-  it("calculates correct deductible amount with 80% cap", () => {
+  it("deducts business entertainment in full", () => {
     const amount = 1_000;
     const cap = CATEGORY_PARTIAL_CAPS["Meals & Entertainment"] ?? 1;
-    expect(amount * cap).toBe(800);
+    expect(amount * cap).toBe(1_000);
   });
 
   it("calculates correct deductible amount for uncapped category", () => {

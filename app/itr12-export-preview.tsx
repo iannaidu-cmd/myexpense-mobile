@@ -40,7 +40,7 @@ const ITR12_FIELD: Record<string, string> = {
   "Home Office": "Home Office Expenses (s11(a)/s23(b))",
   "Equipment & Tools": "Wear and Tear (s11(e))",
   "Software & Subscriptions": "Computer Software",
-  "Meals & Entertainment": "Entertainment (Limited – s23(o))",
+  "Meals & Entertainment": "Entertainment",
   "Professional Fees": "Consulting / Professional Fees",
   "Telephone & Internet": "Telephone and Internet",
   "Telephone & Cell": "Telephone and Internet",

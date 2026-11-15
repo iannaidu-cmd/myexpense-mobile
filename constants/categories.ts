@@ -21,7 +21,7 @@ export const CATEGORIES: Category[] = [
   { label: "Home Office",              icon: "house.fill",            code: "S11(a)/S23(b)", deductible: true, examples: "Proportional rent or bond interest for a dedicated home workspace" },
   { label: "Equipment & Tools",        icon: "wrench.fill",           code: "S11(e)",    deductible: true,  examples: "Laptop, monitor, printer, tools, hardware" },
   { label: "Software & Subscriptions", icon: "gearshape.fill",        code: "S11(a)",    deductible: true,  examples: "Apps & SaaS — Netflix, Adobe, Microsoft 365, Canva, hosting, domains (not phone/internet bills)" },
-  { label: "Meals & Entertainment",    icon: "fork.knife",            code: "S23(o)",    deductible: true, partialCap: 0.8, examples: "Client lunches, coffee meetings, work dinners" },
+  { label: "Meals & Entertainment",    icon: "fork.knife",            code: "S11(a)",    deductible: true, examples: "Client lunches, coffee meetings, work dinners" },
   { label: "Professional Fees",        icon: "doc.text.fill",         code: "S11(a)",    deductible: true,  examples: "Accountant, bookkeeper, lawyer, consultant invoices" },
   { label: "Utilities",                icon: "bolt.fill",             code: "S11(a)",    deductible: true,  examples: "Electricity, water, rates and taxes (not phone/internet)" },
   { label: "Marketing & Advertising",  icon: "megaphone.fill",        code: "S11(a)",    deductible: true,  examples: "Social media ads, flyers, business cards, website design" },
@@ -38,7 +38,11 @@ export const CATEGORIES: Category[] = [
 ];
 
 // Keyed lookup for service-layer caps (fraction of amount that is deductible).
-// S23(o): only 80% of meals & entertainment is deductible.
+// Empty today. Meals & entertainment used to carry an 80% cap citing
+// "S23(o)", but s23(o) only bars bribes, corrupt payments and fines. A
+// self-employed person claims business entertainment in full under s11(a);
+// only its VAT is never claimable (lib/vat.ts). The s23(m) limits are for
+// salaried employees, a Phase 2 concern.
 export const CATEGORY_PARTIAL_CAPS: Record<string, number> = Object.fromEntries(
   CATEGORIES.filter((c) => c.partialCap !== undefined).map((c) => [c.label, c.partialCap!]),
 );

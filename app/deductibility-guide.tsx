@@ -101,10 +101,10 @@ const GUIDE: GuideEntry[] = [
     iconBg: colour.warning + "38",
     iconColor: colour.text,
     category: "Meals & Entertain.",
-    section: "S23(o)",
+    section: "S11(a)",
     itr12Field: "Entertainment",
-    deductPct: "80%",
-    condition: "80% of amount. Business purpose must be documented.",
+    deductPct: "100%",
+    condition: "Business meals and entertainment only. Note who you met and why. You can't claim back the VAT.",
     docs: "Receipt with attendees and purpose noted",
   },
   {
