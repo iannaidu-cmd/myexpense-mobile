@@ -41,7 +41,7 @@ const CATEGORY_META: Record<
   "Home Office":                { icon: "house.fill",           color: C.accentDeep,   itr12Code: "S11(a)" },
   "Equipment & Tools":          { icon: "wrench.fill",          color: C.midNavy2,     itr12Code: "S11(e)" },
   "Software & Subscriptions":   { icon: "gearshape.fill",       color: C.primary100,   itr12Code: "S11(a)" },
-  "Meals & Entertainment":      { icon: "fork.knife",           color: C.warning,      itr12Code: "S11(a)", deductiblePct: 0.8 },
+  "Meals & Entertainment":      { icon: "fork.knife",           color: C.warning,      itr12Code: "S11(a)" },
   "Professional Fees":          { icon: "doc.text.fill",        color: C.danger,       itr12Code: "S11(a)" },
   "Utilities":                  { icon: "bolt.fill",            color: C.primary200,   itr12Code: "S11(a)" },
   "Telephone & Internet":       { icon: "phone.fill",           color: C.accent,       itr12Code: "S11(a)" },
@@ -379,25 +379,15 @@ export default function CategoryBreakdownScreen() {
               </View>
             )}
 
-            {/* ── Meals & Entertainment 80% cap notice ─────────────────────── */}
+            {/* ── Meals & Entertainment: business only ─────────────────────── */}
             {selected === 'Meals & Entertainment' && selectedCat && (
               <View style={{ marginHorizontal: space.md, backgroundColor: C.warning + "38", borderRadius: radius.md, padding: space.md, marginBottom: space.md }}>
                 <Text style={{ ...typography.labelS, color: C.text, marginBottom: space.xs }}>
-                  SARS S23(o) — 80% cap applies
+                  Business meals only
                 </Text>
-                <Text style={{ ...typography.micro, color: C.textSecondary, marginBottom: space.sm }}>
-                  Only 80% of meals & entertainment is deductible. SARS disallows the remainder under S23(o).
+                <Text style={{ ...typography.micro, color: C.textSecondary }}>
+                  {"You can claim meals and entertainment for your business, like taking a client out. Your own meals don't count, and you can't claim back the VAT on them."}
                 </Text>
-                <View style={{ flexDirection: 'row', gap: space.xl }}>
-                  <View>
-                    <Text style={{ ...typography.micro, color: C.textHint }}>Total spend</Text>
-                    <Text style={{ ...typography.labelM, color: C.textPrimary }}>{fmt(selectedCat.amount / 0.8)}</Text>
-                  </View>
-                  <View>
-                    <Text style={{ ...typography.micro, color: C.textHint }}>Deductible (80%)</Text>
-                    <Text style={{ ...typography.labelM, color: C.accentDeep }}>{fmt(selectedCat.amount)}</Text>
-                  </View>
-                </View>
               </View>
             )}
 
