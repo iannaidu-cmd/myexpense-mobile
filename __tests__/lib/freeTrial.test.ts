@@ -102,8 +102,9 @@ describe("trialTerms", () => {
   });
 
   it("never uses em dashes", () => {
-    expect(trialTerms(trial, "{price}", "monthly", "ios")).not.toMatch(/—/);
-    expect(trialTerms(trial, "{price}", "monthly", "android")).not.toMatch(/—/);
+    const emDash = String.fromCharCode(0x2014);
+    expect(trialTerms(trial, "{price}", "monthly", "ios")).not.toContain(emDash);
+    expect(trialTerms(trial, "{price}", "monthly", "android")).not.toContain(emDash);
   });
 });
 
