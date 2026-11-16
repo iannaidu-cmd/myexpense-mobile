@@ -253,9 +253,10 @@ export default function MileageTrackerScreen() {
   }, []);
 
   // ── Request location permission once the free-tier trip gate is resolved ──
-  // Gated on mileageGateReady + !tripLimitReached so a free user who's
-  // already used their 12 trips this month (who sees the limit-reached
-  // screen instead) is never prompted for location access.
+  // Gated on mileageGateReady + !tripLimitReached so a free user who has
+  // already used their 12 free uses (one shared allowance in total, never
+  // reset; see constants/freeTier.ts) sees the limit-reached screen instead
+  // and is never prompted for location access.
   useEffect(() => {
     if (!mileageGateReady || tripLimitReached) return;
     (async () => {
