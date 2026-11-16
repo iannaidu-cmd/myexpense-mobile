@@ -88,8 +88,9 @@ export function logFirstReceiptScanned() {
   }
 }
 
-export function logPaywallViewed(from: string) {
-  log("paywall_viewed", { from });
+/** trialOffered: at least one plan on the paywall comes with a store free trial for this person. */
+export function logPaywallViewed(from: string, trialOffered = false) {
+  log("paywall_viewed", { from, trial_offered: trialOffered });
 }
 
 /**

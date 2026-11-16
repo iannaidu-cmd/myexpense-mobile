@@ -18,6 +18,7 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { FREE_USE_LIMIT } from "@/constants/freeTier";
 import { useAppForeground } from "@/hooks/use-app-foreground";
 import { logPaywallViewed } from "@/lib/analytics";
+import { isStoreTrial, trialDays, trialHeadline, trialTerms } from "@/lib/freeTrial";
 import { safeBack } from "@/lib/navigation";
 import { openStoreSubscription, storeNameFor } from "@/lib/storeSubscriptions";
 import { countFreeUses } from "@/services/freeUsageService";
@@ -251,7 +252,7 @@ export function SubscriptionScreen({ defaultFrom }: { defaultFrom: string }) {
   const router = useRouter();
   const { user, isDevUser, hasPaidSubscription, isPromo, promoExpiresAt, billingIssueDetectedAt, refreshPremiumStatus } =
     useAuthStore();
-  const { customerInfo, isPro, packages, loading, purchasePackage, restorePurchases, refresh } =
+  const { customerInfo, isPro, packages, trials, loading, purchasePackage, restorePurchases, refresh } =
     useSubscriptionStore();
 
   const [selectedPlan, setSelectedPlan] = useState<Plan>("annual");
@@ -275,7 +276,12 @@ export function SubscriptionScreen({ defaultFrom }: { defaultFrom: string }) {
     return () => {
       if (!tracked.current) return;
       if (!viewedSent.current) {
-        trackFunnel("paywall_viewed", { from, prices_from_store: "pending", promo: useAuthStore.getState().isPromo });
+        trackFunnel("paywall_viewed", {
+          from,
+          prices_from_store: "pending",
+          promo: useAuthStore.getState().isPromo,
+          trial_offered: "pending",
+        });
         logPaywallViewed(from);
       }
       trackFunnel("paywall_closed", {
@@ -302,12 +308,17 @@ export function SubscriptionScreen({ defaultFrom }: { defaultFrom: string }) {
         const loaded = useSubscriptionStore.getState().packages;
         const hasMonthly = loaded.some((p) => p.identifier === PACKAGE_MONTHLY);
         const hasAnnual = loaded.some((p) => p.identifier === PACKAGE_ANNUAL);
+        const loadedTrials = useSubscriptionStore.getState().trials;
+        const trialOffered = !!(loadedTrials[PACKAGE_MONTHLY] || loadedTrials[PACKAGE_ANNUAL]);
         trackFunnel("paywall_viewed", {
           from,
           prices_from_store: hasMonthly && hasAnnual,
           promo: useAuthStore.getState().isPromo,
+          trial_offered: trialOffered,
+          trial_days_monthly: trialDays(loadedTrials[PACKAGE_MONTHLY]),
+          trial_days_annual: trialDays(loadedTrials[PACKAGE_ANNUAL]),
         });
-        logPaywallViewed(from);
+        logPaywallViewed(from, trialOffered);
         if (!hasMonthly || !hasAnnual) {
           trackFunnel("paywall_prices_fallback", {
             from,
@@ -417,6 +428,16 @@ export function SubscriptionScreen({ defaultFrom }: { defaultFrom: string }) {
 
   const usesLeft = usesSpent === null ? null : Math.max(0, FREE_USE_LIMIT - usesSpent);
 
+  // Store free trial for the selected plan, read from the store (lib/freeTrial).
+  // Null when not set up, already used or not eligible: the paywall then looks
+  // exactly as it does without a trial.
+  const selectedPkg = selectedPlan === "monthly" ? monthlyPkg : annualPkg;
+  const selectedTrial = selectedPkg ? trials[selectedPkg.identifier] ?? null : null;
+  const storePlatform = Platform.OS === "ios" ? "ios" : "android";
+  // Paying through a store free trial (not the sign-up promo, that's isPromo).
+  const onStoreTrial = !isDevUser && hasPaidSubscription && isStoreTrial(entitlement);
+  const trialPlanPrice = paidPlan ? `${priceFor(paidPlan)} per ${paidPlan === "annual" ? "year" : "month"}` : null;
+
   // ── Actions ──────────────────────────────────────────────────────────────
   const handleBack = () => {
     closeVia.current = "close";
@@ -455,6 +476,7 @@ export function SubscriptionScreen({ defaultFrom }: { defaultFrom: string }) {
       plan: selectedPlan,
       product_id: pkg.product.identifier,
       retried_offerings: retriedOfferings,
+      trial_offered: !!useSubscriptionStore.getState().trials[pkg.identifier],
     });
     setInFlight(true);
     const success = await purchasePackage(pkg);
@@ -591,6 +613,8 @@ export function SubscriptionScreen({ defaultFrom }: { defaultFrom: string }) {
             <Text style={{ ...typography.rowKey, fontFamily: typography.labelM.fontFamily, color: colour.textSub }}>Your plan</Text>
             {isDevUser ? (
               <Chip label="Developer" check />
+            ) : onStoreTrial ? (
+              <Chip label="Pro trial" />
             ) : showPro ? (
               <Chip label="Paid" check />
             ) : isPromo ? (
@@ -605,7 +629,13 @@ export function SubscriptionScreen({ defaultFrom }: { defaultFrom: string }) {
               <Text style={{ ...typography.h1, fontSize: 22, lineHeight: 28, color: colour.text }}>Unlimited uses</Text>
               <ProgressBar fill={1} />
               <Text style={{ ...typography.bodyM, lineHeight: 21, color: colour.textSub }}>
-                Scan, add, track and export as much as you need. Thank you for supporting MyExpense.
+                {onStoreTrial
+                  ? willRenew
+                    ? `Your free trial ends${nextDate ? ` on ${nextDate}` : " soon"}. After that, ${
+                        trialPlanPrice ?? "your plan"
+                      } is charged unless you cancel in ${storeName}.`
+                    : `Your free trial ends${nextDate ? ` on ${nextDate}` : " soon"} and won't renew. You keep Pro until then.`
+                  : "Scan, add, track and export as much as you need. Thank you for supporting MyExpense."}
               </Text>
             </>
           ) : isPromo ? (
@@ -705,11 +735,15 @@ export function SubscriptionScreen({ defaultFrom }: { defaultFrom: string }) {
               sub={paidPlan ? `${priceFor(paidPlan)} per ${paidPlan === "annual" ? "year" : "month"}` : `Through ${storeLabel(storeName)}`}
             />
             <InfoTile
-              label={willRenew ? "Next payment" : "Pro ends"}
+              label={willRenew ? (onStoreTrial ? "First payment" : "Next payment") : onStoreTrial ? "Trial ends" : "Pro ends"}
               value={nextDate ?? (loading ? "Loading" : "Not available")}
               sub={
                 billingIssueDetectedAt
                   ? "Payment didn't go through"
+                  : onStoreTrial
+                  ? willRenew
+                    ? "When your free trial ends"
+                    : "Won't renew"
                   : willRenew
                   ? "Renews automatically"
                   : "Won't renew"
@@ -729,6 +763,11 @@ export function SubscriptionScreen({ defaultFrom }: { defaultFrom: string }) {
         {/* Actions */}
         {!isDevUser && (
           <View style={{ gap: space.md }}>
+            {!showPro && !storeOnlyPro && selectedTrial && (
+              <Text style={{ ...typography.bodyM, fontFamily: typography.h2.fontFamily, color: colour.text, textAlign: "center" }}>
+                {trialHeadline(selectedTrial, priceFor(selectedPlan), selectedPlan)}
+              </Text>
+            )}
             {!showPro && !storeOnlyPro ? (
               <TouchableOpacity
                 onPress={handlePurchase}
@@ -747,7 +786,7 @@ export function SubscriptionScreen({ defaultFrom }: { defaultFrom: string }) {
                   <ActivityIndicator color={colour.onPrimary} />
                 ) : (
                   <Text style={{ ...typography.btnL, fontSize: 17, fontFamily: typography.h2.fontFamily, color: colour.onPrimary }}>
-                    Upgrade to Pro
+                    {selectedTrial ? "Start free trial" : "Upgrade to Pro"}
                   </Text>
                 )}
               </TouchableOpacity>
@@ -783,7 +822,9 @@ export function SubscriptionScreen({ defaultFrom }: { defaultFrom: string }) {
 
             {!showPro && !storeOnlyPro && (
               <Text style={{ ...typography.bodyS, color: colour.textSub, textAlign: "center", lineHeight: 18 }}>
-                Renews automatically until cancelled. By upgrading you agree to our{" "}
+                {selectedTrial
+                  ? `${trialTerms(selectedTrial, priceFor(selectedPlan), selectedPlan, storePlatform)} By starting your free trial you agree to our `
+                  : "Renews automatically until cancelled. By upgrading you agree to our "}
                 <Text style={{ color: colour.accentDeep, textDecorationLine: "underline" }} onPress={() => router.push("/terms" as any)}>
                   Terms
                 </Text>{" "}
