@@ -190,44 +190,53 @@ function AuthGate() {
 }
 
 // ── Profile setup prompt ──────────────────────────────────────────────────────
-// Sends a signed-in user whose profile has no work type to Profile setup, once
-// per account per device. Keyed off landing on the tabs rather than off the
+// On landing on the tabs after sign-in (keyed off the tabs rather than the
 // sign-in screens, because sign-in, sign-up, the OAuth callback and email
-// verification each router.replace("/(tabs)") themselves. Once only, so anyone
-// who taps "Skip" isn't sent back on every launch; they can finish it on My
-// profile instead.
+// verification each router.replace("/(tabs)") themselves):
+// 1. Saves the work type picked on onboarding if the profile has none, so
+//    every new account has one without seeing Profile setup.
+// 2. Opens Profile setup only if the profile has no name at all (email
+//    sign-up doesn't ask for one; Google/Apple/Facebook usually supply it).
+//    Once per account per device, so anyone who taps "Skip" isn't sent back
+//    on every launch; they can finish it on My profile instead.
 function ProfileSetupPrompt() {
   const router = useRouter();
   const segments = useSegments();
-  const { user, needsProfileSetup } = useAuthStore();
+  const { user } = useAuthStore();
   const checkedFor = useRef<string | null>(null);
   const inTabs = segments[0] === "(tabs)";
 
   useEffect(() => {
-    if (!user || !needsProfileSetup || !inTabs) return;
+    if (!user || !inTabs) return;
     if (checkedFor.current === user.id) return;
     checkedFor.current = user.id;
     const key = `profileSetupPrompted:${user.id}`;
     (async () => {
-      // Save the work type picked on onboarding first, so the account has
-      // one even if Profile setup is then skipped. Profile setup still opens
-      // once (for the name), pre-filled with it. Kept on the device if the
-      // save fails, so Profile setup can still pre-fill it.
+      const profile = await profileService.getProfile(user.id);
+      // Kept on the device if the save fails, so Profile setup (or the next
+      // launch) can still use it.
       const pending = await AsyncStorage.getItem(PENDING_WORK_TYPE_KEY).catch(() => null);
-      if (isWorkTypeId(pending)) {
+      if (!profile?.work_type && isWorkTypeId(pending)) {
         try {
           await profileService.updateProfile(user.id, { work_type: pending });
           await AsyncStorage.removeItem(PENDING_WORK_TYPE_KEY).catch(() => {});
           useAuthStore.setState({ needsProfileSetup: false });
           // Work type decides whether vehicle wear & tear can be claimed.
           useVehicleStore.getState().syncWearAndTear(user.id, useExpenseStore.getState().activeTaxYear);
-        } catch {}
+        } catch {
+          // Retry the next time the tabs open.
+          checkedFor.current = null;
+        }
       }
+      if (profile?.full_name?.trim()) return;
       if (await AsyncStorage.getItem(key)) return;
       AsyncStorage.setItem(key, new Date().toISOString()).catch(() => {});
       router.replace("/profile-setup");
-    })().catch(() => {});
-  }, [user?.id, needsProfileSetup, inTabs]);
+    })().catch(() => {
+      // Profile didn't load (offline): try again on the next tabs landing.
+      checkedFor.current = null;
+    });
+  }, [user?.id, inTabs]);
 
   return null;
 }

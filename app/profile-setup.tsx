@@ -1,6 +1,6 @@
 import { showNotice } from "@/components/NoticeHost";
 // ─── Profile Setup Screen ─────────────────────────────────────────────────────
-// Shown once per account per device when the profile has no work type (see
+// Shown once per account per device when the profile has no name (see
 // ProfileSetupPrompt in app/_layout.tsx). Name and work type are required;
 // the tax number is optional since many new users won't have it to hand.
 // ─────────────────────────────────────────────────────────────────────────────
