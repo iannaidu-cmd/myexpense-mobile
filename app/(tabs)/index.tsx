@@ -4,7 +4,10 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { UpdateAvailableBanner } from "@/components/UpdateAvailableBanner";
 import { appVersionService } from "@/services/appVersionService";
 import { expenseService } from "@/services/expenseService";
+import { trackFunnel } from "@/services/funnelService";
 import { incomeService } from "@/services/incomeService";
+import { mileageService } from "@/services/mileageService";
+import { updateWeeklySummary } from "@/services/notificationService";
 import { profileService } from "@/services/profileService";
 import { taxLiabilityService } from "@/services/taxLiabilityService";
 import { GRACE_PERIOD_DAYS, useAuthStore } from "@/stores/authStore";
@@ -147,6 +150,87 @@ function PeriodCard({ rows }: { rows: { label: string; value: string }[] }) {
   );
 }
 
+// ── First-run task ────────────────────────────────────────────────────────────
+// Shown instead of the dashboard until the user has logged anything (expense,
+// receipt, trip or income). One clear first task, with the other ways in kept
+// small underneath. Scanning leads because it's the one people do first: since
+// 20 Oct 2026 it was the first item for 20 devices against 1 for a trip, which
+// needs an actual drive. Once something is logged, the normal dashboard (and
+// its Recent list) takes over.
+type FirstTaskKind = "receipt_scan" | "mileage_trip" | "expense_manual" | "income";
+
+const OTHER_FIRST_TASKS: { kind: FirstTaskKind; icon: string; label: string; route: string }[] = [
+  { kind: "mileage_trip", icon: "car.fill", label: "Log a work trip", route: "/mileage-tracker" },
+  { kind: "expense_manual", icon: "pencil", label: "Add an expense by hand", route: "/(tabs)/add-expense" },
+  { kind: "income", icon: "arrow.down.left", label: "Add income", route: "/add-income" },
+];
+
+function FirstTask({ onPick }: { onPick: (kind: FirstTaskKind, route: string) => void }) {
+  return (
+    <>
+      <View style={{
+        backgroundColor: colour.noir, borderRadius: radius.xl,
+        padding: 24, paddingBottom: 26, marginBottom: 14, overflow: "hidden",
+      }}>
+        <View style={{
+          position: "absolute", width: 200, height: 200, borderRadius: 100,
+          backgroundColor: colour.primary, opacity: 0.55, top: -70, right: -50,
+        }} />
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 10 }}>
+          <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: colour.primary }} />
+          <Text style={{ fontSize: 12, color: colour.onNoir2, fontWeight: "500" }}>Start here</Text>
+        </View>
+        <Text style={{ fontSize: 28, lineHeight: 33, letterSpacing: -0.8, fontWeight: "800", color: colour.onNoir, marginBottom: 8 }}>
+          Scan your first receipt
+        </Text>
+        <Text style={{ fontSize: 14, lineHeight: 20, color: colour.onNoir2, marginBottom: 22 }}>
+          Take a photo of any work receipt. We fill in the details and add it to what you can claim from SARS.
+        </Text>
+        <TouchableOpacity
+          onPress={() => onPick("receipt_scan", "/scan-receipt-camera")}
+          activeOpacity={0.85}
+          style={{
+            backgroundColor: colour.white, borderRadius: radius.pill, height: 52,
+            flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
+          }}
+        >
+          <IconSymbol name="camera.fill" size={17} color={colour.noir} />
+          <Text style={{ fontSize: 16, fontWeight: "700", color: colour.noir }}>Scan a receipt</Text>
+        </TouchableOpacity>
+      </View>
+
+      <Text style={{ fontSize: 13, fontWeight: "600", color: colour.textSub, marginBottom: 8, marginHorizontal: 2 }}>
+        Or start another way
+      </Text>
+      <View style={{
+        backgroundColor: colour.white, borderRadius: radius.md,
+        borderWidth: 1, borderColor: colour.borderLight, overflow: "hidden",
+      }}>
+        {OTHER_FIRST_TASKS.map((t, i) => (
+          <TouchableOpacity
+            key={t.kind}
+            onPress={() => onPick(t.kind, t.route)}
+            style={{
+              flexDirection: "row", alignItems: "center", gap: 12,
+              paddingVertical: 14, paddingHorizontal: 14,
+              borderTopWidth: i === 0 ? 0 : 1, borderTopColor: colour.borderLight,
+            }}
+          >
+            <View style={{
+              width: 30, height: 30, borderRadius: 9, backgroundColor: colour.primary50,
+              alignItems: "center", justifyContent: "center",
+            }}>
+              <IconSymbol name={t.icon as any} size={15} color={colour.accentDeep} />
+            </View>
+            <Text style={{ flex: 1, fontSize: 14, fontWeight: "600", color: colour.text }}>{t.label}</Text>
+            <IconSymbol name="chevron.right" size={13} color={colour.textHint} />
+          </TouchableOpacity>
+        ))}
+      </View>
+    </>
+  );
+}
+
 export default function HomeScreen() {
   const router = useRouter();
   const { user, billingIssueDetectedAt } = useAuthStore();
@@ -163,6 +247,8 @@ export default function HomeScreen() {
   const [showRefreshHint, setShowRefreshHint] = useState(false);
   const [duePopup, setDuePopup] = useState<PopupKind | null>(null);
   const [updateInfo, setUpdateInfo] = useState<AppReleaseInfo | null>(null);
+  const [firstRun, setFirstRun] = useState(false);
+  const firstTaskTracked = useRef(false);
   const isFetching = useRef(false);
   const hasLoaded = useRef(false);
   const appStateRef = useRef(AppState.currentState);
@@ -184,7 +270,7 @@ export default function HomeScreen() {
       timer = setTimeout(() => reject(new Error("timeout")), 25_000);
     });
     try {
-      const [profile, totals, incomeTotals, recent, recentInc, liabilityEstimate] = await Promise.race([
+      const [profile, totals, incomeTotals, recent, recentInc, liabilityEstimate, trips] = await Promise.race([
         Promise.all([
           profileService.getProfile(user.id),
           expenseService.getTotals(user.id, activeTaxYear),
@@ -197,9 +283,30 @@ export default function HomeScreen() {
           taxLiabilityService.refreshEstimate(user.id, activeTaxYear)
             .then((r) => r?.estimate ?? null)
             .catch(() => taxLiabilityService.getEstimate(user.id, activeTaxYear).catch(() => null)),
+          // null = couldn't tell, which never counts as "nothing logged".
+          mileageService.getTripSummary(user.id, activeTaxYear).catch(() => null),
         ]),
         timeout,
       ]);
+      const nothingLogged =
+        trips !== null &&
+        trips.count === 0 &&
+        totals.receiptCount === 0 &&
+        recent.length === 0 &&
+        recentInc.length === 0;
+      setFirstRun(nothingLogged);
+      if (nothingLogged && !firstTaskTracked.current) {
+        firstTaskTracked.current = true;
+        trackFunnel("first_task_shown");
+      }
+      if (trips) {
+        updateWeeklySummary({
+          expenseCount: totals.receiptCount,
+          claimable: totals.totalDeductions,
+          tripCount: trips.count,
+          businessKm: trips.km,
+        });
+      }
       if (profile?.full_name) setFirstName(profile.full_name.split(" ")[0]);
       setTotalExpenses(totals.totalExpenses);
       setTotalIncome(incomeTotals.totalIncome);
@@ -458,6 +565,13 @@ export default function HomeScreen() {
           <View style={{ alignItems: "center", paddingTop: space["5xl"] }}>
             <ActivityIndicator color={colour.primary} size="large" />
           </View>
+        ) : firstRun ? (
+          <FirstTask
+            onPick={(kind, route) => {
+              trackFunnel("first_task_tap", { kind });
+              router.push(route as any);
+            }}
+          />
         ) : (
           <>
             {/* ── Noir hero card ── */}

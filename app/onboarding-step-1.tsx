@@ -1,309 +1,129 @@
-import { OnboardingFeatureScene } from '@/components/illustrations/OnboardingFeatureScene';
-import { OnboardingHeroScene } from '@/components/illustrations/OnboardingHeroScene';
+// ─── Onboarding ───────────────────────────────────────────────────────────────
+// One screen: what the person gets, then "How do you work?". Tapping a work
+// type goes straight to sign-up, so the answer is required and it's one tap
+// to the sign-up form. The pick is held on the device until there's an
+// account to save it to (PENDING_WORK_TYPE_KEY, see lib/workType.ts).
+// ─────────────────────────────────────────────────────────────────────────────
+
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { PENDING_WORK_TYPE_KEY, WORK_TYPES } from '@/lib/workType';
 import { trackFunnel } from '@/services/funnelService';
 import { colour, radius, space } from '@/tokens';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
-import {
-  Dimensions,
-  Image,
-  NativeScrollEvent,
-  NativeSyntheticEvent,
-  ScrollView,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import React from 'react';
+import { Dimensions, Image, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width: SW } = Dimensions.get('window');
 const LOGO_W = SW * 0.58;
 const LOGO_H = 42;
 
+type WorkTypeId = (typeof WORK_TYPES)[number]['id'];
 
-// ── Page 3 option card ────────────────────────────────────────────────────────
-const OPTIONS = [
-  { id: 'sole',       icon: 'building.2.fill' as const, label: 'Sole proprietor',        bg: colour.warning + '38'  },
-  { id: 'freelancer', icon: 'briefcase.fill'  as const, label: 'Freelancer',              bg: colour.primary50  },
-  { id: 'contractor', icon: 'doc.text.fill'   as const, label: 'Independent contractor',  bg: colour.brandTeal + '2E'  },
-];
+const ICONS: Record<WorkTypeId, string> = {
+  sole: 'building.2.fill',
+  freelancer: 'briefcase.fill',
+  contractor: 'doc.text.fill',
+  employed: 'person.fill',
+  other: 'list.bullet',
+};
 
-function OptionCard({
-  icon, label, bg, selected, onPress,
-}: {
-  icon: 'building.2.fill' | 'briefcase.fill' | 'doc.text.fill';
-  label: string; bg: string; selected: boolean; onPress: () => void;
-}) {
-  return (
-    <TouchableOpacity
-      onPress={onPress}
-      activeOpacity={0.8}
-      style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: space.md,
-        borderWidth: 1.5,
-        borderColor: selected ? colour.primary : colour.borderLight,
-        borderRadius: radius.lg,
-        backgroundColor: selected ? colour.primary50 : colour.white,
-        paddingVertical: space.lg,
-        paddingHorizontal: space.md,
-        marginBottom: space.md,
-      }}
-    >
-      <View style={{ width: 48, height: 48, borderRadius: radius.md, backgroundColor: bg, alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-        <IconSymbol name={icon} size={22} color={selected ? colour.primary : colour.textSub} />
-      </View>
-      <Text style={{ flex: 1, fontSize: 16, fontWeight: '700', color: colour.text }}>{label}</Text>
-      <View style={{ width: 22, height: 22, borderRadius: radius.pill, borderWidth: 2, borderColor: selected ? colour.primary : colour.border, backgroundColor: selected ? colour.primary : 'transparent', flexShrink: 0 }} />
-    </TouchableOpacity>
-  );
-}
-
-// ── Main screen ───────────────────────────────────────────────────────────────
 export default function OnboardingScreen() {
   const router = useRouter();
-  const scrollRef = useRef<ScrollView>(null);
-  const [page, setPage] = useState(0);
-  const [selected, setSelected] = useState<string | null>(null);
 
-  const scrollToPage = (index: number) => {
-    scrollRef.current?.scrollTo({ x: index * SW, animated: true });
-    setPage(index);
+  const pick = (id: WorkTypeId) => {
+    trackFunnel('onboarding_done', { work_type: id });
+    AsyncStorage.setItem(PENDING_WORK_TYPE_KEY, id).catch(() => {});
+    router.replace('/sign-up');
   };
-
-  const handleMomentumScrollEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const newPage = Math.round(e.nativeEvent.contentOffset.x / SW);
-    setPage(newPage);
-  };
-
-  useEffect(() => {
-    trackFunnel('onboarding_page', { page });
-  }, [page]);
-
-  const handleNext = () => {
-    if (page < 2) {
-      scrollToPage(page + 1);
-    } else if (selected) {
-      trackFunnel('onboarding_done', { work_type: selected });
-      router.replace('/sign-up');
-    }
-  };
-
-  const ctaDisabled = page === 2 && !selected;
-  const ctaLabel = page === 0
-    ? 'Get started →'
-    : page === 1
-    ? 'Next →'
-    : selected ? 'Get started →' : 'Select one above';
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colour.background }}>
-
-      {/* ── Fixed top bar ── */}
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          paddingHorizontal: space.lg,
-          paddingTop: space.md,
-          paddingBottom: space.sm,
-          marginTop: 9,
-        }}
-      >
+      <View style={{ paddingHorizontal: space.lg, paddingTop: space.md, paddingBottom: space.sm, marginTop: 9 }}>
         <Image
           source={require('@/assets/images/Full-logo.gif')}
           style={{ width: LOGO_W, height: LOGO_H }}
           resizeMode="contain"
         />
-        <Text style={{ fontSize: 11, color: colour.textSub, fontWeight: '600', letterSpacing: 0.5 }}>
-          {`0${page + 1} / 03`}
-        </Text>
       </View>
 
-      {/* ── Horizontal pager ── */}
       <ScrollView
-        ref={scrollRef}
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        onMomentumScrollEnd={handleMomentumScrollEnd}
-        scrollEventThrottle={16}
         style={{ flex: 1 }}
-        contentContainerStyle={{ alignItems: 'flex-start' }}
+        contentContainerStyle={{ paddingHorizontal: space.lg, paddingTop: space.md, paddingBottom: space.lg }}
+        showsVerticalScrollIndicator={false}
       >
-
-        {/* ── Page 1: Hero ── */}
-        <ScrollView
-          style={{ width: SW }}
-          contentContainerStyle={{ paddingHorizontal: space.lg, paddingTop: space.md, paddingBottom: space.md }}
-          showsVerticalScrollIndicator={false}
-          nestedScrollEnabled
+        <View
+          style={{
+            backgroundColor: colour.primary50,
+            borderRadius: radius.pill,
+            paddingHorizontal: space.md,
+            paddingVertical: space.xs,
+            alignSelf: 'flex-start',
+            marginBottom: space.sm,
+          }}
         >
-          <OnboardingHeroScene />
-          <View style={{ marginBottom: space.xl }}>
-            <View
-              style={{
-                backgroundColor: colour.primary50,
-                borderRadius: radius.pill,
-                paddingHorizontal: space.md,
-                paddingVertical: space.xs,
-                alignSelf: 'flex-start',
-                marginBottom: space.sm,
-              }}
-            >
-              <Text style={{ fontSize: 11, color: colour.primary, fontWeight: '700', letterSpacing: 0.3 }}>
-                Average unclaimed per year
-              </Text>
-            </View>
-            <Text style={{ fontSize: 46, fontWeight: '800', color: colour.primary, letterSpacing: -1.5, lineHeight: 52 }}>
-              R37,492
-            </Text>
-          </View>
-          <Text style={{ fontSize: 16, color: colour.textSub, lineHeight: 24 }}>
-            South Africa's 3.8 million self-employed lose thousands in unclaimed
-            deductions every year. MyExpense fixes that — automatically.
+          <Text style={{ fontSize: 11, color: colour.primary, fontWeight: '700', letterSpacing: 0.3 }}>
+            Average unclaimed per year: R37,492
           </Text>
-        </ScrollView>
+        </View>
+        <Text style={{ fontSize: 34, fontWeight: '800', color: colour.text, lineHeight: 40, letterSpacing: -0.8, marginBottom: space.md }}>
+          Get your money{'\n'}
+          <Text style={{ color: colour.primary }}>back from SARS.</Text>
+        </Text>
+        <Text style={{ fontSize: 16, color: colour.textSub, lineHeight: 24, marginBottom: space.xl }}>
+          Keep every work expense in one place, with a trip logbook set out the way SARS asks for it.
+          Then claim it all on your tax return.
+        </Text>
 
-        {/* ── Page 2: Features ── */}
-        <ScrollView
-          style={{ width: SW }}
-          contentContainerStyle={{ paddingHorizontal: space.lg, paddingTop: space.md, paddingBottom: space.md }}
-          showsVerticalScrollIndicator={false}
-          nestedScrollEnabled
-        >
-          <OnboardingFeatureScene />
-          <View
+        <Text style={{ fontSize: 17, fontWeight: '800', color: colour.text, marginBottom: 4 }}>
+          How do you work?
+        </Text>
+        <Text style={{ fontSize: 13, color: colour.textSub, marginBottom: space.md }}>
+          Pick one to create your free account.
+        </Text>
+
+        {WORK_TYPES.map((wt) => (
+          <TouchableOpacity
+            key={wt.id}
+            onPress={() => pick(wt.id)}
+            activeOpacity={0.8}
             style={{
-              backgroundColor: colour.primary50,
-              borderRadius: radius.pill,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: space.md,
+              borderWidth: 1.5,
+              borderColor: colour.borderLight,
+              borderRadius: radius.lg,
+              backgroundColor: colour.white,
+              paddingVertical: space.md,
               paddingHorizontal: space.md,
-              paddingVertical: space.xs,
-              alignSelf: 'flex-start',
               marginBottom: space.sm,
             }}
           >
-            <Text style={{ fontSize: 11, color: colour.primary, fontWeight: '700', letterSpacing: 0.3 }}>
-              Built for South Africa
-            </Text>
-          </View>
-          <Text style={{ fontSize: 34, fontWeight: '800', color: colour.text, lineHeight: 40, marginBottom: space.md }}>
-            Built for SA{'\n'}
-            <Text style={{ color: colour.primary }}>freelancers.</Text>
-          </Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md, marginBottom: space.md }}>
-            <View style={{ width: 48, height: 48, borderRadius: radius.md, backgroundColor: colour.primary50, alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <IconSymbol name="camera.fill" size={20} color={colour.primary} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 15, fontWeight: '700', color: colour.text, marginBottom: 2 }}>OCR receipt scanning</Text>
-              <Text style={{ fontSize: 12, color: colour.textSub, lineHeight: 17 }}>AI extracts vendor, amount, date and VAT in seconds</Text>
-            </View>
-          </View>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md }}>
-            <View style={{ width: 48, height: 48, borderRadius: radius.md, backgroundColor: colour.primary50, alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <IconSymbol name="car.fill" size={20} color={colour.primary} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 15, fontWeight: '700', color: colour.text, marginBottom: 2 }}>Mileage tracker</Text>
-              <Text style={{ fontSize: 12, color: colour.textSub, lineHeight: 17 }}>A GPS logbook that shows SARS how much you drive for work</Text>
-            </View>
-          </View>
-        </ScrollView>
-
-        {/* ── Page 3: Type selection ── */}
-        <ScrollView
-          style={{ width: SW }}
-          contentContainerStyle={{ paddingHorizontal: space.lg, paddingTop: space.md, paddingBottom: space.md }}
-          showsVerticalScrollIndicator={false}
-          nestedScrollEnabled
-        >
-          <Text style={{ fontSize: 28, fontWeight: '800', color: colour.text, lineHeight: 34, marginBottom: space.sm }}>
-            Tell us about{'\n'}
-            <Text style={{ color: colour.primary }}>yourself.</Text>
-          </Text>
-          <Text style={{ fontSize: 15, color: colour.textSub, lineHeight: 22, marginBottom: space.xl }}>
-            This helps us apply the right SARS ITR12 rules and deduction
-            categories for your situation.
-          </Text>
-          {OPTIONS.map((opt) => (
-            <OptionCard
-              key={opt.id}
-              icon={opt.icon}
-              label={opt.label}
-              bg={opt.bg}
-              selected={selected === opt.id}
-              onPress={() => setSelected(opt.id)}
-            />
-          ))}
-        </ScrollView>
-
-      </ScrollView>
-
-      {/* ── Fixed bottom: dots + buttons + sign-in ── */}
-      <View style={{ paddingHorizontal: space.lg, paddingBottom: space.md }}>
-
-        {/* Dots */}
-        <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6, marginBottom: space.md }}>
-          {[0, 1, 2].map((i) => (
             <View
-              key={i}
               style={{
-                width: i === page ? 22 : 6,
-                height: 6,
-                borderRadius: radius.pill,
-                backgroundColor: i === page ? colour.primary : colour.border,
-              }}
-            />
-          ))}
-        </View>
-
-        {/* Buttons */}
-        <View style={{ flexDirection: 'row', gap: space.md, marginBottom: space.md }}>
-          {page > 0 && (
-            <TouchableOpacity
-              onPress={() => scrollToPage(page - 1)}
-              style={{
-                backgroundColor: colour.surface1,
-                borderRadius: radius.pill,
-                height: 56,
-                paddingHorizontal: space.xl,
+                width: 40,
+                height: 40,
+                borderRadius: radius.md,
+                backgroundColor: colour.primary50,
                 alignItems: 'center',
                 justifyContent: 'center',
               }}
             >
-              <Text style={{ fontSize: 16, fontWeight: '700', color: colour.textSub }}>← Back</Text>
-            </TouchableOpacity>
-          )}
-          <TouchableOpacity
-            onPress={handleNext}
-            activeOpacity={ctaDisabled ? 0.5 : 0.85}
-            style={{
-              flex: 1,
-              backgroundColor: ctaDisabled ? colour.border : colour.noir,
-              borderRadius: radius.pill,
-              height: 56,
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <Text style={{ fontSize: 17, fontWeight: '700', color: ctaDisabled ? colour.textSub : colour.onNoir }}>
-              {ctaLabel}
-            </Text>
+              <IconSymbol name={ICONS[wt.id] as any} size={19} color={colour.primary} />
+            </View>
+            <Text style={{ flex: 1, fontSize: 16, fontWeight: '700', color: colour.text }}>{wt.label}</Text>
+            <IconSymbol name="chevron.right" size={14} color={colour.textHint} />
           </TouchableOpacity>
-        </View>
+        ))}
+      </ScrollView>
 
-        {/* Sign in */}
-        <View style={{ flexDirection: 'row', justifyContent: 'center' }}>
-          <Text style={{ fontSize: 14, color: colour.textSub }}>Already have an account? </Text>
-          <TouchableOpacity onPress={() => router.replace('/sign-in')}>
-            <Text style={{ fontSize: 14, fontWeight: '700', color: colour.primary }}>Sign in</Text>
-          </TouchableOpacity>
-        </View>
-
+      <View style={{ flexDirection: 'row', justifyContent: 'center', paddingHorizontal: space.lg, paddingVertical: space.md }}>
+        <Text style={{ fontSize: 14, color: colour.textSub }}>Already have an account? </Text>
+        <TouchableOpacity onPress={() => router.replace('/sign-in')}>
+          <Text style={{ fontSize: 14, fontWeight: '700', color: colour.primary }}>Sign in</Text>
+        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );

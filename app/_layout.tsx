@@ -14,8 +14,12 @@ import {
     setupNotificationResponseHandler,
     syncScheduledReminders,
 } from "@/services/notificationService";
+import { isWorkTypeId, PENDING_WORK_TYPE_KEY } from "@/lib/workType";
+import { profileService } from "@/services/profileService";
 import { useAuthStore } from "@/stores/authStore";
+import { useExpenseStore } from "@/stores/expenseStore";
 import { useSubscriptionStore } from "@/stores/subscriptionStore";
+import { useVehicleStore } from "@/stores/vehicleStore";
 import { colour } from "@/tokens";
 import {
     Inter_400Regular,
@@ -204,13 +208,25 @@ function ProfileSetupPrompt() {
     if (checkedFor.current === user.id) return;
     checkedFor.current = user.id;
     const key = `profileSetupPrompted:${user.id}`;
-    AsyncStorage.getItem(key)
-      .then((seen) => {
-        if (seen) return;
-        AsyncStorage.setItem(key, new Date().toISOString()).catch(() => {});
-        router.replace("/profile-setup");
-      })
-      .catch(() => {});
+    (async () => {
+      // Save the work type picked on onboarding first, so the account has
+      // one even if Profile setup is then skipped. Profile setup still opens
+      // once (for the name), pre-filled with it. Kept on the device if the
+      // save fails, so Profile setup can still pre-fill it.
+      const pending = await AsyncStorage.getItem(PENDING_WORK_TYPE_KEY).catch(() => null);
+      if (isWorkTypeId(pending)) {
+        try {
+          await profileService.updateProfile(user.id, { work_type: pending });
+          await AsyncStorage.removeItem(PENDING_WORK_TYPE_KEY).catch(() => {});
+          useAuthStore.setState({ needsProfileSetup: false });
+          // Work type decides whether vehicle wear & tear can be claimed.
+          useVehicleStore.getState().syncWearAndTear(user.id, useExpenseStore.getState().activeTaxYear);
+        } catch {}
+      }
+      if (await AsyncStorage.getItem(key)) return;
+      AsyncStorage.setItem(key, new Date().toISOString()).catch(() => {});
+      router.replace("/profile-setup");
+    })().catch(() => {});
   }, [user?.id, needsProfileSetup, inTabs]);
 
   return null;

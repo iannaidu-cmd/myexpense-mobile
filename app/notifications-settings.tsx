@@ -202,7 +202,7 @@ export default function NotificationsSettingsScreen() {
           <PreferenceRow
             icon="chart.bar.fill"
             label="Weekly reminder"
-            sub="Every Monday morning, a reminder to add your expenses"
+            sub="Every Monday morning, what you've logged so far this tax year"
             value={prefs.weeklyReminder}
             onToggle={update("weeklyReminder")}
           />
