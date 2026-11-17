@@ -188,7 +188,7 @@ function FirstTask({ onPick }: { onPick: (kind: FirstTaskKind, route: string) =>
           Start with your{"\n"}first receipt.
         </Text>
         <Text style={{ fontSize: 13, lineHeight: 19, fontWeight: "500", color: colour.onNoir, opacity: 0.78, marginTop: 8 }}>
-          Snap any work slip. We read the details and put it under the right SARS category for you.
+          Take a photo of any work slip. We fill in the details and file it under the right SARS category.
         </Text>
         <TouchableOpacity
           onPress={() => onPick("receipt_scan", "/scan-receipt-camera")}
