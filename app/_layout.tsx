@@ -14,6 +14,7 @@ import {
     setupNotificationResponseHandler,
     syncScheduledReminders,
 } from "@/services/notificationService";
+import { claimFirstTaskScreen } from "@/lib/firstTask";
 import { isWorkTypeId, PENDING_WORK_TYPE_KEY } from "@/lib/workType";
 import { profileService } from "@/services/profileService";
 import { useAuthStore } from "@/stores/authStore";
@@ -199,6 +200,8 @@ function AuthGate() {
 //    sign-up doesn't ask for one; Google/Apple/Facebook usually supply it).
 //    Once per account per device, so anyone who taps "Skip" isn't sent back
 //    on every launch; they can finish it on My profile instead.
+// 3. Otherwise opens the once-off first task screen (app/first-task.tsx)
+//    over Home for someone with nothing logged. Home itself never changes.
 function ProfileSetupPrompt() {
   const router = useRouter();
   const segments = useSegments();
@@ -228,10 +231,14 @@ function ProfileSetupPrompt() {
           checkedFor.current = null;
         }
       }
-      if (profile?.full_name?.trim()) return;
-      if (await AsyncStorage.getItem(key)) return;
-      AsyncStorage.setItem(key, new Date().toISOString()).catch(() => {});
-      router.replace("/profile-setup");
+      if (!profile?.full_name?.trim() && !(await AsyncStorage.getItem(key))) {
+        AsyncStorage.setItem(key, new Date().toISOString()).catch(() => {});
+        // Profile setup opens the first task screen itself when it's done.
+        router.replace("/profile-setup");
+        return;
+      }
+      // 3. Once-off first task screen over Home, if nothing is logged yet.
+      if (await claimFirstTaskScreen(user.id)) router.push("/first-task" as any);
     })().catch(() => {
       // Profile didn't load (offline): try again on the next tabs landing.
       checkedFor.current = null;
@@ -525,6 +532,7 @@ function RootLayout() {
         <Stack.Screen name="sign-in" options={{ headerShown: false }} />
         <Stack.Screen name="sign-up" options={{ headerShown: false }} />
         <Stack.Screen name="profile-setup" options={{ headerShown: false }} />
+        <Stack.Screen name="first-task" options={{ headerShown: false, animation: "slide_from_bottom" }} />
         <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
         <Stack.Screen name="forgot-password" options={{ headerShown: false }} />
         <Stack.Screen name="reset-password" options={{ headerShown: false }} />

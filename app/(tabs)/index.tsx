@@ -4,7 +4,6 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { UpdateAvailableBanner } from "@/components/UpdateAvailableBanner";
 import { appVersionService } from "@/services/appVersionService";
 import { expenseService } from "@/services/expenseService";
-import { trackFunnel } from "@/services/funnelService";
 import { incomeService } from "@/services/incomeService";
 import { mileageService } from "@/services/mileageService";
 import { updateWeeklySummary } from "@/services/notificationService";
@@ -150,94 +149,6 @@ function PeriodCard({ rows }: { rows: { label: string; value: string }[] }) {
   );
 }
 
-// ── First-run task ────────────────────────────────────────────────────────────
-// Shown instead of the dashboard until the user has logged anything (expense,
-// receipt, trip or income). One clear first task, with the other ways in kept
-// small underneath. Scanning leads because it's the one people do first: since
-// 20 Oct 2026 it was the first item for 20 devices against 1 for a trip, which
-// needs an actual drive. Once something is logged, the normal dashboard (and
-// its Recent list) takes over.
-type FirstTaskKind = "receipt_scan" | "mileage_trip" | "expense_manual" | "income";
-
-const OTHER_FIRST_TASKS: { kind: FirstTaskKind; icon: string; label: string; sub: string; route: string }[] = [
-  { kind: "mileage_trip", icon: "car.fill", label: "Log a work trip", sub: "Builds the logbook SARS asks for", route: "/mileage-tracker" },
-  { kind: "expense_manual", icon: "pencil", label: "Add an expense by hand", sub: "No slip with you? Add the photo later", route: "/(tabs)/add-expense" },
-  { kind: "income", icon: "arrow.up.right", label: "Add income", sub: "So we can work out your tax", route: "/add-income" },
-];
-
-function FirstTask({ onPick }: { onPick: (kind: FirstTaskKind, route: string) => void }) {
-  return (
-    <>
-      <View style={{
-        backgroundColor: colour.heroDark, borderRadius: radius.xl,
-        paddingTop: 20, paddingHorizontal: 18, paddingBottom: 20, marginBottom: 16, overflow: "hidden",
-      }}>
-        {/* Periwinkle glow top-right, teal glow bottom-left */}
-        <View style={{
-          position: "absolute", width: 240, height: 240, borderRadius: 120,
-          backgroundColor: colour.primary, opacity: 0.45, top: -130, right: -100,
-        }} />
-        <View style={{
-          position: "absolute", width: 180, height: 180, borderRadius: 90,
-          backgroundColor: colour.brandTeal, opacity: 0.16, bottom: -110, left: -80,
-        }} />
-        <Text style={{ fontSize: 10, fontWeight: "700", letterSpacing: 1.6, textTransform: "uppercase", color: colour.onNoir, opacity: 0.62 }}>
-          Start here
-        </Text>
-        <Text style={{ fontSize: 30, lineHeight: 32, letterSpacing: -1.2, fontWeight: "800", color: colour.onNoir, marginTop: 8 }}>
-          Start with your{"\n"}first receipt.
-        </Text>
-        <Text style={{ fontSize: 13, lineHeight: 19, fontWeight: "500", color: colour.onNoir, opacity: 0.78, marginTop: 8 }}>
-          Take a photo of any work slip. We fill in the details and file it under the right SARS category.
-        </Text>
-        <TouchableOpacity
-          onPress={() => onPick("receipt_scan", "/scan-receipt-camera")}
-          activeOpacity={0.85}
-          style={{
-            backgroundColor: colour.white, borderRadius: radius.pill, height: 52, marginTop: 16,
-            flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10,
-          }}
-        >
-          <IconSymbol name="camera.fill" size={18} color={colour.heroDark} />
-          <Text style={{ fontSize: 15.5, fontWeight: "800", color: colour.heroDark }}>Scan a receipt</Text>
-        </TouchableOpacity>
-      </View>
-
-      <Text style={{ fontSize: 15, fontWeight: "700", letterSpacing: -0.3, color: colour.heroDark, marginBottom: 10, marginHorizontal: 2 }}>
-        Or start another way
-      </Text>
-      <View style={{
-        backgroundColor: colour.white, borderRadius: radius.xl,
-        borderWidth: 1, borderColor: colour.borderLight, overflow: "hidden",
-      }}>
-        {OTHER_FIRST_TASKS.map((t, i) => (
-          <TouchableOpacity
-            key={t.kind}
-            onPress={() => onPick(t.kind, t.route)}
-            style={{
-              flexDirection: "row", alignItems: "center", gap: 12,
-              paddingVertical: 12, paddingHorizontal: 14,
-              borderTopWidth: i === 0 ? 0 : 1, borderTopColor: colour.borderLight,
-            }}
-          >
-            <View style={{
-              width: 34, height: 34, borderRadius: 12, borderWidth: 1, borderColor: colour.borderLight,
-              backgroundColor: colour.white, alignItems: "center", justifyContent: "center",
-            }}>
-              <IconSymbol name={t.icon as any} size={17} color={colour.heroDark} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 14, fontWeight: "700", letterSpacing: -0.2, color: colour.heroDark }}>{t.label}</Text>
-              <Text style={{ fontSize: 11.5, fontWeight: "500", color: colour.textSub, marginTop: 2 }}>{t.sub}</Text>
-            </View>
-            <IconSymbol name="chevron.right" size={14} color={colour.textHint} />
-          </TouchableOpacity>
-        ))}
-      </View>
-    </>
-  );
-}
-
 export default function HomeScreen() {
   const router = useRouter();
   const { user, billingIssueDetectedAt } = useAuthStore();
@@ -254,8 +165,6 @@ export default function HomeScreen() {
   const [showRefreshHint, setShowRefreshHint] = useState(false);
   const [duePopup, setDuePopup] = useState<PopupKind | null>(null);
   const [updateInfo, setUpdateInfo] = useState<AppReleaseInfo | null>(null);
-  const [firstRun, setFirstRun] = useState(false);
-  const firstTaskTracked = useRef(false);
   const isFetching = useRef(false);
   const hasLoaded = useRef(false);
   const appStateRef = useRef(AppState.currentState);
@@ -290,22 +199,12 @@ export default function HomeScreen() {
           taxLiabilityService.refreshEstimate(user.id, activeTaxYear)
             .then((r) => r?.estimate ?? null)
             .catch(() => taxLiabilityService.getEstimate(user.id, activeTaxYear).catch(() => null)),
-          // null = couldn't tell, which never counts as "nothing logged".
+          // For the weekly summary reminder. null = couldn't load, so the
+          // reminder keeps its last text.
           mileageService.getTripSummary(user.id, activeTaxYear).catch(() => null),
         ]),
         timeout,
       ]);
-      const nothingLogged =
-        trips !== null &&
-        trips.count === 0 &&
-        totals.receiptCount === 0 &&
-        recent.length === 0 &&
-        recentInc.length === 0;
-      setFirstRun(nothingLogged);
-      if (nothingLogged && !firstTaskTracked.current) {
-        firstTaskTracked.current = true;
-        trackFunnel("first_task_shown");
-      }
       if (trips) {
         updateWeeklySummary({
           expenseCount: totals.receiptCount,
@@ -522,7 +421,7 @@ export default function HomeScreen() {
             <View>
               <Text style={{ fontSize: 11, color: colour.textSub, fontWeight: "500" }}>{dayName}</Text>
               <Text style={{ fontSize: 16, fontWeight: "700", color: colour.text, letterSpacing: -0.3, marginTop: 1 }}>
-                {firstRun ? "Welcome" : greeting}{firstName ? `, ${firstName}` : ""}
+                {greeting}{firstName ? `, ${firstName}` : ""}
               </Text>
             </View>
           </View>
@@ -572,13 +471,6 @@ export default function HomeScreen() {
           <View style={{ alignItems: "center", paddingTop: space["5xl"] }}>
             <ActivityIndicator color={colour.primary} size="large" />
           </View>
-        ) : firstRun ? (
-          <FirstTask
-            onPick={(kind, route) => {
-              trackFunnel("first_task_tap", { kind });
-              router.push(route as any);
-            }}
-          />
         ) : (
           <>
             {/* ── Noir hero card ── */}
