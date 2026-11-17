@@ -159,51 +159,55 @@ function PeriodCard({ rows }: { rows: { label: string; value: string }[] }) {
 // its Recent list) takes over.
 type FirstTaskKind = "receipt_scan" | "mileage_trip" | "expense_manual" | "income";
 
-const OTHER_FIRST_TASKS: { kind: FirstTaskKind; icon: string; label: string; route: string }[] = [
-  { kind: "mileage_trip", icon: "car.fill", label: "Log a work trip", route: "/mileage-tracker" },
-  { kind: "expense_manual", icon: "pencil", label: "Add an expense by hand", route: "/(tabs)/add-expense" },
-  { kind: "income", icon: "arrow.down.left", label: "Add income", route: "/add-income" },
+const OTHER_FIRST_TASKS: { kind: FirstTaskKind; icon: string; label: string; sub: string; route: string }[] = [
+  { kind: "mileage_trip", icon: "car.fill", label: "Log a work trip", sub: "Builds the logbook SARS asks for", route: "/mileage-tracker" },
+  { kind: "expense_manual", icon: "pencil", label: "Add an expense by hand", sub: "No slip with you? Add the photo later", route: "/(tabs)/add-expense" },
+  { kind: "income", icon: "arrow.up.right", label: "Add income", sub: "So we can work out your tax", route: "/add-income" },
 ];
 
 function FirstTask({ onPick }: { onPick: (kind: FirstTaskKind, route: string) => void }) {
   return (
     <>
       <View style={{
-        backgroundColor: colour.noir, borderRadius: radius.xl,
-        padding: 24, paddingBottom: 26, marginBottom: 14, overflow: "hidden",
+        backgroundColor: colour.heroDark, borderRadius: radius.xl,
+        paddingTop: 20, paddingHorizontal: 18, paddingBottom: 20, marginBottom: 16, overflow: "hidden",
       }}>
+        {/* Periwinkle glow top-right, teal glow bottom-left */}
         <View style={{
-          position: "absolute", width: 200, height: 200, borderRadius: 100,
-          backgroundColor: colour.primary, opacity: 0.55, top: -70, right: -50,
+          position: "absolute", width: 240, height: 240, borderRadius: 120,
+          backgroundColor: colour.primary, opacity: 0.45, top: -130, right: -100,
         }} />
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 10 }}>
-          <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: colour.primary }} />
-          <Text style={{ fontSize: 12, color: colour.onNoir2, fontWeight: "500" }}>Start here</Text>
-        </View>
-        <Text style={{ fontSize: 28, lineHeight: 33, letterSpacing: -0.8, fontWeight: "800", color: colour.onNoir, marginBottom: 8 }}>
-          Scan your first receipt
+        <View style={{
+          position: "absolute", width: 180, height: 180, borderRadius: 90,
+          backgroundColor: colour.brandTeal, opacity: 0.16, bottom: -110, left: -80,
+        }} />
+        <Text style={{ fontSize: 10, fontWeight: "700", letterSpacing: 1.6, textTransform: "uppercase", color: colour.onNoir, opacity: 0.62 }}>
+          Start here
         </Text>
-        <Text style={{ fontSize: 14, lineHeight: 20, color: colour.onNoir2, marginBottom: 22 }}>
-          Take a photo of any work receipt. We fill in the details and add it to what you can claim from SARS.
+        <Text style={{ fontSize: 30, lineHeight: 32, letterSpacing: -1.2, fontWeight: "800", color: colour.onNoir, marginTop: 8 }}>
+          Start with your{"\n"}first receipt.
+        </Text>
+        <Text style={{ fontSize: 13, lineHeight: 19, fontWeight: "500", color: colour.onNoir, opacity: 0.78, marginTop: 8 }}>
+          Snap any work slip. We read the details and put it under the right SARS category for you.
         </Text>
         <TouchableOpacity
           onPress={() => onPick("receipt_scan", "/scan-receipt-camera")}
           activeOpacity={0.85}
           style={{
-            backgroundColor: colour.white, borderRadius: radius.pill, height: 52,
-            flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
+            backgroundColor: colour.white, borderRadius: radius.pill, height: 52, marginTop: 16,
+            flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10,
           }}
         >
-          <IconSymbol name="camera.fill" size={17} color={colour.noir} />
-          <Text style={{ fontSize: 16, fontWeight: "700", color: colour.noir }}>Scan a receipt</Text>
+          <IconSymbol name="camera.fill" size={18} color={colour.heroDark} />
+          <Text style={{ fontSize: 15.5, fontWeight: "800", color: colour.heroDark }}>Scan a receipt</Text>
         </TouchableOpacity>
       </View>
 
-      <Text style={{ fontSize: 13, fontWeight: "600", color: colour.textSub, marginBottom: 8, marginHorizontal: 2 }}>
+      <Text style={{ fontSize: 15, fontWeight: "700", letterSpacing: -0.3, color: colour.heroDark, marginBottom: 10, marginHorizontal: 2 }}>
         Or start another way
       </Text>
       <View style={{
-        backgroundColor: colour.white, borderRadius: radius.md,
+        backgroundColor: colour.white, borderRadius: radius.xl,
         borderWidth: 1, borderColor: colour.borderLight, overflow: "hidden",
       }}>
         {OTHER_FIRST_TASKS.map((t, i) => (
@@ -212,18 +216,21 @@ function FirstTask({ onPick }: { onPick: (kind: FirstTaskKind, route: string) =>
             onPress={() => onPick(t.kind, t.route)}
             style={{
               flexDirection: "row", alignItems: "center", gap: 12,
-              paddingVertical: 14, paddingHorizontal: 14,
+              paddingVertical: 12, paddingHorizontal: 14,
               borderTopWidth: i === 0 ? 0 : 1, borderTopColor: colour.borderLight,
             }}
           >
             <View style={{
-              width: 30, height: 30, borderRadius: 9, backgroundColor: colour.primary50,
-              alignItems: "center", justifyContent: "center",
+              width: 34, height: 34, borderRadius: 12, borderWidth: 1, borderColor: colour.borderLight,
+              backgroundColor: colour.white, alignItems: "center", justifyContent: "center",
             }}>
-              <IconSymbol name={t.icon as any} size={15} color={colour.accentDeep} />
+              <IconSymbol name={t.icon as any} size={17} color={colour.heroDark} />
             </View>
-            <Text style={{ flex: 1, fontSize: 14, fontWeight: "600", color: colour.text }}>{t.label}</Text>
-            <IconSymbol name="chevron.right" size={13} color={colour.textHint} />
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 14, fontWeight: "700", letterSpacing: -0.2, color: colour.heroDark }}>{t.label}</Text>
+              <Text style={{ fontSize: 11.5, fontWeight: "500", color: colour.textSub, marginTop: 2 }}>{t.sub}</Text>
+            </View>
+            <IconSymbol name="chevron.right" size={14} color={colour.textHint} />
           </TouchableOpacity>
         ))}
       </View>
@@ -515,7 +522,7 @@ export default function HomeScreen() {
             <View>
               <Text style={{ fontSize: 11, color: colour.textSub, fontWeight: "500" }}>{dayName}</Text>
               <Text style={{ fontSize: 16, fontWeight: "700", color: colour.text, letterSpacing: -0.3, marginTop: 1 }}>
-                {greeting}{firstName ? `, ${firstName}` : ""}
+                {firstRun ? "Welcome" : greeting}{firstName ? `, ${firstName}` : ""}
               </Text>
             </View>
           </View>
