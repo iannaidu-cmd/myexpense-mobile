@@ -185,7 +185,7 @@ export default function VATSummaryScreen() {
         "MyExpense VAT Report",
         `Tax Year: ${activeTaxYear}`,
         `Period: ${periodLabel}`,
-        `Generated: ${now.toLocaleDateString("en-ZA")}`,
+        `Generated: ${now.toLocaleDateString("en-ZA", { day: "numeric", month: "short", year: "numeric" })}`,
         vatRegistered
           ? `VAT vendor status: Registered${vatNumber ? ` (${vatNumber})` : ""}`
           : "VAT vendor status: Not registered. The VAT below is a cost, not something you can claim back.",

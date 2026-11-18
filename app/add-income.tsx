@@ -10,7 +10,7 @@ import {
   validateIncomeSource,
   validateNote,
 } from "@/lib/validation";
-import { formatDateInputDDMMYYYY, isoToDisplayDate } from "@/lib/dateInput";
+import { displayDateToISO, formatDateInputDDMMYYYY, isoToDisplayDate, localISODate } from "@/lib/dateInput";
 import { taxYearForDate } from "@/lib/taxRules";
 import { incomeService } from "@/services/incomeService";
 import { useAuthStore } from "@/stores/authStore";
@@ -121,7 +121,7 @@ export default function AddIncomeScreen() {
   const [source, setSource] = useState("");
   const [category, setCategory] = useState("");
   const [description, setDescription] = useState("");
-  const [date, setDate] = useState(isoToDisplayDate(new Date().toISOString().split("T")[0]));
+  const [date, setDate] = useState(() => isoToDisplayDate(localISODate(new Date())));
   const [showFullList, setShowFullList] = useState(false);
   const [saving, setSaving] = useState(false);
   const [loadingExisting, setLoadingExisting] = useState(isEditing);
@@ -151,13 +151,7 @@ export default function AddIncomeScreen() {
   const handleSave = async () => {
     if (!user) return;
 
-    let incomeDate = date;
-    if (date.includes("/")) {
-      const parts = date.split("/");
-      if (parts.length === 3) {
-        incomeDate = `${parts[2]}-${parts[1].padStart(2, "0")}-${parts[0].padStart(2, "0")}`;
-      }
-    }
+    const incomeDate = displayDateToISO(date.trim());
 
     const amountErr = validateAmount(amount);
     const sourceErr = validateIncomeSource(source);

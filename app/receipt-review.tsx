@@ -15,7 +15,7 @@ import { ConfirmModal } from "@/components/ConfirmModal";
 import { logbookBusinessUse, useVehicleStore } from "@/stores/vehicleStore";
 import { mileageService } from "@/services/mileageService";
 import { colour, radius, space, typography } from "@/tokens";
-import { displayDateToISO, formatDateInputDDMMYYYY, isoToDisplayDate, localISODate } from "@/lib/dateInput";
+import { displayDateToISO, formatDateInputDDMMYYYY, isoToDisplayDate, isValidISODate, localISODate } from "@/lib/dateInput";
 import { taxYearForDate } from "@/lib/taxRules";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -139,8 +139,10 @@ export default function ReceiptReviewScreen() {
   );
   const [amount, setAmount] = useState(params.amount ?? "");
   const [vendor, setVendor] = useState(params.vendor ?? "");
-  const [date, setDate] = useState(
-    isoToDisplayDate(params.date || new Date().toISOString().split("T")[0]),
+  // The scanned date if it's a real YYYY-MM-DD date, otherwise today (local
+  // time, not UTC, which is still yesterday before 02:00 in SA).
+  const [date, setDate] = useState(() =>
+    isoToDisplayDate(params.date && isValidISODate(params.date) ? params.date : localISODate(new Date())),
   );
   const [vatAmount, setVatAmount] = useState(params.vatAmount ?? "");
   const [category, setCategory] = useState(params.category ?? "");
@@ -235,6 +237,10 @@ export default function ReceiptReviewScreen() {
 
   const handleSave = async (skipSetupPrompt = false) => {
     if (!canSave || !user) return;
+    if (!isValidISODate(displayDateToISO(date.trim()))) {
+      showNotice({ title: "Check the date", message: "Enter the date as day/month/year, for example 05/03/2026." });
+      return;
+    }
     // Without a setup we'd claim 100%. Rows saved anyway keep gross_amount and
     // business_use_pct 100, so saving the setup later can update them.
     if (!skipSetupPrompt && isHomeOfficeCat && homeOfficeLoaded && !homeOfficeSetting) {
@@ -257,7 +263,7 @@ export default function ReceiptReviewScreen() {
       const share = isHomeOfficeCat ? homeOfficeRatio : isVehicleCat ? vehicleRatio : 1;
       const apportioned = isHomeOfficeCat || isVehicleCat;
       const savedAmount = apportioned ? parseFloat((rawAmount * share).toFixed(2)) : rawAmount;
-      const expenseDateIso = displayDateToISO(date);
+      const expenseDateIso = displayDateToISO(date.trim());
 
       await expenseService.addExpense(user.id, {
         vendor: vendor.trim(),
