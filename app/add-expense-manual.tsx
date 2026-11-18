@@ -1,4 +1,4 @@
-import { trackFunnel, trackFirstAction } from "@/services/funnelService";
+import { errorText, trackFunnel, trackFirstAction } from "@/services/funnelService";
 import { logExpenseCreated } from "@/lib/analytics";
 import { showNotice } from "@/components/NoticeHost";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -20,7 +20,13 @@ import { isHomeOfficeCategory } from "@/lib/homeOffice";
 import { logbookBusinessUse, useVehicleStore, vehicleLabel } from "@/stores/vehicleStore";
 import { mileageService } from "@/services/mileageService";
 import { colour, radius } from "@/tokens";
-import { formatDateInputDDMMYYYY } from "@/lib/dateInput";
+import {
+  displayDateToISO,
+  formatDateInputDDMMYYYY,
+  isoToDisplayDate,
+  isValidISODate,
+  localISODate,
+} from "@/lib/dateInput";
 import { taxYearForDate } from "@/lib/taxRules";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useState } from "react";
@@ -131,13 +137,10 @@ export default function AddExpenseScreen() {
   const [showSetupPrompt, setShowSetupPrompt] = useState(false);
   const [amount, setAmount] = useState("");
   const [vendor, setVendor] = useState("");
-  const [date, setDate] = useState(
-    new Date().toLocaleDateString("en-ZA", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    }),
-  );
+  // Built by hand, not toLocaleDateString("en-ZA"): that gives "YYYY/MM/DD",
+  // which the DD/MM/YYYY parsing on save turned into an invalid date, so
+  // every save that kept the default date failed.
+  const [date, setDate] = useState(() => isoToDisplayDate(localISODate(new Date())));
   // Optional preselected category, e.g. "Vehicle Expenses" from the trip
   // summary's "Log a vehicle cost". Ignored unless it's a real category.
   const { category: categoryParam } = useLocalSearchParams<{ category?: string }>();
@@ -228,13 +231,11 @@ export default function AddExpenseScreen() {
       }
     }
 
-    // Parse DD/MM/YYYY → YYYY-MM-DD
-    let expenseDate = date;
-    if (date.includes("/")) {
-      const parts = date.split("/");
-      if (parts.length === 3) {
-        expenseDate = `${parts[2]}-${parts[1].padStart(2, "0")}-${parts[0].padStart(2, "0")}`;
-      }
+    const expenseDate = displayDateToISO(date.trim());
+    if (!isValidISODate(expenseDate)) {
+      setSaving(false);
+      showNotice({ title: "Check the date", message: "Enter the date as day/month/year, for example 05/03/2026." });
+      return;
     }
 
     try {
@@ -301,7 +302,9 @@ export default function AddExpenseScreen() {
       trackFirstAction("expense_manual");
       logExpenseCreated("manual");
       setSuccessVisible(true);
-    } catch {
+    } catch (err) {
+      // Record the real reason: this notice hid an invalid-date bug for months.
+      trackFunnel("expense_save_failed", { source: "manual", error: errorText(err) });
       showNotice({ title: "Couldn't save this expense", message: "Please check your internet connection and try again." });
     } finally {
       setSaving(false);
