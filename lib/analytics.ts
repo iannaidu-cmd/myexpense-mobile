@@ -69,13 +69,39 @@ export function logLogin(method: string) {
   log("login", { method });
 }
 
-/** A bank import sends one event for the batch, with how many were created. */
-export function logExpenseCreated(source: "manual" | "receipt_scan" | "bank_import", count = 1) {
-  log("expense_created", { source, count });
-}
-
 const storage = new MMKV({ id: "myexpense-analytics" });
 const FIRST_RECEIPT_KEY = "first_receipt_scanned_sent";
+const FIRST_EXPENSE_KEY = "first_expense_sent";
+
+/**
+ * A bank import sends one event for the batch, with how many were created.
+ * The first save on this install also sends first_expense (any source), the
+ * "logged first expense" step of the GA4 funnel.
+ */
+export function logExpenseCreated(source: "manual" | "receipt_scan" | "bank_import", count = 1) {
+  log("expense_created", { source, count });
+  try {
+    if (storage.getBoolean(FIRST_EXPENSE_KEY)) return;
+    storage.set(FIRST_EXPENSE_KEY, true);
+    log("first_expense", { source });
+  } catch {
+    // never let tracking throw
+  }
+}
+
+/**
+ * Onboarding is one route (onboarding-step-1) with two swipeable pages, so
+ * screen_view can't tell them apart: this sends the page index (0 intro,
+ * 1 work type) for the GA4 funnel.
+ */
+export function logOnboardingPage(page: number) {
+  log("onboarding_page", { page });
+}
+
+/** Onboarding finished with a work type picked, just before sign-up. */
+export function logOnboardingDone(workType: string) {
+  log("onboarding_done", { work_type: workType });
+}
 
 /** Once per install, on the first receipt saved from a scan. */
 export function logFirstReceiptScanned() {

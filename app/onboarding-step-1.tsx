@@ -13,6 +13,7 @@
 
 import { OnboardingHeroScene } from '@/components/illustrations/OnboardingHeroScene';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { logOnboardingDone, logOnboardingPage } from '@/lib/analytics';
 import { PENDING_WORK_TYPE_KEY } from '@/lib/workType';
 import { trackFunnel } from '@/services/funnelService';
 import { colour, radius, space } from '@/tokens';
@@ -64,6 +65,7 @@ export default function OnboardingScreen() {
 
   useEffect(() => {
     trackFunnel('onboarding_page', { page });
+    logOnboardingPage(page);
   }, [page]);
 
   const scrollToPage = (index: number) => {
@@ -82,6 +84,7 @@ export default function OnboardingScreen() {
     }
     if (!selected) return;
     trackFunnel('onboarding_done', { work_type: selected });
+    logOnboardingDone(selected);
     await AsyncStorage.setItem(PENDING_WORK_TYPE_KEY, selected).catch(() => {});
     router.replace('/sign-up');
   };

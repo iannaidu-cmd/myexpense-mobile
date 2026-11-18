@@ -24,6 +24,8 @@ describe("analytics without the Firebase native module", () => {
       a.logLogin("google");
       a.logExpenseCreated("manual");
       a.logFirstReceiptScanned();
+      a.logOnboardingPage(0);
+      a.logOnboardingDone("freelancer");
       a.logPaywallViewed("home");
       a.logSubscriptionPurchase({
         plan: "annual",
