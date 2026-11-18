@@ -18,6 +18,15 @@ export const WORK_TYPES = [
   { id: "other", label: "Other" },
 ] as const;
 
+// The work type picked on onboarding, before there's an account to save it
+// to. ProfileSetupPrompt (app/_layout.tsx) writes it to profiles.work_type on
+// first sign-in, so every new account has one even if Profile setup is skipped.
+export const PENDING_WORK_TYPE_KEY = "@myexpense:pending_work_type";
+
+export function isWorkTypeId(value: unknown): value is (typeof WORK_TYPES)[number]["id"] {
+  return WORK_TYPES.some((w) => w.id === value);
+}
+
 export function workTypeLabel(workType: string | null | undefined): string {
   return WORK_TYPES.find((w) => w.id === workType)?.label ?? workType ?? "Sole proprietor";
 }

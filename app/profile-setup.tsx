@@ -1,6 +1,6 @@
 import { showNotice } from "@/components/NoticeHost";
 // ─── Profile Setup Screen ─────────────────────────────────────────────────────
-// Shown once per account per device when the profile has no work type (see
+// Shown once per account per device when the profile has no name (see
 // ProfileSetupPrompt in app/_layout.tsx). Name and work type are required;
 // the tax number is optional since many new users won't have it to hand.
 // ─────────────────────────────────────────────────────────────────────────────
@@ -27,7 +27,8 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 // Shared with the tax rules that depend on it (see lib/workType.ts).
-import { WORK_TYPES } from "@/lib/workType";
+import { isWorkTypeId, PENDING_WORK_TYPE_KEY, WORK_TYPES } from "@/lib/workType";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function ProfileSetupScreen() {
   const router = useRouter();
@@ -50,9 +51,14 @@ export default function ProfileSetupScreen() {
     if (!user) return;
     profileService
       .getProfile(user.id)
-      .then((p) => {
+      .then(async (p) => {
         if (p?.full_name) setFullName(p.full_name);
         if (p?.work_type) setWorkType(p.work_type);
+        else {
+          // Picked on onboarding but not saved yet (see ProfileSetupPrompt).
+          const pending = await AsyncStorage.getItem(PENDING_WORK_TYPE_KEY).catch(() => null);
+          if (isWorkTypeId(pending)) setWorkType(pending);
+        }
         if (p?.tax_number) setTaxNumber(p.tax_number);
         if ((p as any)?.phone) setPhone((p as any).phone);
       })

@@ -5,6 +5,8 @@ import { UpdateAvailableBanner } from "@/components/UpdateAvailableBanner";
 import { appVersionService } from "@/services/appVersionService";
 import { expenseService } from "@/services/expenseService";
 import { incomeService } from "@/services/incomeService";
+import { mileageService } from "@/services/mileageService";
+import { updateWeeklySummary } from "@/services/notificationService";
 import { profileService } from "@/services/profileService";
 import { taxLiabilityService } from "@/services/taxLiabilityService";
 import { GRACE_PERIOD_DAYS, useAuthStore } from "@/stores/authStore";
@@ -184,7 +186,7 @@ export default function HomeScreen() {
       timer = setTimeout(() => reject(new Error("timeout")), 25_000);
     });
     try {
-      const [profile, totals, incomeTotals, recent, recentInc, liabilityEstimate] = await Promise.race([
+      const [profile, totals, incomeTotals, recent, recentInc, liabilityEstimate, trips] = await Promise.race([
         Promise.all([
           profileService.getProfile(user.id),
           expenseService.getTotals(user.id, activeTaxYear),
@@ -197,9 +199,20 @@ export default function HomeScreen() {
           taxLiabilityService.refreshEstimate(user.id, activeTaxYear)
             .then((r) => r?.estimate ?? null)
             .catch(() => taxLiabilityService.getEstimate(user.id, activeTaxYear).catch(() => null)),
+          // For the weekly summary reminder. null = couldn't load, so the
+          // reminder keeps its last text.
+          mileageService.getTripSummary(user.id, activeTaxYear).catch(() => null),
         ]),
         timeout,
       ]);
+      if (trips) {
+        updateWeeklySummary({
+          expenseCount: totals.receiptCount,
+          claimable: totals.totalDeductions,
+          tripCount: trips.count,
+          businessKm: trips.km,
+        });
+      }
       if (profile?.full_name) setFirstName(profile.full_name.split(" ")[0]);
       setTotalExpenses(totals.totalExpenses);
       setTotalIncome(incomeTotals.totalIncome);

@@ -1,4 +1,12 @@
 import { supabase } from "@/lib/supabase";
+import {
+  GENERIC_WEEKLY_CONTENT,
+  upcomingMondays,
+  weeklyReminderId,
+  WeeklySummaryContent,
+  weeklySummaryContent,
+  WeeklySummaryFigures,
+} from "@/lib/weeklySummary";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
@@ -110,22 +118,71 @@ export async function syncScheduledReminders(): Promise<void> {
   if (!prefs.receiptReminders) await cancelAllReceiptReminders();
 }
 
+// ─── Weekly summary (Me > Notifications > Weekly reminder) ──────────────────
+// Each Monday at 09:00, what the user has logged so far this tax year (see
+// lib/weeklySummary.ts). The text changes as they log things, so instead of
+// one WEEKLY trigger (which would need the cancel-then-reschedule that races
+// on Android, see isAlreadyScheduled) it's one dated reminder per Monday for
+// the next few weeks. Each Monday has its own identifier, and scheduling an
+// existing identifier replaces it, so new figures never need a cancel first.
+// The window rolls forward on every app open. Someone who stops opening the
+// app gets WEEKS_SCHEDULED_AHEAD more reminders, then none.
+const LEGACY_WEEKLY_ID = "weekly-expense-reminder";
+const WEEKLY_PREFIX = "weekly-summary-";
+const WEEKLY_CONTENT_KEY = "@myexpense:weekly_summary_content";
+const WEEKS_SCHEDULED_AHEAD = 4;
+
+async function storedWeeklyContent(): Promise<WeeklySummaryContent> {
+  try {
+    const raw = await AsyncStorage.getItem(WEEKLY_CONTENT_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return GENERIC_WEEKLY_CONTENT;
+}
+
 export async function scheduleWeeklyExpenseReminder(): Promise<void> {
-  if (await isAlreadyScheduled("weekly-expense-reminder")) return;
-  await Notifications.scheduleNotificationAsync({
-    identifier: "weekly-expense-reminder",
-    content: {
-      title: "Don't forget your expenses",
-      body: "Add this week's business expenses so your tax return is ready when you need it.",
-      data: { route: "/(tabs)" },
-    },
-    trigger: {
-      type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
-      weekday: 2, // Monday (1 = Sunday)
-      hour: 9,
-      minute: 0,
-    },
-  });
+  // The old recurring reminder is never rescheduled, so cancelling it can't
+  // race. A no-op once it's gone.
+  await Notifications.cancelScheduledNotificationAsync(LEGACY_WEEKLY_ID).catch(() => {});
+
+  const content = await storedWeeklyContent();
+  const mondays = upcomingMondays(WEEKS_SCHEDULED_AHEAD);
+  const wanted = new Set(mondays.map(weeklyReminderId));
+  const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+  const current = new Set<string>();
+
+  for (const n of scheduled) {
+    if (!n.identifier.startsWith(WEEKLY_PREFIX)) continue;
+    if (!wanted.has(n.identifier)) {
+      await Notifications.cancelScheduledNotificationAsync(n.identifier).catch(() => {});
+    } else if (n.content.title === content.title && n.content.body === content.body) {
+      current.add(n.identifier);
+    }
+  }
+
+  for (const date of mondays) {
+    const identifier = weeklyReminderId(date);
+    if (current.has(identifier)) continue;
+    await Notifications.scheduleNotificationAsync({
+      identifier,
+      content: { ...content, data: { route: "/(tabs)" } },
+      trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date },
+    });
+  }
+}
+
+/** Called with the figures Home just loaded. Only touches the schedule when
+ *  the text changes, and never throws: Home must not fail over a reminder. */
+export async function updateWeeklySummary(figures: WeeklySummaryFigures): Promise<void> {
+  try {
+    const next = weeklySummaryContent(figures);
+    const prev = await storedWeeklyContent();
+    if (prev.title === next.title && prev.body === next.body) return;
+    await AsyncStorage.setItem(WEEKLY_CONTENT_KEY, JSON.stringify(next));
+    if ((await getNotificationPrefs()).weeklyReminder) await scheduleWeeklyExpenseReminder();
+  } catch (e) {
+    console.warn("Weekly summary not updated:", e);
+  }
 }
 
 export async function scheduleMonthlyReportReminder(): Promise<void> {
@@ -229,7 +286,13 @@ export async function scheduleSARSDeadlineReminders(): Promise<void> {
 }
 
 export async function cancelWeeklyExpenseReminder(): Promise<void> {
-  await Notifications.cancelScheduledNotificationAsync("weekly-expense-reminder").catch(() => {});
+  await Notifications.cancelScheduledNotificationAsync(LEGACY_WEEKLY_ID).catch(() => {});
+  const scheduled = await Notifications.getAllScheduledNotificationsAsync().catch(() => []);
+  await Promise.all(
+    scheduled
+      .filter((n) => n.identifier.startsWith(WEEKLY_PREFIX))
+      .map((n) => Notifications.cancelScheduledNotificationAsync(n.identifier).catch(() => {})),
+  );
 }
 
 export async function cancelMonthlyReportReminder(): Promise<void> {

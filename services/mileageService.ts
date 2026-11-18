@@ -90,6 +90,19 @@ export const mileageService = {
     return (data ?? []).reduce((sum, t) => sum + Number(t.distance_km), 0);
   },
 
+  // Trip count and km for the tax year: Home's first-run check and the weekly
+  // summary reminder.
+  getTripSummary: async (userId: string, taxYear: string): Promise<{ count: number; km: number }> => {
+    const { data, error } = await supabase
+      .from("mileage_trips")
+      .select("distance_km")
+      .eq("user_id", userId)
+      .eq("tax_year", taxYear);
+    if (error) throw new Error(error.message);
+    const trips = data ?? [];
+    return { count: trips.length, km: trips.reduce((sum, t) => sum + Number(t.distance_km), 0) };
+  },
+
   createTrip: async (userId: string, trip: NewMileageTrip): Promise<MileageTrip> => {
     const { data, error } = await supabase
       .from("mileage_trips")
