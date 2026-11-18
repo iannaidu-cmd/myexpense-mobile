@@ -159,7 +159,7 @@ export default function ITR12ExportPreviewScreen() {
         "and Professional Income). Retirement Annuity per s9.3.",
         "",
         "For reference only. Submit via SARS eFiling.",
-        `Generated: ${new Date().toLocaleDateString("en-ZA")}`,
+        `Generated: ${new Date().toLocaleDateString("en-ZA", { day: "numeric", month: "short", year: "numeric" })}`,
       ].join("\n");
       await Share.share({
         message: lines,
