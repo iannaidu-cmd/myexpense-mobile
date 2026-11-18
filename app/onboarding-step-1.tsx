@@ -93,26 +93,13 @@ export default function OnboardingScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colour.background }}>
-      {/* Top bar: logo + sign in */}
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          paddingHorizontal: 22,
-          paddingTop: 10,
-        }}
-      >
+      {/* Top bar: logo */}
+      <View style={{ paddingHorizontal: 22, paddingTop: 10 }}>
         <Image
           source={require('@/assets/images/Full-logo.gif')}
           style={{ width: 132, height: 28 }}
           resizeMode="contain"
         />
-        <TouchableOpacity onPress={() => router.replace('/sign-in')} hitSlop={10}>
-          <Text style={{ fontSize: 13, fontWeight: '600', color: colour.textSub }}>
-            Already a user? <Text style={{ color: colour.primary, fontWeight: '700' }}>Sign in</Text>
-          </Text>
-        </TouchableOpacity>
       </View>
 
       {/* Pager */}
@@ -157,9 +144,8 @@ export default function OnboardingScreen() {
             Stop leaving your money with SARS.
           </Text>
           <Text style={{ fontSize: 15.5, color: colour.textSub, lineHeight: 23 }}>
-            Most self-employed people in South Africa pay more tax than they need to, because slips get
-            lost and work trips go unrecorded. MyExpense keeps them all in one place, so you can claim
-            {"what you're owed."}
+            Lost slips and unrecorded work trips cost you at tax time. MyExpense keeps them in one place,
+            so you claim it all back.
           </Text>
         </ScrollView>
 
@@ -327,14 +313,15 @@ export default function OnboardingScreen() {
           </TouchableOpacity>
         </View>
 
-        <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 14, marginTop: 12 }}>
-          {['Free to start', 'No card needed', 'Change it anytime'].map((t) => (
-            <View key={t} style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-              <View style={{ width: 6, height: 6, borderRadius: radius.pill, backgroundColor: colour.brandTeal }} />
-              <Text style={{ fontSize: 11, fontWeight: '600', color: colour.textSub }}>{t}</Text>
-            </View>
-          ))}
-        </View>
+        <TouchableOpacity
+          onPress={() => router.replace('/sign-in')}
+          hitSlop={10}
+          style={{ alignSelf: 'center', marginTop: 14 }}
+        >
+          <Text style={{ fontSize: 14, fontWeight: '600', color: colour.textSub }}>
+            Already a user? <Text style={{ color: colour.primary, fontWeight: '700' }}>Sign in</Text>
+          </Text>
+        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
