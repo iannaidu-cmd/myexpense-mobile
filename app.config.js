@@ -106,6 +106,8 @@ const config = {
   },
   plugins: [
     "expo-router",
+    // Play: screen.portrait and wifi are optional, see the plugin.
+    "./plugins/withOptionalHardwareFeatures",
     [
       "expo-build-properties",
       {
