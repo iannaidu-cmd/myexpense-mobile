@@ -27,7 +27,6 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 // Shared with the tax rules that depend on it (see lib/workType.ts).
-import { claimFirstTaskScreen } from "@/lib/firstTask";
 import { isWorkTypeId, PENDING_WORK_TYPE_KEY, WORK_TYPES } from "@/lib/workType";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -66,14 +65,6 @@ export default function ProfileSetupScreen() {
       .catch(() => {});
   }, [user]);
 
-  // Back to Home, with the once-off first task screen over it if nothing is
-  // logged yet (ProfileSetupPrompt hands that step over to here).
-  const goHome = async () => {
-    const showFirstTask = user ? await claimFirstTaskScreen(user.id) : false;
-    router.replace("/(tabs)");
-    if (showFirstTask) router.push("/first-task" as any);
-  };
-
   const validate = () => {
     const e: typeof errors = {};
     if (!fullName.trim()) e.fullName = "Full name is required";
@@ -105,7 +96,7 @@ export default function ProfileSetupScreen() {
       // Work type decides whether vehicle wear & tear can be claimed
       // (lib/workType.ts), so recompute it, and the Home estimate with it.
       useVehicleStore.getState().syncWearAndTear(user.id, useExpenseStore.getState().activeTaxYear);
-      goHome();
+      router.replace("/(tabs)");
     } catch {
       showNotice({ title: "Couldn't save your profile", message: "Please check your internet connection and try again." });
     } finally {
@@ -429,7 +420,7 @@ export default function ProfileSetupScreen() {
 
             {/* Skip link */}
             <TouchableOpacity
-              onPress={goHome}
+              onPress={() => router.replace("/(tabs)")}
               style={{
                 alignItems: "center",
                 paddingVertical: space.sm,
