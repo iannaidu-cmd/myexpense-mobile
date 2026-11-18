@@ -35,6 +35,16 @@ export function displayDateToISO(display: string): string {
   return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
 }
 
+// True for a real calendar date in ISO "YYYY-MM-DD" form (rejects 31/02,
+// month 13, partial input, etc.), so it's safe to send to a Postgres date.
+export function isValidISODate(iso: string): boolean {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  if (!m) return false;
+  const [y, mo, d] = [Number(m[1]), Number(m[2]), Number(m[3])];
+  const dt = new Date(y, mo - 1, d);
+  return dt.getFullYear() === y && dt.getMonth() === mo - 1 && dt.getDate() === d;
+}
+
 // Date → ISO "YYYY-MM-DD" in the device's local time zone. Use this instead
 // of toISOString().split("T")[0], which gives the UTC date — in SAST (UTC+2)
 // anything between midnight and 02:00 lands on the previous day.
