@@ -189,7 +189,7 @@ export const ITR12_CATEGORIES: Record<
   "Home Office":                { field: "Rental Paid",                    code: "",     section: "S11(a) – Pg 11-12" },
   "Equipment & Tools":          { field: "Depreciation",                   code: "",     section: "S11(e) – Pg 11-12" },
   "Software & Subscriptions":   { field: "Other",                          code: "",     section: "S11(a) – Pg 11-12" },
-  "Meals & Entertainment":      { field: "Entertainment",                  code: "",     section: "S23(o) 80% – Pg 11-12" },
+  "Meals & Entertainment":      { field: "Entertainment",                  code: "",     section: "S11(a) – Pg 11-12" },
   "Professional Fees":          { field: "Consulting Fees Paid",           code: "",     section: "S11(a) – Pg 11-12" },
   Utilities:                    { field: "Electricity / Rates and Taxes",  code: "",     section: "S11(a) – Pg 11-12" },
   "Marketing & Advertising":    { field: "Other",                          code: "",     section: "S11(a) – Pg 11-12" },

@@ -19,9 +19,14 @@ export function floorRatio(s: HomeOfficeSetting | null): number {
   return Math.min(s.officeM2 / s.totalM2, 1);
 }
 
-/** Annual rent or bond interest x floor ratio, whole rands. 0 for "none". */
+/**
+ * Annual rent x floor ratio, whole rands. 0 for "none" and for owners: SARS
+ * does not allow bond interest from the 2023 year of assessment onward (ITR12
+ * comprehensive guide, home office expenses). Owners still claim rates,
+ * electricity and repairs, logged as expenses at the floor ratio.
+ */
 export function annualDeductible(s: HomeOfficeSetting | null): number {
-  if (!s || s.arrangementType === "none") return 0;
+  if (!s || s.arrangementType !== "renting") return 0;
   return Math.round(s.annualCost * floorRatio(s));
 }
 
@@ -63,7 +68,6 @@ export function setupClaimForYear(
 
 /** "Home office setup: 10% of R 120 000 annual rent" */
 export function setupClaimDescription(setting: HomeOfficeSetting): string {
-  const what = setting.arrangementType === "owned" ? "annual bond interest" : "annual rent";
   const rands = Math.round(setting.annualCost).toLocaleString("en-ZA");
-  return `Home office setup: ${formatRatio(floorRatio(setting))} of R ${rands} ${what}`;
+  return `Home office setup: ${formatRatio(floorRatio(setting))} of R ${rands} annual rent`;
 }

@@ -37,13 +37,13 @@ const fmt = (n: number) =>
   `R ${n.toLocaleString("en-ZA", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 
 const ARRANGEMENTS: { key: ArrangementType; label: string; desc: string }[] = [
-  { key: "owned", label: "Owned (bond/mortgage)", desc: "Claim proportional bond interest paid" },
+  { key: "owned", label: "I own it", desc: "Rates, electricity & repairs claimed at this ratio. Bond interest can't be claimed" },
   { key: "renting", label: "Renting", desc: "Claim proportional monthly rent paid" },
   { key: "none", label: "Neither", desc: "Utilities, rates & repairs still deductible at this ratio" },
 ];
 
 const APPLIES_TO = [
-  { icon: "house.fill", label: "Home office rent / bond interest", note: "Floor ratio" },
+  { icon: "house.fill", label: "Home office rent", note: "Floor ratio" },
   { icon: "bolt.fill", label: "Electricity & utilities", note: "Floor ratio" },
   { icon: "wrench.fill", label: "Repairs & maintenance", note: "Floor ratio" },
   { icon: "building.2.fill", label: "Levies & rates", note: "Floor ratio" },
@@ -104,7 +104,9 @@ export default function HomeOfficeSetupScreen() {
           officeM2: office,
           totalM2: total,
           arrangementType,
-          annualCost: arrangementType === "none" ? 0 : arrangementType === "renting" ? annualRent : cost,
+          // Only rent is a setup cost. Bond interest stopped being deductible
+          // from the 2023 year of assessment (SARS ITR12 guide, home office).
+          annualCost: arrangementType === "renting" ? annualRent : 0,
           costTaxYear: ACTIVE_TAX_YEAR,
         }
       : null;
@@ -113,7 +115,7 @@ export default function HomeOfficeSetupScreen() {
   const ratioPct = (ratio * 100).toFixed(1);
   const deductible = annualDeductible(previewSetting);
   // Saved before the tax year was recorded: the cost claims nothing until re-saved.
-  const needsResave = !!setting && setting.annualCost > 0 && !setting.costTaxYear;
+  const needsResave = !!setting && setting.arrangementType === "renting" && setting.annualCost > 0 && !setting.costTaxYear;
 
   const canSave = office > 0 && total > 0 && office <= total;
 
@@ -185,7 +187,7 @@ export default function HomeOfficeSetupScreen() {
     if (reapply.updatable === 0) {
       return `Your home office now claims ${pct}.${older}`;
     }
-    return `${reapply.updatable} home office, utilities and repairs ${reapply.updatable === 1 ? "expense" : "expenses"} this tax year will be updated to claim ${pct}. Check any home contents insurance or bond interest expenses yourself.${older}`;
+    return `${reapply.updatable} home office, utilities and repairs ${reapply.updatable === 1 ? "expense" : "expenses"} this tax year will be updated to claim ${pct}. Check any home contents insurance expenses yourself.${older}`;
   })();
 
   const handleClear = () => {
@@ -223,7 +225,7 @@ export default function HomeOfficeSetupScreen() {
             <InfoBanner
               icon="exclamationmark.triangle.fill"
               title="Save your setup again"
-              body={`Your ${setting?.arrangementType === "owned" ? "bond interest" : "rent"} isn't being claimed yet. Check the details below and tap Save to add it to your ${ACTIVE_TAX_YEAR} tax year.`}
+              body={`Your rent isn't being claimed yet. Check the details below and tap Save to add it to your ${ACTIVE_TAX_YEAR} tax year.`}
               style={{ marginBottom: space.md }}
             />
           )}
@@ -409,12 +411,20 @@ export default function HomeOfficeSetupScreen() {
           </View>
 
           {/* ── Cost input ────────────────────────────────────────────── */}
-          {arrangementType !== "none" && (
+          {arrangementType === "owned" && (
+            <InfoBanner
+              icon="info.circle.fill"
+              title="Bond interest can't be claimed"
+              body="SARS stopped allowing bond interest for a home office from the 2023 tax year. Add your rates, electricity and repairs as expenses and we'll claim your office's share of them."
+              style={{ marginBottom: space.xl }}
+            />
+          )}
+          {arrangementType === "renting" && (
             <>
               <Text
                 style={{ ...typography.labelM, color: colour.textSub, marginBottom: space.sm }}
               >
-                {arrangementType === "owned" ? "Bond interest for the year" : "Monthly rent"}
+                Monthly rent
               </Text>
 
               <View
@@ -441,11 +451,6 @@ export default function HomeOfficeSetupScreen() {
                 />
               </View>
 
-              {arrangementType === "owned" && (
-                <Text style={{ ...typography.bodyXS, color: colour.textSub }}>
-                  Only the interest, not the amount you pay off the loan. Your yearly bond statement shows the split.
-                </Text>
-              )}
               {arrangementType === "renting" && cost > 0 && (
                 <Text style={{ ...typography.bodyXS, color: colour.textSub }}>
                   Rent for the year: {fmt(annualRent)} ({fmt(cost)} × 12 months)
@@ -487,7 +492,7 @@ export default function HomeOfficeSetupScreen() {
                   </Text>
                 </View>
 
-                {arrangementType !== "none" && (
+                {arrangementType === "renting" && (
                   <>
                     <View
                       style={{
@@ -497,10 +502,10 @@ export default function HomeOfficeSetupScreen() {
                       }}
                     >
                       <Text style={{ fontSize: 12, color: colour.onNoir2 }}>
-                        Annual {arrangementType === "renting" ? "rent" : "bond interest"}
+                        Annual rent
                       </Text>
                       <Text style={{ fontSize: 12, fontWeight: "700", color: colour.onNoir }}>
-                        {fmt(arrangementType === "renting" ? annualRent : cost)}
+                        {fmt(annualRent)}
                       </Text>
                     </View>
 
@@ -545,7 +550,7 @@ export default function HomeOfficeSetupScreen() {
 
               {/* Where the claimable amount goes. Logged Home Office expenses
                   win over the setup cost, so it is never counted twice. */}
-              {arrangementType !== "none" && deductible > 0 && loggedCount !== null && (
+              {arrangementType === "renting" && deductible > 0 && loggedCount !== null && (
                 <InfoBanner
                   body={
                     loggedCount > 0
@@ -635,7 +640,7 @@ export default function HomeOfficeSetupScreen() {
       <ConfirmModal
         visible={showRemoveConfirm}
         title="Remove home office setup"
-        message="New expenses will be claimed in full and your rent or bond interest will no longer be claimed. Existing expenses keep their current amounts."
+        message="New expenses will be claimed in full and your rent will no longer be claimed. Existing expenses keep their current amounts."
         confirmLabel="Remove"
         cancelLabel="Cancel"
         destructive
