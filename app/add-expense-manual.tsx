@@ -4,6 +4,8 @@ import { showNotice } from "@/components/NoticeHost";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ConfirmModal } from "@/components/ConfirmModal";
 import { InfoBanner } from "@/components/InfoBanner";
+import { SarsFieldPicker } from "@/components/SarsFieldPicker";
+import { sarsFieldTypes, validSarsField } from "@/lib/itr12Summary";
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { SuccessModal } from "@/components/SuccessModal";
@@ -153,6 +155,8 @@ export default function AddExpenseScreen() {
   const [note, setNote] = useState("");
   const [showCatPicker, setShowCatPicker] = useState(false);
   const [businessUsePct, setBusinessUsePct] = useState("100");
+  // ITR12 field for Professional Fees / Home Office (see SarsFieldPicker).
+  const [sarsField, setSarsField] = useState<string | null>(null);
   const [insuranceSubType, setInsuranceSubType] = useState<"business" | "property_contents">("business");
   const [interestSubType, setInterestSubType] = useState<"business_loan" | "bond" | "personal">("business_loan");
   const [saving, setSaving] = useState(false);
@@ -286,6 +290,9 @@ export default function AddExpenseScreen() {
         gross_amount: apportioned ? rawAmount : null,
         business_use_pct: apportioned ? parseFloat((pct * 100).toFixed(2)) : null,
         vehicle_id: category === "Vehicle Expenses" ? vehicleId : null,
+        sars_field: sarsFieldTypes(category)
+          ? validSarsField(category, sarsField) ?? sarsFieldTypes(category)![0].field
+          : null,
       });
       // Manual entries never have a receipt, so nudge for business ones.
       if (saved.is_deductible) {
@@ -295,6 +302,7 @@ export default function AddExpenseScreen() {
       setAmount("");
       setVendor("");
       setCategory("");
+      setSarsField(null);
       setVatAmount("");
       setNote("");
       setBusinessUsePct("100");
@@ -518,6 +526,7 @@ export default function AddExpenseScreen() {
               </Text>
             </View>
           )}
+          <SarsFieldPicker category={category} value={sarsField} onChange={setSarsField} />
           {/* Contextual notes per category */}
           {(category === "Telephone & Cell" || category === "Telephone & Internet") && (
             <View>

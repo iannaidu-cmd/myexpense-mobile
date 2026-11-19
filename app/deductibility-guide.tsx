@@ -113,9 +113,9 @@ const GUIDE: GuideEntry[] = [
     iconColor: colour.accentDeep,
     category: "Professional Fees",
     section: "S11(a)",
-    itr12Field: "Consulting Fees Paid",
+    itr12Field: "Accounting Fees / Legal Costs / Consulting Fees Paid",
     deductPct: "100%",
-    condition: "Legal, accounting, consulting fees for business.",
+    condition: "Pick the type when you add it: accountant or bookkeeper goes in Accounting Fees, lawyer in Legal Costs, anyone else in Consulting Fees Paid. Legal fees for buying a property, vehicle or business can't be claimed.",
     docs: "Tax invoice from registered practitioner",
   },
   {

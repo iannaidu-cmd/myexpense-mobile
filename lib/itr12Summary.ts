@@ -69,6 +69,69 @@ export function canonicalCategory(category: string | null | undefined): string {
   return LEGACY_CATEGORY_ALIASES[c] ?? c;
 }
 
+/**
+ * Categories that cover more than one ITR12 field. The user picks a type and
+ * the expense's `sars_field` is saved, so the export puts it in the exact
+ * field SARS uses. The first option is the default when none is saved.
+ */
+export interface SarsFieldType {
+  label: string;
+  field: SarsExpenditureField;
+  /** Shown under the picker when this type is chosen. */
+  hint?: string;
+}
+
+export const SARS_FIELD_TYPES: Record<string, SarsFieldType[]> = {
+  "Professional Fees": [
+    { label: "Consultant or other", field: "Consulting Fees Paid" },
+    { label: "Accountant or bookkeeper", field: "Accounting Fees" },
+    {
+      label: "Lawyer",
+      field: "Legal Costs",
+      hint: "Legal fees for buying a property, vehicle or business can't be claimed. Only claim legal costs for running your business.",
+    },
+  ],
+  "Home Office": [
+    { label: "Rent", field: "Rental Paid" },
+    { label: "Electricity, rates and taxes", field: "Electricity / Rates and Taxes" },
+    { label: "Repairs", field: "Repairs / Maintenance" },
+    { label: "Cleaning", field: "Other" },
+  ],
+};
+
+/** Type options for a category, or null when it maps to one field only. */
+export function sarsFieldTypes(category: string | null | undefined): SarsFieldType[] | null {
+  return SARS_FIELD_TYPES[canonicalCategory(category)] ?? null;
+}
+
+/** The saved field if it is valid for this category, otherwise null. */
+export function validSarsField(category: string | null | undefined, field: string | null | undefined): SarsExpenditureField | null {
+  const types = sarsFieldTypes(category);
+  return types?.find((t) => t.field === field)?.field ?? null;
+}
+
+// Best guess from a statement description, for bank imports (no picker).
+const FIELD_GUESSES: Record<string, [RegExp, SarsExpenditureField][]> = {
+  "Professional Fees": [
+    [/account|bookkeep|audit|tax practi|saica|sait/i, "Accounting Fees"],
+    [/attorney|lawyer|legal|advocate|conveyanc|law/i, "Legal Costs"],
+  ],
+  "Home Office": [
+    [/rent|letting|landlord/i, "Rental Paid"],
+    [/eskom|electric|prepaid|municipal|rates|city of|city power/i, "Electricity / Rates and Taxes"],
+    [/repair|plumb|maintenance|handyman/i, "Repairs / Maintenance"],
+    [/clean|domestic|sweepsouth/i, "Other"],
+  ],
+};
+
+/** The field to save for a new expense when nobody picked a type. */
+export function guessSarsField(category: string, description: string | null | undefined): SarsExpenditureField | null {
+  const types = sarsFieldTypes(category);
+  if (!types) return null;
+  const hit = FIELD_GUESSES[canonicalCategory(category)]?.find(([re]) => re.test(description ?? ""));
+  return hit ? hit[1] : types[0].field;
+}
+
 interface ExpenseLike {
   id?: string;
   vendor?: string | null;
@@ -80,17 +143,20 @@ interface ExpenseLike {
   is_deductible: boolean;
   expense_date?: string;
   wear_and_tear_vehicle_id?: string | null;
+  sars_field?: string | null;
 }
 
 /**
  * The ITR12 business expenditure field an expense belongs in, or null when it
  * isn't business expenditure (retirement annuity, personal).
  */
-export function sarsFieldFor(e: Pick<ExpenseLike, "category" | "wear_and_tear_vehicle_id">): SarsExpenditureField | null {
+export function sarsFieldFor(e: Pick<ExpenseLike, "category" | "wear_and_tear_vehicle_id" | "sars_field">): SarsExpenditureField | null {
   // The yearly vehicle wear-and-tear row is an s11(e) allowance, not a running cost.
   if (e.wear_and_tear_vehicle_id) return "Depreciation";
   const cat = canonicalCategory(e.category);
   if (cat === RETIREMENT_ANNUITY_CATEGORY || cat === NON_DEDUCTIBLE_LABEL) return null;
+  const types = SARS_FIELD_TYPES[cat];
+  if (types) return validSarsField(cat, e.sars_field) ?? types[0].field;
   const field = ITR12_CATEGORIES[cat]?.field;
   return (SARS_EXPENDITURE_FIELDS as readonly string[]).includes(field ?? "")
     ? (field as SarsExpenditureField)
@@ -141,6 +207,7 @@ const OTHER_DESCRIPTIONS: Record<string, string> = {
   "Software & Subscriptions": "software and subscriptions",
   "Marketing & Advertising": "advertising and marketing",
   "Training & Education": "training and education",
+  "Home Office": "home office cleaning",
 };
 
 export function buildExpenditure(
@@ -315,7 +382,8 @@ export type FilingCheck =
   | { kind: "duplicate"; vendor: string; date: string; amount: number; count: number }
   | { kind: "largeEquipment"; vendor: string; date: string; amount: number }
   | { kind: "supermarketEntertainment"; vendor: string; date: string; amount: number }
-  | { kind: "bondInterest"; vendor: string; date: string; amount: number };
+  | { kind: "bondInterest"; vendor: string; date: string; amount: number }
+  | { kind: "typeNotChosen"; vendor: string; date: string; amount: number; category: string; field: SarsExpenditureField };
 
 const SUPERMARKET = /checkers|\bspar\b|kwikspar|superspar|pick ?n ?pay|woolworths|shoprite|food lover|makro|\bgame\b|usave/i;
 
@@ -348,6 +416,9 @@ export function filingChecks(expenses: ExpenseLike[]): FilingCheck[] {
     } else if (cat === "Interest & Finance Charges" && e.business_use_pct != null) {
       // Only the old "Bond" interest option saved a floor-ratio share here.
       checks.push({ kind: "bondInterest", ...base });
+    } else if (SARS_FIELD_TYPES[cat] && !validSarsField(cat, e.sars_field)) {
+      // Saved before the type picker existed: it sits in the default field.
+      checks.push({ kind: "typeNotChosen", ...base, category: cat, field: SARS_FIELD_TYPES[cat][0].field });
     }
   }
   return checks;

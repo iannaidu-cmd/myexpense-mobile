@@ -65,6 +65,9 @@ export interface Expense {
   business_use_pct?: number | null;
   /** The vehicle a Vehicle Expenses cost was for. */
   vehicle_id?: string | null;
+  /** ITR12 field picked for categories that span several fields (Professional
+   *  Fees, Home Office); see SARS_FIELD_TYPES in lib/itr12Summary.ts. */
+  sars_field?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -160,6 +163,7 @@ export interface NewExpense {
   gross_amount?: number | null;
   business_use_pct?: number | null;
   vehicle_id?: string | null;
+  sars_field?: string | null;
 }
 
 export interface UpdateExpense extends Partial<NewExpense> {
