@@ -205,6 +205,8 @@ export const ITR12_CATEGORIES: Record<
   "Training & Education":       { field: "Other",                          code: "",     section: "S11(a) – Pg 11-12" },
   "Telephone & Internet":       { field: "Telephone",                      code: "",     section: "S11(a) – Pg 11-12" },
   "Vehicle Expenses":           { field: "Travel Costs – Local",           code: "",     section: "S11(a) – Pg 11-12" },
+  // Medical tax credits, not business expenditure (lib/itr12Summary.ts MEDICAL_TYPES).
+  Medical:                      { field: "Medical section",                code: "4005/4020/4034", section: "Medical credits – S6A/S6B" },
   "Retirement Annuity":         { field: "Total contributions",            code: "4006", section: "RA – Pg 23" },
   "Personal / Other":           { field: "Not Deductible",                 code: "",     section: "" },
 };

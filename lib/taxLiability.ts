@@ -26,6 +26,16 @@ export interface TaxLiabilityInput {
   /** Dependants on the medical aid, excluding the main member. */
   medicalAidDependants: number;
   /**
+   * Medical aid contributions paid for the year (code 4005). The monthly
+   * medical scheme fees credit only applies when this is above 0, i.e. the
+   * person actually belongs to a medical aid. Omitted = 0 = no medical aid.
+   */
+  medicalSchemeContributions?: number;
+  /** Qualifying medical costs the medical aid didn't pay (codes 4020 + 4034). */
+  qualifyingMedicalExpenses?: number;
+  /** The person, their spouse or a child has a disability (s6B 7.5% limit doesn't apply). */
+  hasDisability?: boolean;
+  /**
    * Section 18A donations for the tax year. Accepted but NOT used in v1 —
    * the deduction is always 0 (see donationsDeductible below). When S18A is
    * built (v2), this becomes: min(donationsYtd, 0.10 * taxableIncomeBeforeDonations).
@@ -93,7 +103,12 @@ export interface TaxLiabilityResult {
   tertiaryRebate: number;
   rebatesApplied: number;
   taxAfterRebates: number;
+  /** Medical scheme fees credit (s6A) + additional medical expenses credit (s6B). */
   medicalCreditApplied: number;
+  /** s6A part of medicalCreditApplied. */
+  medicalSchemeFeesCredit: number;
+  /** s6B part of medicalCreditApplied. */
+  additionalMedicalCredit: number;
   taxAfterCredits: number;
   taxAlreadyPaid: number;
   /** Sum of every lump sum entry's gross amount (primary + additionalLumpSums). */
@@ -143,6 +158,31 @@ function computeLumpSumBreakdown(
 // `new Date(endCalendarYear, 2, 0)` — day 0 of March — which resolves to the
 // last day of February and is leap-year-safe for any calendar year, not just
 // the years currently hardcoded in TAX_DATA_BY_YEAR.
+/**
+ * s6B additional medical expenses tax credit (SARS ITR12 comprehensive guide,
+ * medical sections 9.1.4 to 9.1.6):
+ * - 65 or older, or a disability in the family: 33.3% of (contributions above
+ *   3 x the s6A credit + qualifying medical expenses).
+ * - Under 65 with no disability: 25% of the amount by which (contributions
+ *   above 4 x the s6A credit + qualifying medical expenses) exceeds 7.5% of
+ *   taxable income.
+ */
+export function additionalMedicalExpensesCredit(p: {
+  contributions: number;
+  schemeFeesCredit: number;
+  qualifyingExpenses: number;
+  taxableIncome: number;
+  olderOrDisabled: boolean;
+}): number {
+  if (p.olderOrDisabled) {
+    const excess = Math.max(0, p.contributions - 3 * p.schemeFeesCredit);
+    return Math.round((excess + p.qualifyingExpenses) * 0.333);
+  }
+  const excess = Math.max(0, p.contributions - 4 * p.schemeFeesCredit);
+  const aboveThreshold = excess + p.qualifyingExpenses - 0.075 * p.taxableIncome;
+  return Math.max(0, Math.round(aboveThreshold * 0.25));
+}
+
 export function ageAtTaxYearEnd(dateOfBirth: string | null, taxYear: string): number | null {
   if (!dateOfBirth) return null;
   const dob = new Date(dateOfBirth);
@@ -203,7 +243,19 @@ export function calculateTaxLiability(input: TaxLiabilityInput): TaxLiabilityRes
 
   const taxAfterRebates = Math.max(0, grossTax - rebatesApplied);
 
-  const medicalCreditApplied = medicalTaxCreditForYear(input.medicalAidDependants, input.taxYear);
+  // s6A: a fixed monthly credit, but only for someone who pays a medical aid.
+  // It used to be applied to everyone, which overstated refunds for people
+  // with no medical aid.
+  const contributions = Math.max(0, input.medicalSchemeContributions ?? 0);
+  const medicalSchemeFeesCredit = contributions > 0 ? medicalTaxCreditForYear(input.medicalAidDependants, input.taxYear) : 0;
+  const additionalMedicalCredit = additionalMedicalExpensesCredit({
+    contributions,
+    schemeFeesCredit: medicalSchemeFeesCredit,
+    qualifyingExpenses: Math.max(0, input.qualifyingMedicalExpenses ?? 0),
+    taxableIncome,
+    olderOrDisabled: (age !== null && age >= 65) || !!input.hasDisability,
+  });
+  const medicalCreditApplied = medicalSchemeFeesCredit + additionalMedicalCredit;
   const taxAfterCredits = Math.max(0, taxAfterRebates - medicalCreditApplied);
 
   const { totalGross: lumpSumGrossTotal, totalTax: lumpSumTax, entries: lumpSumEntries } =
@@ -225,6 +277,8 @@ export function calculateTaxLiability(input: TaxLiabilityInput): TaxLiabilityRes
     rebatesApplied,
     taxAfterRebates,
     medicalCreditApplied,
+    medicalSchemeFeesCredit,
+    additionalMedicalCredit,
     taxAfterCredits,
     taxAlreadyPaid: input.taxAlreadyPaid,
     retirementSeveranceLumpSum: lumpSumGrossTotal,

@@ -3,6 +3,8 @@ import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import {
+  annualMedicalContributions,
+  medicalTotals,
   assessmentPeriod,
   buildExpenditure,
   buildIncome,
@@ -56,6 +58,8 @@ export default function ITR12ExportPreviewScreen() {
   const [profile, setProfile] = useState<any>(null);
   const [expenditure, setExpenditure] = useState<ExpenditureSummary | null>(null);
   const [result, setResult] = useState<BusinessResult | null>(null);
+  // Medical section of the ITR12 (codes 4005 / 4020 / 4034), same as the PDF.
+  const [medical, setMedical] = useState<{ code: string; label: string; amount: number }[]>([]);
   const [taxLiability, setTaxLiability] = useState<TaxLiabilityEstimate | null>(null);
   const [sharing, setSharing] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
@@ -80,6 +84,14 @@ export default function ITR12ExportPreviewScreen() {
       const exp = buildExpenditure(expenses, vatRegistered, setupClaim?.amount ?? 0);
       setProfile(prof);
       setExpenditure(exp);
+      const med = medicalTotals(expenses);
+      setMedical(
+        [
+          { code: "4005", label: "Medical aid contributions", amount: annualMedicalContributions(med, prof?.medical_aid_monthly) },
+          { code: "4020", label: "Claimed, not paid back", amount: med.claimedNotPaid },
+          { code: "4034", label: "Not claimed from medical aid", amount: med.notClaimed },
+        ].filter((m) => m.amount > 0),
+      );
       setResult(businessResult(buildIncome(incomeEntries), exp));
       setHomeOfficeSetupLabel(setupClaim?.description ?? null);
       setTaxLiability(liabilityEstimate);
@@ -136,6 +148,9 @@ export default function ITR12ExportPreviewScreen() {
         `${((result?.accountingRands ?? 0) >= 0 ? "Accounting Profit" : "Accounting Loss").padEnd(30)} ${fmt(Math.abs(result?.accountingRands ?? 0))}`,
         ...((result?.recoupmentRands ?? 0) > 0 ? [`${"Add Back – Recoupment".padEnd(30)} ${fmt(result!.recoupmentRands)}`] : []),
         `${((result?.taxableRands ?? 0) >= 0 ? "Taxable Profit" : "Taxable Loss").padEnd(30)} ${fmt(Math.abs(result?.taxableRands ?? 0))}`,
+        ...(medical.length
+          ? ["", "Medical section", ...medical.map((m) => `${`${m.label} (${m.code})`.padEnd(30)} ${fmt(m.amount)}`)]
+          : []),
         ...((expenditure?.retirementAnnuity.amount ?? 0) > 0
           ? ["", `Retirement annuity contributions (4006): ${fmt(expenditure!.retirementAnnuity.amount)}`]
           : []),
@@ -497,6 +512,30 @@ export default function ITR12ExportPreviewScreen() {
                 </>
               )}
             </View>
+            {medical.length > 0 && (
+              <View
+                style={{
+                  marginHorizontal: space.md,
+                  backgroundColor: colour.white,
+                  borderRadius: radius.md,
+                  borderWidth: 1,
+                  borderColor: colour.borderLight,
+                  padding: space.md,
+                  marginBottom: space.md,
+                }}
+              >
+                <Text style={{ fontSize: 13, fontWeight: "700", color: colour.text, marginBottom: 2 }}>Medical section</Text>
+                <Text style={{ ...typography.bodyXS, color: colour.textSub, marginBottom: space.sm }}>
+                  Not a business expense. SARS gives you a tax credit for it in the medical section of your ITR12.
+                </Text>
+                {medical.map((m) => (
+                  <View key={m.code} style={{ flexDirection: "row", justifyContent: "space-between", paddingVertical: 6 }}>
+                    <Text style={{ fontSize: 12, color: colour.text, flex: 1 }}>{m.label} ({m.code})</Text>
+                    <Text style={{ fontSize: 12, fontWeight: "700", color: colour.primary }}>{fmt(m.amount)}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
           </>
         ) : (
           <View style={{ marginHorizontal: space.md }}>

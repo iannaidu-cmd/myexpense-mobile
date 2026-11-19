@@ -507,7 +507,7 @@ export default function TaxLiabilityInputsScreen() {
                 onChangeText={setMedicalAidMonthly}
                 placeholder="0"
                 keyboardType="decimal-pad"
-                hint="How much you pay each month. This is also saved in My Profile."
+                hint="How much you pay each month. Leave it at 0 if you don't belong to a medical aid. Doctor, dentist and pharmacy costs you pay yourself go in as Medical expenses, and we add them here for you."
               />
               <View>
                 <Text style={{ fontSize: 13.5, fontWeight: "700", color: colour.text, marginBottom: space.xs }}>

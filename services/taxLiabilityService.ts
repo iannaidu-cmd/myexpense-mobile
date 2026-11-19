@@ -1,3 +1,4 @@
+import { annualMedicalContributions, medicalTotals } from "@/lib/itr12Summary";
 import { supabase } from "@/lib/supabase";
 import { calculateTaxLiability, type TaxLiabilityInput } from "@/lib/taxLiability";
 import { expenseService } from "@/services/expenseService";
@@ -9,6 +10,21 @@ export interface RecalculateEstimateInputs extends NewTaxLiabilityEstimate {
   businessTaxableIncome: number;
   dateOfBirth: string | null;
   medicalAidDependants: number;
+}
+
+// Medical inputs for the calculator, from the profile's monthly medical aid
+// amount and the Medical expenses logged for the year.
+async function medicalInputs(userId: string, taxYear: string) {
+  const [profile, expenses] = await Promise.all([
+    profileService.getProfile(userId),
+    expenseService.getExpenses(userId, taxYear),
+  ]);
+  const t = medicalTotals(expenses);
+  return {
+    medicalSchemeContributions: annualMedicalContributions(t, profile?.medical_aid_monthly),
+    qualifyingMedicalExpenses: t.claimedNotPaid + t.notClaimed,
+    hasDisability: profile?.has_disability ?? false,
+  };
 }
 
 export const taxLiabilityService = {
@@ -33,7 +49,9 @@ export const taxLiabilityService = {
     taxYear: string,
     inputs: RecalculateEstimateInputs,
   ): Promise<TaxLiabilityEstimate> => {
+    const medical = await medicalInputs(userId, taxYear);
     const result = calculateTaxLiability({
+      ...medical,
       taxYear,
       businessTaxableIncome: inputs.businessTaxableIncome,
       otherTaxableIncome: inputs.other_taxable_income,
@@ -102,6 +120,7 @@ export const taxLiabilityService = {
     const businessTaxableIncome = Math.max(0, incomeTotals.totalIncome - expenseTotals.totalDeductions);
 
     const input: TaxLiabilityInput = {
+      ...(await medicalInputs(userId, taxYear)),
       taxYear,
       businessTaxableIncome,
       otherTaxableIncome: existing.other_taxable_income,

@@ -7,6 +7,8 @@ import {
   classifyIncome,
   filingChecks,
   guessSarsField,
+  annualMedicalContributions,
+  medicalTotals,
   validSarsField,
   maskCardNumbers,
   sarsFieldFor,
@@ -204,5 +206,37 @@ describe("categories that span several ITR12 fields", () => {
     expect(checks).toEqual([
       { kind: "typeNotChosen", vendor: "Vendor", date: "2026-04-01", amount: 10, category: "Professional Fees", field: "Consulting Fees Paid" },
     ]);
+  });
+});
+
+describe("medical", () => {
+  it("totals Medical expenses by ITR12 code, defaulting to 4034", () => {
+    const t = medicalTotals([
+      { ...exp("Medical", 100), is_deductible: false },
+      { ...exp("Medical", 50, { sars_field: "4020" }), is_deductible: false },
+      { ...exp("Medical", 900, { sars_field: "4005" }), is_deductible: false },
+      exp("Bank Charges", 5),
+    ]);
+    expect(t).toEqual({ contributions: 900, claimedNotPaid: 50, notClaimed: 100, count: 3 });
+  });
+
+  it("uses logged contributions, else the monthly amount x 12, never both", () => {
+    expect(annualMedicalContributions({ contributions: 900, claimedNotPaid: 0, notClaimed: 0, count: 1 }, 500)).toBe(900);
+    expect(annualMedicalContributions({ contributions: 0, claimedNotPaid: 0, notClaimed: 0, count: 0 }, 500)).toBe(6000);
+    expect(annualMedicalContributions({ contributions: 0, claimedNotPaid: 0, notClaimed: 0, count: 0 }, null)).toBe(0);
+  });
+
+  it("keeps Medical out of business expenditure and personal spending", () => {
+    const s = buildExpenditure([{ ...exp("Medical", 100), is_deductible: false }, { ...exp("Medical", 70), is_deductible: true }], false);
+    expect(s.rows).toEqual([]);
+    expect(s.notClaimable.count).toBe(0);
+    expect(sarsFieldFor({ category: "Medical" })).toBeNull();
+  });
+});
+
+describe("medical guesses for bank imports", () => {
+  it("treats a medical aid debit as contributions and other providers as 4034", () => {
+    expect(guessSarsField("Medical", "DISCOVERY HEALTH DEBIT")).toBe("4005");
+    expect(guessSarsField("Medical", "Pharmacy")).toBe("4034");
   });
 });
