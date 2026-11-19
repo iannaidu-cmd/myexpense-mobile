@@ -5,6 +5,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { NON_DEDUCTIBLE_LABEL } from "@/constants/categories";
+import { maskCardNumbers } from "@/lib/itr12Summary";
 import { supabase } from "@/lib/supabase";
 import * as DocumentPicker from "expo-document-picker";
 import { File } from "expo-file-system";
@@ -275,9 +276,10 @@ export function parseCSV(content: string): ParsedTransaction[] {
     transactions.push({
       id: String(seq++),
       date,
-      vendor,
+      // Statement lines often carry the full card number; keep the last four.
+      vendor: maskCardNumbers(vendor),
       amount,
-      rawDescription: vendor,
+      rawDescription: maskCardNumbers(vendor),
       suggestedCategory: txType === 'income' ? 'Income' : suggested,
       isDeductible: txType === 'income' ? false : suggested !== NON_DEDUCTIBLE_LABEL,
       type: txType,
@@ -334,9 +336,9 @@ export function parseOFX(content: string): ParsedTransaction[] {
     transactions.push({
       id: String(seq++),
       date,
-      vendor,
+      vendor: maskCardNumbers(vendor),
       amount: Math.abs(amount),
-      rawDescription: memo || name,
+      rawDescription: maskCardNumbers(memo || name),
       suggestedCategory: suggested,
       isDeductible: suggested !== NON_DEDUCTIBLE_LABEL,
       type: 'expense',

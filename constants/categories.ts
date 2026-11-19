@@ -17,8 +17,8 @@ export interface Category {
 }
 
 export const CATEGORIES: Category[] = [
-  { label: "Travel & Transport",       icon: "car.fill",              code: "S8(1)(b)",  deductible: true,  examples: "Flights, Uber/Bolt, parking, tolls, car hire" },
-  { label: "Home Office",              icon: "house.fill",            code: "S11(a)/S23(b)", deductible: true, examples: "Proportional rent or bond interest for a dedicated home workspace" },
+  { label: "Travel & Transport",       icon: "car.fill",              code: "S11(a)",    deductible: true,  examples: "Flights, Uber/Bolt, parking, tolls, car hire" },
+  { label: "Home Office",              icon: "house.fill",            code: "S11(a)/S23(b)", deductible: true, examples: "Rent for a dedicated home workspace (bond interest can't be claimed)" },
   { label: "Equipment & Tools",        icon: "wrench.fill",           code: "S11(e)",    deductible: true,  examples: "Laptop, monitor, printer, tools, hardware" },
   { label: "Software & Subscriptions", icon: "gearshape.fill",        code: "S11(a)",    deductible: true,  examples: "Apps & SaaS — Netflix, Adobe, Microsoft 365, Canva, hosting, domains (not phone/internet bills)" },
   { label: "Meals & Entertainment",    icon: "fork.knife",            code: "S11(a)",    deductible: true, examples: "Client lunches, coffee meetings, work dinners" },

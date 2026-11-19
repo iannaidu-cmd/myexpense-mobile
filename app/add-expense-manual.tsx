@@ -262,8 +262,9 @@ export default function AddExpenseScreen() {
         if (interestSubType === "personal") {
           overrideDeductible = false;
         } else if (interestSubType === "bond") {
-          pct = ratio;
-          apportioned = true;
+          // Home bond interest isn't deductible from the 2023 year of
+          // assessment (SARS ITR12 guide, home office expenses).
+          overrideDeductible = false;
         }
       } else if (category === "Vehicle Expenses") {
         pct = Math.min(Math.max(parseFloat(businessUsePct) || 100, 0), 100) / 100;
@@ -692,11 +693,9 @@ export default function AddExpenseScreen() {
               )}
               {interestSubType === "bond" && (
                 <InfoBanner
-                  icon="house.fill"
-                  title={homeOfficeSetting ? `We'll claim ${(floorRatio(homeOfficeSetting) * 100).toFixed(1)}% based on your home office size` : "Home office size not set up yet"}
-                  body={homeOfficeSetting
-                    ? `Only the home office portion of your bond interest can be claimed. Your office takes up ${(floorRatio(homeOfficeSetting) * 100).toFixed(1)}% of your home (${homeOfficeSetting.officeM2}m² ÷ ${homeOfficeSetting.totalM2}m²).${amount && parseFloat(amount) > 0 ? ` Claimable amount: R ${Math.round(parseFloat(amount) * floorRatio(homeOfficeSetting)).toLocaleString("en-ZA")}` : ""}`
-                    : "Go to Settings → Tax setup → Home office to enter your room sizes."}
+                  icon="xmark.circle.fill"
+                  title="Bond interest can't be claimed"
+                  body="SARS stopped allowing interest on a home bond from the 2023 tax year, even for a home office. This expense will be saved as not claimable. Your rates, electricity and repairs can still be claimed at your home office share."
                   style={{ marginBottom: 10 }}
                 />
               )}

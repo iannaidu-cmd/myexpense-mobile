@@ -51,8 +51,8 @@ describe("setupClaimForYear", () => {
     expect(setupClaimForYear(s, "2026/27", 0)).toBe(120_000);
   });
 
-  it("works for bond interest the same way", () => {
-    expect(setupClaimForYear({ ...renting, arrangementType: "owned", annualCost: 50_000 }, "2026/27", 0)).toBe(5_000);
+  it("never claims bond interest for owners (not deductible from the 2023 year of assessment)", () => {
+    expect(setupClaimForYear({ ...renting, arrangementType: "owned", annualCost: 50_000 }, "2026/27", 0)).toBe(0);
   });
 });
 
@@ -94,6 +94,5 @@ describe("helpers", () => {
 
   it("describes where the setup amount came from", () => {
     expect(setupClaimDescription(renting)).toMatch(/^Home office setup: 10% of R 120.000 annual rent$/);
-    expect(setupClaimDescription({ ...renting, arrangementType: "owned" })).toMatch(/annual bond interest$/);
   });
 });

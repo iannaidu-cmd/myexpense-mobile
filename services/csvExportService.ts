@@ -5,8 +5,8 @@
 
 import { deductibleBase, expenseService, type HomeOfficeSetupClaim } from "@/services/expenseService";
 import { profileService } from "@/services/profileService";
+import { canonicalCategory, maskCardNumbers, sarsFieldFor } from "@/lib/itr12Summary";
 import type { Expense } from "@/types/database";
-import { ITR12_CATEGORIES } from "@/types/database";
 import { File, Paths } from "expo-file-system";
 import * as Sharing from "expo-sharing";
 
@@ -22,8 +22,13 @@ function csvField(val: string | number | null | undefined): string {
   return str;
 }
 
-function getITR12Field(category: string): string {
-  return ITR12_CATEGORIES[category]?.field || "Other";
+// Same field rules as the PDF (lib/itr12Summary.ts): old category names are
+// mapped, retirement annuity has its own section, vehicle wear and tear is
+// Depreciation.
+function itr12Field(e: Pick<Expense, "category" | "is_deductible" | "wear_and_tear_vehicle_id">): string {
+  if (!e.is_deductible) return "—";
+  if (canonicalCategory(e.category) === "Retirement Annuity") return "Retirement annuity contributions (4006)";
+  return sarsFieldFor(e) ?? "—";
 }
 
 // ─── Core CSV generation ──────────────────────────────────────────────────────
@@ -31,8 +36,8 @@ function getITR12Field(category: string): string {
 // `vatRegistered` mirrors the same rule as expenseService.getTotals: a
 // registered VAT vendor claims input VAT back separately via VAT201, so
 // their income-tax-deductible amount for ITR12 excludes vat_amount.
-// `homeOfficeSetup` is the Home Office amount from the setup screen (rent or
-// bond interest x floor %). It isn't a logged expense, so it gets its own row.
+// `homeOfficeSetup` is the Home Office amount from the setup screen (annual
+// rent x floor %). It isn't a logged expense, so it gets its own row.
 export function generateCSV(
   expenses: Expense[],
   vatRegistered = false,
@@ -64,9 +69,9 @@ export function generateCSV(
       const deductibleAmount = e.is_deductible ? deductibleBase(e, vatRegistered) : 0;
       return [
         csvField(e.expense_date),
-        csvField(e.vendor),
-        csvField(e.category),
-        csvField(e.is_deductible ? getITR12Field(e.category) : "—"),
+        csvField(maskCardNumbers(e.vendor)),
+        csvField(canonicalCategory(e.category)),
+        csvField(itr12Field(e)),
         csvField(Number(e.amount).toFixed(2)),
         csvField(e.vat_amount != null ? Number(e.vat_amount).toFixed(2) : ""),
         csvField(deductibleAmount.toFixed(2)),
@@ -83,7 +88,7 @@ export function generateCSV(
           csvField(""),
           csvField(homeOfficeSetup.description ?? "Home office setup"),
           csvField("Home Office"),
-          csvField(getITR12Field("Home Office")),
+          csvField("Rental Paid"),
           csvField(homeOfficeSetup.amount.toFixed(2)),
           csvField(""),
           csvField(homeOfficeSetup.amount.toFixed(2)),

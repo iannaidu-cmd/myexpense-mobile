@@ -1,18 +1,34 @@
 // ─── PDF Export Service ───────────────────────────────────────────────────────
-// Generates a professional ITR12 PDF report and triggers the native share sheet.
+// Builds the ITR12 preparation summary PDF and opens the native share sheet.
 // Uses expo-print to render HTML → PDF, and expo-sharing to share the file.
+//
+// The report follows the ITR12 "Local Business, Trade and Professional Income"
+// section: SARS field labels, in form order, one whole-rand amount per field,
+// so the user can work straight down the eFiling page. Every figure comes from
+// the signed-in user's own records (lib/itr12Summary.ts does the sums).
 // ─────────────────────────────────────────────────────────────────────────────
 
+import {
+  assessmentPeriod,
+  buildExpenditure,
+  buildIncome,
+  businessResult,
+  canonicalCategory,
+  filingChecks,
+  maskCardNumbers,
+  sarsFieldFor,
+  yearOfAssessment,
+  type FilingCheck,
+} from "@/lib/itr12Summary";
+import { workTypeLabel } from "@/lib/workType";
 import { expenseService, type HomeOfficeSetupClaim } from "@/services/expenseService";
 import { incomeService } from "@/services/incomeService";
 import { profileService } from "@/services/profileService";
 import { taxLiabilityService } from "@/services/taxLiabilityService";
 import { colour } from "@/tokens";
 import type { Expense, TaxLiabilityEstimate } from "@/types/database";
-import { ITR12_CATEGORIES } from "@/types/database";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
-import { workTypeLabel } from "@/lib/workType";
 
 // User text (OCR vendor names, profile fields) goes into HTML, so escape it —
 // a stray "<" in a vendor name would otherwise break or drop part of the PDF.
@@ -20,60 +36,53 @@ const esc = (s: unknown) =>
   String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 
 // ─── PDF CSS palette ──────────────────────────────────────────────────────────
-// Token-mapped colors use colour.* directly; PDF-specific shades are named here.
+// Neutral cards and borders; periwinkle only for the brand header and accents.
 const CSS = {
-  primary:          colour.primary,       // periwinkle #6B6AD8
-  white:            colour.white,
-  gold:             colour.gold,
-  bodyText:         colour.text,
-  accentBlue:       colour.accent2,       // lighter periwinkle
-  bgLight:          colour.accentSoft2,   // ultra-soft periwinkle tint
-  borderBlue:       colour.accentSoft,    // soft periwinkle border
-  labelGray:        colour.textSub,
-  cardBg:           colour.surface1,
-  mutedGray:        colour.navInactive,
-  lightGray:        colour.textDisabled,
-  darkBlue:         colour.accentDeep,    // deep periwinkle
-  tableHeadText:    colour.textSub,
-  rowBorder:        colour.surface2,
-  disclaimerBg:     colour.warningBg,
-  disclaimerBorder: colour.warning,
-  disclaimerText:   colour.textMid,
-  vatBlue:          colour.primary,
-  deductionGreen:   colour.success,
-  owingRed:         colour.danger,
-  personalGray:     colour.navInactive,
+  primary: colour.primary,
+  white: colour.white,
+  text: colour.text,
+  textMid: colour.textMid,
+  textSub: colour.textSub,
+  border: colour.border,
+  borderLight: colour.borderLight,
+  cardBg: colour.surface1,
+  noir: colour.noir,
+  onNoir: colour.onNoir,
+  onNoir2: colour.onNoir2,
+  success: colour.success,
+  danger: colour.danger,
+  warning: colour.warning,
+  warningBg: colour.warningBg,
 };
 
 // ─── Formatting helpers ───────────────────────────────────────────────────────
 
 const fmtZAR = (n: number) =>
-  `R&nbsp;${Number(n).toLocaleString("en-ZA", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
+  `R&nbsp;${Number(n).toLocaleString("en-ZA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-const fmtDate = (iso: string) => {
-  const d = new Date(iso);
-  return d.toLocaleDateString("en-ZA", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
-};
+/** Whole rands, the way eFiling takes them. */
+const fmtRands = (n: number) => `R&nbsp;${Math.round(n).toLocaleString("en-ZA", { maximumFractionDigits: 0 })}`;
 
-// ─── ITR12 field name lookup ──────────────────────────────────────────────────
-// Returns the exact field label from the ITR12 Local Business Income section
-// (pages 11-12) or "Total contributions (4006)" for RA. For sole proprietors
-// there are no individual source codes per expenditure item.
+const fmtDate = (iso: string) =>
+  new Date(iso).toLocaleDateString("en-ZA", { day: "2-digit", month: "short", year: "numeric" });
 
-function getITR12Field(category: string): string {
-  return ITR12_CATEGORIES[category]?.field || "Other";
+function checkText(c: FilingCheck): string {
+  const what = `${esc(c.vendor)}, ${fmtDate(c.date)}, ${fmtZAR(c.amount)}`;
+  switch (c.kind) {
+    case "duplicate":
+      return `<strong>Possible duplicate:</strong> ${what} is logged ${c.count} times. Delete the extra ${c.count === 2 ? "entry" : "entries"} if it was one purchase.`;
+    case "largeEquipment":
+      return `<strong>Equipment of R7&nbsp;000 or more:</strong> ${what}. SARS lets you claim items under R7&nbsp;000 in full in the year you buy them. Dearer items are claimed over several years, so this year's amount should be smaller.`;
+    case "supermarketEntertainment":
+      return `<strong>Supermarket under Entertainment:</strong> ${what}. Only claim it if it was for business entertaining, not personal groceries.`;
+    case "bondInterest":
+      return `<strong>Home bond interest:</strong> ${what}. SARS hasn't allowed bond interest since the 2023 tax year. Mark it as personal before you file.`;
+  }
 }
 
 // ─── HTML template ────────────────────────────────────────────────────────────
 
-function buildHTML(opts: {
+interface BuildOpts {
   profile: {
     full_name: string | null;
     tax_number: string | null;
@@ -82,433 +91,326 @@ function buildHTML(opts: {
     vat_number: string | null;
   };
   taxYear: string;
-  totalIncome: number;
-  totalExpenses: number;
-  totalDeductions: number;
-  totalVAT: number;
-  categoryBreakdown: Record<
-    string,
-    { amount: number; code: string; count: number | string }
-  >;
   expenses: Expense[];
-  /** Home Office amount from the setup screen, when it's being claimed. */
+  income: { amount: number; source: string; category: string | null; recoupment_vehicle_id?: string | null }[];
   homeOfficeSetup: HomeOfficeSetupClaim | null;
   includeVAT: boolean;
   includePersonal: boolean;
   summaryOnly: boolean;
   taxLiabilityEstimate: TaxLiabilityEstimate | null;
-}): string {
-  const {
-    profile,
-    taxYear,
-    totalIncome,
-    totalExpenses,
-    totalDeductions,
-    totalVAT,
-    categoryBreakdown,
-    expenses,
-    homeOfficeSetup,
-    includeVAT,
-    includePersonal,
-    summaryOnly,
-    taxLiabilityEstimate,
-  } = opts;
+}
 
-  const generatedDate = new Date().toLocaleDateString("en-ZA", {
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  });
+export function buildITR12HTML(opts: BuildOpts): string {
+  const { profile, taxYear, expenses, homeOfficeSetup, includeVAT, includePersonal, summaryOnly, taxLiabilityEstimate } = opts;
+  const vatRegistered = profile.vat_registered;
 
-  const deductionRows = Object.entries(categoryBreakdown)
-    .filter(([k]) => k !== "Personal / Non-deductible")
-    .sort(([, a], [, b]) => b.amount - a.amount);
+  const expenditure = buildExpenditure(expenses, vatRegistered, homeOfficeSetup?.amount ?? 0);
+  const income = buildIncome(opts.income);
+  const result = businessResult(income, expenditure);
+  const checks = filingChecks(expenses);
+  const yoa = yearOfAssessment(taxYear);
+  const period = assessmentPeriod(taxYear);
 
-  const personalRows = Object.entries(categoryBreakdown).filter(
-    ([k]) => k === "Personal / Non-deductible",
-  );
+  const generatedDate = new Date().toLocaleDateString("en-ZA", { day: "2-digit", month: "long", year: "numeric" });
 
-  // Line item rows grouped by category
+  const blank = `<span class="blank">Leave blank</span>`;
+  const row = (label: string, value: string, note = "") =>
+    `<tr><td>${label}${note ? `<div class="note">${note}</div>` : ""}</td><td class="num">${value}</td></tr>`;
+
+  // ── Income ──
+  const elsewhere: string[] = [];
+  if (income.employment > 0) {
+    elsewhere.push(`Employment income of ${fmtZAR(income.employment)} goes on your IRP5/IT3(a) certificates, which SARS fills in for you.`);
+  }
+  if (income.otherSection > 0) {
+    const parts = Object.entries(income.otherSectionBySource).map(([src, amt]) => `${esc(src)} ${fmtZAR(amt)}`);
+    elsewhere.push(`Other income (${parts.join(", ")}) is declared in its own section of the ITR12, not here.`);
+  }
+  const incomeHTML = `
+    <div class="section-title">Income</div>
+    <table>
+      <thead><tr><th>ITR12 field</th><th class="num">Enter in eFiling</th></tr></thead>
+      <tbody>
+        ${row("Turnover / Sales", result.turnoverRands > 0 ? fmtRands(result.turnoverRands) : blank, "Business income you logged in MyExpense")}
+        ${row("Cost of Sales", blank, "Only if you buy stock to resell")}
+        ${row("Gross Profit", result.grossProfitRands > 0 ? fmtRands(result.grossProfitRands) : blank)}
+        <tr class="total-row"><td>Total</td><td class="num">${fmtRands(result.grossProfitRands)}</td></tr>
+      </tbody>
+    </table>
+    ${elsewhere.length ? `<div class="aside">${elsewhere.join(" ")}</div>` : ""}`;
+
+  // ── Expenditure ──
+  const expenditureRows = expenditure.rows
+    .map((r) => {
+      const detail = r.categories
+        .map((c) => {
+          const n = c.fromSetup ? "from your home office setup" : `${c.count} ${c.count === 1 ? "item" : "items"}`;
+          return `${esc(c.category)} (${n}) ${fmtZAR(c.amount)}`;
+        })
+        .join("<br>");
+      const otherDesc =
+        r.field === "Other" && expenditure.otherDescription
+          ? `<div class="desc-other">Description relating to other: <strong>${esc(expenditure.otherDescription)}</strong></div>`
+          : "";
+      return `
+        <tr>
+          <td class="field">${esc(r.field)}${otherDesc}</td>
+          <td class="detail">${detail}</td>
+          <td class="num enter">${fmtRands(r.rands)}</td>
+        </tr>`;
+    })
+    .join("");
+
+  const setupNote =
+    homeOfficeSetup && homeOfficeSetup.amount > 0 && homeOfficeSetup.description
+      ? `<div class="aside">${esc(homeOfficeSetup.description)}.</div>`
+      : "";
+
+  const expenditureHTML = `
+    <div class="section-title">Expenditure${vatRegistered ? " (excluding VAT you claim back)" : ""}</div>
+    <table>
+      <thead><tr><th>ITR12 field</th><th>Made up of</th><th class="num">Enter in eFiling</th></tr></thead>
+      <tbody>
+        ${expenditureRows || `<tr><td colspan="3" class="blank">No claimable business expenses logged for this year.</td></tr>`}
+        <tr class="total-row"><td>Total</td><td></td><td class="num">${fmtRands(expenditure.totalRands)}</td></tr>
+      </tbody>
+    </table>
+    <div class="aside">Leave any expenditure field not listed here blank. Each field is rounded to whole rands, so the total can differ from the exact amount (${fmtZAR(expenditure.total)}) by a few rand.</div>
+    ${setupNote}`;
+
+  // ── Profit or loss ──
+  const accountingLabel = result.accountingRands >= 0 ? "Accounting Profit" : "Accounting Loss";
+  const taxableLabel = result.taxableRands >= 0 ? "Taxable Profit" : "Taxable Loss";
+  const profitHTML = `
+    <div class="section-title">Profit or loss</div>
+    <table>
+      <thead><tr><th>ITR12 field</th><th class="num">Enter in eFiling</th></tr></thead>
+      <tbody>
+        ${row(accountingLabel, fmtRands(Math.abs(result.accountingRands)), "Gross Profit minus total expenditure")}
+        ${result.recoupmentRands > 0 ? row("Adjustments: Add Back – Recoupment", fmtRands(result.recoupmentRands), "From selling a vehicle you claimed wear and tear on") : ""}
+        <tr class="total-row"><td>${taxableLabel}</td><td class="num">${fmtRands(Math.abs(result.taxableRands))}</td></tr>
+      </tbody>
+    </table>`;
+
+  // ── Retirement annuity (its own ITR12 section) ──
+  const raHTML =
+    expenditure.retirementAnnuity.amount > 0
+      ? `
+    <div class="section-title">Retirement annuity fund contributions</div>
+    <table>
+      <thead><tr><th>ITR12 field</th><th class="num">Enter in eFiling</th></tr></thead>
+      <tbody>
+        ${row("Total contributions for this year of assessment (4006)", fmtRands(expenditure.retirementAnnuity.amount), `${expenditure.retirementAnnuity.count} ${expenditure.retirementAnnuity.count === 1 ? "payment" : "payments"} logged. Use your fund's tax certificate if the amounts differ.`)}
+      </tbody>
+    </table>`
+      : "";
+
+  // ── Checks before filing ──
+  const checksHTML = checks.length
+    ? `
+    <div class="section-title">Check these before you file</div>
+    <ul class="checks">${checks.map((c) => `<li>${checkText(c)}</li>`).join("")}</ul>`
+    : "";
+
+  // ── Estimate (dark card) ──
+  const estimateHTML = taxLiabilityEstimate
+    ? (() => {
+        const liability = taxLiabilityEstimate.final_liability;
+        const label = liability > 0 ? "Estimated amount owing to SARS" : liability < 0 ? "Estimated refund" : "Nothing owing and no refund";
+        const extras: string[] = [];
+        if (Number(taxLiabilityEstimate.other_taxable_income) > 0) extras.push(`adds other income of ${fmtZAR(taxLiabilityEstimate.other_taxable_income)}`);
+        if (Number(taxLiabilityEstimate.retirement_annuity_contributions) > 0) extras.push(`takes off retirement annuity contributions of up to ${fmtZAR(taxLiabilityEstimate.retirement_annuity_contributions)}`);
+        const how = extras.length ? `It ${extras.join(" and ")}, so it won't match the Taxable Profit above. ` : "";
+        return `
+    <div class="estimate">
+      <div>
+        <div class="estimate-label">${label}</div>
+        <div class="estimate-sub">From your Tax Liability calculator, last worked out ${fmtDate(taxLiabilityEstimate.last_calculated_at)}, on taxable income of ${fmtZAR(taxLiabilityEstimate.taxable_income)}. ${how}If you've added income or expenses since then, open the calculator so it updates.</div>
+      </div>
+      <div class="estimate-amount" style="color:${liability > 0 ? CSS.danger : CSS.onNoir}">${fmtZAR(Math.abs(liability))}</div>
+    </div>`;
+      })()
+    : "";
+
+  // ── Overview cards ──
+  const overviewHTML = `
+    <div class="kpi-row">
+      <div class="kpi-card">
+        <div class="kpi-label">Business income</div>
+        <div class="kpi-value">${fmtZAR(income.turnover)}</div>
+        <div class="kpi-sub">Turnover / Sales</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Claimable business expenses</div>
+        <div class="kpi-value" style="color:${CSS.success}">${fmtZAR(expenditure.total)}</div>
+        <div class="kpi-sub">Total expenditure</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Personal spending</div>
+        <div class="kpi-value" style="color:${CSS.textSub}">${fmtZAR(expenditure.notClaimable.amount)}</div>
+        <div class="kpi-sub">${expenditure.notClaimable.count} ${expenditure.notClaimable.count === 1 ? "item" : "items"} logged, not claimed</div>
+      </div>
+    </div>`;
+
+  const vatHTML = includeVAT
+    ? (() => {
+        const totalVAT = expenses.reduce((s, e) => s + Number(e.vat_amount ?? 0), 0);
+        return `<div class="aside">VAT on your logged expenses: ${fmtZAR(totalVAT)}. ${
+          vatRegistered
+            ? "You claim this back on your VAT201, so it's left out of the expenditure above."
+            : "You're not registered for VAT, so it can't be claimed back and is included in the expenditure above."
+        }</div>`;
+      })()
+    : "";
+
+  // ── Line items ──
   const lineItemsHTML = summaryOnly
     ? ""
     : (() => {
-        const deductible = expenses.filter((e) => e.is_deductible);
-        const personal = includePersonal
-          ? expenses.filter((e) => !e.is_deductible)
-          : [];
-        const rows = [...deductible, ...personal].sort(
-          (a, b) =>
-            new Date(b.expense_date).getTime() -
-            new Date(a.expense_date).getTime(),
-        );
-
+        const rows = expenses
+          .filter((e) => e.is_deductible || includePersonal)
+          .sort((a, b) => new Date(b.expense_date).getTime() - new Date(a.expense_date).getTime());
         if (rows.length === 0 && !homeOfficeSetup) return "";
 
-        // Not a logged expense, so no date or receipt: show where it came from.
         const setupTr = homeOfficeSetup
           ? `
           <tr>
-            <td>${esc(taxYear)}</td>
+            <td>${esc(yoa)}</td>
             <td>${esc(homeOfficeSetup.description ?? "Home office setup")}</td>
             <td>Home Office</td>
-            <td style="text-align:center">${getITR12Field("Home Office")}</td>
-            <td style="text-align:right">${fmtZAR(homeOfficeSetup.amount)}</td>
-            ${includeVAT ? '<td style="text-align:right">-</td>' : ""}
-            <td style="text-align:center">✓</td>
+            <td>Rental Paid</td>
+            <td class="num">${fmtZAR(homeOfficeSetup.amount)}</td>
+            ${includeVAT ? `<td class="num">—</td>` : ""}
+            <td class="c">✓</td>
           </tr>`
           : "";
 
-        const trs = setupTr + rows
-          .map(
-            (e) => `
+        const trs = rows
+          .map((e) => {
+            const field = e.is_deductible ? sarsFieldFor(e) : null;
+            const cat = canonicalCategory(e.category);
+            return `
           <tr>
             <td>${fmtDate(e.expense_date)}</td>
-            <td>${esc(e.vendor)}</td>
-            <td>${esc(e.category)}</td>
-            <td style="text-align:center">${e.is_deductible ? getITR12Field(e.category) : "—"}</td>
-            <td style="text-align:right">${fmtZAR(e.amount)}</td>
-            ${includeVAT ? `<td style="text-align:right">${e.vat_amount ? fmtZAR(e.vat_amount) : "—"}</td>` : ""}
-            <td style="text-align:center">${e.is_deductible ? "✓" : "✗"}</td>
-          </tr>`,
-          )
-          .join("\n");
+            <td>${esc(maskCardNumbers(e.vendor))}</td>
+            <td>${esc(cat)}</td>
+            <td>${field ? esc(field) : e.is_deductible && cat === "Retirement Annuity" ? "Retirement annuity (4006)" : "—"}</td>
+            <td class="num">${fmtZAR(e.amount)}</td>
+            ${includeVAT ? `<td class="num">${e.vat_amount ? fmtZAR(e.vat_amount) : "—"}</td>` : ""}
+            <td class="c">${e.is_deductible ? "✓" : "✗"}</td>
+          </tr>`;
+          })
+          .join("");
 
         return `
-          <div class="section-title">LINE ITEMS</div>
-          <table>
+          <div class="section-title">Line items</div>
+          <table class="lines">
             <thead>
               <tr>
-                <th>Date</th>
-                <th>Vendor</th>
-                <th>Category</th>
-                <th style="text-align:center">eFiling Field</th>
-                <th style="text-align:right">Amount</th>
-                ${includeVAT ? '<th style="text-align:right">VAT</th>' : ""}
-                <th style="text-align:center">Deductible</th>
+                <th>Date</th><th>Vendor</th><th>Category</th><th>ITR12 field</th><th class="num">Amount</th>
+                ${includeVAT ? `<th class="num">VAT</th>` : ""}
+                <th class="c">Claimed</th>
               </tr>
             </thead>
-            <tbody>${trs}</tbody>
+            <tbody>${setupTr}${trs}</tbody>
           </table>`;
       })();
 
-  const categoryRowsHTML = deductionRows
-    .map(
-      ([cat, { amount, code, count }]) => `
-      <tr>
-        <td>${cat}</td>
-        <td style="text-align:center">${code}</td>
-        <td style="text-align:center">${count}</td>
-        <td style="text-align:right">${fmtZAR(amount)}</td>
-      </tr>`,
-    )
-    .join("\n");
-
-  const personalRowsHTML =
-    includePersonal && personalRows.length > 0
-      ? personalRows
-          .map(
-            ([cat, { amount, count }]) => `
-          <tr style="color:${CSS.personalGray}">
-            <td>${cat}</td>
-            <td style="text-align:center">—</td>
-            <td style="text-align:center">${count}</td>
-            <td style="text-align:right">${fmtZAR(amount)}</td>
-          </tr>`,
-          )
-          .join("\n")
-      : "";
-
-  const vatSection = includeVAT
-    ? `<div class="kpi-row">
-        <div class="kpi-card">
-          <div class="kpi-label">Total VAT Paid</div>
-          <div class="kpi-value" style="color:${CSS.vatBlue}">${fmtZAR(totalVAT)}</div>
-          <div class="kpi-sub">${
-            profile.vat_registered
-              ? "Claimable as input tax via VAT201 — already excluded from the income tax deductions above"
-              : "Not registered for VAT — this amount cannot be claimed back and is included in the deductions above"
-          }</div>
-        </div>
-      </div>`
-    : "";
-
-  // Prefer the user's actual Tax Liability calculator result (real SARS
-  // brackets, age rebates, medical credits, RA cap, lump sums) over a flat
-  // marginal-rate guess — but only when they've completed that calculator
-  // for this tax year. Falls back to the old flat-31% deduction saving
-  // otherwise, since most users won't have filled it in.
-  const taxOutlookHTML = taxLiabilityEstimate
-    ? (() => {
-        const liability = taxLiabilityEstimate.final_liability;
-        const owing = liability > 0;
-        const refund = liability < 0;
-        const label = owing
-          ? "Estimated Amount Owing to SARS"
-          : refund
-            ? "Estimated Refund Due"
-            : "No Amount Owing or Refund";
-        const amountColor = owing ? CSS.owingRed : CSS.accentBlue;
-        return `
-    <div class="saving-box">
-      <div>
-        <div class="saving-box-label">${label}</div>
-        <div class="saving-box-sub">Based on your Tax Liability calculator — taxable income ${fmtZAR(taxLiabilityEstimate.taxable_income)}, updated ${fmtDate(taxLiabilityEstimate.last_calculated_at)}</div>
-      </div>
-      <div class="saving-box-amount" style="color:${amountColor}">${fmtZAR(Math.abs(liability))}</div>
-    </div>`;
-      })()
-    : `
-    <div class="saving-box">
-      <div>
-        <div class="saving-box-label">Estimated Tax Saving</div>
-        <div class="saving-box-sub">Based on 31% marginal tax rate — complete the Tax Liability calculator in-app for a figure based on your actual income and rebates</div>
-      </div>
-      <div class="saving-box-amount">${fmtZAR(Math.round(totalDeductions * 0.31))}</div>
-    </div>`;
+  const vatStatus = vatRegistered ? `Registered${profile.vat_number ? ` (${esc(profile.vat_number)})` : ""}` : "Not registered";
 
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MyExpense ITR12 Report — ${taxYear}</title>
+  <title>MyExpense ITR12 preparation summary, year of assessment ${esc(yoa)}</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif;
-      font-size: 10pt;
-      color: ${CSS.bodyText};
-      background: ${CSS.white};
-    }
-    .header {
-      background: ${CSS.primary};
-      color: ${CSS.white};
-      padding: 28px 32px 22px;
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-    }
-    .header-logo {
-      font-size: 22pt;
-      font-weight: 900;
-      letter-spacing: -0.5px;
-    }
-    .header-logo span { color: ${CSS.accentBlue}; }
-    .header-meta { text-align: right; font-size: 9pt; line-height: 1.6; opacity: 0.9; }
-    .header-meta strong { font-size: 11pt; display: block; }
-    .taxpayer-bar {
-      background: ${CSS.bgLight};
-      border-bottom: 2px solid ${CSS.borderBlue};
-      padding: 14px 32px;
-      display: flex;
-      gap: 40px;
-      align-items: center;
-    }
-    .taxpayer-field { }
-    .taxpayer-label { font-size: 8pt; color: ${CSS.labelGray}; text-transform: uppercase; letter-spacing: 0.5px; }
-    .taxpayer-value { font-size: 11pt; font-weight: 700; color: ${CSS.bodyText}; }
-    .content { padding: 24px 32px; }
-    .kpi-row {
-      display: flex;
-      gap: 12px;
-      margin-bottom: 20px;
-    }
-    .kpi-card {
-      flex: 1;
-      border: 1.5px solid ${CSS.borderBlue};
-      border-radius: 10px;
-      padding: 14px 16px;
-      background: ${CSS.cardBg};
-    }
-    .kpi-label {
-      font-size: 8pt;
-      color: ${CSS.mutedGray};
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 4px;
-    }
-    .kpi-value {
-      font-size: 15pt;
-      font-weight: 800;
-      color: ${CSS.primary};
-      margin-bottom: 2px;
-    }
-    .kpi-sub { font-size: 8pt; color: ${CSS.lightGray}; }
-    .saving-box {
-      background: linear-gradient(135deg, ${CSS.primary} 0%, ${CSS.darkBlue} 100%);
-      color: ${CSS.white};
-      border-radius: 10px;
-      padding: 18px 22px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 22px;
-    }
-    .saving-box-label { font-size: 10pt; opacity: 0.85; margin-bottom: 2px; }
-    .saving-box-sub { font-size: 8pt; opacity: 0.65; }
-    .saving-box-amount { font-size: 20pt; font-weight: 900; color: ${CSS.accentBlue}; }
-    .section-title {
-      font-size: 8pt;
-      font-weight: 700;
-      color: ${CSS.primary};
-      letter-spacing: 1.2px;
-      text-transform: uppercase;
-      border-bottom: 2px solid ${CSS.borderBlue};
-      padding-bottom: 6px;
-      margin-bottom: 12px;
-      margin-top: 22px;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 9pt;
-      margin-bottom: 16px;
-    }
-    thead tr { background: ${CSS.bgLight}; }
-    th {
-      padding: 8px 10px;
-      font-size: 8pt;
-      font-weight: 700;
-      color: ${CSS.tableHeadText};
-      text-transform: uppercase;
-      letter-spacing: 0.4px;
-      border-bottom: 2px solid ${CSS.borderBlue};
-      text-align: left;
-    }
-    td { padding: 8px 10px; border-bottom: 1px solid ${CSS.rowBorder}; vertical-align: top; }
-    tbody tr:last-child td { border-bottom: none; }
-    .total-row td {
-      font-weight: 800;
-      background: ${CSS.bgLight};
-      border-top: 2px solid ${CSS.primary};
-      color: ${CSS.primary};
-    }
-    .disclaimer {
-      background: ${CSS.disclaimerBg};
-      border: 1.5px solid ${CSS.disclaimerBorder};
-      border-radius: 8px;
-      padding: 12px 16px;
-      font-size: 8.5pt;
-      color: ${CSS.disclaimerText};
-      margin-top: 24px;
-      line-height: 1.5;
-    }
-    .footer {
-      margin-top: 28px;
-      border-top: 1px solid ${CSS.borderBlue};
-      padding-top: 14px;
-      text-align: center;
-      font-size: 8pt;
-      color: ${CSS.lightGray};
-    }
-    @media print {
-      body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
-    }
+    body { font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif; font-size: 10pt; color: ${CSS.text}; background: ${CSS.white}; }
+    .header { background: ${CSS.primary}; color: ${CSS.white}; padding: 26px 32px 20px; display: flex; justify-content: space-between; align-items: flex-start; }
+    .header-logo { font-size: 22pt; font-weight: 900; letter-spacing: -0.5px; }
+    .header-meta { text-align: right; font-size: 9pt; line-height: 1.6; }
+    .header-meta strong { font-size: 12pt; display: block; }
+    .taxpayer-bar { background: ${CSS.white}; border-bottom: 1px solid ${CSS.border}; padding: 14px 32px; display: flex; gap: 36px; flex-wrap: wrap; }
+    .taxpayer-label { font-size: 8pt; color: ${CSS.textSub}; }
+    .taxpayer-value { font-size: 11pt; font-weight: 700; }
+    .content { padding: 20px 32px 24px; }
+    .intro { font-size: 9.5pt; color: ${CSS.textMid}; line-height: 1.5; margin-bottom: 16px; }
+    .kpi-row { display: flex; gap: 12px; margin-bottom: 18px; }
+    .kpi-card { flex: 1; border: 1px solid ${CSS.borderLight}; border-radius: 10px; padding: 12px 14px; background: ${CSS.cardBg}; }
+    .kpi-label { font-size: 8.5pt; color: ${CSS.textSub}; margin-bottom: 4px; }
+    .kpi-value { font-size: 14pt; font-weight: 800; color: ${CSS.text}; margin-bottom: 2px; }
+    .kpi-sub { font-size: 8pt; color: ${CSS.textSub}; }
+    .estimate { background: ${CSS.noir}; color: ${CSS.onNoir}; border-radius: 10px; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; gap: 16px; margin: 20px 0 6px; }
+    .estimate-label { font-size: 10.5pt; font-weight: 700; margin-bottom: 4px; }
+    .estimate-sub { font-size: 8pt; color: ${CSS.onNoir2}; line-height: 1.45; }
+    .estimate-amount { font-size: 19pt; font-weight: 900; white-space: nowrap; }
+    .section-title { font-size: 12pt; font-weight: 700; color: ${CSS.text}; border-bottom: 2px solid ${CSS.primary}; padding-bottom: 5px; margin: 22px 0 10px; }
+    table { width: 100%; border-collapse: collapse; font-size: 9pt; margin-bottom: 8px; }
+    th { padding: 7px 10px; font-size: 8.5pt; font-weight: 700; color: ${CSS.textSub}; border-bottom: 1px solid ${CSS.border}; text-align: left; background: ${CSS.white}; }
+    td { padding: 8px 10px; border-bottom: 1px solid ${CSS.borderLight}; vertical-align: top; }
+    .num { text-align: right; white-space: nowrap; }
+    .c { text-align: center; }
+    td.field { font-weight: 600; width: 34%; }
+    td.detail { color: ${CSS.textMid}; font-size: 8.5pt; line-height: 1.45; }
+    td.enter { font-weight: 800; font-size: 10pt; }
+    .note { font-size: 8pt; color: ${CSS.textSub}; font-weight: 400; margin-top: 2px; }
+    .desc-other { font-size: 8pt; font-weight: 400; color: ${CSS.textMid}; margin-top: 4px; }
+    .blank { color: ${CSS.textSub}; font-style: italic; font-weight: 400; }
+    .total-row td { font-weight: 800; border-top: 2px solid ${CSS.text}; border-bottom: none; }
+    .aside { font-size: 8.5pt; color: ${CSS.textSub}; line-height: 1.5; margin: 4px 0 8px; }
+    .checks { padding-left: 18px; font-size: 9pt; line-height: 1.5; }
+    .checks li { margin-bottom: 6px; }
+    table.lines td { font-size: 8.5pt; }
+    .disclaimer { background: ${CSS.warningBg}; border: 1px solid ${CSS.warning}; border-radius: 8px; padding: 12px 16px; font-size: 8.5pt; color: ${CSS.textMid}; margin-top: 24px; line-height: 1.5; }
+    .footer { margin-top: 24px; border-top: 1px solid ${CSS.borderLight}; padding-top: 12px; text-align: center; font-size: 8pt; color: ${CSS.textSub}; }
+    @media print { body { print-color-adjust: exact; -webkit-print-color-adjust: exact; } }
   </style>
 </head>
 <body>
 
-  <!-- Header -->
   <div class="header">
     <div>
-      <div class="header-logo">My<span>Expense</span></div>
-      <div style="font-size:9pt;opacity:0.7;margin-top:3px">South African Tax Expense Manager</div>
+      <div class="header-logo">MyExpense</div>
+      <div style="font-size:9pt;margin-top:3px">South African Tax Expense Manager</div>
     </div>
     <div class="header-meta">
-      <strong>ITR12 INCOME TAX RETURN</strong>
-      Tax Year: ${taxYear}<br>
-      Generated: ${generatedDate}<br>
-      Document: Official Export
+      <strong>ITR12 preparation summary</strong>
+      Year of Assessment ${esc(yoa)}<br>
+      ${esc(period)}<br>
+      Generated ${generatedDate}
     </div>
   </div>
 
-  <!-- Taxpayer info bar -->
   <div class="taxpayer-bar">
-    <div class="taxpayer-field">
-      <div class="taxpayer-label">Taxpayer</div>
-      <div class="taxpayer-value">${esc(profile.full_name ?? "—")}</div>
-    </div>
-    <div class="taxpayer-field">
-      <div class="taxpayer-label">SARS Tax Number</div>
-      <div class="taxpayer-value">${esc(profile.tax_number ?? "Not provided")}</div>
-    </div>
-    <div class="taxpayer-field">
-      <div class="taxpayer-label">Return Type</div>
-      <div class="taxpayer-value">ITR12</div>
-    </div>
-    <div class="taxpayer-field">
-      <div class="taxpayer-label">Employment Type</div>
-      <div class="taxpayer-value">${esc(workTypeLabel(profile.work_type))}</div>
-    </div>
-    <div class="taxpayer-field">
-      <div class="taxpayer-label">VAT Status</div>
-      <div class="taxpayer-value">${profile.vat_registered ? `Registered${profile.vat_number ? ` (${esc(profile.vat_number)})` : ""}` : "Not registered"}</div>
-    </div>
+    <div><div class="taxpayer-label">Taxpayer</div><div class="taxpayer-value">${esc(profile.full_name || "—")}</div></div>
+    <div><div class="taxpayer-label">Taxpayer Ref</div><div class="taxpayer-value">${esc(profile.tax_number || "Not added yet")}</div></div>
+    <div><div class="taxpayer-label">Return</div><div class="taxpayer-value">ITR12</div></div>
+    <div><div class="taxpayer-label">Work type</div><div class="taxpayer-value">${esc(workTypeLabel(profile.work_type))}</div></div>
+    <div><div class="taxpayer-label">VAT</div><div class="taxpayer-value">${vatStatus}</div></div>
   </div>
 
   <div class="content">
+    <div class="intro">On eFiling, open the <strong>Local Business, Trade and Professional Income</strong> section of your ITR12 and copy each amount below into the box with the same name. eFiling only takes whole rands, so the amounts to enter have no cents.</div>
 
-    <!-- KPI cards -->
-    <div class="kpi-row">
-      <div class="kpi-card">
-        <div class="kpi-label">Total Income</div>
-        <div class="kpi-value" style="color:${CSS.darkBlue}">${fmtZAR(totalIncome)}</div>
-        <div class="kpi-sub">All income sources, ${taxYear}</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-label">Total Expenses</div>
-        <div class="kpi-value" style="color:${CSS.bodyText}">${fmtZAR(totalExpenses)}</div>
-        <div class="kpi-sub">All categories combined</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-label">Total Deductions (S11)</div>
-        <div class="kpi-value" style="color:${CSS.deductionGreen}">${fmtZAR(totalDeductions)}</div>
-        <div class="kpi-sub">${profile.vat_registered ? "Claimable under Section 11, excl. VAT (claimed separately via VAT201)" : "Claimable under Section 11"}</div>
-      </div>
-    </div>
-
-    <!-- VAT section -->
-    ${vatSection}
-
-    <!-- Tax outlook callout -->
-    ${taxOutlookHTML}
-
-    <!-- Deduction breakdown by category -->
-    <div class="section-title">SECTION 11 DEDUCTIONS BY CATEGORY${profile.vat_registered ? " (EXCL. VAT)" : ""}</div>
-    <table>
-      <thead>
-        <tr>
-          <th>Category</th>
-          <th style="text-align:center">eFiling Field</th>
-          <th style="text-align:center">Items</th>
-          <th style="text-align:right">Amount</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${categoryRowsHTML}
-        ${personalRowsHTML}
-        <tr class="total-row">
-          <td>TOTAL DEDUCTIBLE EXPENSES</td>
-          <td></td>
-          <td></td>
-          <td style="text-align:right">${fmtZAR(totalDeductions)}</td>
-        </tr>
-      </tbody>
-    </table>
-
-    <!-- Line items (if not summary-only) -->
+    ${overviewHTML}
+    ${incomeHTML}
+    ${expenditureHTML}
+    ${vatHTML}
+    ${profitHTML}
+    ${raHTML}
+    ${estimateHTML}
+    ${checksHTML}
     ${lineItemsHTML}
 
-    <!-- Disclaimer -->
     <div class="disclaimer">
-      ⚠️ <strong>Important Disclaimer:</strong> This report is generated from your MyExpense records for reference purposes only. It does not constitute a submitted SARS return. Always have your ITR12 reviewed and submitted by a registered tax practitioner. ${taxLiabilityEstimate ? "The amount above is an estimate from the Tax Liability calculator and is indicative only — SARS calculates your final liability." : "Estimated tax savings are indicative only and based on a flat 31% marginal rate."}
+      <strong>Please note:</strong> MyExpense made this summary from your own records to help you fill in your ITR12. It is not a SARS document and it has not been sent to SARS. Check each figure before you file. SARS works out your final tax${taxLiabilityEstimate ? ", so the estimate above is a guide only" : ""}. If your tax affairs are complicated, ask a registered tax practitioner to check it.
     </div>
 
     <div class="footer">
-      MyExpense · South African Tax Expense Manager · myexpense.co.za<br>
-      Generated on ${generatedDate} · Tax Year ${taxYear} · Confidential
+      MyExpense · myexpense.co.za<br>
+      Generated ${generatedDate} · Year of Assessment ${esc(yoa)} · Confidential
     </div>
-
   </div>
 </body>
 </html>`;
@@ -525,93 +427,45 @@ export interface PDFExportOptions {
 }
 
 export async function generateITR12PDF(opts: PDFExportOptions): Promise<void> {
-  const {
-    userId,
-    taxYear,
-    includeVAT = false,
-    includePersonal = false,
-    summaryOnly = false,
-  } = opts;
+  const { userId, taxYear, includeVAT = false, includePersonal = false, summaryOnly = false } = opts;
 
-  // Profile is fetched first (cheap, 2-min cached) since the deduction
-  // totals below need to know vat_registered before they can be computed.
-  const profile = await profileService.getProfile(userId);
-  const vatRegistered = profile?.vat_registered ?? false;
+  // The tax liability estimate is optional (most users won't have filled in
+  // the calculator) — a fetch failure there shouldn't block the export.
+  const [profile, expenses, income, taxLiabilityEstimate, setupClaim] = await Promise.all([
+    profileService.getProfile(userId),
+    expenseService.getExpenses(userId, taxYear),
+    incomeService.getIncome(userId, taxYear),
+    taxLiabilityService.getEstimate(userId, taxYear).catch(() => null),
+    expenseService.getHomeOfficeSetupClaim(userId, taxYear),
+  ]);
 
-  // Fetch the rest in parallel. The tax liability estimate is optional
-  // (most users won't have filled in the calculator yet) — a fetch failure
-  // there shouldn't block the rest of the export, so it falls back to null.
-  const [expenses, incomeTotals, expenseTotals, byCategory, taxLiabilityEstimate, setupClaim] =
-    await Promise.all([
-      expenseService.getExpenses(userId, taxYear),
-      incomeService.getTotals(userId, taxYear),
-      expenseService.getTotals(userId, taxYear, vatRegistered),
-      expenseService.getByCategory(userId, taxYear, vatRegistered),
-      taxLiabilityService.getEstimate(userId, taxYear).catch(() => null),
-      expenseService.getHomeOfficeSetupClaim(userId, taxYear),
-    ]);
-  const homeOfficeSetup = setupClaim.amount > 0 ? setupClaim : null;
-
-  // Build category breakdown: amounts from byCategory (already filtered to
-  // is_deductible=true and capped via CATEGORY_PARTIAL_CAPS), counts from expenses.
-  const categoryBreakdown: Record<
-    string,
-    { amount: number; code: string; count: number | string }
-  > = {};
-
-  for (const [cat, amount] of Object.entries(byCategory)) {
-    const count = expenses.filter((e) => e.category === cat && e.is_deductible).length;
-    categoryBreakdown[cat] = {
-      amount,
-      code: getITR12Field(cat),
-      // The setup claim only applies when no Home Office expenses are logged.
-      count: cat === "Home Office" && homeOfficeSetup && count === 0 ? "From setup" : count,
-    };
-  }
-
-  // Total VAT (all expenses, not filtered by deductibility)
-  const totalVAT = expenses.reduce(
-    (sum, e) => sum + Number(e.vat_amount ?? 0),
-    0,
-  );
-
-  const html = buildHTML({
+  const html = buildITR12HTML({
     profile: {
       full_name: profile?.full_name ?? null,
       tax_number: profile?.tax_number ?? null,
       work_type: profile?.work_type ?? null,
-      vat_registered: vatRegistered,
+      vat_registered: profile?.vat_registered ?? false,
       vat_number: profile?.vat_number ?? null,
     },
     taxYear,
-    totalIncome: incomeTotals.totalIncome,
-    totalExpenses: expenseTotals.totalExpenses,
-    totalDeductions: expenseTotals.totalDeductions,
-    totalVAT,
-    categoryBreakdown,
     expenses,
-    homeOfficeSetup,
+    income,
+    homeOfficeSetup: setupClaim.amount > 0 ? setupClaim : null,
     includeVAT,
     includePersonal,
     summaryOnly,
     taxLiabilityEstimate,
   });
 
-  const { uri } = await Print.printToFileAsync({
-    html,
-    base64: false,
-  });
+  const { uri } = await Print.printToFileAsync({ html, base64: false });
 
   const canShare = await Sharing.isAvailableAsync();
-  if (canShare) {
-    await Sharing.shareAsync(uri, {
-      mimeType: "application/pdf",
-      dialogTitle: `MyExpense ITR12 ${taxYear}`,
-      UTI: "com.adobe.pdf",
-    });
-  } else {
-    throw new Error(
-      "Sharing is not available on this device. Please use a physical device.",
-    );
+  if (!canShare) {
+    throw new Error("Sharing is not available on this device. Please use a physical device.");
   }
+  await Sharing.shareAsync(uri, {
+    mimeType: "application/pdf",
+    dialogTitle: `MyExpense ITR12 ${taxYear}`,
+    UTI: "com.adobe.pdf",
+  });
 }

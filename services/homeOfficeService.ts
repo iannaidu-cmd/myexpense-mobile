@@ -12,7 +12,7 @@ export interface HomeOfficeSetting {
   officeM2: number;
   totalM2: number;
   arrangementType: ArrangementType;
-  /** Annual rent (monthly x 12) or annual bond interest. */
+  /** Annual rent (monthly x 12). 0 for owners: bond interest is not deductible. */
   annualCost: number;
   /** Tax year the annual cost is for, e.g. "2026/27". Null on rows saved
    *  before this was recorded: those claim nothing until saved again. */

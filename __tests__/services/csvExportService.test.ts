@@ -154,3 +154,16 @@ describe("generateCSV", () => {
     expect(dataRow).toContain("0.00");
   });
 });
+
+describe("generateCSV ITR12 fields and privacy", () => {
+  it("masks card numbers in vendor names", () => {
+    const csv = generateCSV([makeExpense({ vendor: "SHOP 1234567812345678" })]);
+    expect(csv).toContain("SHOP ****5678");
+    expect(csv).not.toContain("1234567812345678");
+  });
+
+  it("maps old category names to the right eFiling field", () => {
+    const row = generateCSV([makeExpense({ category: "Telephone & Cell" })]).split("\r\n")[1];
+    expect(row).toContain("Telephone & Internet,Telephone,");
+  });
+});

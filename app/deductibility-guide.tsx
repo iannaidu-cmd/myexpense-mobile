@@ -44,10 +44,10 @@ const GUIDE: GuideEntry[] = [
     iconColor: colour.text,
     category: "Home Office",
     section: "S11(a)",
-    itr12Field: "Rental Paid",
+    itr12Field: "Electricity / Rates and Taxes",
     deductPct: "Floor ratio",
     condition:
-      "Dedicated workspace used regularly and exclusively for business. General costs (utilities, levies, rates) are claimed proportionally: office m² ÷ total floor m².",
+      "Dedicated workspace used regularly and exclusively for business. General costs (electricity, rates and taxes) are claimed proportionally: office m² ÷ total floor m². Repairs go under Repairs / Maintenance.",
     docs: "Floor plan or measurements, utility bills, lease or title deed",
   },
   {
@@ -56,11 +56,11 @@ const GUIDE: GuideEntry[] = [
     iconColor: colour.primary,
     category: "Home Office — Bond Interest",
     section: "S11(a)",
-    itr12Field: "Interest / Finance Charges",
-    deductPct: "Floor ratio",
+    itr12Field: "—",
+    deductPct: "Not claimable",
     condition:
-      "Sole proprietors and freelancers may deduct the proportional interest portion of their home bond — not the capital repayment. Formula: (Office m² ÷ Total floor m²) × Annual bond interest paid. The workspace must be used exclusively and regularly for trade.",
-    docs: "Annual bond statement (interest vs capital split), floor plan or room measurements, proof of exclusive business use",
+      "SARS stopped allowing interest on a home bond from the 2023 tax year, even if you work from home. If you own your home, claim your office's share of rates, electricity and repairs instead.",
+    docs: "Rates, electricity and repair invoices, plus your floor plan or room measurements",
   },
   {
     icon: "key.fill",

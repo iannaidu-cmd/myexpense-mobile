@@ -166,7 +166,7 @@ export const expenseService = {
     if (error) throw new Error(error.message);
 
     const expenses = data ?? [];
-    // Rent or bond interest entered on the Home office setup screen. Counts as
+    // Annual rent entered on the Home office setup screen. Counts as
     // a deduction only (it isn't a logged expense or receipt) and carries no
     // claimable VAT. See lib/homeOffice.ts for the no-double-count rule.
     const setupClaim = setupClaimForYear(homeOffice, taxYear, expenses.filter(isLoggedHomeOffice).length);

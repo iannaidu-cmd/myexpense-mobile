@@ -1,5 +1,6 @@
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
+import { CATEGORIES as EXPENSE_CATEGORIES } from "@/constants/categories";
 import { colour, radius, space, typography } from "@/tokens";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
@@ -38,16 +39,8 @@ const SORT_OPTIONS: { key: SortKey; label: string; sub: string }[] = [
   },
 ];
 
-const CATEGORIES = [
-  "All categories",
-  "Phone & Internet",
-  "Fuel & Oil",
-  "Software & Subscriptions",
-  "Advertising & Marketing",
-  "Travel – Business",
-  "Home Office",
-  "Computer & IT Equipment",
-];
+// Canonical names only: the old hard-coded list had labels no expense uses.
+const CATEGORIES = ["All categories", ...EXPENSE_CATEGORIES.map((c) => c.label)];
 const DATE_RANGES = [
   "All time",
   "This month",
