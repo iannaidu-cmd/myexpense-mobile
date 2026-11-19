@@ -2,6 +2,8 @@ import { trackFirstAction } from "@/services/funnelService";
 import { logExpenseCreated, logFirstReceiptScanned } from "@/lib/analytics";
 import { showNotice } from "@/components/NoticeHost";
 import { InfoBanner } from "@/components/InfoBanner";
+import { SarsFieldPicker } from "@/components/SarsFieldPicker";
+import { sarsFieldTypes, validSarsField } from "@/lib/itr12Summary";
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { SuccessModal } from "@/components/SuccessModal";
@@ -146,6 +148,8 @@ export default function ReceiptReviewScreen() {
   );
   const [vatAmount, setVatAmount] = useState(params.vatAmount ?? "");
   const [category, setCategory] = useState(params.category ?? "");
+  // ITR12 field for Professional Fees / Home Office (see SarsFieldPicker).
+  const [sarsField, setSarsField] = useState<string | null>(null);
   const [notes, setNotes] = useState(params.notes ?? "");
   const [showCatPicker, setShowCatPicker] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -281,6 +285,9 @@ export default function ReceiptReviewScreen() {
         gross_amount: apportioned ? rawAmount : null,
         business_use_pct: apportioned ? parseFloat((share * 100).toFixed(2)) : null,
         vehicle_id: isVehicleCat ? vehicleId : null,
+        sars_field: sarsFieldTypes(category)
+          ? validSarsField(category, sarsField) ?? sarsFieldTypes(category)![0].field
+          : null,
       });
 
       if (params.storagePath) {
@@ -771,6 +778,8 @@ export default function ReceiptReviewScreen() {
               ))}
             </View>
           )}
+
+          <SarsFieldPicker category={category} value={sarsField} onChange={setSarsField} />
 
           {/* Notes */}
           <FieldLabel label="Notes (optional)" extracted={ocrFields.notes} />

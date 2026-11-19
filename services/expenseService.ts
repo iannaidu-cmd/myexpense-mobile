@@ -206,6 +206,7 @@ export const expenseService = {
         gross_amount: expense.gross_amount ?? null,
         business_use_pct: expense.business_use_pct ?? null,
         vehicle_id: expense.vehicle_id ?? null,
+        sars_field: expense.sars_field ?? null,
       })
       .select()
       .single();

@@ -12,6 +12,8 @@ import {
 } from "@/lib/validation";
 import { expenseService } from "@/services/expenseService";
 import { InfoBanner } from "@/components/InfoBanner";
+import { SarsFieldPicker } from "@/components/SarsFieldPicker";
+import { sarsFieldTypes, validSarsField } from "@/lib/itr12Summary";
 import { apportion, formatRatio, isHomeOfficeCategory, pctFromRatio } from "@/lib/homeOffice";
 import { useAuthStore } from "@/stores/authStore";
 import { floorRatio, useHomeOfficeStore } from "@/stores/homeOfficeStore";
@@ -62,6 +64,8 @@ export default function EditExpenseScreen() {
   const [date, setDate] = useState("");
   const [category, setCategory] = useState("");
   const [notes, setNotes] = useState("");
+  // ITR12 field for Professional Fees / Home Office (see SarsFieldPicker).
+  const [sarsField, setSarsField] = useState<string | null>(null);
   // % applied when the expense was first saved (null if never apportioned).
   const [businessUsePct, setBusinessUsePct] = useState<number | null>(null);
   // Category the expense was saved with, to spot moves into or out of home office.
@@ -85,6 +89,7 @@ export default function EditExpenseScreen() {
         setCategory(expense.category ?? "");
         setOriginalCategory(expense.category ?? "");
         setNotes(expense.notes ?? "");
+        setSarsField(expense.sars_field ?? null);
         setBusinessUsePct(expense.business_use_pct != null ? Number(expense.business_use_pct) : null);
         // Derive toggle state from saved is_deductible flag
         setExpenseType(expense.is_deductible ? "business" : "personal");
@@ -157,6 +162,9 @@ export default function EditExpenseScreen() {
           expenseType === "personal" ? null : (selectedCat?.section ?? null),
         is_deductible: isDeductible,
         notes: notes.trim() || undefined,
+        sars_field: sarsFieldTypes(category)
+          ? validSarsField(category, sarsField) ?? sarsFieldTypes(category)![0].field
+          : null,
       });
       setSuccessVisible(true);
     } catch (e: any) {
@@ -441,6 +449,8 @@ export default function EditExpenseScreen() {
             marginBottom: space.lg,
           }}
         />
+
+        <SarsFieldPicker category={category} value={sarsField} onChange={setSarsField} />
 
         {/* Notes */}
         <Text

@@ -36,6 +36,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { safeBack } from "@/lib/navigation";
+import { guessSarsField } from "@/lib/itr12Summary";
 
 // ─── Category picker modal ────────────────────────────────────────────────────
 
@@ -683,6 +684,7 @@ export default function BankImportScreen() {
             notes: `Imported from bank statement`,
             gross_amount: homeOffice ? tx.amount : null,
             business_use_pct: homeOffice ? pctFromRatio(homeOfficeRatio) : null,
+            sars_field: guessSarsField(tx.suggestedCategory, tx.vendor),
           });
         }),
         ...incomeEntries.map((tx) =>

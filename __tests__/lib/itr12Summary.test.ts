@@ -6,6 +6,8 @@ import {
   canonicalCategory,
   classifyIncome,
   filingChecks,
+  guessSarsField,
+  validSarsField,
   maskCardNumbers,
   sarsFieldFor,
   SARS_EXPENDITURE_FIELDS,
@@ -161,5 +163,46 @@ describe("filingChecks", () => {
       exp("Interest & Finance Charges", 31),
     ]).map((c) => c.kind);
     expect(kinds).toEqual(["largeEquipment", "supermarketEntertainment", "bondInterest"]);
+  });
+});
+
+describe("categories that span several ITR12 fields", () => {
+  it("puts Professional Fees in the field for its type", () => {
+    expect(sarsFieldFor({ category: "Professional Fees", sars_field: "Accounting Fees" })).toBe("Accounting Fees");
+    expect(sarsFieldFor({ category: "Professional Fees", sars_field: "Legal Costs" })).toBe("Legal Costs");
+    expect(sarsFieldFor({ category: "Professional Fees", sars_field: null })).toBe("Consulting Fees Paid");
+  });
+
+  it("splits Home Office by cost type", () => {
+    expect(sarsFieldFor({ category: "Home Office", sars_field: "Electricity / Rates and Taxes" })).toBe("Electricity / Rates and Taxes");
+    expect(sarsFieldFor({ category: "Home Office", sars_field: "Repairs / Maintenance" })).toBe("Repairs / Maintenance");
+    expect(sarsFieldFor({ category: "Home Office", sars_field: "Other" })).toBe("Other");
+    expect(sarsFieldFor({ category: "Home Office" })).toBe("Rental Paid");
+  });
+
+  it("ignores a saved field that doesn't belong to the category", () => {
+    expect(validSarsField("Professional Fees", "Rental Paid")).toBeNull();
+    expect(sarsFieldFor({ category: "Professional Fees", sars_field: "Rental Paid" })).toBe("Consulting Fees Paid");
+    expect(sarsFieldFor({ category: "Bank Charges", sars_field: "Legal Costs" })).toBe("Bank Charges");
+  });
+
+  it("describes home office cleaning under Other", () => {
+    const s = buildExpenditure([exp("Home Office", 100, { sars_field: "Other" })], false);
+    expect(s.otherDescription).toBe("Home office cleaning");
+  });
+
+  it("guesses a type for bank imports", () => {
+    expect(guessSarsField("Professional Fees", "SMITH ATTORNEYS")).toBe("Legal Costs");
+    expect(guessSarsField("Professional Fees", "ABC Accountants")).toBe("Accounting Fees");
+    expect(guessSarsField("Professional Fees", "Somebody")).toBe("Consulting Fees Paid");
+    expect(guessSarsField("Home Office", "City of Somewhere rates")).toBe("Electricity / Rates and Taxes");
+    expect(guessSarsField("Bank Charges", "fee")).toBeNull();
+  });
+
+  it("flags rows saved before a type was chosen", () => {
+    const checks = filingChecks([exp("Professional Fees", 10), exp("Professional Fees", 11, { sars_field: "Legal Costs" })]);
+    expect(checks).toEqual([
+      { kind: "typeNotChosen", vendor: "Vendor", date: "2026-04-01", amount: 10, category: "Professional Fees", field: "Consulting Fees Paid" },
+    ]);
   });
 });

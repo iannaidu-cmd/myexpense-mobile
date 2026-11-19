@@ -77,6 +77,8 @@ function checkText(c: FilingCheck): string {
       return `<strong>Supermarket under Entertainment:</strong> ${what}. Only claim it if it was for business entertaining, not personal groceries.`;
     case "bondInterest":
       return `<strong>Home bond interest:</strong> ${what}. SARS hasn't allowed bond interest since the 2023 tax year. Mark it as personal before you file.`;
+    case "typeNotChosen":
+      return `<strong>${esc(c.category)} with no type:</strong> ${what}. It's under ${esc(c.field)} for now. Open the expense and choose its type so it goes in the right ITR12 field.`;
   }
 }
 
