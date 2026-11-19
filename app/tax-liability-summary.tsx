@@ -214,7 +214,12 @@ export default function TaxLiabilitySummaryScreen() {
               value={`− ${fmt(result.rebatesApplied)}`}
               neg
             />
-            <Row label="Less: Medical aid discount" value={`− ${fmt(result.medicalCreditApplied)}`} neg />
+            {result.medicalSchemeFeesCredit > 0 && (
+              <Row label="Less: Medical aid discount" value={`− ${fmt(result.medicalSchemeFeesCredit)}`} neg />
+            )}
+            {result.additionalMedicalCredit > 0 && (
+              <Row label="Less: Extra medical costs discount" value={`− ${fmt(result.additionalMedicalCredit)}`} neg />
+            )}
             <View style={{ height: 1, backgroundColor: colour.borderLight, marginVertical: 8 }} />
             <Row label="Tax on your normal income" value={fmt(result.taxAfterCredits)} bold />
 

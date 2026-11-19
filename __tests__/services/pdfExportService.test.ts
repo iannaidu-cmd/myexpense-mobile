@@ -54,3 +54,13 @@ describe("buildITR12HTML", () => {
     expect(html).not.toContain("1234567812345678");
   });
 });
+
+describe("buildITR12HTML medical section", () => {
+  it("shows the medical section only when there is something to declare", () => {
+    expect(build([e({})])).not.toContain("Medical section");
+    const html = build([e({ category: "Medical", amount: 250, is_deductible: false, sars_field: "4034" } as any)]);
+    expect(html).toContain("Qualifying medical expenses not claimed from your medical scheme (4034)");
+    expect(html).toContain("Medical (4034)");
+    expect(html).not.toContain("(4005)");
+  });
+});

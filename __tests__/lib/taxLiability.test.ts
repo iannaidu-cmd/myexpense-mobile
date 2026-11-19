@@ -1,4 +1,4 @@
-import { ageAtTaxYearEnd, calculateTaxLiability, TaxLiabilityInput } from "@/lib/taxLiability";
+import { additionalMedicalExpensesCredit, ageAtTaxYearEnd, calculateTaxLiability, TaxLiabilityInput } from "@/lib/taxLiability";
 import { medicalTaxCreditForYear, retirementSeveranceLumpSumTax, taxDataForYear } from "@/lib/taxRules";
 
 function baseInput(overrides: Partial<TaxLiabilityInput> = {}): TaxLiabilityInput {
@@ -322,5 +322,43 @@ describe("calculateTaxLiability — actual SARS directive override", () => {
     const combinedEstimate = retirementSeveranceLumpSumTax(1083419.77, 0);
     expect(combinedEstimate).toBe(124223);
     expect(result.lumpSumTax).toBeGreaterThan(combinedEstimate);
+  });
+});
+
+// ─── Medical credits (s6A / s6B) ──────────────────────────────────────────────
+
+describe("medical credits", () => {
+  it("gives no medical scheme fees credit to someone with no medical aid", () => {
+    const r = calculateTaxLiability(baseInput({ businessTaxableIncome: 400_000 }));
+    expect(r.medicalSchemeFeesCredit).toBe(0);
+    expect(r.medicalCreditApplied).toBe(0);
+  });
+
+  it("gives the monthly credit when contributions are paid", () => {
+    const r = calculateTaxLiability(baseInput({ businessTaxableIncome: 400_000, medicalSchemeContributions: 30_000, medicalAidDependants: 1 }));
+    expect(r.medicalSchemeFeesCredit).toBe(medicalTaxCreditForYear(1, "2026/27"));
+  });
+
+  // Worked examples from the SARS ITR12 comprehensive guide (section 9.1).
+  it("matches the SARS under-65 example (25% above 7.5% of taxable income)", () => {
+    expect(
+      additionalMedicalExpensesCredit({ contributions: 24_000, schemeFeesCredit: 8_232, qualifyingExpenses: 20_000, taxableIncome: 200_000, olderOrDisabled: false }),
+    ).toBe(1_250);
+    // Same person at R300 000 taxable income gets nothing.
+    expect(
+      additionalMedicalExpensesCredit({ contributions: 24_000, schemeFeesCredit: 8_232, qualifyingExpenses: 20_000, taxableIncome: 300_000, olderOrDisabled: false }),
+    ).toBe(0);
+  });
+
+  it("matches the SARS 65-and-older example (33.3%, no 7.5% limit)", () => {
+    expect(
+      additionalMedicalExpensesCredit({ contributions: 24_000, schemeFeesCredit: 6_168, qualifyingExpenses: 20_000, taxableIncome: 200_000, olderOrDisabled: true }),
+    ).toBe(8_490);
+  });
+
+  it("uses the 65+ rule for a disability, and adds out-of-pocket costs without a medical aid", () => {
+    const r = calculateTaxLiability(baseInput({ businessTaxableIncome: 300_000, qualifyingMedicalExpenses: 9_000, hasDisability: true }));
+    expect(r.medicalSchemeFeesCredit).toBe(0);
+    expect(r.additionalMedicalCredit).toBe(Math.round(9_000 * 0.333));
   });
 });

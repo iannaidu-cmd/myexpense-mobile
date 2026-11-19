@@ -49,7 +49,7 @@ export function SarsFieldPicker({ category, value, onChange }: Props) {
         })}
       </View>
       <Text style={{ ...typography.bodyXS, color: colour.textSub, marginTop: space.xs }}>
-        Goes in the ITR12 field: {current.field}
+        Goes in the ITR12 {current.where ?? `field: ${current.field}`}
       </Text>
       {current.hint ? (
         <Text style={{ ...typography.bodyXS, color: colour.textMid, marginTop: 2 }}>{current.hint}</Text>

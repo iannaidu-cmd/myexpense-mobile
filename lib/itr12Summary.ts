@@ -76,7 +76,10 @@ export function canonicalCategory(category: string | null | undefined): string {
  */
 export interface SarsFieldType {
   label: string;
-  field: SarsExpenditureField;
+  /** Business expenditure field, or a medical source code ("4005" etc). */
+  field: string;
+  /** Where it goes, as shown under the picker. */
+  where?: string;
   /** Shown under the picker when this type is chosen. */
   hint?: string;
 }
@@ -99,19 +102,50 @@ export const SARS_FIELD_TYPES: Record<string, SarsFieldType[]> = {
   ],
 };
 
+export const MEDICAL_CATEGORY = "Medical";
+
+/** ITR12 medical section source codes. Default first. */
+export const MEDICAL_TYPES: SarsFieldType[] = [
+  {
+    label: "Not claimed from medical aid",
+    field: "4034",
+    where: "Medical section, code 4034",
+    hint: "Costs you paid yourself and didn't claim from a medical aid. Keep the receipts.",
+  },
+  {
+    label: "Medical aid contributions",
+    field: "4005",
+    where: "Medical section, code 4005",
+    hint: "What you pay your medical aid each month. Your medical aid's tax certificate shows the year's total.",
+  },
+  {
+    label: "Claimed, not paid back",
+    field: "4020",
+    where: "Medical section, code 4020",
+    hint: "Costs you claimed from your medical aid that it didn't pay. They show on your medical aid's tax certificate.",
+  },
+];
+
+export const isMedicalCategory = (category: string | null | undefined) => canonicalCategory(category) === MEDICAL_CATEGORY;
+
 /** Type options for a category, or null when it maps to one field only. */
 export function sarsFieldTypes(category: string | null | undefined): SarsFieldType[] | null {
-  return SARS_FIELD_TYPES[canonicalCategory(category)] ?? null;
+  const cat = canonicalCategory(category);
+  if (cat === MEDICAL_CATEGORY) return MEDICAL_TYPES;
+  return SARS_FIELD_TYPES[cat] ?? null;
 }
 
 /** The saved field if it is valid for this category, otherwise null. */
-export function validSarsField(category: string | null | undefined, field: string | null | undefined): SarsExpenditureField | null {
+export function validSarsField(category: string | null | undefined, field: string | null | undefined): string | null {
   const types = sarsFieldTypes(category);
   return types?.find((t) => t.field === field)?.field ?? null;
 }
 
 // Best guess from a statement description, for bank imports (no picker).
-const FIELD_GUESSES: Record<string, [RegExp, SarsExpenditureField][]> = {
+const FIELD_GUESSES: Record<string, [RegExp, string][]> = {
+  Medical: [
+    [/discovery\s*health|bonitas|momentum\s*health|medshield|fedhealth|bestmed|\bgems\b|medihelp|keyhealth|profmed|polmed|bankmed|medical\s*aid/i, "4005"],
+  ],
   "Professional Fees": [
     [/account|bookkeep|audit|tax practi|saica|sait/i, "Accounting Fees"],
     [/attorney|lawyer|legal|advocate|conveyanc|law/i, "Legal Costs"],
@@ -125,7 +159,7 @@ const FIELD_GUESSES: Record<string, [RegExp, SarsExpenditureField][]> = {
 };
 
 /** The field to save for a new expense when nobody picked a type. */
-export function guessSarsField(category: string, description: string | null | undefined): SarsExpenditureField | null {
+export function guessSarsField(category: string, description: string | null | undefined): string | null {
   const types = sarsFieldTypes(category);
   if (!types) return null;
   const hit = FIELD_GUESSES[canonicalCategory(category)]?.find(([re]) => re.test(description ?? ""));
@@ -154,9 +188,9 @@ export function sarsFieldFor(e: Pick<ExpenseLike, "category" | "wear_and_tear_ve
   // The yearly vehicle wear-and-tear row is an s11(e) allowance, not a running cost.
   if (e.wear_and_tear_vehicle_id) return "Depreciation";
   const cat = canonicalCategory(e.category);
-  if (cat === RETIREMENT_ANNUITY_CATEGORY || cat === NON_DEDUCTIBLE_LABEL) return null;
+  if (cat === RETIREMENT_ANNUITY_CATEGORY || cat === NON_DEDUCTIBLE_LABEL || cat === MEDICAL_CATEGORY) return null;
   const types = SARS_FIELD_TYPES[cat];
-  if (types) return validSarsField(cat, e.sars_field) ?? types[0].field;
+  if (types) return (validSarsField(cat, e.sars_field) ?? types[0].field) as SarsExpenditureField;
   const field = ITR12_CATEGORIES[cat]?.field;
   return (SARS_EXPENDITURE_FIELDS as readonly string[]).includes(field ?? "")
     ? (field as SarsExpenditureField)
@@ -231,6 +265,8 @@ export function buildExpenditure(
   };
 
   for (const e of expenses) {
+    // Medical has its own ITR12 section (see medicalTotals), not personal spending.
+    if (isMedicalCategory(e.category)) continue;
     if (!e.is_deductible) {
       notClaimable.amount += Number(e.amount);
       notClaimable.count += 1;
@@ -275,6 +311,43 @@ export function buildExpenditure(
 }
 
 const capitalise = (s: string) => (s ? s[0].toUpperCase() + s.slice(1) : s);
+
+// ─── Medical ─────────────────────────────────────────────────────────────────
+
+export interface MedicalTotals {
+  /** Code 4005: medical aid contributions logged as expenses. */
+  contributions: number;
+  /** Code 4020: claimed from the medical aid but not paid back. */
+  claimedNotPaid: number;
+  /** Code 4034: not claimed from a medical aid. */
+  notClaimed: number;
+  count: number;
+}
+
+/** Logged Medical expenses by ITR12 medical source code. */
+export function medicalTotals(expenses: ExpenseLike[]): MedicalTotals {
+  const t: MedicalTotals = { contributions: 0, claimedNotPaid: 0, notClaimed: 0, count: 0 };
+  for (const e of expenses) {
+    if (!isMedicalCategory(e.category)) continue;
+    const code = validSarsField(MEDICAL_CATEGORY, e.sars_field) ?? MEDICAL_TYPES[0].field;
+    const amt = Number(e.amount);
+    if (code === "4005") t.contributions += amt;
+    else if (code === "4020") t.claimedNotPaid += amt;
+    else t.notClaimed += amt;
+    t.count += 1;
+  }
+  return t;
+}
+
+/**
+ * Medical aid contributions for the year: the logged 4005 expenses if there
+ * are any (they are the real payments), otherwise the monthly amount from the
+ * tax calculator x 12. Never both, so nothing is counted twice.
+ */
+export function annualMedicalContributions(t: MedicalTotals, medicalAidMonthly: number | null | undefined): number {
+  if (t.contributions > 0) return t.contributions;
+  return Math.max(0, Number(medicalAidMonthly ?? 0)) * 12;
+}
 
 // ─── Income ──────────────────────────────────────────────────────────────────
 
@@ -418,7 +491,7 @@ export function filingChecks(expenses: ExpenseLike[]): FilingCheck[] {
       checks.push({ kind: "bondInterest", ...base });
     } else if (SARS_FIELD_TYPES[cat] && !validSarsField(cat, e.sars_field)) {
       // Saved before the type picker existed: it sits in the default field.
-      checks.push({ kind: "typeNotChosen", ...base, category: cat, field: SARS_FIELD_TYPES[cat][0].field });
+      checks.push({ kind: "typeNotChosen", ...base, category: cat, field: SARS_FIELD_TYPES[cat][0].field as SarsExpenditureField });
     }
   }
   return checks;

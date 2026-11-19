@@ -9,6 +9,12 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import {
+  annualMedicalContributions,
+  isMedicalCategory,
+  MEDICAL_CATEGORY,
+  MEDICAL_TYPES,
+  medicalTotals,
+  validSarsField,
   assessmentPeriod,
   buildExpenditure,
   buildIncome,
@@ -91,6 +97,8 @@ interface BuildOpts {
     work_type: string | null;
     vat_registered: boolean;
     vat_number: string | null;
+    medical_aid_monthly?: number | null;
+    medical_aid_dependants?: number | null;
   };
   taxYear: string;
   expenses: Expense[];
@@ -207,6 +215,25 @@ export function buildITR12HTML(opts: BuildOpts): string {
     </table>`
       : "";
 
+  // ── Medical (its own ITR12 section, a tax credit not a deduction) ──
+  const med = medicalTotals(expenses);
+  const medContrib = annualMedicalContributions(med, profile.medical_aid_monthly);
+  const medicalHTML =
+    medContrib > 0 || med.claimedNotPaid > 0 || med.notClaimed > 0
+      ? `
+    <div class="section-title">Medical</div>
+    <div class="aside">Medical costs aren't a business expense. They go in the medical section of your ITR12, where SARS gives you a tax credit for them.</div>
+    <table>
+      <thead><tr><th>ITR12 field</th><th class="num">Enter in eFiling</th></tr></thead>
+      <tbody>
+        ${medContrib > 0 ? row("Total number of dependants (including yourself) per month", String(1 + Math.max(0, Number(profile.medical_aid_dependants ?? 0))), "Everyone on your medical aid") : ""}
+        ${medContrib > 0 ? row("Total medical contributions made by yourself (4005)", fmtRands(medContrib), med.contributions > 0 ? "From the medical aid payments you logged. Use your medical aid's tax certificate if it differs." : `Your monthly amount in the Tax Liability calculator x 12. Use your medical aid's tax certificate if it differs.`) : ""}
+        ${med.claimedNotPaid > 0 ? row("Medical expenses claimed from your medical scheme and not paid back (4020)", fmtRands(med.claimedNotPaid), "Should match \"claims not recovered\" on your medical aid's tax certificate") : ""}
+        ${med.notClaimed > 0 ? row("Qualifying medical expenses not claimed from your medical scheme (4034)", fmtRands(med.notClaimed), "Keep the receipts in case SARS asks") : ""}
+      </tbody>
+    </table>`
+      : "";
+
   // ── Checks before filing ──
   const checksHTML = checks.length
     ? `
@@ -270,7 +297,7 @@ export function buildITR12HTML(opts: BuildOpts): string {
     ? ""
     : (() => {
         const rows = expenses
-          .filter((e) => e.is_deductible || includePersonal)
+          .filter((e) => e.is_deductible || includePersonal || isMedicalCategory(e.category))
           .sort((a, b) => new Date(b.expense_date).getTime() - new Date(a.expense_date).getTime());
         if (rows.length === 0 && !homeOfficeSetup) return "";
 
@@ -291,15 +318,17 @@ export function buildITR12HTML(opts: BuildOpts): string {
           .map((e) => {
             const field = e.is_deductible ? sarsFieldFor(e) : null;
             const cat = canonicalCategory(e.category);
+            const medical = isMedicalCategory(cat);
+            const medCode = medical ? validSarsField(MEDICAL_CATEGORY, e.sars_field) ?? MEDICAL_TYPES[0].field : null;
             return `
           <tr>
             <td>${fmtDate(e.expense_date)}</td>
             <td>${esc(maskCardNumbers(e.vendor))}</td>
             <td>${esc(cat)}</td>
-            <td>${field ? esc(field) : e.is_deductible && cat === "Retirement Annuity" ? "Retirement annuity (4006)" : "—"}</td>
+            <td>${medCode ? `Medical (${medCode})` : field ? esc(field) : e.is_deductible && cat === "Retirement Annuity" ? "Retirement annuity (4006)" : "—"}</td>
             <td class="num">${fmtZAR(e.amount)}</td>
             ${includeVAT ? `<td class="num">${e.vat_amount ? fmtZAR(e.vat_amount) : "—"}</td>` : ""}
-            <td class="c">${e.is_deductible ? "✓" : "✗"}</td>
+            <td class="c">${e.is_deductible || medical ? "✓" : "✗"}</td>
           </tr>`;
           })
           .join("");
@@ -401,6 +430,7 @@ export function buildITR12HTML(opts: BuildOpts): string {
     ${vatHTML}
     ${profitHTML}
     ${raHTML}
+    ${medicalHTML}
     ${estimateHTML}
     ${checksHTML}
     ${lineItemsHTML}
@@ -448,6 +478,8 @@ export async function generateITR12PDF(opts: PDFExportOptions): Promise<void> {
       work_type: profile?.work_type ?? null,
       vat_registered: profile?.vat_registered ?? false,
       vat_number: profile?.vat_number ?? null,
+      medical_aid_monthly: profile?.medical_aid_monthly ?? null,
+      medical_aid_dependants: profile?.medical_aid_dependants ?? 0,
     },
     taxYear,
     expenses,

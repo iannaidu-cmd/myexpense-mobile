@@ -33,6 +33,10 @@ export const CATEGORIES: Category[] = [
   { label: "Training & Education",     icon: "book.fill",             code: "S11(a)",    deductible: true,  examples: "Courses, workshops, conferences, certifications" },
   { label: "Telephone & Internet",     icon: "phone.fill",            code: "S11(a)",    deductible: true,  examples: "Airtime, data, fibre, ADSL, WiFi, ISP bills (Vodacom, MTN, Telkom, Cell C, RSAWeb)" },
   { label: "Vehicle Expenses",         icon: "car.fill",              code: "S11(a)",    deductible: true,  examples: "Fuel, insurance, services, licence, finance charges (you claim the work share from your logbook)" },
+  // Not a business expense: claimed as a medical tax credit in the ITR12's
+  // medical section (codes 4005 / 4020 / 4034). Always saved with
+  // is_deductible = false so it never reaches a business total.
+  { label: "Medical",                  icon: "cross.case.fill",       code: "S6A/S6B",   deductible: false, examples: "Doctor, dentist, pharmacy, optometrist, medical aid contributions (claimed as a medical tax credit)" },
   { label: "Retirement Annuity",       icon: "chart.bar.fill",        code: "S11F",      deductible: true,  examples: "Retirement annuity contributions" },
   { label: "Personal / Other",         icon: "person.fill",           code: "N/A",       deductible: false, examples: "Non-business or personal expenses (not tax-deductible)" },
 ];

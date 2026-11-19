@@ -3,6 +3,7 @@ import { getCached, invalidatePrefix, setCached } from "@/lib/queryCache";
 import { supabase } from "@/lib/supabase";
 import { claimableInputVat } from "@/lib/vat";
 import { HOME_OFFICE_CATEGORY, setupClaimDescription, setupClaimForYear } from "@/lib/homeOffice";
+import { isMedicalCategory } from "@/lib/itr12Summary";
 import { homeOfficeService, type HomeOfficeSetting } from "@/services/homeOfficeService";
 import type { Expense, NewExpense, UpdateExpense } from "@/types/database";
 
@@ -174,7 +175,8 @@ export const expenseService = {
       totalExpenses: expenses.reduce((sum, e) => sum + Number(e.amount), 0),
       totalDeductions:
         expenses
-          .filter((e) => e.is_deductible)
+          // Medical is a tax credit, never a business deduction.
+          .filter((e) => e.is_deductible && !isMedicalCategory(e.category))
           .reduce((sum, e) => {
             const cap = CATEGORY_PARTIAL_CAPS[e.category] ?? 1;
             return sum + deductibleBase(e, vatRegistered) * cap;
@@ -198,7 +200,8 @@ export const expenseService = {
         itr12_code: expense.itr12_code ?? null,
         tax_year: expense.tax_year,
         expense_date: expense.expense_date,
-        is_deductible: expense.is_deductible ?? false,
+        // Medical is claimed as a tax credit, so it's never a business deduction.
+        is_deductible: isMedicalCategory(expense.category) ? false : expense.is_deductible ?? false,
         vat_amount: expense.vat_amount ?? null,
         notes: expense.notes ?? null,
         receipt_url: expense.receipt_url ?? null,
@@ -219,6 +222,7 @@ export const expenseService = {
   // ── Update an expense ─────────────────────────────────────────────────────
   updateExpense: async (expense: UpdateExpense): Promise<Expense> => {
     const { id, ...fields } = expense;
+    if (fields.category && isMedicalCategory(fields.category)) fields.is_deductible = false;
     const { data, error } = await supabase
       .from("expenses")
       .update(fields)
@@ -304,7 +308,8 @@ export const expenseService = {
 
     if (error) throw new Error(error.message);
 
-    const rows = data ?? [];
+    // Medical is a tax credit, never a business deduction.
+    const rows = (data ?? []).filter((e) => !isMedicalCategory(e.category));
     const result = rows.reduce<Record<string, number>>((acc, e) => {
       const cap = CATEGORY_PARTIAL_CAPS[e.category] ?? 1;
       acc[e.category] = (acc[e.category] ?? 0) + deductibleBase(e, vatRegistered) * cap;
