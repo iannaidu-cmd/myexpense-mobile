@@ -36,12 +36,12 @@ const KEYWORD_MAP: Array<[RegExp, string]> = [
   // Grocery shops are household shopping, not business entertainment.
   [/\b(woolworths\s*food|pick\s*n\s*pay|pnp\b|checkers\b|spar\b|kwik\s*spar|food\s*lovers|trader\s*joes|mr\s*d\s*food)\b/i, "Personal / Other"],
   // Medical aid schemes and medical providers: claimed as a medical tax credit.
-  [/\b(discovery\s*health|bonitas|momentum\s*health|medshield|fedhealth|bestmed|gems|medihelp|keyhealth|profmed|polmed|bankmed)\b/i, "Medical"],
+  [/\b(medical\s*aid|discovery\s*health|bonitas|momentum\s*health|medshield|fedhealth|bestmed|gems|medihelp|keyhealth|profmed|polmed|bankmed)\b/i, "Medical"],
   [/\b(clicks|dischem|dis-chem|pharmacy|apteek|doctor|dentist|dental|optometr\w*|spec-?savers|pathcare|lancet|ampath|netcare|mediclinic|life\s*healthcare)\b/i, "Medical"],
   [/\b(sanlam|old\s*mutual|discovery\s*(life|health)?|momentum\s*(life|health)?|liberty\s*life|hollard|santam|outsurance|miway|absa\s*insur)\b/i, "Insurance"],
-  [/\b(eskom|city\s*power|joburg\s*water|rand\s*water|municipality|local\s*council|rates\s*and\s*taxes|prepaid\s*electricity)\b/i, "Utilities"],
+  [/\b(eskom|city\s*power|joburg\s*water|rand\s*water|municipality|local\s*council|rates\s*and\s*taxes|prepaid\s*electricity|electricity)\b/i, "Utilities"],
   [/\b(postnet|dhl\b|courier\s*guy|fedex|ups\b|aramex|dawn\s*wing|skynet|meili\s*logist)\b/i, "Professional Fees"],
-  [/\b(service\s*fee|monthly\s*fee|account\s*fee|admin\s*fee|bank\s*charge|transaction\s*fee|facility\s*fee|maintenance\s*fee|notification\s*fee)\b/i, "Bank Charges"],
+  [/\b(service\s*fee|monthly\s*fee|account\s*fee|admin\s*fee|bank\s*charge|transaction\s*fee|facility\s*fee|maintenance\s*fee|notification\s*fee|monthly\s*credit\s*fee|bundle\s*fee)\b/i, "Bank Charges"],
   // Streaming is personal, not business software.
   [/\b(netflix|spotify|showmax|dstv)\b/i,                                  "Personal / Other"],
   // Domains and hosting are listed under Software & Subscriptions.
@@ -171,12 +171,25 @@ export function parseCSV(content: string): ParsedTransaction[] {
   const lines = content.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
   if (lines.length < 1) return [];
 
-  // ── Detect whether the file has column headers ───────────────────────────
-  const firstCols = splitCSVLine(lines[0]);
-  const firstLower = firstCols.map((h) => h.toLowerCase().replace(/[^a-z]/g, ""));
-  const hasHeaders =
-    firstLower.some((h) => ["date", "transactiondate", "postingdate", "valuedate"].includes(h)) ||
-    firstLower.some((h) => ["amount", "debit", "credit", "description", "narrative", "reference"].includes(h));
+  // ── Find the column header row ───────────────────────────────────────────
+  // Many exports (e.g. FNB "ACCOUNT TRANSACTION HISTORY") put a title and
+  // Name/Account/Balance lines above the real header, so scan the top of the
+  // file rather than only checking line 0. A header row must name a date
+  // column AND an amount/description column, so metadata lines like
+  // "Balance:, -16200.11" can't be mistaken for one. We stop at the first
+  // date-led data row: anything below that is transactions, not headers.
+  const DATE_HEADERS = ["date", "transactiondate", "postingdate", "valuedate", "datum"];
+  const OTHER_HEADERS = ["amount", "transactionamount", "debit", "credit", "description", "narrative", "reference", "details", "transactiondetails"];
+  let headerRow = -1;
+  for (let i = 0; i < Math.min(lines.length, 20); i++) {
+    const cols = splitCSVLine(lines[i]);
+    if (parseDate(cols[0] ?? "")) break;
+    const lower = cols.map((h) => h.toLowerCase().replace(/[^a-z]/g, ""));
+    if (lower.some((h) => DATE_HEADERS.includes(h)) && lower.some((h) => OTHER_HEADERS.includes(h))) {
+      headerRow = i;
+      break;
+    }
+  }
 
   let dataStart: number;
   let dateIdx: number;
@@ -185,20 +198,18 @@ export function parseCSV(content: string): ParsedTransaction[] {
   let creditIdx: number;
   let descIdx: number;
 
-  if (hasHeaders) {
-    dataStart = 1;
-    dateIdx   = findCol(firstCols, ["date", "transactiondate", "postingdate", "valuedate", "datum"]);
-    amtIdx    = findCol(firstCols, ["amount", "transactionamount"]);
-    debitIdx  = findCol(firstCols, ["debit", "debitamount"]);
-    creditIdx = findCol(firstCols, ["credit", "creditamount", "credits", "deposit", "deposits"]);
-    descIdx   = findCol(firstCols, ["description", "narrative", "reference", "memo", "details", "transactiondetails", "payee", "merchant"]);
+  if (headerRow >= 0) {
+    const headerCols = splitCSVLine(lines[headerRow]);
+    dataStart = headerRow + 1;
+    dateIdx   = findCol(headerCols, DATE_HEADERS);
+    amtIdx    = findCol(headerCols, ["amount", "transactionamount"]);
+    debitIdx  = findCol(headerCols, ["debit", "debitamount"]);
+    creditIdx = findCol(headerCols, ["credit", "creditamount", "credits", "deposit", "deposits"]);
+    descIdx   = findCol(headerCols, ["description", "narrative", "reference", "memo", "details", "transactiondetails", "payee", "merchant"]);
   } else {
     // Headerless: scan up to 20 lines to find the first row where col 0 is a date.
-    // Nedbank format: Date, Description, Amount, Balance (no header row).
     dataStart = -1;
     dateIdx = 0;
-    descIdx = 1;
-    amtIdx  = 2;
     debitIdx = -1;
     creditIdx = -1;
 
@@ -208,6 +219,32 @@ export function parseCSV(content: string): ParsedTransaction[] {
         dataStart = i;
         break;
       }
+    }
+
+    // Banks order columns differently (Nedbank: Date, Description, Amount,
+    // Balance; FNB: Date, Amount, Balance, Description), so work out which
+    // column is which from the data instead of assuming one bank's layout.
+    // Description = the column that is mostly text; amount = the first
+    // numeric column (balance always comes after it).
+    descIdx = 1;
+    amtIdx = 2;
+    if (dataStart >= 0) {
+      const sample = lines.slice(dataStart, dataStart + 30).map(splitCSVLine);
+      const width = Math.max(...sample.map((c) => c.length));
+      const isNum = (v: string) => /^-?R?\s?[\d\s,]*\.?\d+$/.test(v.replace(/\s/g, "")) && /\d/.test(v);
+      const numericCols: number[] = [];
+      let bestTextCol = -1;
+      let bestTextCount = 0;
+      for (let c = 1; c < width; c++) {
+        const vals = sample.map((r) => r[c] ?? "").filter(Boolean);
+        if (vals.length === 0) continue;
+        const nums = vals.filter(isNum).length;
+        if (nums / vals.length >= 0.8) numericCols.push(c);
+        const texts = vals.length - nums;
+        if (texts > bestTextCount) { bestTextCount = texts; bestTextCol = c; }
+      }
+      if (numericCols.length > 0) amtIdx = numericCols[0];
+      if (bestTextCol >= 0) descIdx = bestTextCol;
     }
 
     if (dataStart < 0) {
