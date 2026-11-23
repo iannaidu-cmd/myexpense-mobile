@@ -47,15 +47,15 @@ const formatDate = (dateStr: string) => {
 };
 
 // ── Once-off dashboard popups ─────────────────────────────────────────────────
-// Two seasonal notices whose dates, wording and storage keys are derived from
-// the calendar in lib/seasonalPopups.ts, so they roll forward every year:
-// - taxSeasonOpen: SARS eFiling opening for the tax year that just ended.
+// One seasonal notice whose dates, wording and storage key are derived from
+// the calendar in lib/seasonalPopups.ts, so it rolls forward every year:
 // - period2: provisional tax period 2 of the tax year currently running.
+// A "taxSeasonOpen" notice was removed on 2026-11-23.
 // A "period1" notice (tax year started 1 Mar) used to exist here too, but
 // was removed: every new user installing after 1 Mar sees it as already due,
-// so it fired back-to-back with taxSeasonOpen on first launch for anyone
+// so it fired back-to-back with other notices on first launch for anyone
 // who signs up after mid-year — not just a testing artifact.
-type PopupKind = "taxSeasonOpen" | "period2" | "billingIssue";
+type PopupKind = "period2" | "billingIssue";
 
 // Module-level (not component state) so it survives the Home screen
 // remounting within the same app run — e.g. navigating to another stack
@@ -74,7 +74,7 @@ function billingIssuePopupKey(detectedAtIso: string): string {
 type PopupContent = {
   icon: string;
   iconColour: string;
-  eyebrow: string;
+  eyebrow?: string;
   title: string;
   subtitle: string;
   rows: { label: string; value: string }[];
@@ -84,7 +84,6 @@ type PopupContent = {
 // Icon + button for the seasonal popups; their dates and wording come from
 // lib/seasonalPopups.ts.
 const SEASONAL_POPUP_CHROME: Record<SeasonalPopupKind, Pick<PopupContent, "icon" | "iconColour" | "primaryLabel">> = {
-  taxSeasonOpen: { icon: "doc.text.fill", iconColour: colour.primary, primaryLabel: "Start preparing" },
   period2: { icon: "calendar", iconColour: colour.warning, primaryLabel: "Continue tracking" },
 };
 
@@ -266,9 +265,8 @@ export default function HomeScreen() {
       const seenBilling = await AsyncStorage.getItem(billingIssuePopupKey(billingIssueDetectedAt));
       if (!seenBilling) return "billingIssue";
     }
-    // Checked in chronological trigger-date order: 13 Jul → 1 Sep. Each
-    // returns null outside its window, so only popups currently open count.
-    for (const kind of ["taxSeasonOpen", "period2"] as const) {
+    // Returns null outside its window, so only a popup currently open counts.
+    for (const kind of ["period2"] as const) {
       const popup = seasonalPopup(kind);
       if (popup && !(await AsyncStorage.getItem(popup.key))) return kind;
     }
