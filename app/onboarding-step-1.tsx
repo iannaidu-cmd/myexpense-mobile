@@ -44,8 +44,6 @@ const CHOICES = [
   { id: 'employed', icon: 'person.fill', label: 'Salaried employee', sub: 'I get an IRP5 from my employer', as: 'a salaried employee' },
 ] as const;
 
-const BENEFITS = ['Snap', 'Log', 'Export'] as const;
-
 type ChoiceId = (typeof CHOICES)[number]['id'];
 
 export default function OnboardingScreen() {
@@ -133,14 +131,9 @@ export default function OnboardingScreen() {
             Built for the self-employed. Keep every business expense and trip in one place as you go, so nothing
             gets missed when you file.
           </Text>
-          {/* Three words spread across the full width */}
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: space.xl }}>
-            {BENEFITS.map((b) => (
-              <Text key={b} style={{ fontSize: 24, fontWeight: '800', letterSpacing: -0.5, color: colour.heroDark }}>
-                {b}
-              </Text>
-            ))}
-          </View>
+          <Text style={{ fontSize: 17, fontWeight: '800', letterSpacing: -0.3, color: colour.heroDark, marginTop: space.xl }}>
+            Snap, log, export, easy as that.
+          </Text>
         </ScrollView>
 
         {/* ── Page 2: How do you earn your income? ── */}
