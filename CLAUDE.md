@@ -84,6 +84,8 @@ Icons use SF Symbols on iOS mapped to Material Icons on Android via `components/
 
 Haptics are iOS-gated via `HapticTab`.
 
+**No AI look.** No design may look AI-generated. Avoid: gradient blobs/meshes, purple-blue or gradient text, glassmorphism and glows; a big hero stat as the first thing seen; three-up feature grids with icons in tinted rounded squares; pastel tinted fills with matching coloured borders; sparkle/magic icons, emoji bullets, 3D icons; centring everything with the same large radius and soft shadow on every element; AI copy tics ("Unlock", "Supercharge", "Seamless", "Effortless", "Elevate", em dashes); invented stats or placeholder testimonials. Use tokens, existing MX components, real content, flat surfaces and plain hierarchy.
+
 ## Environment variables
 
 Stored in `.env` (never committed). All are `EXPO_PUBLIC_` prefixed:

@@ -1,6 +1,6 @@
 // ─── Onboarding ──────────────────────────────────────────────────────────────
 // Two pages before sign-up:
-//   1. Intro: what MyExpense gets you back.
+//   1. Intro: what MyExpense does for you. No figures on this page.
 //   2. How do you earn your income? The answer is required (Continue is off
 //      until one is picked, and nothing is pre-picked so the data isn't
 //      skewed) and becomes the account's profiles.work_type, which decides:
@@ -43,6 +43,8 @@ const CHOICES = [
   { id: 'contractor', icon: 'doc.text.fill', label: 'Independent contractor', sub: 'A few clients, on contract', as: 'an independent contractor' },
   { id: 'employed', icon: 'person.fill', label: 'Salaried employee', sub: 'I get an IRP5 from my employer', as: 'a salaried employee' },
 ] as const;
+
+const BENEFITS = ['Snap', 'Log', 'Export'] as const;
 
 type ChoiceId = (typeof CHOICES)[number]['id'];
 
@@ -91,7 +93,7 @@ export default function OnboardingScreen() {
 
   const ctaDisabled = page === 1 && !choice;
   const ctaLabel = page === 0
-    ? 'Get started'
+    ? 'Start free'
     : choice ? `Continue as ${choice.as}` : 'Pick one to continue';
 
   return (
@@ -124,32 +126,21 @@ export default function OnboardingScreen() {
           nestedScrollEnabled
         >
           <OnboardingHeroScene />
-          <View style={{ marginBottom: space.lg }}>
-            <View
-              style={{
-                backgroundColor: colour.heroDark,
-                borderRadius: radius.pill,
-                paddingHorizontal: space.md,
-                paddingVertical: space.xs,
-                alignSelf: 'flex-start',
-                marginBottom: space.sm,
-              }}
-            >
-              <Text style={{ fontSize: 11, color: colour.onNoir, fontWeight: '700', letterSpacing: 0.3 }}>
-                Average unclaimed per year
+          <Text style={{ fontSize: 26, fontWeight: '800', letterSpacing: -0.7, lineHeight: 31, color: colour.heroDark }}>
+            Your slips and work trips, sorted for SARS.
+          </Text>
+          <Text style={{ fontSize: 15.5, color: colour.textSub, lineHeight: 23, marginTop: space.md }}>
+            Built for the self-employed. Keep every business expense and trip in one place as you go, so nothing
+            gets missed when you file.
+          </Text>
+          {/* Three words spread across the full width */}
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: space.xl }}>
+            {BENEFITS.map((b) => (
+              <Text key={b} style={{ fontSize: 24, fontWeight: '800', letterSpacing: -0.5, color: colour.heroDark }}>
+                {b}
               </Text>
-            </View>
-            <Text style={{ fontSize: 46, fontWeight: '800', color: colour.primary, letterSpacing: -1.5, lineHeight: 52 }}>
-              R37,492
-            </Text>
+            ))}
           </View>
-          <Text style={{ fontSize: 22, fontWeight: '800', letterSpacing: -0.6, lineHeight: 28, color: colour.heroDark, marginBottom: space.sm }}>
-            Stop leaving your money with SARS.
-          </Text>
-          <Text style={{ fontSize: 15.5, color: colour.textSub, lineHeight: 23 }}>
-            Lost slips and unrecorded work trips cost you at tax time. MyExpense keeps them in one place,
-            so you claim it all back.
-          </Text>
         </ScrollView>
 
         {/* ── Page 2: How do you earn your income? ── */}

@@ -1,6 +1,7 @@
 import { CATEGORY_PARTIAL_CAPS } from "@/constants/categories";
 import { getCached, invalidatePrefix, setCached } from "@/lib/queryCache";
 import { supabase } from "@/lib/supabase";
+import { allRows } from "@/lib/allRows";
 import { claimableInputVat } from "@/lib/vat";
 import { HOME_OFFICE_CATEGORY, setupClaimDescription, setupClaimForYear } from "@/lib/homeOffice";
 import { isMedicalCategory } from "@/lib/itr12Summary";
@@ -56,12 +57,12 @@ export const expenseService = {
     const cached = getCached<Expense[]>(key);
     if (cached) return cached;
 
-    const { data, error } = await supabase
+    const { data, error } = await allRows(supabase
       .from("expenses")
       .select("*")
       .eq("user_id", userId)
       .eq("tax_year", taxYear)
-      .order("expense_date", { ascending: false });
+      .order("expense_date", { ascending: false }));
 
     if (error) throw new Error(error.message);
     const result = data ?? [];
@@ -75,11 +76,11 @@ export const expenseService = {
     const cached = getCached<Expense[]>(key);
     if (cached) return cached;
 
-    const { data, error } = await supabase
+    const { data, error } = await allRows(supabase
       .from("expenses")
       .select("*")
       .eq("user_id", userId)
-      .order("expense_date", { ascending: false });
+      .order("expense_date", { ascending: false }));
 
     if (error) throw new Error(error.message);
     const result = data ?? [];
@@ -114,14 +115,14 @@ export const expenseService = {
     startDate: string,
     endDate: string,
   ): Promise<Expense[]> => {
-    const { data, error } = await supabase
+    const { data, error } = await allRows(supabase
       .from("expenses")
       .select("*")
       .eq("user_id", userId)
       .not("storage_path", "is", null)
       .gte("expense_date", startDate)
       .lte("expense_date", endDate)
-      .order("expense_date", { ascending: true });
+      .order("expense_date", { ascending: true }));
 
     if (error) throw new Error(error.message);
     return (data ?? []) as Expense[];
@@ -156,11 +157,11 @@ export const expenseService = {
     if (cached) return cached;
 
     const [{ data, error }, homeOffice] = await Promise.all([
-      supabase
+      allRows(supabase
         .from("expenses")
         .select("amount, is_deductible, category, vat_amount, business_use_pct")
         .eq("user_id", userId)
-        .eq("tax_year", taxYear),
+        .eq("tax_year", taxYear)),
       loadHomeOfficeSetting(userId),
     ]);
 
@@ -247,12 +248,12 @@ export const expenseService = {
   // Keeps the oldest record for each combination, deletes the rest.
   // Returns the number of duplicates removed.
   removeDuplicates: async (userId: string, taxYear: string): Promise<number> => {
-    const { data, error } = await supabase
+    const { data, error } = await allRows(supabase
       .from("expenses")
       .select("id, vendor, amount, gross_amount, expense_date, created_at")
       .eq("user_id", userId)
       .eq("tax_year", taxYear)
-      .order("created_at", { ascending: true });
+      .order("created_at", { ascending: true }));
 
     if (error) throw new Error(error.message);
     const expenses = data ?? [];
@@ -297,12 +298,12 @@ export const expenseService = {
     if (cached) return cached;
 
     const [{ data, error }, homeOffice] = await Promise.all([
-      supabase
+      allRows(supabase
         .from("expenses")
         .select("category, amount, vat_amount, business_use_pct, is_deductible")
         .eq("user_id", userId)
         .eq("tax_year", taxYear)
-        .eq("is_deductible", true),
+        .eq("is_deductible", true)),
       loadHomeOfficeSetting(userId),
     ]);
 

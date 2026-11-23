@@ -19,6 +19,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
@@ -60,15 +61,6 @@ function GoogleLogo() {
   );
 }
 
-// ── Apple logo ────────────────────────────────────────────────────────────────
-function AppleLogo() {
-  return (
-    <Svg width={22} height={22} viewBox="0 0 24 24" fill="#000">
-      <Path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.7 9.05 7.4c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.39-1.32 2.76-2.54 3.99zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
-    </Svg>
-  );
-}
-
 // ── Facebook logo ─────────────────────────────────────────────────────────────
 function FacebookLogo() {
   return (
@@ -83,25 +75,25 @@ function FacebookLogo() {
 function AuthField({
   label, value, onChangeText, placeholder, secureTextEntry,
   keyboardType, autoCapitalize = "none", autoCorrect = false,
-  autoComplete, trailing, onTrailingPress, hint, error,
+  autoComplete, trailing, onTrailingPress, hint, error, height = 50,
 }: {
   label: string; value: string; onChangeText: (t: string) => void;
   placeholder?: string; secureTextEntry?: boolean; keyboardType?: any;
   autoCapitalize?: "none" | "words" | "sentences" | "characters";
   autoCorrect?: boolean; autoComplete?: any;
   trailing?: React.ReactNode; onTrailingPress?: () => void;
-  hint?: string; error?: string;
+  hint?: string; error?: string; height?: number;
 }) {
   const [focused, setFocused] = useState(false);
   return (
     <View>
-      <Text style={{ fontSize: 13, fontWeight: "600", color: colour.textMid, letterSpacing: 0.1, marginBottom: 7 }}>
+      <Text style={{ fontSize: 13, fontWeight: "600", color: colour.textMid, letterSpacing: 0.1, marginBottom: 5 }}>
         {label}
       </Text>
       <View style={{
         flexDirection: "row", alignItems: "center",
         backgroundColor: colour.white,
-        borderRadius: radius.md, height: 54,
+        borderRadius: radius.md, height,
         paddingHorizontal: 15,
         borderWidth: focused ? 1.5 : 1,
         borderColor: focused ? colour.primary : colour.borderLight,
@@ -127,29 +119,30 @@ function AuthField({
         )}
       </View>
       {hint && !error && (
-        <Text style={{ fontSize: 12, color: colour.textHint, marginTop: 6, letterSpacing: 0.1 }}>{hint}</Text>
+        <Text style={{ fontSize: 12, color: colour.textHint, marginTop: 4, letterSpacing: 0.1 }}>{hint}</Text>
       )}
       {error && (
-        <Text style={{ fontSize: 12, color: colour.danger, marginTop: 6 }}>{error}</Text>
+        <Text style={{ fontSize: 12, color: colour.danger, marginTop: 4 }}>{error}</Text>
       )}
     </View>
   );
 }
 
-// ── Social button ─────────────────────────────────────────────────────────────
-function SocialButton({ icon, onPress, disabled, loading, label }: {
+// ── Social button (half width, sits beside its partner) ──────────────────────
+function SocialButton({ icon, onPress, disabled, loading, label, height }: {
   icon: React.ReactNode; onPress: () => void;
-  disabled?: boolean; loading?: boolean; label: string;
+  disabled?: boolean; loading?: boolean; label: string; height: number;
 }) {
   return (
     <TouchableOpacity
       onPress={onPress} disabled={disabled} activeOpacity={0.8}
-      accessibilityLabel={`Sign up with ${label}`}
+      accessibilityRole="button"
+      accessibilityLabel={`Continue with ${label}`}
       style={{
-        width: 56, height: 56, borderRadius: 28,
+        flex: 1, height, borderRadius: radius.pill,
         backgroundColor: colour.white,
         borderWidth: 1, borderColor: colour.borderLight,
-        alignItems: "center", justifyContent: "center",
+        flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
         opacity: disabled ? 0.5 : 1,
         ...Platform.select({
           ios: { shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2 },
@@ -157,7 +150,12 @@ function SocialButton({ icon, onPress, disabled, loading, label }: {
         }),
       }}
     >
-      {loading ? <ActivityIndicator color={colour.textSub} size="small" /> : icon}
+      {loading ? <ActivityIndicator color={colour.textSub} size="small" /> : (
+        <>
+          {icon}
+          <Text style={{ fontSize: 15, fontWeight: "600", color: colour.text }}>{label}</Text>
+        </>
+      )}
     </TouchableOpacity>
   );
 }
@@ -166,6 +164,11 @@ function SocialButton({ icon, onPress, disabled, loading, label }: {
 export function SignupScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  // The whole form must fit with no scrolling (keyboard aside), so short
+  // screens like the iPhone SE get tighter spacing.
+  const { height: screenH } = useWindowDimensions();
+  const compact = screenH < 760;
+  const ctl = compact ? 46 : 50; // height of every button and field
   const { signUp } = useAuthStore();
 
   const [name, setName] = useState("");
@@ -178,6 +181,7 @@ export function SignupScreen() {
   const [fbLoading, setFbLoading] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
   const [appleAvailable, setAppleAvailable] = useState(false);
+  const [termsPrompt, setTermsPrompt] = useState(false);
   const [errors, setErrors] = useState<{ name?: string; email?: string; password?: string }>({});
 
   useEffect(() => {
@@ -186,7 +190,17 @@ export function SignupScreen() {
     }
   }, []);
 
+  // Consent is required before any sign-up. The buttons stay tappable so they
+  // don't look broken; tapping one unticked shows why instead of starting.
+  const needsTerms = (via: "apple" | "google" | "facebook" | "email") => {
+    if (agreed) return false;
+    setTermsPrompt(true);
+    trackFunnel("terms_prompt", { via });
+    return true;
+  };
+
   const handleSubmit = async () => {
+    if (needsTerms("email")) return;
     const e: typeof errors = {};
     if (!name.trim()) e.name = "Full name is required.";
     if (!email.includes("@")) e.email = "Enter a valid email address.";
@@ -199,7 +213,7 @@ export function SignupScreen() {
     setErrors({});
     setLoading(true);
     trackFunnel("sign_up_submit", { method: "email" });
-    // The button only enables once "I agree" is ticked. Saved to the profile
+    // Only reached once "I agree" is ticked (needsTerms above). Saved to the profile
     // after sign-in (see notePendingTermsConsent in authStore).
     await notePendingTermsConsent();
     try {
@@ -218,6 +232,7 @@ export function SignupScreen() {
   };
 
   const handleGoogleSignIn = async () => {
+    if (needsTerms("google")) return;
     setGoogleLoading(true);
     await notePendingTermsConsent();
     trackFunnel("oauth_start", { provider: "google", from: "sign-up" });
@@ -234,6 +249,7 @@ export function SignupScreen() {
   };
 
   const handleFacebookSignIn = async () => {
+    if (needsTerms("facebook")) return;
     setFbLoading(true);
     await notePendingTermsConsent();
     trackFunnel("oauth_start", { provider: "facebook", from: "sign-up" });
@@ -249,6 +265,7 @@ export function SignupScreen() {
   };
 
   const handleAppleSignIn = async () => {
+    if (needsTerms("apple")) return;
     setAppleLoading(true);
     await notePendingTermsConsent();
     trackFunnel("oauth_start", { provider: "apple", from: "sign-up" });
@@ -265,34 +282,36 @@ export function SignupScreen() {
   };
 
   const socialDisabled = loading || googleLoading || fbLoading || appleLoading;
-  const ctaDisabled = !agreed || loading || socialDisabled;
+  const ctaDisabled = socialDisabled;
 
   return (
     <SafeAreaView edges={["bottom"]} style={{ flex: 1, backgroundColor: colour.primary }}>
       <StatusBar barStyle="light-content" backgroundColor={colour.primary} />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
-        <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} bounces={false}>
 
           {/* ── Periwinkle header ── */}
           <View style={{
             backgroundColor: colour.primary,
             paddingTop: insets.top + 10,
             paddingHorizontal: 24,
-            paddingBottom: 40,
+            paddingBottom: compact ? 30 : 36,
             overflow: "hidden",
           }}>
             <View style={{ position: "absolute", top: -46, right: -30, width: 150, height: 150, borderRadius: 75, backgroundColor: "rgba(255,255,255,0.10)" }} />
             <View style={{ position: "absolute", top: 34, right: 42, width: 60, height: 60, borderRadius: 30, backgroundColor: "rgba(255,255,255,0.08)" }} />
 
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 9, marginBottom: 24 }}>
-              <Text style={{ fontSize: 16, fontWeight: "700", color: "#fff", letterSpacing: -0.2 }}>MyExpense</Text>
-            </View>
+            {!compact && (
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 9, marginBottom: 16 }}>
+                <Text style={{ fontSize: 16, fontWeight: "700", color: "#fff", letterSpacing: -0.2 }}>MyExpense</Text>
+              </View>
+            )}
 
-            <Text style={{ fontSize: 27, fontWeight: "800", color: "#fff", letterSpacing: -0.5, lineHeight: 32, marginBottom: 8 }}>
+            <Text style={{ fontSize: compact ? 24 : 26, fontWeight: "800", color: "#fff", letterSpacing: -0.5, lineHeight: compact ? 29 : 31, marginBottom: 6 }}>
               Create account
             </Text>
             <Text style={{ fontSize: 14, lineHeight: 21, color: "rgba(255,255,255,0.82)", maxWidth: 300 }}>
-              Join 3.8 million self-employed South Africans maximising their tax deductions.
+              Start with 12 free uses. No card needed.
             </Text>
           </View>
 
@@ -300,47 +319,27 @@ export function SignupScreen() {
           <View style={{
             flex: 1, backgroundColor: colour.background,
             borderTopLeftRadius: 28, borderTopRightRadius: 28,
-            marginTop: -24, paddingHorizontal: 24, paddingTop: 28, paddingBottom: 28,
+            marginTop: -24, paddingHorizontal: 24, paddingTop: compact ? 20 : 24, paddingBottom: compact ? 12 : 20,
           }}>
 
-            {/* Fields */}
-            <View style={{ gap: 18 }}>
-              <AuthField
-                label="Full name" value={name} onChangeText={setName}
-                placeholder="e.g. Jessica Taylor" autoCapitalize="words"
-                autoCorrect={false} autoComplete="name" error={errors.name}
-              />
-              <AuthField
-                label="Email address" value={email} onChangeText={setEmail}
-                placeholder="you@example.co.za" keyboardType="email-address"
-                autoComplete="email" error={errors.email}
-              />
-              <AuthField
-                label="Password" value={password} onChangeText={setPassword}
-                placeholder="Create a password" secureTextEntry={!showPassword}
-                autoComplete="new-password"
-                hint="Use at least 8 characters."
-                trailing={<EyeIcon off={showPassword} />}
-                onTrailingPress={() => setShowPassword(s => !s)}
-                error={errors.password}
-              />
-            </View>
-
-            {/* Consent checkbox */}
+            {/* Consent checkbox (first, so it's seen before any button) */}
             <TouchableOpacity
               onPress={() => {
-                if (!agreed) trackFunnel("terms_ticked");
+                if (!agreed) {
+                  trackFunnel("terms_ticked");
+                  setTermsPrompt(false);
+                }
                 setAgreed(a => !a);
               }}
               activeOpacity={0.8}
-              style={{ flexDirection: "row", alignItems: "flex-start", gap: 12, marginTop: 20 }}
+              style={{ flexDirection: "row", alignItems: "flex-start", gap: 12 }}
             >
               <View style={{
                 width: 22, height: 22, borderRadius: 7, flexShrink: 0, marginTop: 1,
                 alignItems: "center", justifyContent: "center",
                 backgroundColor: agreed ? colour.primary : colour.white,
                 borderWidth: 1.5,
-                borderColor: agreed ? colour.primary : colour.border,
+                borderColor: agreed ? colour.primary : termsPrompt ? colour.danger : colour.border,
               }}>
                 {agreed && (
                   <Svg width={13} height={13} viewBox="0 0 24 24" fill="none">
@@ -348,7 +347,7 @@ export function SignupScreen() {
                   </Svg>
                 )}
               </View>
-              <Text style={{ fontSize: 13, lineHeight: 19, color: colour.textSub, flex: 1 }}>
+              <Text style={{ fontSize: 12.5, lineHeight: 18, color: colour.textSub, flex: 1 }}>
                 {"I agree to the "}
                 <Text style={{ color: colour.primary, fontWeight: "600" }} onPress={() => router.push("/terms")}>
                   Terms of Service
@@ -360,13 +359,68 @@ export function SignupScreen() {
                 {". Your data is protected under POPIA."}
               </Text>
             </TouchableOpacity>
+            {termsPrompt && !agreed && (
+              <Text style={{ fontSize: 12.5, lineHeight: 16, fontWeight: "600", color: colour.danger, marginTop: 6, marginLeft: 34 }}>
+                Tick the box to agree before you continue.
+              </Text>
+            )}
+
+            {/* Social sign-up first: no email confirmation step */}
+            <View style={{ gap: 10, marginTop: termsPrompt && !agreed ? 8 : compact ? 14 : 18 }}>
+              {Platform.OS === "ios" && appleAvailable && (
+                <View pointerEvents={socialDisabled ? "none" : "auto"} style={{ opacity: socialDisabled ? 0.5 : 1 }}>
+                  <AppleAuthentication.AppleAuthenticationButton
+                    buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_UP}
+                    buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+                    cornerRadius={ctl / 2}
+                    style={{ width: "100%", height: ctl }}
+                    onPress={handleAppleSignIn}
+                  />
+                </View>
+              )}
+              <View style={{ flexDirection: "row", gap: 10 }}>
+                <SocialButton label="Google" icon={<GoogleLogo />} onPress={handleGoogleSignIn} loading={googleLoading} disabled={socialDisabled} height={ctl} />
+                <SocialButton label="Facebook" icon={<FacebookLogo />} onPress={handleFacebookSignIn} loading={fbLoading} disabled={socialDisabled} height={ctl} />
+              </View>
+            </View>
+
+            {/* Divider */}
+            <View style={{ flexDirection: "row", alignItems: "center", marginVertical: compact ? 12 : 16 }}>
+              <View style={{ flex: 1, height: 1, backgroundColor: colour.borderLight }} />
+              <Text style={{ fontSize: 12, fontWeight: "600", color: colour.textSub, paddingHorizontal: 14, letterSpacing: 0.2 }}>
+                or use your email
+              </Text>
+              <View style={{ flex: 1, height: 1, backgroundColor: colour.borderLight }} />
+            </View>
+
+            {/* Fields */}
+            <View style={{ gap: compact ? 10 : 14 }}>
+              <AuthField
+                label="Full name" value={name} onChangeText={setName}
+                placeholder="e.g. Jessica Taylor" autoCapitalize="words"
+                autoCorrect={false} autoComplete="name" error={errors.name} height={ctl}
+              />
+              <AuthField
+                label="Email address" value={email} onChangeText={setEmail}
+                placeholder="you@example.co.za" keyboardType="email-address"
+                autoComplete="email" error={errors.email} height={ctl}
+              />
+              <AuthField
+                label="Password" value={password} onChangeText={setPassword}
+                placeholder="At least 8 characters" secureTextEntry={!showPassword}
+                autoComplete="new-password" height={ctl}
+                trailing={<EyeIcon off={showPassword} />}
+                onTrailingPress={() => setShowPassword(s => !s)}
+                error={errors.password}
+              />
+            </View>
 
             {/* CTA */}
             <TouchableOpacity
               onPress={handleSubmit} disabled={ctaDisabled} activeOpacity={0.85}
               style={{
-                backgroundColor: colour.primary, borderRadius: 100, height: 56,
-                alignItems: "center", justifyContent: "center", marginTop: 20,
+                backgroundColor: colour.primary, borderRadius: radius.pill, height: ctl + 2,
+                alignItems: "center", justifyContent: "center", marginTop: compact ? 14 : 18,
                 opacity: ctaDisabled ? 0.45 : 1,
                 ...(!ctaDisabled ? Platform.select({
                   ios: { shadowColor: colour.primary, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.32, shadowRadius: 18 },
@@ -379,26 +433,8 @@ export function SignupScreen() {
               )}
             </TouchableOpacity>
 
-            {/* Divider */}
-            <View style={{ flexDirection: "row", alignItems: "center", marginTop: 20, marginBottom: 18 }}>
-              <View style={{ flex: 1, height: 1, backgroundColor: colour.borderLight }} />
-              <Text style={{ fontSize: 12, fontWeight: "600", color: colour.textSub, paddingHorizontal: 14, letterSpacing: 0.2 }}>
-                or sign up with
-              </Text>
-              <View style={{ flex: 1, height: 1, backgroundColor: colour.borderLight }} />
-            </View>
-
-            {/* Social buttons */}
-            <View style={{ flexDirection: "row", justifyContent: "center", gap: 16 }}>
-              {Platform.OS === "ios" && appleAvailable && (
-                <SocialButton label="Apple" icon={<AppleLogo />} onPress={handleAppleSignIn} loading={appleLoading} disabled={!agreed || socialDisabled} />
-              )}
-              <SocialButton label="Google" icon={<GoogleLogo />} onPress={handleGoogleSignIn} loading={googleLoading} disabled={!agreed || socialDisabled} />
-              <SocialButton label="Facebook" icon={<FacebookLogo />} onPress={handleFacebookSignIn} loading={fbLoading} disabled={!agreed || socialDisabled} />
-            </View>
-
             {/* Spacer + footer */}
-            <View style={{ flex: 1, minHeight: 24 }} />
+            <View style={{ flex: 1, minHeight: 12 }} />
             <View style={{ flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 4 }}>
               <Text style={{ fontSize: 14, color: colour.textSub }}>Already have an account?</Text>
               <TouchableOpacity onPress={() => router.replace("/sign-in")} activeOpacity={0.7}>
