@@ -19,6 +19,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
@@ -74,25 +75,25 @@ function FacebookLogo() {
 function AuthField({
   label, value, onChangeText, placeholder, secureTextEntry,
   keyboardType, autoCapitalize = "none", autoCorrect = false,
-  autoComplete, trailing, onTrailingPress, hint, error,
+  autoComplete, trailing, onTrailingPress, hint, error, height = 50,
 }: {
   label: string; value: string; onChangeText: (t: string) => void;
   placeholder?: string; secureTextEntry?: boolean; keyboardType?: any;
   autoCapitalize?: "none" | "words" | "sentences" | "characters";
   autoCorrect?: boolean; autoComplete?: any;
   trailing?: React.ReactNode; onTrailingPress?: () => void;
-  hint?: string; error?: string;
+  hint?: string; error?: string; height?: number;
 }) {
   const [focused, setFocused] = useState(false);
   return (
     <View>
-      <Text style={{ fontSize: 13, fontWeight: "600", color: colour.textMid, letterSpacing: 0.1, marginBottom: 7 }}>
+      <Text style={{ fontSize: 13, fontWeight: "600", color: colour.textMid, letterSpacing: 0.1, marginBottom: 5 }}>
         {label}
       </Text>
       <View style={{
         flexDirection: "row", alignItems: "center",
         backgroundColor: colour.white,
-        borderRadius: radius.md, height: 54,
+        borderRadius: radius.md, height,
         paddingHorizontal: 15,
         borderWidth: focused ? 1.5 : 1,
         borderColor: focused ? colour.primary : colour.borderLight,
@@ -118,19 +119,19 @@ function AuthField({
         )}
       </View>
       {hint && !error && (
-        <Text style={{ fontSize: 12, color: colour.textHint, marginTop: 6, letterSpacing: 0.1 }}>{hint}</Text>
+        <Text style={{ fontSize: 12, color: colour.textHint, marginTop: 4, letterSpacing: 0.1 }}>{hint}</Text>
       )}
       {error && (
-        <Text style={{ fontSize: 12, color: colour.danger, marginTop: 6 }}>{error}</Text>
+        <Text style={{ fontSize: 12, color: colour.danger, marginTop: 4 }}>{error}</Text>
       )}
     </View>
   );
 }
 
-// ── Social button (full width, "Continue with ...") ──────────────────────────
-function SocialButton({ icon, onPress, disabled, loading, label }: {
+// ── Social button (half width, sits beside its partner) ──────────────────────
+function SocialButton({ icon, onPress, disabled, loading, label, height }: {
   icon: React.ReactNode; onPress: () => void;
-  disabled?: boolean; loading?: boolean; label: string;
+  disabled?: boolean; loading?: boolean; label: string; height: number;
 }) {
   return (
     <TouchableOpacity
@@ -138,10 +139,10 @@ function SocialButton({ icon, onPress, disabled, loading, label }: {
       accessibilityRole="button"
       accessibilityLabel={`Continue with ${label}`}
       style={{
-        height: 52, borderRadius: radius.pill,
+        flex: 1, height, borderRadius: radius.pill,
         backgroundColor: colour.white,
         borderWidth: 1, borderColor: colour.borderLight,
-        flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10,
+        flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
         opacity: disabled ? 0.5 : 1,
         ...Platform.select({
           ios: { shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2 },
@@ -152,7 +153,7 @@ function SocialButton({ icon, onPress, disabled, loading, label }: {
       {loading ? <ActivityIndicator color={colour.textSub} size="small" /> : (
         <>
           {icon}
-          <Text style={{ fontSize: 15.5, fontWeight: "600", color: colour.text }}>Continue with {label}</Text>
+          <Text style={{ fontSize: 15, fontWeight: "600", color: colour.text }}>{label}</Text>
         </>
       )}
     </TouchableOpacity>
@@ -163,6 +164,11 @@ function SocialButton({ icon, onPress, disabled, loading, label }: {
 export function SignupScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  // The whole form must fit with no scrolling (keyboard aside), so short
+  // screens like the iPhone SE get tighter spacing.
+  const { height: screenH } = useWindowDimensions();
+  const compact = screenH < 760;
+  const ctl = compact ? 46 : 50; // height of every button and field
   const { signUp } = useAuthStore();
 
   const [name, setName] = useState("");
@@ -282,24 +288,26 @@ export function SignupScreen() {
     <SafeAreaView edges={["bottom"]} style={{ flex: 1, backgroundColor: colour.primary }}>
       <StatusBar barStyle="light-content" backgroundColor={colour.primary} />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
-        <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} bounces={false}>
 
           {/* ── Periwinkle header ── */}
           <View style={{
             backgroundColor: colour.primary,
             paddingTop: insets.top + 10,
             paddingHorizontal: 24,
-            paddingBottom: 40,
+            paddingBottom: compact ? 30 : 36,
             overflow: "hidden",
           }}>
             <View style={{ position: "absolute", top: -46, right: -30, width: 150, height: 150, borderRadius: 75, backgroundColor: "rgba(255,255,255,0.10)" }} />
             <View style={{ position: "absolute", top: 34, right: 42, width: 60, height: 60, borderRadius: 30, backgroundColor: "rgba(255,255,255,0.08)" }} />
 
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 9, marginBottom: 24 }}>
-              <Text style={{ fontSize: 16, fontWeight: "700", color: "#fff", letterSpacing: -0.2 }}>MyExpense</Text>
-            </View>
+            {!compact && (
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 9, marginBottom: 16 }}>
+                <Text style={{ fontSize: 16, fontWeight: "700", color: "#fff", letterSpacing: -0.2 }}>MyExpense</Text>
+              </View>
+            )}
 
-            <Text style={{ fontSize: 27, fontWeight: "800", color: "#fff", letterSpacing: -0.5, lineHeight: 32, marginBottom: 8 }}>
+            <Text style={{ fontSize: compact ? 24 : 26, fontWeight: "800", color: "#fff", letterSpacing: -0.5, lineHeight: compact ? 29 : 31, marginBottom: 6 }}>
               Create account
             </Text>
             <Text style={{ fontSize: 14, lineHeight: 21, color: "rgba(255,255,255,0.82)", maxWidth: 300 }}>
@@ -311,7 +319,7 @@ export function SignupScreen() {
           <View style={{
             flex: 1, backgroundColor: colour.background,
             borderTopLeftRadius: 28, borderTopRightRadius: 28,
-            marginTop: -24, paddingHorizontal: 24, paddingTop: 28, paddingBottom: 28,
+            marginTop: -24, paddingHorizontal: 24, paddingTop: compact ? 20 : 24, paddingBottom: compact ? 12 : 20,
           }}>
 
             {/* Consent checkbox (first, so it's seen before any button) */}
@@ -339,7 +347,7 @@ export function SignupScreen() {
                   </Svg>
                 )}
               </View>
-              <Text style={{ fontSize: 13, lineHeight: 19, color: colour.textSub, flex: 1 }}>
+              <Text style={{ fontSize: 12.5, lineHeight: 18, color: colour.textSub, flex: 1 }}>
                 {"I agree to the "}
                 <Text style={{ color: colour.primary, fontWeight: "600" }} onPress={() => router.push("/terms")}>
                   Terms of Service
@@ -352,30 +360,32 @@ export function SignupScreen() {
               </Text>
             </TouchableOpacity>
             {termsPrompt && !agreed && (
-              <Text style={{ fontSize: 12.5, fontWeight: "600", color: colour.danger, marginTop: 8, marginLeft: 34 }}>
+              <Text style={{ fontSize: 12.5, lineHeight: 16, fontWeight: "600", color: colour.danger, marginTop: 6, marginLeft: 34 }}>
                 Tick the box to agree before you continue.
               </Text>
             )}
 
             {/* Social sign-up first: no email confirmation step */}
-            <View style={{ gap: 12, marginTop: 20 }}>
+            <View style={{ gap: 10, marginTop: termsPrompt && !agreed ? 8 : compact ? 14 : 18 }}>
               {Platform.OS === "ios" && appleAvailable && (
                 <View pointerEvents={socialDisabled ? "none" : "auto"} style={{ opacity: socialDisabled ? 0.5 : 1 }}>
                   <AppleAuthentication.AppleAuthenticationButton
                     buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_UP}
                     buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
-                    cornerRadius={26}
-                    style={{ width: "100%", height: 52 }}
+                    cornerRadius={ctl / 2}
+                    style={{ width: "100%", height: ctl }}
                     onPress={handleAppleSignIn}
                   />
                 </View>
               )}
-              <SocialButton label="Google" icon={<GoogleLogo />} onPress={handleGoogleSignIn} loading={googleLoading} disabled={socialDisabled} />
-              <SocialButton label="Facebook" icon={<FacebookLogo />} onPress={handleFacebookSignIn} loading={fbLoading} disabled={socialDisabled} />
+              <View style={{ flexDirection: "row", gap: 10 }}>
+                <SocialButton label="Google" icon={<GoogleLogo />} onPress={handleGoogleSignIn} loading={googleLoading} disabled={socialDisabled} height={ctl} />
+                <SocialButton label="Facebook" icon={<FacebookLogo />} onPress={handleFacebookSignIn} loading={fbLoading} disabled={socialDisabled} height={ctl} />
+              </View>
             </View>
 
             {/* Divider */}
-            <View style={{ flexDirection: "row", alignItems: "center", marginTop: 22, marginBottom: 18 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", marginVertical: compact ? 12 : 16 }}>
               <View style={{ flex: 1, height: 1, backgroundColor: colour.borderLight }} />
               <Text style={{ fontSize: 12, fontWeight: "600", color: colour.textSub, paddingHorizontal: 14, letterSpacing: 0.2 }}>
                 or use your email
@@ -384,22 +394,21 @@ export function SignupScreen() {
             </View>
 
             {/* Fields */}
-            <View style={{ gap: 18 }}>
+            <View style={{ gap: compact ? 10 : 14 }}>
               <AuthField
                 label="Full name" value={name} onChangeText={setName}
                 placeholder="e.g. Jessica Taylor" autoCapitalize="words"
-                autoCorrect={false} autoComplete="name" error={errors.name}
+                autoCorrect={false} autoComplete="name" error={errors.name} height={ctl}
               />
               <AuthField
                 label="Email address" value={email} onChangeText={setEmail}
                 placeholder="you@example.co.za" keyboardType="email-address"
-                autoComplete="email" error={errors.email}
+                autoComplete="email" error={errors.email} height={ctl}
               />
               <AuthField
                 label="Password" value={password} onChangeText={setPassword}
-                placeholder="Create a password" secureTextEntry={!showPassword}
-                autoComplete="new-password"
-                hint="Use at least 8 characters."
+                placeholder="At least 8 characters" secureTextEntry={!showPassword}
+                autoComplete="new-password" height={ctl}
                 trailing={<EyeIcon off={showPassword} />}
                 onTrailingPress={() => setShowPassword(s => !s)}
                 error={errors.password}
@@ -410,8 +419,8 @@ export function SignupScreen() {
             <TouchableOpacity
               onPress={handleSubmit} disabled={ctaDisabled} activeOpacity={0.85}
               style={{
-                backgroundColor: colour.primary, borderRadius: 100, height: 56,
-                alignItems: "center", justifyContent: "center", marginTop: 20,
+                backgroundColor: colour.primary, borderRadius: radius.pill, height: ctl + 2,
+                alignItems: "center", justifyContent: "center", marginTop: compact ? 14 : 18,
                 opacity: ctaDisabled ? 0.45 : 1,
                 ...(!ctaDisabled ? Platform.select({
                   ios: { shadowColor: colour.primary, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.32, shadowRadius: 18 },
@@ -425,7 +434,7 @@ export function SignupScreen() {
             </TouchableOpacity>
 
             {/* Spacer + footer */}
-            <View style={{ flex: 1, minHeight: 24 }} />
+            <View style={{ flex: 1, minHeight: 12 }} />
             <View style={{ flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 4 }}>
               <Text style={{ fontSize: 14, color: colour.textSub }}>Already have an account?</Text>
               <TouchableOpacity onPress={() => router.replace("/sign-in")} activeOpacity={0.7}>
