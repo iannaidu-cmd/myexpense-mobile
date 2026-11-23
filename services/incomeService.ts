@@ -1,5 +1,6 @@
 import { getCached, invalidatePrefix, setCached } from '@/lib/queryCache';
 import { supabase } from '@/lib/supabase';
+import { allRows } from '@/lib/allRows';
 
 // ─── Income Service ───────────────────────────────────────────────────────────
 // All Supabase database operations for income.
@@ -45,7 +46,7 @@ export const incomeService = {
 
     let query = supabase.from('income').select('*').eq('user_id', userId);
     if (taxYear) query = query.eq('tax_year', taxYear);
-    const { data, error } = await query.order('date', { ascending: false });
+    const { data, error } = await allRows(query.order('date', { ascending: false }));
 
     if (error) throw new Error(error.message);
     const result = data ?? [];
@@ -77,7 +78,7 @@ export const incomeService = {
 
     let query = supabase.from('income').select('amount').eq('user_id', userId);
     if (taxYear) query = query.eq('tax_year', taxYear);
-    const { data, error } = await query;
+    const { data, error } = await allRows(query);
 
     if (error) throw new Error(error.message);
 
@@ -162,7 +163,7 @@ export const incomeService = {
 
     let query = supabase.from('income').select('source, amount').eq('user_id', userId);
     if (taxYear) query = query.eq('tax_year', taxYear);
-    const { data, error } = await query;
+    const { data, error } = await allRows(query);
 
     if (error) throw new Error(error.message);
 

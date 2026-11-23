@@ -1,6 +1,7 @@
 import { apportion, HOME_OFFICE_CATS, pctFromRatio } from '@/lib/homeOffice';
 import { getCached, invalidatePrefix, setCached } from '@/lib/queryCache';
 import { supabase } from '@/lib/supabase';
+import { allRows } from '@/lib/allRows';
 
 // ─── Home Office Service ──────────────────────────────────────────────────────
 // All Supabase database operations for the home-office deduction setting.
@@ -94,13 +95,13 @@ export const homeOfficeService = {
 
   // ── Expenses in a tax year that a new floor ratio would change ──────────
   getReapplyCandidates: async (userId: string, taxYear: string, ratio: number): Promise<ReapplyCandidates> => {
-    const { data, error } = await supabase
+    const { data, error } = await allRows(supabase
       .from('expenses')
       .select('id, amount, gross_amount, business_use_pct')
       .eq('user_id', userId)
       .eq('tax_year', taxYear)
       .eq('is_deductible', true)
-      .in('category', [...HOME_OFFICE_CATS]);
+      .in('category', [...HOME_OFFICE_CATS]));
 
     if (error) throw new Error(error.message);
     const pct = pctFromRatio(ratio);

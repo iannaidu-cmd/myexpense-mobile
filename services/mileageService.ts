@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import { allRows } from "@/lib/allRows";
 
 export interface MileageTrip {
   id: string;
@@ -49,23 +50,23 @@ export function missingLogbookFields(t: MileageTrip): MissingLogbookField[] {
 
 export const mileageService = {
   getTrips: async (userId: string, taxYear: string): Promise<MileageTrip[]> => {
-    const { data, error } = await supabase
+    const { data, error } = await allRows(supabase
       .from("mileage_trips")
       .select("*")
       .eq("user_id", userId)
       .eq("tax_year", taxYear)
-      .order("trip_date", { ascending: false });
+      .order("trip_date", { ascending: false }));
     if (error) throw new Error(error.message);
     return data ?? [];
   },
 
   // Every trip on one vehicle across all tax years (lifetime business km).
   getTripsForVehicle: async (userId: string, vehicleId: string): Promise<MileageTrip[]> => {
-    const { data, error } = await supabase
+    const { data, error } = await allRows(supabase
       .from("mileage_trips")
       .select("*")
       .eq("user_id", userId)
-      .eq("vehicle_id", vehicleId);
+      .eq("vehicle_id", vehicleId));
     if (error) throw new Error(error.message);
     return data ?? [];
   },
@@ -82,22 +83,22 @@ export const mileageService = {
   },
 
   getTotalBusinessKm: async (userId: string, taxYear: string): Promise<number> => {
-    const { data } = await supabase
+    const { data } = await allRows(supabase
       .from("mileage_trips")
       .select("distance_km")
       .eq("user_id", userId)
-      .eq("tax_year", taxYear);
+      .eq("tax_year", taxYear));
     return (data ?? []).reduce((sum, t) => sum + Number(t.distance_km), 0);
   },
 
   // Trip count and km for the tax year: Home's first-run check and the weekly
   // summary reminder.
   getTripSummary: async (userId: string, taxYear: string): Promise<{ count: number; km: number }> => {
-    const { data, error } = await supabase
+    const { data, error } = await allRows(supabase
       .from("mileage_trips")
       .select("distance_km")
       .eq("user_id", userId)
-      .eq("tax_year", taxYear);
+      .eq("tax_year", taxYear));
     if (error) throw new Error(error.message);
     const trips = data ?? [];
     return { count: trips.length, km: trips.reduce((sum, t) => sum + Number(t.distance_km), 0) };

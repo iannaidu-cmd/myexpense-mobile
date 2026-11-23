@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { allRows } from '@/lib/allRows';
 import { estimateTaxSaving } from '@/lib/taxRules';
 import type { TaxSummary } from '@/types/database';
 import { expenseService } from './expenseService';
@@ -38,11 +39,11 @@ export const taxService = {
       : 0;
 
     // ITR12 readiness: percentage of expenses that have a receipt
-    const { data: expensesWithReceipts } = await supabase
+    const { data: expensesWithReceipts } = await allRows(supabase
       .from('expenses')
       .select('id, receipt_url')
       .eq('user_id', userId)
-      .eq('tax_year', taxYear);
+      .eq('tax_year', taxYear));
 
     const allExpenses = expensesWithReceipts ?? [];
     const withReceipt = allExpenses.filter((e) => e.receipt_url).length;
