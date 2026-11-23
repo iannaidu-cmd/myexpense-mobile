@@ -44,11 +44,7 @@ const CHOICES = [
   { id: 'employed', icon: 'person.fill', label: 'Salaried employee', sub: 'I get an IRP5 from my employer', as: 'a salaried employee' },
 ] as const;
 
-const BENEFITS = [
-  'Snap your slips and keep them all in one place',
-  'Log work trips for a SARS-ready logbook',
-  'Export it all for your ITR12 at tax time',
-] as const;
+const BENEFITS = ['Snap', 'Log', 'Export'] as const;
 
 type ChoiceId = (typeof CHOICES)[number]['id'];
 
@@ -130,25 +126,35 @@ export default function OnboardingScreen() {
           nestedScrollEnabled
         >
           <OnboardingHeroScene />
-          <Text style={{ fontSize: 26, fontWeight: '800', letterSpacing: -0.7, lineHeight: 31, color: colour.heroDark, marginBottom: space.sm }}>
+          <Text style={{ fontSize: 26, fontWeight: '800', letterSpacing: -0.7, lineHeight: 31, color: colour.heroDark }}>
             Your slips and work trips, sorted for SARS.
           </Text>
-          <Text style={{ fontSize: 15.5, color: colour.textSub, lineHeight: 23 }}>
+          <Text style={{ fontSize: 15.5, color: colour.textSub, lineHeight: 23, marginTop: space.md }}>
             Built for the self-employed. Keep every business expense and trip in one place as you go, so nothing
             gets missed when you file.
           </Text>
-          {/* Plain list with hairline rules, no bullets or badges */}
-          <View style={{ marginTop: space.md, borderTopWidth: 1, borderColor: colour.borderLight }}>
-            {BENEFITS.map((b) => (
+          {/* Three words in one ruled row, split by hairlines */}
+          <View
+            style={{
+              flexDirection: 'row',
+              marginTop: space.xl,
+              paddingVertical: space.md,
+              borderTopWidth: 1,
+              borderBottomWidth: 1,
+              borderColor: colour.borderLight,
+            }}
+          >
+            {BENEFITS.map((b, i) => (
               <Text
                 key={b}
                 style={{
-                  fontSize: 14.5,
-                  lineHeight: 20,
-                  fontWeight: '600',
-                  color: colour.textMid,
-                  paddingVertical: 11,
-                  borderBottomWidth: 1,
+                  flex: 1,
+                  fontSize: 17,
+                  fontWeight: '800',
+                  letterSpacing: -0.3,
+                  color: colour.heroDark,
+                  paddingLeft: i === 0 ? 0 : space.md,
+                  borderLeftWidth: i === 0 ? 0 : 1,
                   borderColor: colour.borderLight,
                 }}
               >
@@ -156,7 +162,7 @@ export default function OnboardingScreen() {
               </Text>
             ))}
           </View>
-          <Text style={{ fontSize: 13.5, lineHeight: 19, color: colour.textSub, marginTop: space.md }}>
+          <Text style={{ fontSize: 13.5, lineHeight: 19, color: colour.textSub, marginTop: space.xl }}>
             Your first 12 uses are free. No card needed.
           </Text>
         </ScrollView>
