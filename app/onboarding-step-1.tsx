@@ -133,38 +133,14 @@ export default function OnboardingScreen() {
             Built for the self-employed. Keep every business expense and trip in one place as you go, so nothing
             gets missed when you file.
           </Text>
-          {/* Three words in one ruled row, split by hairlines */}
-          <View
-            style={{
-              flexDirection: 'row',
-              marginTop: space.xl,
-              paddingVertical: space.md,
-              borderTopWidth: 1,
-              borderBottomWidth: 1,
-              borderColor: colour.borderLight,
-            }}
-          >
-            {BENEFITS.map((b, i) => (
-              <Text
-                key={b}
-                style={{
-                  flex: 1,
-                  fontSize: 17,
-                  fontWeight: '800',
-                  letterSpacing: -0.3,
-                  color: colour.heroDark,
-                  paddingLeft: i === 0 ? 0 : space.md,
-                  borderLeftWidth: i === 0 ? 0 : 1,
-                  borderColor: colour.borderLight,
-                }}
-              >
+          {/* Three words side by side */}
+          <View style={{ flexDirection: 'row', gap: space.xl, marginTop: space.xl }}>
+            {BENEFITS.map((b) => (
+              <Text key={b} style={{ fontSize: 17, fontWeight: '800', letterSpacing: -0.3, color: colour.heroDark }}>
                 {b}
               </Text>
             ))}
           </View>
-          <Text style={{ fontSize: 13.5, lineHeight: 19, color: colour.textSub, marginTop: space.xl }}>
-            Your first 12 uses are free. No card needed.
-          </Text>
         </ScrollView>
 
         {/* ── Page 2: How do you earn your income? ── */}
