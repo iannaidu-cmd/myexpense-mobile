@@ -60,15 +60,6 @@ function GoogleLogo() {
   );
 }
 
-// ── Apple logo ────────────────────────────────────────────────────────────────
-function AppleLogo() {
-  return (
-    <Svg width={22} height={22} viewBox="0 0 24 24" fill="#000">
-      <Path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.7 9.05 7.4c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.39-1.32 2.76-2.54 3.99zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
-    </Svg>
-  );
-}
-
 // ── Facebook logo ─────────────────────────────────────────────────────────────
 function FacebookLogo() {
   return (
@@ -136,7 +127,7 @@ function AuthField({
   );
 }
 
-// ── Social button ─────────────────────────────────────────────────────────────
+// ── Social button (full width, "Continue with ...") ──────────────────────────
 function SocialButton({ icon, onPress, disabled, loading, label }: {
   icon: React.ReactNode; onPress: () => void;
   disabled?: boolean; loading?: boolean; label: string;
@@ -144,12 +135,13 @@ function SocialButton({ icon, onPress, disabled, loading, label }: {
   return (
     <TouchableOpacity
       onPress={onPress} disabled={disabled} activeOpacity={0.8}
-      accessibilityLabel={`Sign up with ${label}`}
+      accessibilityRole="button"
+      accessibilityLabel={`Continue with ${label}`}
       style={{
-        width: 56, height: 56, borderRadius: 28,
+        height: 52, borderRadius: radius.pill,
         backgroundColor: colour.white,
         borderWidth: 1, borderColor: colour.borderLight,
-        alignItems: "center", justifyContent: "center",
+        flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10,
         opacity: disabled ? 0.5 : 1,
         ...Platform.select({
           ios: { shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2 },
@@ -157,7 +149,12 @@ function SocialButton({ icon, onPress, disabled, loading, label }: {
         }),
       }}
     >
-      {loading ? <ActivityIndicator color={colour.textSub} size="small" /> : icon}
+      {loading ? <ActivityIndicator color={colour.textSub} size="small" /> : (
+        <>
+          {icon}
+          <Text style={{ fontSize: 15.5, fontWeight: "600", color: colour.text }}>Continue with {label}</Text>
+        </>
+      )}
     </TouchableOpacity>
   );
 }
@@ -178,6 +175,7 @@ export function SignupScreen() {
   const [fbLoading, setFbLoading] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
   const [appleAvailable, setAppleAvailable] = useState(false);
+  const [termsPrompt, setTermsPrompt] = useState(false);
   const [errors, setErrors] = useState<{ name?: string; email?: string; password?: string }>({});
 
   useEffect(() => {
@@ -186,7 +184,17 @@ export function SignupScreen() {
     }
   }, []);
 
+  // Consent is required before any sign-up. The buttons stay tappable so they
+  // don't look broken; tapping one unticked shows why instead of starting.
+  const needsTerms = (via: "apple" | "google" | "facebook" | "email") => {
+    if (agreed) return false;
+    setTermsPrompt(true);
+    trackFunnel("terms_prompt", { via });
+    return true;
+  };
+
   const handleSubmit = async () => {
+    if (needsTerms("email")) return;
     const e: typeof errors = {};
     if (!name.trim()) e.name = "Full name is required.";
     if (!email.includes("@")) e.email = "Enter a valid email address.";
@@ -199,7 +207,7 @@ export function SignupScreen() {
     setErrors({});
     setLoading(true);
     trackFunnel("sign_up_submit", { method: "email" });
-    // The button only enables once "I agree" is ticked. Saved to the profile
+    // Only reached once "I agree" is ticked (needsTerms above). Saved to the profile
     // after sign-in (see notePendingTermsConsent in authStore).
     await notePendingTermsConsent();
     try {
@@ -218,6 +226,7 @@ export function SignupScreen() {
   };
 
   const handleGoogleSignIn = async () => {
+    if (needsTerms("google")) return;
     setGoogleLoading(true);
     await notePendingTermsConsent();
     trackFunnel("oauth_start", { provider: "google", from: "sign-up" });
@@ -234,6 +243,7 @@ export function SignupScreen() {
   };
 
   const handleFacebookSignIn = async () => {
+    if (needsTerms("facebook")) return;
     setFbLoading(true);
     await notePendingTermsConsent();
     trackFunnel("oauth_start", { provider: "facebook", from: "sign-up" });
@@ -249,6 +259,7 @@ export function SignupScreen() {
   };
 
   const handleAppleSignIn = async () => {
+    if (needsTerms("apple")) return;
     setAppleLoading(true);
     await notePendingTermsConsent();
     trackFunnel("oauth_start", { provider: "apple", from: "sign-up" });
@@ -265,7 +276,7 @@ export function SignupScreen() {
   };
 
   const socialDisabled = loading || googleLoading || fbLoading || appleLoading;
-  const ctaDisabled = !agreed || loading || socialDisabled;
+  const ctaDisabled = socialDisabled;
 
   return (
     <SafeAreaView edges={["bottom"]} style={{ flex: 1, backgroundColor: colour.primary }}>
@@ -292,7 +303,7 @@ export function SignupScreen() {
               Create account
             </Text>
             <Text style={{ fontSize: 14, lineHeight: 21, color: "rgba(255,255,255,0.82)", maxWidth: 300 }}>
-              Join 3.8 million self-employed South Africans maximising their tax deductions.
+              Start with 12 free uses. No card needed.
             </Text>
           </View>
 
@@ -302,6 +313,75 @@ export function SignupScreen() {
             borderTopLeftRadius: 28, borderTopRightRadius: 28,
             marginTop: -24, paddingHorizontal: 24, paddingTop: 28, paddingBottom: 28,
           }}>
+
+            {/* Consent checkbox (first, so it's seen before any button) */}
+            <TouchableOpacity
+              onPress={() => {
+                if (!agreed) {
+                  trackFunnel("terms_ticked");
+                  setTermsPrompt(false);
+                }
+                setAgreed(a => !a);
+              }}
+              activeOpacity={0.8}
+              style={{ flexDirection: "row", alignItems: "flex-start", gap: 12 }}
+            >
+              <View style={{
+                width: 22, height: 22, borderRadius: 7, flexShrink: 0, marginTop: 1,
+                alignItems: "center", justifyContent: "center",
+                backgroundColor: agreed ? colour.primary : colour.white,
+                borderWidth: 1.5,
+                borderColor: agreed ? colour.primary : termsPrompt ? colour.danger : colour.border,
+              }}>
+                {agreed && (
+                  <Svg width={13} height={13} viewBox="0 0 24 24" fill="none">
+                    <Polyline points="20 6 9 17 4 12" stroke="white" strokeWidth={3.2} strokeLinecap="round" strokeLinejoin="round" />
+                  </Svg>
+                )}
+              </View>
+              <Text style={{ fontSize: 13, lineHeight: 19, color: colour.textSub, flex: 1 }}>
+                {"I agree to the "}
+                <Text style={{ color: colour.primary, fontWeight: "600" }} onPress={() => router.push("/terms")}>
+                  Terms of Service
+                </Text>
+                {" and "}
+                <Text style={{ color: colour.primary, fontWeight: "600" }} onPress={() => router.push("/privacy")}>
+                  Privacy Policy
+                </Text>
+                {". Your data is protected under POPIA."}
+              </Text>
+            </TouchableOpacity>
+            {termsPrompt && !agreed && (
+              <Text style={{ fontSize: 12.5, fontWeight: "600", color: colour.danger, marginTop: 8, marginLeft: 34 }}>
+                Tick the box to agree before you continue.
+              </Text>
+            )}
+
+            {/* Social sign-up first: no email confirmation step */}
+            <View style={{ gap: 12, marginTop: 20 }}>
+              {Platform.OS === "ios" && appleAvailable && (
+                <View pointerEvents={socialDisabled ? "none" : "auto"} style={{ opacity: socialDisabled ? 0.5 : 1 }}>
+                  <AppleAuthentication.AppleAuthenticationButton
+                    buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_UP}
+                    buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+                    cornerRadius={26}
+                    style={{ width: "100%", height: 52 }}
+                    onPress={handleAppleSignIn}
+                  />
+                </View>
+              )}
+              <SocialButton label="Google" icon={<GoogleLogo />} onPress={handleGoogleSignIn} loading={googleLoading} disabled={socialDisabled} />
+              <SocialButton label="Facebook" icon={<FacebookLogo />} onPress={handleFacebookSignIn} loading={fbLoading} disabled={socialDisabled} />
+            </View>
+
+            {/* Divider */}
+            <View style={{ flexDirection: "row", alignItems: "center", marginTop: 22, marginBottom: 18 }}>
+              <View style={{ flex: 1, height: 1, backgroundColor: colour.borderLight }} />
+              <Text style={{ fontSize: 12, fontWeight: "600", color: colour.textSub, paddingHorizontal: 14, letterSpacing: 0.2 }}>
+                or use your email
+              </Text>
+              <View style={{ flex: 1, height: 1, backgroundColor: colour.borderLight }} />
+            </View>
 
             {/* Fields */}
             <View style={{ gap: 18 }}>
@@ -326,41 +406,6 @@ export function SignupScreen() {
               />
             </View>
 
-            {/* Consent checkbox */}
-            <TouchableOpacity
-              onPress={() => {
-                if (!agreed) trackFunnel("terms_ticked");
-                setAgreed(a => !a);
-              }}
-              activeOpacity={0.8}
-              style={{ flexDirection: "row", alignItems: "flex-start", gap: 12, marginTop: 20 }}
-            >
-              <View style={{
-                width: 22, height: 22, borderRadius: 7, flexShrink: 0, marginTop: 1,
-                alignItems: "center", justifyContent: "center",
-                backgroundColor: agreed ? colour.primary : colour.white,
-                borderWidth: 1.5,
-                borderColor: agreed ? colour.primary : colour.border,
-              }}>
-                {agreed && (
-                  <Svg width={13} height={13} viewBox="0 0 24 24" fill="none">
-                    <Polyline points="20 6 9 17 4 12" stroke="white" strokeWidth={3.2} strokeLinecap="round" strokeLinejoin="round" />
-                  </Svg>
-                )}
-              </View>
-              <Text style={{ fontSize: 13, lineHeight: 19, color: colour.textSub, flex: 1 }}>
-                {"I agree to the "}
-                <Text style={{ color: colour.primary, fontWeight: "600" }} onPress={() => router.push("/terms")}>
-                  Terms of Service
-                </Text>
-                {" and "}
-                <Text style={{ color: colour.primary, fontWeight: "600" }} onPress={() => router.push("/privacy")}>
-                  Privacy Policy
-                </Text>
-                {". Your data is protected under POPIA."}
-              </Text>
-            </TouchableOpacity>
-
             {/* CTA */}
             <TouchableOpacity
               onPress={handleSubmit} disabled={ctaDisabled} activeOpacity={0.85}
@@ -378,24 +423,6 @@ export function SignupScreen() {
                 <Text style={{ fontSize: 16, fontWeight: "700", color: colour.onPrimary, letterSpacing: 0.2 }}>Create account</Text>
               )}
             </TouchableOpacity>
-
-            {/* Divider */}
-            <View style={{ flexDirection: "row", alignItems: "center", marginTop: 20, marginBottom: 18 }}>
-              <View style={{ flex: 1, height: 1, backgroundColor: colour.borderLight }} />
-              <Text style={{ fontSize: 12, fontWeight: "600", color: colour.textSub, paddingHorizontal: 14, letterSpacing: 0.2 }}>
-                or sign up with
-              </Text>
-              <View style={{ flex: 1, height: 1, backgroundColor: colour.borderLight }} />
-            </View>
-
-            {/* Social buttons */}
-            <View style={{ flexDirection: "row", justifyContent: "center", gap: 16 }}>
-              {Platform.OS === "ios" && appleAvailable && (
-                <SocialButton label="Apple" icon={<AppleLogo />} onPress={handleAppleSignIn} loading={appleLoading} disabled={!agreed || socialDisabled} />
-              )}
-              <SocialButton label="Google" icon={<GoogleLogo />} onPress={handleGoogleSignIn} loading={googleLoading} disabled={!agreed || socialDisabled} />
-              <SocialButton label="Facebook" icon={<FacebookLogo />} onPress={handleFacebookSignIn} loading={fbLoading} disabled={!agreed || socialDisabled} />
-            </View>
 
             {/* Spacer + footer */}
             <View style={{ flex: 1, minHeight: 24 }} />

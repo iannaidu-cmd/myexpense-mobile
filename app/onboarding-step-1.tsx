@@ -1,6 +1,6 @@
 // ─── Onboarding ──────────────────────────────────────────────────────────────
 // Two pages before sign-up:
-//   1. Intro: what MyExpense gets you back.
+//   1. Intro: what MyExpense does for you. No figures on this page.
 //   2. How do you earn your income? The answer is required (Continue is off
 //      until one is picked, and nothing is pre-picked so the data isn't
 //      skewed) and becomes the account's profiles.work_type, which decides:
@@ -42,6 +42,12 @@ const CHOICES = [
   { id: 'sole', icon: 'building.2.fill', label: 'Sole proprietor', sub: 'I run a business in my own name', as: 'a sole proprietor' },
   { id: 'contractor', icon: 'doc.text.fill', label: 'Independent contractor', sub: 'A few clients, on contract', as: 'an independent contractor' },
   { id: 'employed', icon: 'person.fill', label: 'Salaried employee', sub: 'I get an IRP5 from my employer', as: 'a salaried employee' },
+] as const;
+
+const BENEFITS = [
+  'Snap your slips and keep them all in one place',
+  'Log work trips for a SARS-ready logbook',
+  'Export it all for your ITR12 at tax time',
 ] as const;
 
 type ChoiceId = (typeof CHOICES)[number]['id'];
@@ -91,7 +97,7 @@ export default function OnboardingScreen() {
 
   const ctaDisabled = page === 1 && !choice;
   const ctaLabel = page === 0
-    ? 'Get started'
+    ? 'Start free'
     : choice ? `Continue as ${choice.as}` : 'Pick one to continue';
 
   return (
@@ -124,31 +130,36 @@ export default function OnboardingScreen() {
           nestedScrollEnabled
         >
           <OnboardingHeroScene />
-          <View style={{ marginBottom: space.lg }}>
-            <View
-              style={{
-                backgroundColor: colour.heroDark,
-                borderRadius: radius.pill,
-                paddingHorizontal: space.md,
-                paddingVertical: space.xs,
-                alignSelf: 'flex-start',
-                marginBottom: space.sm,
-              }}
-            >
-              <Text style={{ fontSize: 11, color: colour.onNoir, fontWeight: '700', letterSpacing: 0.3 }}>
-                Average unclaimed per year
-              </Text>
-            </View>
-            <Text style={{ fontSize: 46, fontWeight: '800', color: colour.primary, letterSpacing: -1.5, lineHeight: 52 }}>
-              R37,492
+          <View
+            style={{
+              backgroundColor: colour.heroDark,
+              borderRadius: radius.pill,
+              paddingHorizontal: space.md,
+              paddingVertical: space.xs,
+              alignSelf: 'flex-start',
+              marginBottom: space.sm,
+            }}
+          >
+            <Text style={{ fontSize: 11, color: colour.onNoir, fontWeight: '700', letterSpacing: 0.3 }}>
+              Built for the self-employed
             </Text>
           </View>
-          <Text style={{ fontSize: 22, fontWeight: '800', letterSpacing: -0.6, lineHeight: 28, color: colour.heroDark, marginBottom: space.sm }}>
-            Stop leaving your money with SARS.
+          <Text style={{ fontSize: 26, fontWeight: '800', letterSpacing: -0.7, lineHeight: 31, color: colour.heroDark, marginBottom: space.sm }}>
+            Your slips and work trips, sorted for SARS.
           </Text>
           <Text style={{ fontSize: 15.5, color: colour.textSub, lineHeight: 23 }}>
-            Lost slips and unrecorded work trips cost you at tax time. MyExpense keeps them in one place,
-            so you claim it all back.
+            Keep every business expense and trip in one place as you go, so nothing gets missed when you file.
+          </Text>
+          <View style={{ gap: 10, marginTop: space.md }}>
+            {BENEFITS.map((b) => (
+              <View key={b} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <View style={{ width: 8, height: 8, borderRadius: radius.pill, backgroundColor: colour.brandTeal }} />
+                <Text style={{ flex: 1, fontSize: 14.5, lineHeight: 20, fontWeight: '600', color: colour.textMid }}>{b}</Text>
+              </View>
+            ))}
+          </View>
+          <Text style={{ fontSize: 13.5, lineHeight: 19, color: colour.textSub, marginTop: space.md }}>
+            Your first 12 uses are free. No card needed.
           </Text>
         </ScrollView>
 
