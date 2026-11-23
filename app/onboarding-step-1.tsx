@@ -130,32 +130,30 @@ export default function OnboardingScreen() {
           nestedScrollEnabled
         >
           <OnboardingHeroScene />
-          <View
-            style={{
-              backgroundColor: colour.heroDark,
-              borderRadius: radius.pill,
-              paddingHorizontal: space.md,
-              paddingVertical: space.xs,
-              alignSelf: 'flex-start',
-              marginBottom: space.sm,
-            }}
-          >
-            <Text style={{ fontSize: 11, color: colour.onNoir, fontWeight: '700', letterSpacing: 0.3 }}>
-              Built for the self-employed
-            </Text>
-          </View>
           <Text style={{ fontSize: 26, fontWeight: '800', letterSpacing: -0.7, lineHeight: 31, color: colour.heroDark, marginBottom: space.sm }}>
             Your slips and work trips, sorted for SARS.
           </Text>
           <Text style={{ fontSize: 15.5, color: colour.textSub, lineHeight: 23 }}>
-            Keep every business expense and trip in one place as you go, so nothing gets missed when you file.
+            Built for the self-employed. Keep every business expense and trip in one place as you go, so nothing
+            gets missed when you file.
           </Text>
-          <View style={{ gap: 10, marginTop: space.md }}>
+          {/* Plain list with hairline rules, no bullets or badges */}
+          <View style={{ marginTop: space.md, borderTopWidth: 1, borderColor: colour.borderLight }}>
             {BENEFITS.map((b) => (
-              <View key={b} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                <View style={{ width: 8, height: 8, borderRadius: radius.pill, backgroundColor: colour.brandTeal }} />
-                <Text style={{ flex: 1, fontSize: 14.5, lineHeight: 20, fontWeight: '600', color: colour.textMid }}>{b}</Text>
-              </View>
+              <Text
+                key={b}
+                style={{
+                  fontSize: 14.5,
+                  lineHeight: 20,
+                  fontWeight: '600',
+                  color: colour.textMid,
+                  paddingVertical: 11,
+                  borderBottomWidth: 1,
+                  borderColor: colour.borderLight,
+                }}
+              >
+                {b}
+              </Text>
             ))}
           </View>
           <Text style={{ fontSize: 13.5, lineHeight: 19, color: colour.textSub, marginTop: space.md }}>
