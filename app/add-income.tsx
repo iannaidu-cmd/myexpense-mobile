@@ -11,8 +11,12 @@ import {
   validateNote,
 } from "@/lib/validation";
 import { displayDateToISO, formatDateInputDDMMYYYY, isoToDisplayDate, localISODate } from "@/lib/dateInput";
+import { classifyIncome } from "@/lib/itr12Summary";
 import { taxYearForDate } from "@/lib/taxRules";
+import { INCOME_INCLUDES_VAT_LAST_KEY, vatInInclusive } from "@/lib/vat";
 import { incomeService } from "@/services/incomeService";
+import { profileService } from "@/services/profileService";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuthStore } from "@/stores/authStore";
 import { colour, radius, space, typography } from "@/tokens";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -23,6 +27,7 @@ import {
   Platform,
   ScrollView,
   StatusBar,
+  Switch,
   Text,
   TextInput,
   TouchableOpacity,
@@ -60,6 +65,9 @@ const FULL_CATEGORIES = [
   { label: "Income of Royalties"                             },
   { label: "Annuities"                                       },
 ];
+
+const fmtR = (n: number) =>
+  `R ${n.toLocaleString("en-ZA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 function FieldLabel({ label }: { label: string }) {
   return (
@@ -127,6 +135,25 @@ export default function AddIncomeScreen() {
   const [loadingExisting, setLoadingExisting] = useState(isEditing);
   const [successVisible, setSuccessVisible] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
+  const [vatRegistered, setVatRegistered] = useState(false);
+  const [includesVat, setIncludesVat] = useState(false);
+
+  // Only VAT vendors charge VAT, so only they see the switch.
+  useEffect(() => {
+    if (!user) return;
+    profileService
+      .getProfile(user.id)
+      .then((p) => setVatRegistered(!!p?.vat_registered))
+      .catch(() => {});
+  }, [user]);
+
+  // New entries start from the last choice; edits use the saved entry.
+  useEffect(() => {
+    if (id) return;
+    AsyncStorage.getItem(INCOME_INCLUDES_VAT_LAST_KEY)
+      .then((v) => setIncludesVat(v === "1"))
+      .catch(() => {});
+  }, [id]);
 
   // Pre-fill form when editing
   useEffect(() => {
@@ -137,8 +164,15 @@ export default function AddIncomeScreen() {
       setCategory(entry.category ?? "");
       setDescription(entry.description ?? "");
       setDate(isoToDisplayDate(entry.date));
+      setIncludesVat(Number(entry.vat_amount ?? 0) > 0);
     }).catch(console.error).finally(() => setLoadingExisting(false));
   }, [id]);
+
+  // Salary, rent, interest and the like never include VAT here
+  // (lib/itr12Summary.ts classifyIncome), so the switch is for business income.
+  const vatApplies = vatRegistered && !!source && classifyIncome({ source, category }) === "turnover";
+  const parsedAmount = parseFloat(amount);
+  const vatAmount = vatApplies && includesVat ? vatInInclusive(parsedAmount) : 0;
 
   const canSave = !!amount && parseFloat(amount) > 0 && !!source;
 
@@ -164,10 +198,18 @@ export default function AddIncomeScreen() {
     }
 
     setSaving(true);
+    if (vatApplies) AsyncStorage.setItem(INCOME_INCLUDES_VAT_LAST_KEY, includesVat ? "1" : "0").catch(() => {});
     try {
       if (isEditing && id) {
         await incomeService.updateIncome(id, {
           amount: parseFloat(amount),
+          // includesVat starts from the saved entry, so someone who has since
+          // deregistered keeps the VAT they charged, worked out on the new
+          // amount. Income that isn't business income never carries VAT.
+          vat_amount:
+            includesVat && classifyIncome({ source, category }) === "turnover"
+              ? vatInInclusive(parsedAmount)
+              : 0,
           source: source.trim(),
           description: description.trim() || undefined,
           date: incomeDate,
@@ -177,6 +219,7 @@ export default function AddIncomeScreen() {
       } else {
         await incomeService.addIncome(user.id, {
           amount: parseFloat(amount),
+          vat_amount: vatAmount,
           source: source.trim(),
           category: category.trim() || undefined,
           description: description.trim() || undefined,
@@ -460,6 +503,30 @@ export default function AddIncomeScreen() {
                   )}
                 </TouchableOpacity>
               ))}
+            </View>
+          )}
+
+          {vatApplies && (
+            <View style={{ marginBottom: space.lg }}>
+              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                <View style={{ flex: 1, marginRight: space.md }}>
+                  <Text style={{ ...typography.rowValue, color: colour.text }}>Includes VAT</Text>
+                  <Text style={{ ...typography.hintText, color: colour.textSub, marginTop: 2 }}>
+                    {"Switch on if you charged this client VAT. Payments from overseas clients usually don't include VAT."}
+                  </Text>
+                </View>
+                <Switch
+                  value={includesVat}
+                  onValueChange={setIncludesVat}
+                  trackColor={{ false: colour.border, true: colour.accent }}
+                  thumbColor={colour.white}
+                />
+              </View>
+              {includesVat && parsedAmount > 0 && (
+                <Text style={{ ...typography.hintText, color: colour.textSub, marginTop: space.sm }}>
+                  {`VAT: ${fmtR(vatAmount)} · Income without VAT: ${fmtR(parsedAmount - vatAmount)}`}
+                </Text>
+              )}
             </View>
           )}
 

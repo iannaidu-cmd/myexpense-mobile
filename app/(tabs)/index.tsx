@@ -12,6 +12,8 @@ import { taxLiabilityService } from "@/services/taxLiabilityService";
 import { GRACE_PERIOD_DAYS, useAuthStore } from "@/stores/authStore";
 import { useExpenseStore } from "@/stores/expenseStore";
 import { seasonalPopup, SeasonalPopupKind } from "@/lib/seasonalPopups";
+import { incomeToCheckForVat, incomeVatCheckDoneKey, incomeVatCheckPopupKey } from "@/lib/itr12Summary";
+import { INCOME_VAT_CHECK_TAX_YEAR } from "@/lib/vat";
 import { colour, radius, space, typography } from "@/tokens";
 import { AppReleaseInfo, Expense, TaxLiabilityEstimate } from "@/types/database";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -55,7 +57,9 @@ const formatDate = (dateStr: string) => {
 // was removed: every new user installing after 1 Mar sees it as already due,
 // so it fired back-to-back with other notices on first launch for anyone
 // who signs up after mid-year — not just a testing artifact.
-type PopupKind = "period2" | "billingIssue";
+// - incomeVatCheck: once, for VAT vendors with 2025/26 business income saved
+//   before income could hold VAT (lib/itr12Summary.ts incomeToCheckForVat).
+type PopupKind = "period2" | "billingIssue" | "incomeVatCheck";
 
 // Module-level (not component state) so it survives the Home screen
 // remounting within the same app run — e.g. navigating to another stack
@@ -91,7 +95,23 @@ const SEASONAL_POPUP_CHROME: Record<SeasonalPopupKind, Pick<PopupContent, "icon"
 // from the calendar, and billingIssue's rows depend on billingIssueDetectedAt.
 // Returns null only if a seasonal popup's window has closed since it was
 // shown (left open across midnight on its last day).
-function getPopupContent(kind: PopupKind, billingIssueDetectedAt: string | null): PopupContent | null {
+function getPopupContent(
+  kind: PopupKind,
+  billingIssueDetectedAt: string | null,
+  incomeVatCheckCount = 0,
+): PopupContent | null {
+  if (kind === "incomeVatCheck") {
+    return {
+      icon: "doc.text.fill",
+      iconColour: colour.primary,
+      eyebrow: "VAT on income",
+      title: `Check your ${INCOME_VAT_CHECK_TAX_YEAR} income`,
+      subtitle:
+        "You're registered for VAT, and you can now mark income that includes VAT. VAT isn't part of your income for tax, so we take it off. Open each payment from a South African client and switch on Includes VAT. Payments from overseas clients usually have no VAT, so leave those as they are.",
+      rows: [{ label: "Payments to check", value: String(incomeVatCheckCount) }],
+      primaryLabel: "Check my income",
+    };
+  }
   if (kind !== "billingIssue") {
     const popup = seasonalPopup(kind);
     return popup ? { ...SEASONAL_POPUP_CHROME[kind], ...popup.content } : null;
@@ -163,6 +183,8 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [showRefreshHint, setShowRefreshHint] = useState(false);
   const [duePopup, setDuePopup] = useState<PopupKind | null>(null);
+  // 2025/26 business income a VAT vendor may need to mark as including VAT.
+  const [incomeVatCheckCount, setIncomeVatCheckCount] = useState(0);
   const [updateInfo, setUpdateInfo] = useState<AppReleaseInfo | null>(null);
   const isFetching = useRef(false);
   const hasLoaded = useRef(false);
@@ -218,6 +240,14 @@ export default function HomeScreen() {
       setRecentExpenses(recent);
       setRecentIncome(recentInc);
       setTaxLiability(liabilityEstimate);
+      if (profile?.vat_registered) {
+        incomeService
+          .getIncome(user.id, INCOME_VAT_CHECK_TAX_YEAR)
+          .then((rows) => setIncomeVatCheckCount(incomeToCheckForVat(rows).length))
+          .catch(() => {});
+      } else {
+        setIncomeVatCheckCount(0);
+      }
       hasLoaded.current = true;
       setShowRefreshHint(false);
     } catch (e) {
@@ -265,13 +295,22 @@ export default function HomeScreen() {
       const seenBilling = await AsyncStorage.getItem(billingIssuePopupKey(billingIssueDetectedAt));
       if (!seenBilling) return "billingIssue";
     }
+    // Before the seasonal reminder: it affects the figures already shown.
+    if (incomeVatCheckCount > 0 && user) {
+      const [seen, done] = await Promise.all([
+        AsyncStorage.getItem(incomeVatCheckPopupKey(user.id)),
+        AsyncStorage.getItem(incomeVatCheckDoneKey(user.id)),
+      ]);
+      if (!seen && !done) return "incomeVatCheck";
+    }
     // Returns null outside its window, so only a popup currently open counts.
     for (const kind of ["period2"] as const) {
       const popup = seasonalPopup(kind);
       if (popup && !(await AsyncStorage.getItem(popup.key))) return kind;
     }
     return null;
-  }, [billingIssueDetectedAt]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [billingIssueDetectedAt, incomeVatCheckCount, user?.id]);
 
   useEffect(() => {
     if (!user) return;
@@ -290,9 +329,14 @@ export default function HomeScreen() {
       if (billingIssueDetectedAt) await AsyncStorage.setItem(billingIssuePopupKey(billingIssueDetectedAt), "1");
       return;
     }
+    if (kind === "incomeVatCheck") {
+      if (user) await AsyncStorage.setItem(incomeVatCheckPopupKey(user.id), "1");
+      return;
+    }
     const popup = seasonalPopup(kind);
     if (popup) await AsyncStorage.setItem(popup.key, "1");
-  }, [billingIssueDetectedAt]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [billingIssueDetectedAt, user?.id]);
 
   // Dismiss via X/backdrop — stays on the dashboard. If another popup is
   // already due, it opens after a short delay so the modal's close
@@ -315,6 +359,8 @@ export default function HomeScreen() {
     const kind = duePopup;
     dismissPopup();
     if (kind === "billingIssue") router.push("/subscription-manage" as any);
+    if (kind === "incomeVatCheck")
+      router.push({ pathname: "/income-history", params: { taxYear: INCOME_VAT_CHECK_TAX_YEAR } } as any);
   }, [duePopup, dismissPopup, router]);
 
   // Soft "update available" nudge — compares the installed native build
@@ -778,7 +824,7 @@ export default function HomeScreen() {
       </ScrollView>
 
       {duePopup && (() => {
-        const content = getPopupContent(duePopup, billingIssueDetectedAt);
+        const content = getPopupContent(duePopup, billingIssueDetectedAt, incomeVatCheckCount);
         if (!content) return null;
         return (
           <AnnouncementModal

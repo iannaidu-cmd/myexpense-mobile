@@ -9,6 +9,7 @@ import { incomeService } from "@/services/incomeService";
 import { useAuthStore } from "@/stores/authStore";
 import { colour, radius, space, typography } from "@/tokens";
 import { taxYearForDate } from "@/lib/taxRules";
+import { incomeExVat, incomeVat } from "@/lib/vat";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
@@ -220,6 +221,12 @@ export default function IncomeDetailScreen() {
               ) : null}
               {income.category ? (
                 <Row label="Category" value={income.category} />
+              ) : null}
+              {incomeVat(income) > 0 ? (
+                <>
+                  <Row label="VAT included" value={fmt(incomeVat(income))} />
+                  <Row label="Income without VAT" value={fmt(incomeExVat(income))} />
+                </>
               ) : null}
             </View>
 

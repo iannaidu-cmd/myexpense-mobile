@@ -3,6 +3,7 @@ import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { getCurrentTaxYear, taxDataForYear } from "@/lib/taxRules";
+import { incomeExVat } from "@/lib/vat";
 import { incomeService } from "@/services/incomeService";
 import { useAuthStore } from "@/stores/authStore";
 import { useExpenseStore } from "@/stores/expenseStore";
@@ -255,7 +256,7 @@ export default function ProvisionalTaxScreen() {
   useEffect(() => {
     if (!user) { setLoading(false); return; }
     incomeService.getIncome(user.id, activeTaxYear).then((all) => {
-      const total = all.reduce((s, e) => s + Number(e.amount), 0);
+      const total = all.reduce((s, e) => s + incomeExVat(e), 0);
       setTotalIncome(total);
     }).catch(console.warn).finally(() => setLoading(false));
   }, [user?.id, activeTaxYear]);

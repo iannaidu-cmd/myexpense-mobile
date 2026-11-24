@@ -16,6 +16,9 @@ import {
 import { taxYearForDate } from "@/lib/taxRules";
 import { expenseService } from "@/services/expenseService";
 import { incomeService } from "@/services/incomeService";
+import { profileService } from "@/services/profileService";
+import { INCOME_INCLUDES_VAT_LAST_KEY, vatInInclusive } from "@/lib/vat";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { scheduleBankImportReceiptReminder } from "@/services/notificationService";
 import { useAuthStore } from "@/stores/authStore";
 import { useExpenseStore } from "@/stores/expenseStore";
@@ -155,12 +158,19 @@ function TransactionRow({
   onToggle,
   onCategoryPress,
   onToggleBusiness,
+  showVat,
+  includesVat,
+  onToggleVat,
 }: {
   tx: ParsedTransaction;
   selected: boolean;
   onToggle: () => void;
   onCategoryPress: () => void;
   onToggleBusiness: () => void;
+  /** VAT vendors only: income rows can be marked as including VAT. */
+  showVat: boolean;
+  includesVat: boolean;
+  onToggleVat: () => void;
 }) {
   const cat = CATEGORIES.find((c) => c.label === tx.suggestedCategory);
   const isPersonal = tx.suggestedCategory === NON_DEDUCTIBLE_LABEL;
@@ -230,6 +240,31 @@ function TransactionRow({
             </View>
             <Text style={{ fontSize: 11, fontWeight: "600", color: !isPersonal ? colour.accentDeep : colour.textSub }}>
               Business
+            </Text>
+          </TouchableOpacity>
+        )}
+        {tx.type === 'income' && showVat && (
+          <TouchableOpacity
+            onPress={onToggleVat}
+            style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 }}
+            hitSlop={4}
+          >
+            <View
+              style={{
+                width: 14,
+                height: 14,
+                borderRadius: 3,
+                borderWidth: 1.5,
+                borderColor: includesVat ? colour.primary : colour.borderLight,
+                backgroundColor: includesVat ? colour.primary : colour.white,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              {includesVat && <IconSymbol name="checkmark" size={8} color={colour.white} />}
+            </View>
+            <Text style={{ fontSize: 11, fontWeight: "600", color: includesVat ? colour.accentDeep : colour.textSub }}>
+              {includesVat ? `Includes VAT (R ${vatInInclusive(tx.amount).toFixed(2)})` : "Includes VAT"}
             </Text>
           </TouchableOpacity>
         )}
@@ -552,6 +587,35 @@ export default function BankImportScreen() {
   const [skippedCount, setSkippedCount] = useState(0);
   const [filter, setFilter] = useState<FilterTab>("All");
   const [categoryPickerFor, setCategoryPickerFor] = useState<string | null>(null);
+  // VAT vendors mark which deposits include VAT: local clients usually do,
+  // overseas clients usually don't.
+  const [vatRegistered, setVatRegistered] = useState(false);
+  const [vatIncomeIds, setVatIncomeIds] = useState<Set<string>>(new Set());
+  const [defaultIncludesVat, setDefaultIncludesVat] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    profileService
+      .getProfile(user.id)
+      .then((p) => setVatRegistered(!!p?.vat_registered))
+      .catch(() => {});
+    AsyncStorage.getItem(INCOME_INCLUDES_VAT_LAST_KEY)
+      .then((v) => setDefaultIncludesVat(v === "1"))
+      .catch(() => {});
+  }, [user]);
+
+  const toggleIncomeVat = (id: string) => {
+    setVatIncomeIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+  const setAllIncomeVat = (on: boolean) => {
+    setVatIncomeIds(on ? new Set(transactions.filter((t) => t.type === 'income').map((t) => t.id)) : new Set());
+    AsyncStorage.setItem(INCOME_INCLUDES_VAT_LAST_KEY, on ? "1" : "0").catch(() => {});
+  };
 
   const hasTransactions = transactions.length > 0;
 
@@ -572,6 +636,10 @@ export default function BankImportScreen() {
       setTransactions(parsed);
       // Select all by default
       setSelected(new Set(parsed.map((t) => t.id)));
+      // Income starts from the vendor's last "Includes VAT" choice.
+      setVatIncomeIds(
+        defaultIncludesVat ? new Set(parsed.filter((t) => t.type === 'income').map((t) => t.id)) : new Set(),
+      );
     } catch {
       showNotice({ title: "We couldn't read this file", message: "Try downloading your statement from your bank as a CSV file." });
     } finally {
@@ -690,6 +758,7 @@ export default function BankImportScreen() {
         ...incomeEntries.map((tx) =>
           incomeService.addIncome(user.id, {
             amount: tx.amount,
+            vat_amount: vatRegistered && vatIncomeIds.has(tx.id) ? vatInInclusive(tx.amount) : 0,
             source: tx.vendor,
             date: tx.date,
             description: 'Imported from bank statement',
@@ -707,6 +776,7 @@ export default function BankImportScreen() {
       setShowSuccess(true);
       setTransactions([]);
       setSelected(new Set());
+      setVatIncomeIds(new Set());
       setFilter("All");
     } catch {
       showNotice({ title: "Couldn't import your transactions", message: "Please check your internet connection and try again." });
@@ -860,6 +930,34 @@ export default function BankImportScreen() {
             ))}
           </View>
 
+          {vatRegistered && transactions.some((t) => t.type === 'income') && (
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                paddingHorizontal: space.lg,
+                paddingVertical: space.xs,
+                backgroundColor: colour.background,
+                borderBottomWidth: 1,
+                borderBottomColor: colour.borderLight,
+              }}
+            >
+              <Text style={{ fontSize: 11, color: colour.textSub, flex: 1 }}>
+                Income from overseas clients usually has no VAT
+              </Text>
+              <View style={{ flexDirection: "row", gap: space.sm }}>
+                <TouchableOpacity onPress={() => setAllIncomeVat(true)}>
+                  <Text style={{ fontSize: 11, fontWeight: "600", color: colour.primary }}>All incl. VAT</Text>
+                </TouchableOpacity>
+                <Text style={{ fontSize: 11, color: colour.borderLight }}>|</Text>
+                <TouchableOpacity onPress={() => setAllIncomeVat(false)}>
+                  <Text style={{ fontSize: 11, fontWeight: "600", color: colour.primary }}>No VAT</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+
           {/* Transaction list */}
           <FlatList
             data={filtered}
@@ -871,6 +969,9 @@ export default function BankImportScreen() {
                 onToggle={() => toggleSelected(item.id)}
                 onCategoryPress={() => setCategoryPickerFor(item.id)}
                 onToggleBusiness={() => toggleBusiness(item.id)}
+                showVat={vatRegistered}
+                includesVat={vatIncomeIds.has(item.id)}
+                onToggleVat={() => toggleIncomeVat(item.id)}
               />
             )}
             style={{ flex: 1 }}

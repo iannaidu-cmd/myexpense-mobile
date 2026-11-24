@@ -1,6 +1,7 @@
 import { getCached, invalidatePrefix, setCached } from '@/lib/queryCache';
 import { supabase } from '@/lib/supabase';
 import { allRows } from '@/lib/allRows';
+import { incomeExVat, incomeVat } from '@/lib/vat';
 
 // ─── Income Service ───────────────────────────────────────────────────────────
 // All Supabase database operations for income.
@@ -15,6 +16,9 @@ export interface IncomeEntry {
   category: string | null;
   date: string;
   tax_year: string;
+  /** VAT included in `amount` (output tax); 0 when the payment had none.
+   *  Tax totals use amount - vat_amount (lib/vat.ts incomeExVat). */
+  vat_amount: number;
   /** Set only on the system-managed recoupment row for a sold vehicle
    *  (services/wearAndTearService.ts). Not user-editable. */
   recoupment_vehicle_id?: string | null;
@@ -28,10 +32,14 @@ export interface NewIncome {
   description?: string;
   date: string;
   tax_year: string;
+  vat_amount?: number;
 }
 
 export interface IncomeTotals {
+  /** Income without VAT: the figure every income-tax total uses. */
   totalIncome: number;
+  /** VAT charged on income (output tax) inside the amounts received. */
+  totalVat: number;
   entryCount: number;
 }
 
@@ -76,7 +84,7 @@ export const incomeService = {
     const cached = getCached<IncomeTotals>(key);
     if (cached) return cached;
 
-    let query = supabase.from('income').select('amount').eq('user_id', userId);
+    let query = supabase.from('income').select('amount, vat_amount').eq('user_id', userId);
     if (taxYear) query = query.eq('tax_year', taxYear);
     const { data, error } = await allRows(query);
 
@@ -84,7 +92,8 @@ export const incomeService = {
 
     const entries = data ?? [];
     const result: IncomeTotals = {
-      totalIncome: entries.reduce((sum, e) => sum + Number(e.amount), 0),
+      totalIncome: entries.reduce((sum, e) => sum + incomeExVat(e), 0),
+      totalVat: entries.reduce((sum, e) => sum + incomeVat(e), 0),
       entryCount: entries.length,
     };
     setCached(key, result);
@@ -103,6 +112,7 @@ export const incomeService = {
         description: income.description ?? null,
         date: income.date,
         tax_year: income.tax_year,
+        vat_amount: income.vat_amount ?? 0,
       })
       .select()
       .single();
@@ -122,6 +132,7 @@ export const incomeService = {
         ...(income.description !== undefined && { description: income.description ?? null }),
         ...(income.date !== undefined && { date: income.date }),
         ...(income.tax_year !== undefined && { tax_year: income.tax_year }),
+        ...(income.vat_amount !== undefined && { vat_amount: income.vat_amount }),
       })
       .eq('id', id)
       .select()
@@ -161,14 +172,14 @@ export const incomeService = {
     const cached = getCached<Record<string, number>>(key);
     if (cached) return cached;
 
-    let query = supabase.from('income').select('source, amount').eq('user_id', userId);
+    let query = supabase.from('income').select('source, amount, vat_amount').eq('user_id', userId);
     if (taxYear) query = query.eq('tax_year', taxYear);
     const { data, error } = await allRows(query);
 
     if (error) throw new Error(error.message);
 
     const result = (data ?? []).reduce<Record<string, number>>((acc, e) => {
-      acc[e.source] = (acc[e.source] ?? 0) + Number(e.amount);
+      acc[e.source] = (acc[e.source] ?? 0) + incomeExVat(e);
       return acc;
     }, {});
     setCached(key, result);
