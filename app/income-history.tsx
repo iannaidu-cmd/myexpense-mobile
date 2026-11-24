@@ -1,10 +1,15 @@
 import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { NoteCard } from "@/components/MXSection";
+import { incomeToCheckForVat, incomeVatCheckDoneKey } from "@/lib/itr12Summary";
+import { INCOME_VAT_CHECK_TAX_YEAR, incomeExVat, incomeVat } from "@/lib/vat";
 import { incomeService } from "@/services/incomeService";
+import { profileService } from "@/services/profileService";
 import { useAuthStore } from "@/stores/authStore";
 import { colour, radius, space, typography } from "@/tokens";
-import { useFocusEffect, useRouter } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useAppForeground } from "@/hooks/use-app-foreground";
 import React, { useCallback, useMemo, useState } from "react";
 import {
@@ -79,6 +84,11 @@ const sourceIcon = (source: string): any => {
 export default function IncomeHistoryScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
+  // Set by the 2025/26 VAT check popup on Home: shows only that tax year.
+  const params = useLocalSearchParams<{ taxYear?: string }>();
+  const [taxYear, setTaxYear] = useState<string | null>(params.taxYear ?? null);
+  const [vatRegistered, setVatRegistered] = useState(false);
+  const [vatCheckDone, setVatCheckDone] = useState(true);
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -92,8 +102,14 @@ export default function IncomeHistoryScreen() {
     setLoading(true);
     setError(null);
     try {
-      const data = await incomeService.getIncome(user.id);
+      const [data, profile, done] = await Promise.all([
+        incomeService.getIncome(user.id),
+        profileService.getProfile(user.id).catch(() => null),
+        AsyncStorage.getItem(incomeVatCheckDoneKey(user.id)).catch(() => "1"),
+      ]);
       setIncome(data);
+      setVatRegistered(!!profile?.vat_registered);
+      setVatCheckDone(!!done);
     } catch (e) {
       console.error("IncomeHistory load error:", e);
       setError("Failed to load income. Pull down to retry.");
@@ -131,14 +147,29 @@ export default function IncomeHistoryScreen() {
       const matchSearch =
         (e.source ?? "").toLowerCase().includes(q) ||
         (e.description ?? "").toLowerCase().includes(q);
-      return matchSearch && matchesSourceFilter(e, activeFilter);
+      return matchSearch && matchesSourceFilter(e, activeFilter) && (!taxYear || e.tax_year === taxYear);
     });
-  }, [income, search, activeFilter]);
+  }, [income, search, activeFilter, taxYear]);
 
+  // Without VAT, so it matches the income on every tax screen.
   const totalIncome = useMemo(
-    () => filtered.reduce((s, e) => s + Number(e.amount), 0),
+    () => filtered.reduce((s, e) => s + incomeExVat(e), 0),
     [filtered],
   );
+  const anyVat = filtered.some((e) => incomeVat(e) > 0);
+
+  // 2025/26 business income a VAT vendor may still need to mark as
+  // including VAT (saved before income could hold VAT).
+  const toCheck = useMemo(
+    () => incomeToCheckForVat(income.filter((e) => e.tax_year === INCOME_VAT_CHECK_TAX_YEAR)),
+    [income],
+  );
+  const showVatCheck = vatRegistered && !vatCheckDone && toCheck.length > 0;
+
+  const markVatCheckDone = () => {
+    setVatCheckDone(true);
+    if (user) AsyncStorage.setItem(incomeVatCheckDoneKey(user.id), "1").catch(() => {});
+  };
 
   return (
     <SafeAreaView
@@ -180,7 +211,7 @@ export default function IncomeHistoryScreen() {
         <View style={{ flexDirection: "row" }}>
           <View style={{ flex: 1 }}>
             <Text style={{ ...typography.statLabel, color: colour.onNoir2, textTransform: "uppercase" }}>
-              Total income
+              {anyVat ? "Income without VAT" : "Total income"}
             </Text>
             <Text
               style={{ ...typography.statValue, color: colour.brandTeal, marginTop: 6 }}
@@ -268,6 +299,42 @@ export default function IncomeHistoryScreen() {
             </TouchableOpacity>
           ) : null}
         </View>
+
+        {showVatCheck && (
+          <View style={{ marginHorizontal: space.lg }}>
+            <NoteCard
+              icon="doc.text.fill"
+              title={`Check ${toCheck.length} ${INCOME_VAT_CHECK_TAX_YEAR} payment${toCheck.length === 1 ? "" : "s"} for VAT`}
+              body="Open each payment from a South African client, tap edit and switch on Includes VAT. We'll take the VAT off your income. Payments from overseas clients usually have no VAT."
+              style={{ marginBottom: space.sm }}
+            />
+            <View style={{ flexDirection: "row", gap: space.lg, marginBottom: space.md }}>
+              {taxYear !== INCOME_VAT_CHECK_TAX_YEAR && (
+                <TouchableOpacity onPress={() => setTaxYear(INCOME_VAT_CHECK_TAX_YEAR)} hitSlop={8}>
+                  <Text style={{ ...typography.labelS, color: colour.accentDeep }}>
+                    {`Show ${INCOME_VAT_CHECK_TAX_YEAR} only`}
+                  </Text>
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity onPress={markVatCheckDone} hitSlop={8}>
+                <Text style={{ ...typography.labelS, color: colour.accentDeep }}>{"I've checked them"}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
+        {taxYear && (
+          <TouchableOpacity
+            onPress={() => setTaxYear(null)}
+            hitSlop={8}
+            style={{ marginHorizontal: space.lg, marginBottom: space.sm }}
+          >
+            <Text style={{ ...typography.labelS, color: colour.textSub }}>
+              {`Showing ${taxYear} only · `}
+              <Text style={{ color: colour.accentDeep }}>Show all years</Text>
+            </Text>
+          </TouchableOpacity>
+        )}
 
         {/* Filter chips */}
         <View
@@ -467,7 +534,7 @@ export default function IncomeHistoryScreen() {
                     }}
                   >
                     <Text style={{ ...typography.chipText, color: colour.primary }}>
-                      ITR12
+                      {incomeVat(item) > 0 ? "ITR12 · incl. VAT" : "ITR12"}
                     </Text>
                   </View>
                 </View>

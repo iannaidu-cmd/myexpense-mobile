@@ -1,4 +1,5 @@
 import { InfoBanner } from "@/components/InfoBanner";
+import { GroupRow, GroupTotal, SectionCard } from "@/components/MXSection";
 import { SuccessModal } from "@/components/SuccessModal";
 import { useNotice } from "@/components/useNotice";
 import { MXHeader } from "@/components/MXHeader";
@@ -8,6 +9,8 @@ import { VAT_RATE } from "@/lib/taxRules";
 import {
   claimableInputVat,
   countsTowardVatTurnover,
+  incomeExVat,
+  incomeVat,
   VAT_COMPULSORY_THRESHOLD,
   VAT_VOLUNTARY_THRESHOLD,
   vatNeedsReview,
@@ -64,6 +67,8 @@ export default function VATSummaryScreen() {
   const { activeTaxYear } = useExpenseStore();
   const [loading, setLoading] = useState(true);
   const [expenses, setExpenses] = useState<any[]>([]);
+  // This tax year's income entries that include VAT (output tax).
+  const [vatIncome, setVatIncome] = useState<any[]>([]);
   const [period, setPeriod] = useState<Period>("month");
   const [trailing12Revenue, setTrailing12Revenue] = useState(0);
   const [vatRegistered, setVatRegistered] = useState(false);
@@ -84,6 +89,7 @@ export default function VATSummaryScreen() {
         profileService.getProfile(user.id),
       ]);
       setExpenses(data.filter((e) => e.vat_amount && Number(e.vat_amount) > 0));
+      setVatIncome(allIncome.filter((i) => i.tax_year === activeTaxYear && incomeVat(i) > 0));
       setVatRegistered(profile?.vat_registered ?? false);
       setVatNumber(profile?.vat_number ?? "");
 
@@ -95,7 +101,7 @@ export default function VATSummaryScreen() {
       const cutoffStr = cutoff.toISOString().split("T")[0];
       const trailing = allIncome
         .filter((e) => e.date >= cutoffStr && countsTowardVatTurnover(e))
-        .reduce((s, e) => s + Number(e.amount), 0);
+        .reduce((s, e) => s + incomeExVat(e), 0);
       setTrailing12Revenue(trailing);
     } catch (e) {
       console.error("VATSummary load error:", e);
@@ -138,14 +144,18 @@ export default function VATSummaryScreen() {
   };
 
   const now = new Date();
-  const filtered = expenses.filter((e) => {
-    const d = new Date(e.expense_date);
+  const inPeriod = (dateStr: string) => {
+    const d = new Date(dateStr);
     if (period === "month")
       return (
         d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
       );
     return true;
-  });
+  };
+  const filtered = expenses.filter((e) => inPeriod(e.expense_date));
+  const filteredIncome = vatIncome.filter((i) => inPeriod(i.date));
+  // VAT charged on income (output tax). Only a vendor charges VAT.
+  const outputVAT = vatRegistered ? filteredIncome.reduce((s, i) => s + incomeVat(i), 0) : 0;
 
   const totalVAT = filtered.reduce((s, e) => s + Number(e.vat_amount), 0);
   // Input tax can only be claimed back from SARS by a registered VAT vendor —
@@ -154,6 +164,8 @@ export default function VATSummaryScreen() {
   const entryClaimable = (e: any) => (vatRegistered ? claimableInputVat(e) : 0);
   const claimableVAT = filtered.reduce((s, e) => s + entryClaimable(e), 0);
   const nonClaimable = totalVAT - claimableVAT;
+  // Positive: pay SARS. Negative: SARS refunds the difference.
+  const netVAT = outputVAT - claimableVAT;
   const isEntryClaimable = (e: any) => entryClaimable(e) > 0;
   // Older partly-business entries whose share wasn't saved (lib/vat.ts).
   const reviewCount = vatRegistered ? filtered.filter(vatNeedsReview).length : 0;
@@ -196,6 +208,27 @@ export default function VATSummaryScreen() {
         `Total VAT paid,${fmt(totalVAT)}`,
         `VAT you can claim back,${fmt(claimableVAT)}`,
         `VAT you can't claim back,${fmt(nonClaimable)}`,
+        ...(vatRegistered
+          ? [
+              "",
+              "VAT you charged on income",
+              ["Source", "Date", "Amount received (ZAR)", "VAT charged (ZAR)", "Income without VAT (ZAR)"].join(","),
+              ...filteredIncome.map((i) =>
+                [
+                  csvField(i.source),
+                  csvField(i.date),
+                  csvField(Number(i.amount).toFixed(2)),
+                  csvField(incomeVat(i).toFixed(2)),
+                  csvField(incomeExVat(i).toFixed(2)),
+                ].join(","),
+              ),
+              "",
+              `Total VAT charged,${fmt(outputVAT)}`,
+              netVAT >= 0
+                ? `VAT to pay SARS (charged minus claimable),${fmt(netVAT)}`
+                : `VAT SARS owes you (claimable minus charged),${fmt(-netVAT)}`,
+            ]
+          : []),
       ].join("\n");
 
       await Share.share({ message: lines, title: "VAT Report" });
@@ -525,6 +558,29 @@ export default function VATSummaryScreen() {
                   {fmt(nonClaimable)}
                 </Text>
               </View>
+            )}
+
+            {vatRegistered && (
+              <SectionCard
+                title="VAT charged and claimed"
+                subtitle="VAT returns are usually every two months. Use the dates on your return, not these totals alone."
+                style={{ marginBottom: space.xl }}
+              >
+                <View>
+                  <GroupRow label="VAT you charged on income" value={fmt(outputVAT)} />
+                  <GroupRow label="VAT you can claim back" value={fmt(claimableVAT)} last />
+                </View>
+                <GroupTotal
+                  label={netVAT >= 0 ? "VAT to pay SARS" : "SARS owes you"}
+                  value={fmt(Math.abs(netVAT))}
+                  accent={netVAT < 0}
+                />
+                {filteredIncome.length === 0 && (
+                  <Text style={{ ...typography.hintText, color: colour.textSub }}>
+                    No income with VAT for this period. When you add income, switch on Includes VAT for payments where you charged VAT.
+                  </Text>
+                )}
+              </SectionCard>
             )}
 
             {vatRegistered ? (

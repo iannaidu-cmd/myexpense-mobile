@@ -16,6 +16,8 @@
 // Re-check these when SARS publishes a new VAT 404 issue or Budget.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { VAT_RATE } from "./taxRules";
+
 export const VAT_COMPULSORY_THRESHOLD = 2_300_000;
 export const VAT_VOLUNTARY_THRESHOLD = 120_000;
 
@@ -60,6 +62,42 @@ export function vatNeedsReview(e: VatExpense): boolean {
     APPORTIONED_CATEGORIES.includes(e.category)
   );
 }
+
+// ─── VAT on income (output tax) ──────────────────────────────────────────────
+// A vendor's local payments include VAT; foreign (exported) services are
+// zero-rated and don't (VAT 404 §6). So it's chosen per entry, not from the
+// vendor's status. income.amount is what was received; vat_amount is the VAT
+// inside it. Only the amount without VAT is income for income tax and
+// turnover for the VAT threshold.
+
+/** VAT inside a VAT-inclusive amount: amount × 15/115, to the cent. */
+export function vatInInclusive(amount: number): number {
+  if (!(amount > 0)) return 0;
+  return Math.round(((amount * VAT_RATE) / (1 + VAT_RATE)) * 100) / 100;
+}
+
+interface VatIncome {
+  amount: number | string;
+  vat_amount?: number | string | null;
+}
+
+/** VAT charged (output tax) on this income entry. */
+export function incomeVat(i: VatIncome): number {
+  return Math.max(Number(i.vat_amount ?? 0), 0);
+}
+
+/** The income amount without VAT, used for every tax total. */
+export function incomeExVat(i: VatIncome): number {
+  return Number(i.amount) - incomeVat(i);
+}
+
+// Last "Includes VAT" choice on add income / bank import, so a vendor whose
+// payments are mostly local (or mostly from overseas) rarely changes it.
+export const INCOME_INCLUDES_VAT_LAST_KEY = "@myexpense:income_includes_vat_last";
+
+// Tax year whose income VAT vendors are asked to check once: entries saved
+// before income could hold VAT may include VAT they never took off.
+export const INCOME_VAT_CHECK_TAX_YEAR = "2025/26";
 
 // Income that isn't business turnover for the VAT threshold: employment
 // income (IRP5, salary, allowances) and the app's automatic vehicle-sale row.

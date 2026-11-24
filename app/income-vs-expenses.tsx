@@ -2,6 +2,7 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { MXBackHeader } from "@/components/MXBackHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { expenseService } from "@/services/expenseService";
+import { incomeExVat } from "@/lib/vat";
 import { incomeService } from "@/services/incomeService";
 import { useAuthStore } from "@/stores/authStore";
 import { colour, radius, space, typography } from "@/tokens";
@@ -246,7 +247,7 @@ export default function IncomeVsExpensesScreen() {
         }
         for (const e of incomeEntries) {
           const k = monthKey(e.date);
-          if (validKeys.has(k)) incomeByMonth[k] += Number(e.amount);
+          if (validKeys.has(k)) incomeByMonth[k] += incomeExVat(e);
         }
         for (const e of expenseEntries) {
           const k = monthKey(e.expense_date);

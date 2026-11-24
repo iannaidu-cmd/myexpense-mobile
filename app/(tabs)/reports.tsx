@@ -5,7 +5,7 @@ import { incomeService } from "@/services/incomeService";
 import { mileageService, missingLogbookFields } from "@/services/mileageService";
 import { logbookBusinessUse, useVehicleStore } from "@/stores/vehicleStore";
 import { claimsVehicleCostsAsBusiness } from "@/lib/workType";
-import { claimableInputVat } from "@/lib/vat";
+import { claimableInputVat, incomeExVat } from "@/lib/vat";
 import { profileService } from "@/services/profileService";
 import { taxLiabilityService } from "@/services/taxLiabilityService";
 import { useAuthStore } from "@/stores/authStore";
@@ -317,7 +317,7 @@ export default function ReportsTabScreen() {
           const monthStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
           const income = allIncome
             .filter((e) => e.date.startsWith(monthStr))
-            .reduce((s, e) => s + Number(e.amount), 0);
+            .reduce((s, e) => s + incomeExVat(e), 0);
           const expense = allExpenses
             .filter((e) => e.expense_date.startsWith(monthStr))
             .reduce((s, e) => s + Number(e.amount), 0);

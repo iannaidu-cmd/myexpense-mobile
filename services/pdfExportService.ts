@@ -102,7 +102,7 @@ interface BuildOpts {
   };
   taxYear: string;
   expenses: Expense[];
-  income: { amount: number; source: string; category: string | null; recoupment_vehicle_id?: string | null }[];
+  income: { amount: number; vat_amount?: number | null; source: string; category: string | null; recoupment_vehicle_id?: string | null }[];
   homeOfficeSetup: HomeOfficeSetupClaim | null;
   includeVAT: boolean;
   includePersonal: boolean;
@@ -141,7 +141,7 @@ export function buildITR12HTML(opts: BuildOpts): string {
     <table>
       <thead><tr><th>ITR12 field</th><th class="num">Enter in eFiling</th></tr></thead>
       <tbody>
-        ${row("Turnover / Sales", result.turnoverRands > 0 ? fmtRands(result.turnoverRands) : blank, "Business income you logged in MyExpense")}
+        ${row("Turnover / Sales", result.turnoverRands > 0 ? fmtRands(result.turnoverRands) : blank, vatRegistered ? "Business income you logged in MyExpense, without the VAT you charged" : "Business income you logged in MyExpense")}
         ${row("Cost of Sales", blank, "Only if you buy stock to resell")}
         ${row("Gross Profit", result.grossProfitRands > 0 ? fmtRands(result.grossProfitRands) : blank)}
         <tr class="total-row"><td>Total</td><td class="num">${fmtRands(result.grossProfitRands)}</td></tr>

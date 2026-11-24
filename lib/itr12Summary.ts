@@ -16,7 +16,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { CATEGORY_PARTIAL_CAPS, NON_DEDUCTIBLE_LABEL } from "@/constants/categories";
-import { claimableInputVat, countsTowardVatTurnover } from "@/lib/vat";
+import { claimableInputVat, countsTowardVatTurnover, incomeExVat, incomeVat } from "@/lib/vat";
 import { ITR12_CATEGORIES } from "@/types/database";
 
 /** Expenditure fields in the order they appear on the ITR12. */
@@ -355,6 +355,7 @@ export type IncomeKind = "turnover" | "employment" | "otherSection" | "recoupmen
 
 interface IncomeLike {
   amount: number | string;
+  vat_amount?: number | string | null;
   source?: string | null;
   category?: string | null;
   recoupment_vehicle_id?: string | null;
@@ -363,7 +364,7 @@ interface IncomeLike {
 // Declared in their own ITR12 sections, not as business turnover.
 const OTHER_SECTION_SOURCES = /Rental Income|Interest Received|Investment Income|Beneficiary of a Trust|Annuities|Royalties/i;
 
-export function classifyIncome(i: IncomeLike): IncomeKind {
+export function classifyIncome(i: Omit<IncomeLike, "amount"> & { amount?: number | string }): IncomeKind {
   if (i.recoupment_vehicle_id) return "recoupment";
   if (!countsTowardVatTurnover(i)) return "employment";
   if (OTHER_SECTION_SOURCES.test(`${i.source ?? ""} ${i.category ?? ""}`)) return "otherSection";
@@ -383,7 +384,8 @@ export function buildIncome(entries: IncomeLike[]): IncomeSummary {
   const s: IncomeSummary = { turnover: 0, employment: 0, otherSection: 0, recoupment: 0, otherSectionBySource: {} };
   for (const i of entries) {
     const kind = classifyIncome(i);
-    const amt = Number(i.amount);
+    // VAT charged on income isn't income: use the amount without VAT.
+    const amt = incomeExVat(i);
     s[kind] += amt;
     if (kind === "otherSection") {
       const src = i.source || "Other";
@@ -496,3 +498,19 @@ export function filingChecks(expenses: ExpenseLike[]): FilingCheck[] {
   }
   return checks;
 }
+
+// ─── 2025/26 income VAT check ────────────────────────────────────────────────
+// Income was saved without VAT before 1.2.29, so a VAT vendor's local payments
+// for 2025/26 may still include VAT. These are the entries worth checking:
+// business income (turnover) with no VAT marked. Employment, rental, interest
+// and the vehicle-sale row never carry VAT here.
+export function incomeToCheckForVat<T extends IncomeLike>(entries: T[]): T[] {
+  return entries.filter((i) => classifyIncome(i) === "turnover" && incomeVat(i) === 0);
+}
+
+/** Set once the user says they've checked their 2025/26 income. */
+export const incomeVatCheckDoneKey = (userId: string) =>
+  `@myexpense:income_vat_check_done_2025_26:${userId}`;
+/** Set once the Home popup about the check has been seen. */
+export const incomeVatCheckPopupKey = (userId: string) =>
+  `@myexpense:seen_income_vat_check_popup_2025_26:${userId}`;
