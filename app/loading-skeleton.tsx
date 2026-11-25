@@ -1,5 +1,5 @@
 import { NavigationProp } from "expo-router/react-navigation";
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import { Animated, Easing, ScrollView, View } from "react-native";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -239,7 +239,7 @@ export default function LoadingSkeletonScreen({
   variant = "expense_list",
   rowCount = 6,
 }: Props) {
-  const shimAnim = useRef(new Animated.Value(0)).current;
+  const [shimAnim] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
     Animated.loop(

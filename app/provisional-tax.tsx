@@ -254,7 +254,7 @@ export default function ProvisionalTaxScreen() {
   }, []);
 
   useEffect(() => {
-    if (!user) { setLoading(false); return; }
+    if (!user) return; // the spinner only shows with a user (see render)
     incomeService.getIncome(user.id, activeTaxYear).then((all) => {
       const total = all.reduce((s, e) => s + incomeExVat(e), 0);
       setTotalIncome(total);
@@ -293,7 +293,7 @@ export default function ProvisionalTaxScreen() {
         contentContainerStyle={{ padding: space.lg, paddingBottom: space["5xl"] }}
         showsVerticalScrollIndicator={false}
       >
-        {loading ? (
+        {loading && user ? (
           <View style={{ alignItems: "center", paddingTop: 60 }}>
             <ActivityIndicator color={colour.primary} size="large" />
           </View>

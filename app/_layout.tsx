@@ -252,7 +252,11 @@ function OAuthHandler() {
   const router = useRouter();
   const navigationState = useRootNavigationState();
   const readyRef = useRef(false);
-  readyRef.current = !!navigationState?.key;
+  const navReady = !!navigationState?.key;
+  // Declared before the handler effect so it runs first on every commit.
+  useEffect(() => {
+    readyRef.current = navReady;
+  }, [navReady]);
 
   useEffect(() => {
     const handle = async (url: string | null | undefined) => {
@@ -457,7 +461,7 @@ const SPLASH_MAX_MS = 15000;
 // Overlay opacity is controlled by RootLayout so it can fade out smoothly.
 // InlineSplash only handles the logo entrance animation.
 function InlineSplash({ opacity }: { opacity: Animated.Value }) {
-  const scaleAnim = useRef(new Animated.Value(0.85)).current;
+  const [scaleAnim] = useState(() => new Animated.Value(0.85));
   useEffect(() => {
     Animated.spring(scaleAnim, { toValue: 1, delay: 200, useNativeDriver: true, tension: 60, friction: 8 }).start();
   }, []);
@@ -474,7 +478,7 @@ function RootLayout() {
   const colorScheme = useColorScheme();
   const { initialise } = useAuthStore();
   const [splashDone, setSplashDone] = useState(false);
-  const splashOpacity = useRef(new Animated.Value(1)).current;
+  const [splashOpacity] = useState(() => new Animated.Value(1));
   useFonts({
     Inter_400Regular,
     Inter_500Medium,

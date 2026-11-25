@@ -90,7 +90,7 @@ export default function ITR12ExportSetupScreen() {
   const { user, isPremium, isInitialised, refreshPremiumStatus } = useAuthStore();
   const { activeTaxYear } = useExpenseStore();
   const [premiumChecked, setPremiumChecked] = useState(false);
-  const [exportGateReady, setExportGateReady] = useState(false);
+  const [freeCountChecked, setFreeCountChecked] = useState(false);
   const [exportLimitReached, setExportLimitReached] = useState(false);
 
   // Refresh premium status on mount before deciding free-tier access.
@@ -104,11 +104,7 @@ export default function ITR12ExportSetupScreen() {
   // successful export (any format) is one use, logged to itr12_export_log.
   // Fails open on a count-check error — a network blip shouldn't block an export.
   useEffect(() => {
-    if (!premiumChecked || !user) return;
-    if (isPremium) {
-      setExportGateReady(true);
-      return;
-    }
+    if (!premiumChecked || !user || isPremium) return;
     countFreeUses(user.id)
       .then((count) => {
         if (count >= FREE_USE_LIMIT) {
@@ -117,8 +113,16 @@ export default function ITR12ExportSetupScreen() {
         }
       })
       .catch(() => {})
-      .finally(() => setExportGateReady(true));
+      .finally(() => setFreeCountChecked(true));
   }, [premiumChecked, isPremium, user]);
+  // Premium users are ready as soon as we know they're premium; free users
+  // once their use count is in. Sticky once open (set during render, not in
+  // an effect), so a premium status change mid-session can't pull the screen
+  // back to the spinner or, on mileage, stop a trip in progress.
+  const [exportGateReady, setExportGateReady] = useState(false);
+  if (!exportGateReady && premiumChecked && !!user && (isPremium || freeCountChecked)) {
+    setExportGateReady(true);
+  }
 
   const [totalDeductions, setTotalDeductions] = useState(0);
   const [totalExpenses,   setTotalExpenses]   = useState(0);

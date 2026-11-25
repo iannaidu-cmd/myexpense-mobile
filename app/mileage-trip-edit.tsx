@@ -88,9 +88,13 @@ export default function MileageTripEditScreen() {
 
   // New trip: default to the only / most recently added vehicle in use.
   const active = vehicles.filter((v) => !v.isArchived);
-  useEffect(() => {
+  // Adjusted during render rather than in an effect, so there's no extra render.
+  const vehicleDefaultKey = `${isNew}|${active.length}`;
+  const [prevVehicleDefaultKey, setPrevVehicleDefaultKey] = useState<string | null>(null);
+  if (vehicleDefaultKey !== prevVehicleDefaultKey) {
+    setPrevVehicleDefaultKey(vehicleDefaultKey);
     if (isNew && !vehicleId && active.length) setVehicleId(active[active.length - 1].id);
-  }, [isNew, active.length]);
+  }
 
   useEffect(() => {
     if (!user || !id) return;

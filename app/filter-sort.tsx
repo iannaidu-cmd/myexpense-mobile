@@ -57,6 +57,70 @@ const DEDUCTIBILITY = [
   "Non-deductible (0%)",
 ];
 
+// Module scope so it keeps a stable identity across renders.
+const RadioGroup = ({
+  label,
+  options,
+  value,
+  onChange,
+}: {
+  label: string;
+  options: string[];
+  value: string;
+  onChange: (v: string) => void;
+}) => (
+  <View style={{ marginBottom: space.xl }}>
+    <Text
+      style={[
+        typography.labelM,
+        { color: colour.textSecondary, marginBottom: space.sm },
+      ]}
+    >
+      {label}
+    </Text>
+    {options.map((opt) => (
+      <TouchableOpacity
+        key={opt}
+        onPress={() => onChange(opt)}
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          paddingVertical: space.md,
+          borderBottomWidth: 1,
+          borderBottomColor: colour.border,
+        }}
+      >
+        <View
+          style={{
+            width: 20,
+            height: 20,
+            borderRadius: 10,
+            borderWidth: 2,
+            borderColor: value === opt ? colour.primary : colour.border,
+            alignItems: "center",
+            justifyContent: "center",
+            marginRight: space.md,
+          }}
+        >
+          {value === opt && (
+            <View
+              style={{
+                width: 10,
+                height: 10,
+                borderRadius: 5,
+                backgroundColor: colour.primary,
+              }}
+            />
+          )}
+        </View>
+        <Text style={[typography.bodyM, { color: colour.textPrimary }]}>
+          {opt}
+        </Text>
+      </TouchableOpacity>
+    ))}
+  </View>
+);
+
 export default function FilterSortScreen() {
   const router = useRouter();
   const [sortBy, setSortBy] = useState<SortKey>("date_desc");
@@ -83,69 +147,6 @@ export default function FilterSortScreen() {
   };
 
   const handleApply = () => safeBack(router);
-
-  const RadioGroup = ({
-    label,
-    options,
-    value,
-    onChange,
-  }: {
-    label: string;
-    options: string[];
-    value: string;
-    onChange: (v: string) => void;
-  }) => (
-    <View style={{ marginBottom: space.xl }}>
-      <Text
-        style={[
-          typography.labelM,
-          { color: colour.textSecondary, marginBottom: space.sm },
-        ]}
-      >
-        {label}
-      </Text>
-      {options.map((opt) => (
-        <TouchableOpacity
-          key={opt}
-          onPress={() => onChange(opt)}
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            paddingVertical: space.md,
-            borderBottomWidth: 1,
-            borderBottomColor: colour.border,
-          }}
-        >
-          <View
-            style={{
-              width: 20,
-              height: 20,
-              borderRadius: 10,
-              borderWidth: 2,
-              borderColor: value === opt ? colour.primary : colour.border,
-              alignItems: "center",
-              justifyContent: "center",
-              marginRight: space.md,
-            }}
-          >
-            {value === opt && (
-              <View
-                style={{
-                  width: 10,
-                  height: 10,
-                  borderRadius: 5,
-                  backgroundColor: colour.primary,
-                }}
-              />
-            )}
-          </View>
-          <Text style={[typography.bodyM, { color: colour.textPrimary }]}>
-            {opt}
-          </Text>
-        </TouchableOpacity>
-      ))}
-    </View>
-  );
 
   return (
     <SafeAreaView

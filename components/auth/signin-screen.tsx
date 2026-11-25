@@ -190,24 +190,6 @@ export function SigninScreen() {
   const [biometricLabel, setBiometricLabel] = useState("Biometrics");
   const [appleAvailable, setAppleAvailable] = useState(false);
 
-  useEffect(() => {
-    (async () => {
-      const available = await isBiometricAvailable();
-      const enabled = await isBiometricEnabled();
-      const label = await getBiometricLabel();
-      setBiometricAvailable(available);
-      setBiometricEnabledState(enabled);
-      setBiometricLabel(label);
-      if (available && enabled) {
-        const stored = await getBiometricSession();
-        if (stored) handleBiometricLogin(true);
-      }
-    })();
-    if (Platform.OS === "ios") {
-      AppleAuthentication.isAvailableAsync().then(setAppleAvailable).catch(() => setAppleAvailable(false));
-    }
-  }, []);
-
   const handleBiometricLogin = async (auto = false) => {
     const authenticated = await authenticateWithBiometrics("Sign in to MyExpense");
     if (!authenticated) return;
@@ -234,6 +216,24 @@ export function SigninScreen() {
       showNotice({ title: "Couldn't sign you in", message: "Please sign in with your email and password." });
     }
   };
+
+  useEffect(() => {
+    (async () => {
+      const available = await isBiometricAvailable();
+      const enabled = await isBiometricEnabled();
+      const label = await getBiometricLabel();
+      setBiometricAvailable(available);
+      setBiometricEnabledState(enabled);
+      setBiometricLabel(label);
+      if (available && enabled) {
+        const stored = await getBiometricSession();
+        if (stored) handleBiometricLogin(true);
+      }
+    })();
+    if (Platform.OS === "ios") {
+      AppleAuthentication.isAvailableAsync().then(setAppleAvailable).catch(() => setAppleAvailable(false));
+    }
+  }, []);
 
   const handleSubmit = async () => {
     const e: typeof errors = {};

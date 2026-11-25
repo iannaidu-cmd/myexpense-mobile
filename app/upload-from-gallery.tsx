@@ -28,6 +28,22 @@ import {
 } from "react-native-safe-area-context";
 import { safeBack } from "@/lib/navigation";
 
+type PickOutcome = { kind: "denied" } | { kind: "cancelled" } | { kind: "picked"; uri: string };
+
+// Asks for photo access and opens the library. Plain async (no React state)
+// so the screen can apply the result once it arrives.
+async function pickReceiptImage(): Promise<PickOutcome> {
+  const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  if (status !== "granted") return { kind: "denied" };
+  const result = await ImagePicker.launchImageLibraryAsync({
+    mediaTypes: ["images"],
+    allowsEditing: false,
+    quality: 0.9,
+  });
+  if (result.canceled) return { kind: "cancelled" };
+  return { kind: "picked", uri: result.assets[0].uri };
+}
+
 export default function UploadFromGalleryScreen() {
   const router = useRouter();
   const { user, isPremium, isInitialised, refreshPremiumStatus } = useAuthStore();
@@ -37,7 +53,7 @@ export default function UploadFromGalleryScreen() {
 
   const [premiumChecked, setPremiumChecked] = useState(false);
   const [scanBlocked, setScanBlocked] = useState(false);
-  const [scanGateReady, setScanGateReady] = useState(false);
+  const [freeCountChecked, setFreeCountChecked] = useState(false);
   const [showAllowanceNotice, setShowAllowanceNotice] = useState(false);
 
   // Refresh premium status before deciding whether the free-tier scan cap applies.
@@ -50,11 +66,7 @@ export default function UploadFromGalleryScreen() {
   // like a camera capture does.
   // Fails open on a count-check error — a network blip shouldn't block a scan.
   useEffect(() => {
-    if (!premiumChecked || !user) return;
-    if (isPremium) {
-      setScanGateReady(true);
-      return;
-    }
+    if (!premiumChecked || !user || isPremium) return;
     countFreeUses(user.id)
       .then((count) => {
         if (count >= FREE_USE_LIMIT) {
@@ -63,8 +75,16 @@ export default function UploadFromGalleryScreen() {
         }
       })
       .catch(() => {})
-      .finally(() => setScanGateReady(true));
+      .finally(() => setFreeCountChecked(true));
   }, [premiumChecked, isPremium, user]);
+  // Premium users are ready as soon as we know they're premium; free users
+  // once their use count is in. Sticky once open (set during render, not in
+  // an effect), so a premium status change mid-session can't pull the screen
+  // back to the spinner or, on mileage, stop a trip in progress.
+  const [scanGateReady, setScanGateReady] = useState(false);
+  if (!scanGateReady && premiumChecked && !!user && (isPremium || freeCountChecked)) {
+    setScanGateReady(true);
+  }
 
   // One-off heads-up about free uses - shared AsyncStorage key with
   // scan-receipt-camera.tsx, so it only ever shows once.
@@ -80,32 +100,31 @@ export default function UploadFromGalleryScreen() {
     AsyncStorage.setItem(FREE_USES_NOTICE_KEY, "1").catch(() => {});
   };
 
-  const openPicker = useCallback(async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== "granted") {
+  const handlePick = useCallback((outcome: PickOutcome) => {
+    if (outcome.kind === "denied") {
       showNotice({
         title: "Allow access to your photos",
         message: "To upload a receipt, let MyExpense use your photos. You can switch this on in your phone's settings.",
         icon: "photo.fill",
         onConfirm: () => safeBack(router),
       });
-      return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      allowsEditing: false,
-      quality: 0.9,
-    });
-    if (result.canceled) {
+    } else if (outcome.kind === "cancelled") {
       safeBack(router);
-      return;
+    } else {
+      setPickedUri(outcome.uri);
     }
-    setPickedUri(result.assets[0].uri);
   }, [router]);
 
+  const openPicker = useCallback(() => {
+    pickReceiptImage().then(handlePick);
+  }, [handlePick]);
+
+  // Open the picker straight away once the free-use check has passed.
   useEffect(() => {
     if (!scanGateReady || scanBlocked) return;
-    openPicker();
+    let active = true;
+    pickReceiptImage().then((outcome) => { if (active) handlePick(outcome); });
+    return () => { active = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scanGateReady, scanBlocked]);
 

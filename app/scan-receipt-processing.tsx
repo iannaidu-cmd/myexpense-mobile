@@ -3,7 +3,7 @@ import { CATEGORIES } from "@/constants/categories";
 import { receiptState } from "@/lib/receiptState";
 import { colour, radius, space, typography } from "@/tokens";
 import { useRouter } from "expo-router";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { ActivityIndicator, Animated, Easing, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { safeBack } from "@/lib/navigation";
@@ -132,9 +132,9 @@ export default function ScanReceiptProcessingScreen() {
   const [done, setDone] = useState(false);
   const [extractedData, setExtractedData] = useState<ExtractedData>({});
 
-  const spin = useRef(new Animated.Value(0)).current;
-  const pulse = useRef(new Animated.Value(1)).current;
-  const progress = useRef(new Animated.Value(0)).current;
+  const [spin] = useState(() => new Animated.Value(0));
+  const [pulse] = useState(() => new Animated.Value(1));
+  const [progress] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
     Animated.loop(

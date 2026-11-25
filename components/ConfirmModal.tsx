@@ -1,6 +1,6 @@
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { colour, radius, typography } from "@/tokens";
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Animated,
   Modal,
@@ -41,11 +41,11 @@ export function ConfirmModal({
   icon,
   hideCancel = false,
 }: ConfirmModalProps) {
-  const backdropOpacity = useRef(new Animated.Value(0)).current;
-  const cardScale = useRef(new Animated.Value(0.9)).current;
-  const cardOpacity = useRef(new Animated.Value(0)).current;
-  const iconScale = useRef(new Animated.Value(0)).current;
-  const contentOpacity = useRef(new Animated.Value(0)).current;
+  const [backdropOpacity] = useState(() => new Animated.Value(0));
+  const [cardScale] = useState(() => new Animated.Value(0.9));
+  const [cardOpacity] = useState(() => new Animated.Value(0));
+  const [iconScale] = useState(() => new Animated.Value(0));
+  const [contentOpacity] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
     if (visible) {

@@ -71,27 +71,43 @@ export default function BankAccountsScreen() {
   const [branchCode, setBranchCode] = useState("");
   const [accountType, setAccountType] = useState("Cheque / Current");
 
+  const fetchAccounts = async (userId: string): Promise<BankAccount[]> => {
+    const { data, error } = await supabase
+      .from("bank_accounts")
+      .select("*")
+      .eq("user_id", userId)
+      .order("is_primary", { ascending: false });
+    if (error) throw error;
+    return data ?? [];
+  };
+
+  const showLoadError = (e: unknown) => {
+    console.error("BankAccounts load error:", e);
+    showNotice({ title: "Couldn't load your bank accounts", message: "Please check your internet connection and try again." });
+  };
+
+  // Reload after a change (add, remove, set primary).
   const loadAccounts = async () => {
-    if (!user) { setLoading(false); return; }
+    if (!user) return;
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from("bank_accounts")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("is_primary", { ascending: false });
-      if (error) throw error;
-      setAccounts(data ?? []);
-    } catch (e: any) {
-      console.error("BankAccounts load error:", e);
-      showNotice({ title: "Couldn't load your bank accounts", message: "Please check your internet connection and try again." });
+      setAccounts(await fetchAccounts(user.id));
+    } catch (e) {
+      showLoadError(e);
     } finally {
       setLoading(false);
     }
   };
 
+  // First load: loading starts true, and state is only set once data is back.
   useEffect(() => {
-    loadAccounts();
+    if (!user) return;
+    let active = true;
+    fetchAccounts(user.id)
+      .then((rows) => { if (active) setAccounts(rows); })
+      .catch((e) => { if (active) showLoadError(e); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
   }, [user]);
 
   const resetForm = () => {
@@ -206,7 +222,7 @@ export default function BankAccountsScreen() {
         }}
         contentContainerStyle={{ padding: space.lg, paddingBottom: 100 }}
       >
-        {loading ? (
+        {loading && user ? (
           <View style={{ alignItems: "center", paddingTop: space["4xl"] }}>
             <ActivityIndicator color={colour.primary} size="large" />
           </View>

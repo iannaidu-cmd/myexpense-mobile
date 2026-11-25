@@ -265,11 +265,13 @@ export function SubscriptionScreen({ defaultFrom }: { defaultFrom: string }) {
   const params = useLocalSearchParams<{ from?: string }>();
   const from = (Array.isArray(params.from) ? params.from[0] : params.from) || defaultFrom;
   const tracked = useRef(!hasPaidSubscription && !isDevUser);
-  const openedAt = useRef(Date.now());
+  const [openedAt] = useState(() => Date.now());
   const viewedSent = useRef(false);
   const closeVia = useRef("back");
   const planRef = useRef(selectedPlan);
-  planRef.current = selectedPlan;
+  useEffect(() => {
+    planRef.current = selectedPlan;
+  }, [selectedPlan]);
 
   useEffect(() => {
     return () => {
@@ -285,7 +287,7 @@ export function SubscriptionScreen({ defaultFrom }: { defaultFrom: string }) {
       }
       trackFunnel("paywall_closed", {
         via: closeVia.current,
-        seconds: Math.round((Date.now() - openedAt.current) / 1000),
+        seconds: Math.round((Date.now() - openedAt) / 1000),
         plan: planRef.current,
       });
     };

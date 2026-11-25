@@ -3,7 +3,7 @@ import { ThemedView } from "@/components/themed-view";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { colour, space } from "@/tokens";
 import { useRouter } from "expo-router";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
     Animated,
     Easing,
@@ -48,7 +48,7 @@ function PhoneShell({ children }: { children: React.ReactNode }) {
 
 // ─── Error Illustration ───────────────────────────────────────────────────────
 function ErrorIllustration({ severity }: { severity: ErrorSeverity }) {
-  const bounce = useRef(new Animated.Value(0)).current;
+  const [bounce] = useState(() => new Animated.Value(0));
 
   const bgColour =
     severity === "warning"

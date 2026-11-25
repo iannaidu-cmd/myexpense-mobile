@@ -176,11 +176,17 @@ export default function AddExpenseScreen() {
   // Which vehicle this cost was for. Saved on the expense so per-vehicle
   // actual costs are available later (e.g. the employee travel-allowance claim).
   const [vehicleId, setVehicleId] = useState<string | null>(null);
-  React.useEffect(() => {
+  // Default to the newest vehicle when the category or vehicle list changes.
+  // Adjusted during render rather than in an effect (React's pattern for
+  // state that follows other values), so there's no extra render.
+  const vehicleDefaultKey = `${category}|${pickableVehicles.length}`;
+  const [prevVehicleDefaultKey, setPrevVehicleDefaultKey] = useState<string | null>(null);
+  if (vehicleDefaultKey !== prevVehicleDefaultKey) {
+    setPrevVehicleDefaultKey(vehicleDefaultKey);
     if (category === "Vehicle Expenses" && !vehicleId && pickableVehicles.length) {
       setVehicleId(pickableVehicles[pickableVehicles.length - 1].id);
     }
-  }, [category, pickableVehicles.length]);
+  }
   React.useEffect(() => {
     if (category !== "Vehicle Expenses" || !user) return;
     let cancelled = false;

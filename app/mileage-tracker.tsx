@@ -112,7 +112,7 @@ export default function MileageTrackerScreen() {
 
   const [premiumChecked, setPremiumChecked] = useState(false);
   const [tripLimitReached, setTripLimitReached] = useState(false);
-  const [mileageGateReady, setMileageGateReady] = useState(false);
+  const [freeCountChecked, setFreeCountChecked] = useState(false);
 
   useEffect(() => {
     if (!isInitialised || !user) return;
@@ -125,11 +125,7 @@ export default function MileageTrackerScreen() {
   // don't otherwise write a per-use row anywhere.
   // Fails open on a count-check error — a network blip shouldn't block a trip.
   useEffect(() => {
-    if (!premiumChecked || !user) return;
-    if (isPremium) {
-      setMileageGateReady(true);
-      return;
-    }
+    if (!premiumChecked || !user || isPremium) return;
     countFreeUses(user.id)
       .then((count) => {
         if (count >= FREE_USE_LIMIT) {
@@ -138,8 +134,16 @@ export default function MileageTrackerScreen() {
         }
       })
       .catch(() => {})
-      .finally(() => setMileageGateReady(true));
+      .finally(() => setFreeCountChecked(true));
   }, [premiumChecked, isPremium, user]);
+  // Premium users are ready as soon as we know they're premium; free users
+  // once their use count is in. Sticky once open (set during render, not in
+  // an effect), so a premium status change mid-session can't pull the screen
+  // back to the spinner or, on mileage, stop a trip in progress.
+  const [mileageGateReady, setMileageGateReady] = useState(false);
+  if (!mileageGateReady && premiumChecked && !!user && (isPremium || freeCountChecked)) {
+    setMileageGateReady(true);
+  }
 
   const [status, setStatus] = useState<TripStatus>("idle");
   const [coords, setCoords] = useState<Coord[]>([]);
@@ -180,12 +184,20 @@ export default function MileageTrackerScreen() {
 
   // Default to a vehicle once they're loaded — and to the newly added one
   // when the user adds a vehicle from the start-trip sheet.
+  // Adjusted during render when the vehicle list or status changes, rather
+  // than in an effect, so there's no extra render.
   const tripVehicleIds = tripVehicles.map((v) => v.id).join(",");
-  useEffect(() => {
-    if (status !== "idle") return;
-    if (selectedVehicleId && tripVehicles.some((v) => v.id === selectedVehicleId)) return;
-    setSelectedVehicleId(tripVehicles.length ? tripVehicles[tripVehicles.length - 1].id : null);
-  }, [tripVehicleIds, status]);
+  const vehicleDefaultKey = `${tripVehicleIds}|${status}`;
+  const [prevVehicleDefaultKey, setPrevVehicleDefaultKey] = useState<string | null>(null);
+  if (vehicleDefaultKey !== prevVehicleDefaultKey) {
+    setPrevVehicleDefaultKey(vehicleDefaultKey);
+    if (
+      status === "idle" &&
+      !(selectedVehicleId && tripVehicles.some((v) => v.id === selectedVehicleId))
+    ) {
+      setSelectedVehicleId(tripVehicles.length ? tripVehicles[tripVehicles.length - 1].id : null);
+    }
+  }
 
   const [locationReady, setLocationReady] = useState(false);
   const [showEndConfirm, setShowEndConfirm] = useState(false);
@@ -257,6 +269,12 @@ export default function MileageTrackerScreen() {
   // already used their 12 free uses (one shared allowance in total, never
   // reset; see constants/freeTier.ts) sees the limit-reached screen instead
   // and is never prompted for location access.
+  // Declared before the GPS effect below, whose cleanup calls it.
+  const stopTracking = useCallback(() => {
+    locationSub.current?.remove();
+    locationSub.current = null;
+  }, []);
+
   useEffect(() => {
     if (!mileageGateReady || tripLimitReached) return;
     (async () => {
@@ -385,11 +403,6 @@ export default function MileageTrackerScreen() {
     }
   }, [currentPos]);
 
-  const stopTracking = useCallback(() => {
-    locationSub.current?.remove();
-    locationSub.current = null;
-  }, []);
-
   // ── Controls ──────────────────────────────────────────────────────────────
   // Re-count before each new trip: the mount check runs once, so a free user
   // who saves a trip and starts another without leaving could go past the
@@ -516,14 +529,14 @@ export default function MileageTrackerScreen() {
 
   const handleEnd = useCallback(() => {
     setShowEndConfirm(true);
-  }, []);
+  }, [setShowEndConfirm]);
 
   const confirmEnd = useCallback(async () => {
     setShowEndConfirm(false);
     stopTracking();
     setStatus("idle");
     await saveTrip();
-  }, [stopTracking, saveTrip]);
+  }, [setShowEndConfirm, stopTracking, saveTrip]);
 
   // Discard the trip entirely — no row is ever written to mileage_trips.
   // Distinct from handleEnd, which always saves. Lets the user bail out of a
@@ -531,7 +544,7 @@ export default function MileageTrackerScreen() {
   // logbook, so there's nothing to clean up afterwards from Trip History.
   const handleCancel = useCallback(() => {
     setShowDiscardConfirm(true);
-  }, []);
+  }, [setShowDiscardConfirm]);
 
   const confirmDiscard = useCallback(() => {
     setShowDiscardConfirm(false);
@@ -547,7 +560,7 @@ export default function MileageTrackerScreen() {
     setStartAddress(null);
     lastCoordRef.current = null;
     pausedKmRef.current = 0;
-  }, [stopTracking, clearSavedTrip]);
+  }, [setShowDiscardConfirm, stopTracking, clearSavedTrip]);
 
   const elapsedStr = formatElapsed(elapsed);
 

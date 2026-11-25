@@ -187,7 +187,8 @@ export default function HomeScreen() {
   const [incomeVatCheckCount, setIncomeVatCheckCount] = useState(0);
   const [updateInfo, setUpdateInfo] = useState<AppReleaseInfo | null>(null);
   const isFetching = useRef(false);
-  const hasLoaded = useRef(false);
+  // Which user + tax year the figures on screen belong to.
+  const loadedFor = useRef<string | null>(null);
   const appStateRef = useRef(AppState.currentState);
 
   const now = new Date();
@@ -248,7 +249,7 @@ export default function HomeScreen() {
       } else {
         setIncomeVatCheckCount(0);
       }
-      hasLoaded.current = true;
+      loadedFor.current = `${user.id}|${activeTaxYear}`;
       setShowRefreshHint(false);
     } catch (e) {
       console.warn("HomeScreen load error:", e);
@@ -261,11 +262,14 @@ export default function HomeScreen() {
   }, [user?.id, activeTaxYear]);
 
   // Fire when auth initialises (user changes null → User)
-  useEffect(() => { loadData(); }, [loadData]);
-
-  // Re-fire silently when tab gains focus — don't re-show spinner if data exists
+  // Runs on first focus (mount) and again whenever loadData changes while
+  // focused. Silent once data exists, so returning to the tab doesn't re-show
+  // the spinner.
   useFocusEffect(
-    useCallback(() => { loadData(hasLoaded.current); }, [loadData])
+    // Silent only if the figures shown are already for this user and tax year.
+    useCallback(() => {
+      loadData(loadedFor.current === `${user?.id}|${activeTaxYear}`);
+    }, [loadData, user?.id, activeTaxYear])
   );
 
   // Show refresh hint + attempt auto-reload when app returns from background

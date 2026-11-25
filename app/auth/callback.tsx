@@ -142,7 +142,7 @@ export default function AuthCallbackScreen() {
   const params = useLocalSearchParams<{ code?: string; error?: string; error_code?: string }>();
   const rawCode = Array.isArray(params.code) ? params.code[0] : params.code;
   const code = rawCode?.split("#")[0] || undefined;
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [exchangeError, setExchangeError] = useState<string | null>(null);
   const [resending, setResending] = useState(false);
 
   // Fallback: when the deep link opens the app from the background, Expo Router
@@ -186,20 +186,10 @@ export default function AuthCallbackScreen() {
   useEffect(() => {
     if (!isInitialised) return;
 
-    // Supabase returned an error in the redirect URL (e.g. otp_expired, access_denied).
-    // Show it immediately instead of running the polling path for 10 seconds.
-    if (urlError) {
-      const isExpired =
-        urlError === "otp_expired" ||
-        urlError === "access_denied" ||
-        urlError.toLowerCase().includes("expired");
-      setErrorMsg(
-        isExpired
-          ? "This confirmation link has expired or has already been used. Tap below to send a new one."
-          : `Sign-in error: ${urlError}`
-      );
-      return;
-    }
+    // Supabase returned an error in the redirect URL (e.g. otp_expired,
+    // access_denied). errorMsg below shows it straight away, so skip the
+    // exchange instead of running the polling path for 10 seconds.
+    if (urlError) return;
 
     let active = true;
 
@@ -224,7 +214,7 @@ export default function AuthCallbackScreen() {
             } else if (pollCount > 10) {
               clearInterval(interval);
               if (active)
-                setErrorMsg("Sign-in timed out — no code received from provider.");
+                setExchangeError("Sign-in timed out — no code received from provider.");
             }
           }, 1000);
           return;
@@ -233,16 +223,27 @@ export default function AuthCallbackScreen() {
         const { error } = await directPkceExchange(effectiveCode);
 
         if (!active) return;
-        if (error) setErrorMsg(error);
+        if (error) setExchangeError(error);
         // On success: authStore.user is set → useEffect([user]) navigates to tabs
       } catch (e: any) {
-        if (active) setErrorMsg(e?.message ?? "Unexpected error during sign-in.");
+        if (active) setExchangeError(e?.message ?? "Unexpected error during sign-in.");
       }
     };
 
     doExchange();
     return () => { active = false; };
   }, [effectiveCode, isInitialised, urlError]);
+
+  // A URL error wins over anything the exchange reported, as before.
+  const urlErrorMsg =
+    isInitialised && urlError
+      ? urlError === "otp_expired" ||
+        urlError === "access_denied" ||
+        urlError.toLowerCase().includes("expired")
+        ? "This confirmation link has expired or has already been used. Tap below to send a new one."
+        : `Sign-in error: ${urlError}`
+      : null;
+  const errorMsg = urlErrorMsg ?? exchangeError;
 
   useEffect(() => {
     if (user) {

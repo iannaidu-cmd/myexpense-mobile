@@ -549,7 +549,7 @@ export default function BankImportScreen() {
   const { activeTaxYear } = useExpenseStore();
 
   const [premiumChecked, setPremiumChecked] = useState(false);
-  const [importGateReady, setImportGateReady] = useState(false);
+  const [freeCountChecked, setFreeCountChecked] = useState(false);
   const [importLimitReached, setImportLimitReached] = useState(false);
 
   useEffect(() => {
@@ -561,11 +561,7 @@ export default function BankImportScreen() {
   // session is one use, however many transactions it adds.
   // Fails open on a count-check error — a network blip shouldn't block an import.
   useEffect(() => {
-    if (!premiumChecked || !user) return;
-    if (isPremium) {
-      setImportGateReady(true);
-      return;
-    }
+    if (!premiumChecked || !user || isPremium) return;
     countFreeUses(user.id)
       .then((count) => {
         if (count >= FREE_USE_LIMIT) {
@@ -574,8 +570,16 @@ export default function BankImportScreen() {
         }
       })
       .catch(() => {})
-      .finally(() => setImportGateReady(true));
+      .finally(() => setFreeCountChecked(true));
   }, [premiumChecked, isPremium, user]);
+  // Premium users are ready as soon as we know they're premium; free users
+  // once their use count is in. Sticky once open (set during render, not in
+  // an effect), so a premium status change mid-session can't pull the screen
+  // back to the spinner or, on mileage, stop a trip in progress.
+  const [importGateReady, setImportGateReady] = useState(false);
+  if (!importGateReady && premiumChecked && !!user && (isPremium || freeCountChecked)) {
+    setImportGateReady(true);
+  }
 
   const [transactions, setTransactions] = useState<ParsedTransaction[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());

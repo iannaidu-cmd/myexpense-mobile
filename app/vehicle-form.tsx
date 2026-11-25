@@ -157,28 +157,38 @@ export default function VehicleFormScreen() {
   }, [user, activeTaxYear]);
 
   // Prefill once the store has the vehicle — same reason as home-office-setup:
-  // reacting to the loaded value avoids reading a stale closure.
-  useEffect(() => {
-    if (!existing) return;
-    setMake(existing.make);
-    setModel(existing.model);
-    setYear(String(existing.year));
-    setRegistration(existing.registration);
-    setPurchasePrice(existing.purchasePrice != null ? String(existing.purchasePrice) : "");
-    setAcquiredDate(existing.acquiredDate ? isoToDisplayDate(existing.acquiredDate) : "");
-    setSoldDate(existing.soldDate ? isoToDisplayDate(existing.soldDate) : "");
-    setSalePrice(existing.salePrice != null ? String(existing.salePrice) : "");
-    setShowSale(!!existing.soldDate);
-    setVehicleType(existing.vehicleType);
-    setVatClaimed(existing.vatClaimed);
-  }, [existing?.id]);
+  // reacting to the loaded value avoids reading a stale closure. Done during
+  // render when the vehicle id changes (React's pattern for state that
+  // follows other values) rather than in an effect, so there's no extra render.
+  // The `null` starts make the first render count as a change, like an effect.
+  const [prefilledVehicleId, setPrefilledVehicleId] = useState<string | undefined | null>(null);
+  if (existing?.id !== prefilledVehicleId) {
+    setPrefilledVehicleId(existing?.id);
+    if (existing) {
+      setMake(existing.make);
+      setModel(existing.model);
+      setYear(String(existing.year));
+      setRegistration(existing.registration);
+      setPurchasePrice(existing.purchasePrice != null ? String(existing.purchasePrice) : "");
+      setAcquiredDate(existing.acquiredDate ? isoToDisplayDate(existing.acquiredDate) : "");
+      setSoldDate(existing.soldDate ? isoToDisplayDate(existing.soldDate) : "");
+      setSalePrice(existing.salePrice != null ? String(existing.salePrice) : "");
+      setShowSale(!!existing.soldDate);
+      setVehicleType(existing.vehicleType);
+      setVatClaimed(existing.vatClaimed);
+    }
+  }
 
   const reading = id ? readings[id] : undefined;
-  useEffect(() => {
-    if (!reading) return;
-    setOpeningKm(reading.openingKm != null ? String(reading.openingKm) : "");
-    setClosingKm(reading.closingKm != null ? String(reading.closingKm) : "");
-  }, [reading?.vehicleId, reading?.openingKm, reading?.closingKm]);
+  const readingKey = reading ? `${reading.vehicleId}|${reading.openingKm}|${reading.closingKm}` : undefined;
+  const [prefilledReadingKey, setPrefilledReadingKey] = useState<string | undefined | null>(null);
+  if (readingKey !== prefilledReadingKey) {
+    setPrefilledReadingKey(readingKey);
+    if (reading) {
+      setOpeningKm(reading.openingKm != null ? String(reading.openingKm) : "");
+      setClosingKm(reading.closingKm != null ? String(reading.closingKm) : "");
+    }
+  }
 
   const dates = taxYearReadingDates(activeTaxYear);
   const opening = openingKm.trim() ? Number(openingKm) : null;
