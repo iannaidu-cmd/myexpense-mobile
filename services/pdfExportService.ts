@@ -28,6 +28,8 @@ import {
 } from "@/lib/itr12Summary";
 import { workTypeLabel } from "@/lib/workType";
 import { expenseService, type HomeOfficeSetupClaim } from "@/services/expenseService";
+import { loadVehicleLogbook } from "@/services/vehicleLogbookService";
+import type { VehicleLogbook } from "@/lib/vehicleClaim";
 import { incomeService } from "@/services/incomeService";
 import { profileService } from "@/services/profileService";
 import { taxLiabilityService } from "@/services/taxLiabilityService";
@@ -73,6 +75,9 @@ const fmtDate = (iso: string) =>
   new Date(iso).toLocaleDateString("en-ZA", { day: "2-digit", month: "short", year: "numeric" });
 
 function checkText(c: FilingCheck): string {
+  if (c.kind === "logbookIncomplete") {
+    return `<strong>Vehicle costs not claimed yet:</strong> ${fmtZAR(c.amount)} from ${c.count} ${c.count === 1 ? "expense" : "expenses"}. You claim the share of your driving that was for work, from your mileage logbook. Add your vehicle's opening and closing odometer readings for the tax year so this can be worked out.`;
+  }
   const what = `${esc(c.vendor)}, ${fmtDate(c.date)}, ${fmtZAR(c.amount)}`;
   switch (c.kind) {
     case "duplicate":
@@ -83,6 +88,8 @@ function checkText(c: FilingCheck): string {
       return `<strong>Supermarket under Entertainment:</strong> ${what}. Only claim it if it was for business entertaining, not personal groceries.`;
     case "bondInterest":
       return `<strong>Home bond interest:</strong> ${what}. SARS hasn't allowed bond interest since the 2023 tax year. Mark it as personal before you file.`;
+    case "phoneShareNotSet":
+      return `<strong>Phone cost with no work share:</strong> ${what}. It's claimed in full for now. Open the expense and enter the work use % so only the work part is claimed.`;
     case "typeNotChosen":
       return `<strong>${esc(c.category)} with no type:</strong> ${what}. It's under ${esc(c.field)} for now. Open the expense and choose its type so it goes in the right ITR12 field.`;
   }
@@ -108,16 +115,18 @@ interface BuildOpts {
   includePersonal: boolean;
   summaryOnly: boolean;
   taxLiabilityEstimate: TaxLiabilityEstimate | null;
+  /** Vehicle running costs claim this logbook share (lib/vehicleClaim.ts). */
+  logbook?: VehicleLogbook;
 }
 
 export function buildITR12HTML(opts: BuildOpts): string {
   const { profile, taxYear, expenses, homeOfficeSetup, includeVAT, includePersonal, summaryOnly, taxLiabilityEstimate } = opts;
   const vatRegistered = profile.vat_registered;
 
-  const expenditure = buildExpenditure(expenses, vatRegistered, homeOfficeSetup?.amount ?? 0);
+  const expenditure = buildExpenditure(expenses, vatRegistered, homeOfficeSetup?.amount ?? 0, opts.logbook);
   const income = buildIncome(opts.income);
   const result = businessResult(income, expenditure);
-  const checks = filingChecks(expenses);
+  const checks = filingChecks(expenses, opts.logbook);
   const yoa = yearOfAssessment(taxYear);
   const period = assessmentPeriod(taxYear);
 
@@ -463,12 +472,13 @@ export async function generateITR12PDF(opts: PDFExportOptions): Promise<void> {
 
   // The tax liability estimate is optional (most users won't have filled in
   // the calculator) — a fetch failure there shouldn't block the export.
-  const [profile, expenses, income, taxLiabilityEstimate, setupClaim] = await Promise.all([
+  const [profile, expenses, income, taxLiabilityEstimate, setupClaim, logbook] = await Promise.all([
     profileService.getProfile(userId),
     expenseService.getExpenses(userId, taxYear),
     incomeService.getIncome(userId, taxYear),
     taxLiabilityService.getEstimate(userId, taxYear).catch(() => null),
     expenseService.getHomeOfficeSetupClaim(userId, taxYear),
+    loadVehicleLogbook(userId, taxYear),
   ]);
 
   const html = buildITR12HTML({
@@ -489,6 +499,7 @@ export async function generateITR12PDF(opts: PDFExportOptions): Promise<void> {
     includePersonal,
     summaryOnly,
     taxLiabilityEstimate,
+    logbook,
   });
 
   const { uri } = await Print.printToFileAsync({ html, base64: false });

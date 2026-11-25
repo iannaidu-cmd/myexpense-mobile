@@ -6,6 +6,8 @@
 import { deductibleBase, expenseService, type HomeOfficeSetupClaim } from "@/services/expenseService";
 import { profileService } from "@/services/profileService";
 import { canonicalCategory, maskCardNumbers, sarsFieldFor } from "@/lib/itr12Summary";
+import { withLogbookShare, type VehicleLogbook } from "@/lib/vehicleClaim";
+import { loadVehicleLogbook } from "@/services/vehicleLogbookService";
 import type { Expense } from "@/types/database";
 import { File, Paths } from "expo-file-system";
 import * as Sharing from "expo-sharing";
@@ -42,6 +44,8 @@ export function generateCSV(
   expenses: Expense[],
   vatRegistered = false,
   homeOfficeSetup?: HomeOfficeSetupClaim & { taxYear: string },
+  /** Vehicle running costs claim this logbook share (lib/vehicleClaim.ts). */
+  logbook?: VehicleLogbook,
 ): string {
   // BOM for Excel to auto-detect UTF-8
   const BOM = "﻿";
@@ -66,7 +70,8 @@ export function generateCSV(
         new Date(b.expense_date).getTime() - new Date(a.expense_date).getTime(),
     )
     .map((e) => {
-      const deductibleAmount = e.is_deductible ? deductibleBase(e, vatRegistered) : 0;
+      const claimed = logbook ? withLogbookShare(e, logbook) : e;
+      const deductibleAmount = e.is_deductible ? deductibleBase(claimed, vatRegistered) : 0;
       return [
         csvField(e.expense_date),
         csvField(maskCardNumbers(e.vendor)),
@@ -113,16 +118,17 @@ export interface CSVExportOptions {
 export async function exportExpensesCSV(opts: CSVExportOptions): Promise<void> {
   const { userId, taxYear, includePersonal = false } = opts;
 
-  const [allExpenses, profile, setupClaim] = await Promise.all([
+  const [allExpenses, profile, setupClaim, logbook] = await Promise.all([
     expenseService.getExpenses(userId, taxYear),
     profileService.getProfile(userId),
     expenseService.getHomeOfficeSetupClaim(userId, taxYear),
+    loadVehicleLogbook(userId, taxYear),
   ]);
   const expenses = includePersonal
     ? allExpenses
     : allExpenses.filter((e) => e.is_deductible);
 
-  const csv = generateCSV(expenses, profile?.vat_registered ?? false, { ...setupClaim, taxYear });
+  const csv = generateCSV(expenses, profile?.vat_registered ?? false, { ...setupClaim, taxYear }, logbook);
 
   const fileName = `MyExpense_ITR12_${taxYear.replace("/", "-")}_${Date.now()}.csv`;
   const file = new File(Paths.cache, fileName);

@@ -19,6 +19,7 @@ import { CATEGORY_PARTIAL_CAPS, NON_DEDUCTIBLE_LABEL } from "@/constants/categor
 import { medicalTaxCreditForYear } from "@/lib/taxRules";
 import { claimableInputVat, countsTowardVatTurnover, incomeExVat, incomeVat } from "@/lib/vat";
 import { ITR12_CATEGORIES } from "@/types/database";
+import { waitingForLogbook, withLogbookShare, type VehicleLogbook } from "@/lib/vehicleClaim";
 
 /** Expenditure fields in the order they appear on the ITR12. */
 export const SARS_EXPENDITURE_FIELDS = [
@@ -178,6 +179,7 @@ interface ExpenseLike {
   is_deductible: boolean;
   expense_date?: string;
   wear_and_tear_vehicle_id?: string | null;
+  vehicle_id?: string | null;
   sars_field?: string | null;
 }
 
@@ -250,6 +252,8 @@ export function buildExpenditure(
   vatRegistered: boolean,
   /** Home office setup amount (annual rent x floor ratio), 0 if none. */
   homeOfficeSetupAmount = 0,
+  /** Vehicle running costs claim this logbook share (lib/vehicleClaim.ts). */
+  logbook?: VehicleLogbook,
 ): ExpenditureSummary {
   const byField = new Map<SarsExpenditureField, Map<string, FieldCategoryDetail>>();
   const retirementAnnuity = { amount: 0, count: 0 };
@@ -265,7 +269,8 @@ export function buildExpenditure(
     byField.set(field, cats);
   };
 
-  for (const e of expenses) {
+  for (const row of expenses) {
+    const e = logbook ? withLogbookShare(row, logbook) : row;
     // Medical has its own ITR12 section (see medicalTotals), not personal spending.
     if (isMedicalCategory(e.category)) continue;
     if (!e.is_deductible) {
@@ -477,15 +482,23 @@ export type FilingCheck =
   | { kind: "largeEquipment"; vendor: string; date: string; amount: number }
   | { kind: "supermarketEntertainment"; vendor: string; date: string; amount: number }
   | { kind: "bondInterest"; vendor: string; date: string; amount: number }
-  | { kind: "typeNotChosen"; vendor: string; date: string; amount: number; category: string; field: SarsExpenditureField };
+  | { kind: "typeNotChosen"; vendor: string; date: string; amount: number; category: string; field: SarsExpenditureField }
+  // Vehicle running costs that claim R0 until the closing odometer reading is in.
+  | { kind: "logbookIncomplete"; amount: number; count: number }
+  // Phone costs saved before the work share was asked for (claimed in full).
+  | { kind: "phoneShareNotSet"; vendor: string; date: string; amount: number };
 
 const SUPERMARKET = /checkers|\bspar\b|kwikspar|superspar|pick ?n ?pay|woolworths|shoprite|food lover|makro|\bgame\b|usave/i;
 
 const vendorKey = (v: string | null | undefined) =>
   maskCardNumbers(v).toLowerCase().replace(/\*+\d{4}/g, "").replace(/[^a-z]/g, "");
 
-export function filingChecks(expenses: ExpenseLike[]): FilingCheck[] {
+export function filingChecks(expenses: ExpenseLike[], logbook?: VehicleLogbook): FilingCheck[] {
   const checks: FilingCheck[] = [];
+  if (logbook) {
+    const waiting = waitingForLogbook(expenses, logbook);
+    if (waiting.count > 0) checks.push({ kind: "logbookIncomplete", ...waiting });
+  }
   const deductible = expenses.filter((e) => e.is_deductible);
 
   const groups = new Map<string, ExpenseLike[]>();
@@ -510,6 +523,8 @@ export function filingChecks(expenses: ExpenseLike[]): FilingCheck[] {
     } else if (cat === "Interest & Finance Charges" && e.business_use_pct != null) {
       // Only the old "Bond" interest option saved a floor-ratio share here.
       checks.push({ kind: "bondInterest", ...base });
+    } else if (cat === "Telephone & Internet" && e.business_use_pct == null) {
+      checks.push({ kind: "phoneShareNotSet", ...base });
     } else if (SARS_FIELD_TYPES[cat] && !validSarsField(cat, e.sars_field)) {
       // Saved before the type picker existed: it sits in the default field.
       checks.push({ kind: "typeNotChosen", ...base, category: cat, field: SARS_FIELD_TYPES[cat][0].field as SarsExpenditureField });

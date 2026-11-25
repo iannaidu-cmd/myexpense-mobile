@@ -1,6 +1,8 @@
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { MXHeader } from "@/components/MXHeader";
 import { expenseService } from "@/services/expenseService";
+import { loadVehicleLogbook } from "@/services/vehicleLogbookService";
+import { withLogbookShare } from "@/lib/vehicleClaim";
 import { incomeService } from "@/services/incomeService";
 import { mileageService, missingLogbookFields } from "@/services/mileageService";
 import { logbookBusinessUse, useVehicleStore } from "@/stores/vehicleStore";
@@ -268,7 +270,7 @@ export default function ReportsTabScreen() {
       try {
         const profile = await profileService.getProfile(user.id);
         const vatRegistered = profile?.vat_registered ?? false;
-        const [expenseTotals, allExpenses, allIncome, mileageTrips, byCategory, liabilityEstimate] =
+        const [expenseTotals, allExpenses, allIncome, mileageTrips, byCategory, liabilityEstimate, , logbook] =
           await Promise.all([
             expenseService.getTotals(user.id, activeTaxYear, vatRegistered),
             expenseService.getExpenses(user.id, activeTaxYear),
@@ -282,6 +284,7 @@ export default function ReportsTabScreen() {
               .then((r) => r?.estimate ?? null)
               .catch(() => taxLiabilityService.getEstimate(user.id, activeTaxYear).catch(() => null)),
             useVehicleStore.getState().load(user.id, activeTaxYear, true).catch(() => {}),
+            loadVehicleLogbook(user.id, activeTaxYear),
           ]);
 
         setFyDeductions(expenseTotals.totalDeductions);
@@ -307,7 +310,7 @@ export default function ReportsTabScreen() {
         // Same claimable-VAT rule as app/vat-summary.tsx (lib/vat.ts): only a
         // registered vendor can claim, only the business share, never entertainment.
         setVatClaimable(
-          vatRegistered ? allExpenses.reduce((s, e) => s + claimableInputVat(e), 0) : 0,
+          vatRegistered ? allExpenses.reduce((s, e) => s + claimableInputVat(withLogbookShare(e, logbook)), 0) : 0,
         );
 
         const now = new Date();

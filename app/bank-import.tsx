@@ -34,6 +34,7 @@ import {
   ScrollView,
   StatusBar,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -583,6 +584,15 @@ export default function BankImportScreen() {
 
   const [transactions, setTransactions] = useState<ParsedTransaction[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  // Phone costs only count at the work share; asked once for the whole import.
+  const [phoneWorkPct, setPhoneWorkPct] = useState("");
+  const phonePctValue = parseFloat(phoneWorkPct);
+  const phonePctValid = !Number.isNaN(phonePctValue) && phonePctValue >= 0 && phonePctValue <= 100;
+  const isPhoneCost = (t: ParsedTransaction) =>
+    t.type !== "income" && t.isDeductible &&
+    (t.suggestedCategory === "Telephone & Internet" || t.suggestedCategory === "Telephone & Cell");
+  const selectedPhoneCount = transactions.filter((t) => selected.has(t.id) && isPhoneCost(t)).length;
+  const phonePctMissing = selectedPhoneCount > 0 && !phonePctValid;
   const [pickerLoading, setPickerLoading] = useState(false);
   const [importing, setImporting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -697,6 +707,10 @@ export default function BankImportScreen() {
   const handleImport = async () => {
     if (!user) return;
     const toImport = transactions.filter((t) => selected.has(t.id));
+    if (phonePctMissing) {
+      showNotice({ title: "How much of your phone is for work?", message: "Enter the work use % for your phone costs, from 0 to 100.", tone: "info" });
+      return;
+    }
     if (toImport.length === 0) {
       showNotice({ title: "Nothing selected", message: "Tick at least one transaction to import.", tone: "info" });
       return;
@@ -746,16 +760,19 @@ export default function BankImportScreen() {
       await Promise.all([
         ...freshExpenses.map((tx) => {
           const homeOffice = tx.isDeductible && isHomeOfficeCategory(tx.suggestedCategory);
+          const phone = isPhoneCost(tx);
+          const ratio = homeOffice ? homeOfficeRatio : phone ? phonePctValue / 100 : 1;
+          const apportioned = homeOffice || phone;
           return expenseService.addExpense(user.id, {
             vendor: tx.vendor,
-            amount: homeOffice ? apportion(tx.amount, homeOfficeRatio) : tx.amount,
+            amount: apportioned ? apportion(tx.amount, ratio) : tx.amount,
             category: tx.suggestedCategory,
             tax_year: taxYearForDate(tx.date),
             expense_date: tx.date,
             is_deductible: tx.isDeductible,
             notes: `Imported from bank statement`,
-            gross_amount: homeOffice ? tx.amount : null,
-            business_use_pct: homeOffice ? pctFromRatio(homeOfficeRatio) : null,
+            gross_amount: apportioned ? tx.amount : null,
+            business_use_pct: apportioned ? pctFromRatio(ratio) : null,
             sars_field: guessSarsField(tx.suggestedCategory, tx.vendor),
           });
         }),
@@ -1008,11 +1025,35 @@ export default function BankImportScreen() {
               overflow: "hidden",
             }}
           >
+            {selectedPhoneCount > 0 && (
+              <View style={{ paddingHorizontal: space.md, paddingTop: space.md }}>
+                <Text style={{ ...typography.labelM, color: colour.textSecondary }}>
+                  Work use % for {selectedPhoneCount === 1 ? "your phone cost" : `your ${selectedPhoneCount} phone costs`}
+                </Text>
+                <TextInput
+                  value={phoneWorkPct}
+                  onChangeText={setPhoneWorkPct}
+                  placeholder="e.g. 60"
+                  placeholderTextColor={colour.textHint}
+                  keyboardType="decimal-pad"
+                  style={{
+                    ...typography.bodyL,
+                    color: colour.text,
+                    borderBottomWidth: 1,
+                    borderBottomColor: colour.border,
+                    paddingVertical: space.sm,
+                  }}
+                />
+                <Text style={{ ...typography.bodyXS, color: colour.textSub, marginTop: space.xs, marginBottom: space.sm }}>
+                  You can claim the part of your phone use that is for work.
+                </Text>
+              </View>
+            )}
             <TouchableOpacity
               onPress={handleImport}
-              disabled={importing || selectedCount === 0}
+              disabled={importing || selectedCount === 0 || phonePctMissing}
               style={{
-                backgroundColor: selectedCount > 0 ? colour.primary : colour.surface2,
+                backgroundColor: selectedCount > 0 && !phonePctMissing ? colour.primary : colour.surface2,
                 paddingVertical: 14,
                 alignItems: "center",
                 flexDirection: "row",
@@ -1026,14 +1067,14 @@ export default function BankImportScreen() {
                 <IconSymbol
                   name="tray.and.arrow.down.fill"
                   size={16}
-                  color={selectedCount > 0 ? colour.white : colour.textSub}
+                  color={selectedCount > 0 && !phonePctMissing ? colour.white : colour.textSub}
                 />
               )}
               <Text
                 style={{
                   fontSize: 15,
                   fontWeight: "700",
-                  color: selectedCount > 0 ? colour.white : colour.textSub,
+                  color: selectedCount > 0 && !phonePctMissing ? colour.white : colour.textSub,
                 }}
               >
                 {importing
