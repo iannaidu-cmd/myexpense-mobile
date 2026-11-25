@@ -33,7 +33,7 @@ export const taxService = {
     ]);
 
     const { totalExpenses, totalDeductions } = totals;
-    const estTaxSaving = estimateTaxSaving(totalDeductions, incomeTotals.totalIncome);
+    const estTaxSaving = estimateTaxSaving(totalDeductions, incomeTotals.totalIncome, taxYear);
     const deductionRate = totalExpenses > 0
       ? Math.round((totalDeductions / totalExpenses) * 100)
       : 0;

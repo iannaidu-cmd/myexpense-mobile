@@ -12,7 +12,7 @@ import { incomeService } from "@/services/incomeService";
 import { logItr12Export } from "@/services/itr12ExportService";
 import { profileService } from "@/services/profileService";
 import { generateITR12PDF } from "@/services/pdfExportService";
-import { getMarginalRate } from "@/lib/taxRules";
+import { estimateTaxSaving } from "@/lib/taxRules";
 import { useAuthStore } from "@/stores/authStore";
 import { useExpenseStore } from "@/stores/expenseStore";
 import { colour, radius, space, typography } from "@/tokens";
@@ -484,8 +484,8 @@ export default function ITR12ExportSetupScreen() {
                 { label: "Categories",               value: `${categoryCount} deductible` },
                 { label: "Receipts", value: `${receiptCount} attached` },
                 {
-                  label: `Est. Tax Saving (${Math.round(getMarginalRate(totalIncome) * 100)}% marginal)`,
-                  value: fmt(Math.round(totalDeductions * getMarginalRate(totalIncome))),
+                  label: "Est. Tax Saving",
+                  value: fmt(estimateTaxSaving(totalDeductions, totalIncome, taxYear)),
                 },
               ].map((row, i) => (
                 <View

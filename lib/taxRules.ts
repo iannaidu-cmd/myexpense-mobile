@@ -115,8 +115,26 @@ export function getMarginalRateForYear(income: number, taxYear: string): number 
   return brackets[brackets.length - 1].rate;
 }
 
-export function estimateTaxSaving(deductions: number, income: number): number {
-  return Math.round(deductions * getMarginalRate(income));
+// Gross tax on taxable income from a year's brackets (before rebates).
+export function computeGrossTax(taxableIncome: number, brackets: TaxBracket[]): number {
+  for (let i = 0; i < brackets.length; i++) {
+    const bracket = brackets[i];
+    if (taxableIncome <= bracket.limit) {
+      const lowerLimit = i === 0 ? 0 : brackets[i - 1].limit;
+      return Math.round(bracket.base + (taxableIncome - lowerLimit) * bracket.rate);
+    }
+  }
+  return 0; // unreachable — the top bracket's limit is Infinity
+}
+
+// Tax the deductions actually save: tax on income minus tax on (income -
+// deductions), both after the primary rebate. Someone with no income, or
+// income below the tax threshold, pays no tax either way, so saves R0 — the
+// old "deductions × marginal rate" showed 18% for them.
+export function estimateTaxSaving(deductions: number, income: number, taxYear: string = TAX_YEAR): number {
+  const { brackets, rebates } = taxDataForYear(taxYear);
+  const taxOn = (n: number) => Math.max(0, computeGrossTax(Math.max(0, n), brackets) - rebates.primary);
+  return Math.max(0, taxOn(income) - taxOn(income - Math.max(0, deductions)));
 }
 
 // S6A medical scheme fees tax credit for a given tax year — a fixed monthly

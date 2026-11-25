@@ -6,7 +6,7 @@ import { SuccessModal } from "@/components/SuccessModal";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { displayDateToISO, formatDateInputDDMMYYYY, isoToDisplayDate } from "@/lib/dateInput";
 import { validateDateOfBirth } from "@/lib/validation";
-import { medicalTaxCreditForYear } from "@/lib/taxRules";
+import { medicalSchemeFeesCredit } from "@/lib/itr12Summary";
 import { WORK_TYPES } from "@/lib/workType";
 import { useVehicleStore } from "@/stores/vehicleStore";
 import { profileService } from "@/services/profileService";
@@ -36,7 +36,7 @@ import { safeBack } from "@/lib/navigation";
 export default function ProfileScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
-  const { activeTaxYear } = useExpenseStore();
+  const { activeTaxYear, expenses, loadExpenses } = useExpenseStore();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [successVisible, setSuccessVisible] = useState(false);
@@ -62,6 +62,8 @@ export default function ProfileScreen() {
   useEffect(() => {
     if (!user) { setLoading(false); return; }
     setEmail(user.email ?? "");
+    // Logged medical aid expenses count as contributions for the credit preview.
+    loadExpenses(user.id, activeTaxYear);
     profileService
       .getProfile(user.id)
       .then((p) => {
@@ -82,7 +84,7 @@ export default function ProfileScreen() {
         setLoading(false);
       })
       .catch(() => setLoading(false));
-  }, [user]);
+  }, [user, activeTaxYear, loadExpenses]);
 
   const handleSave = async () => {
     if (!user) return;
@@ -548,7 +550,7 @@ export default function ProfileScreen() {
 
               {/* Live credit preview */}
               {(() => {
-                const credit = medicalTaxCreditForYear(taxDependants, activeTaxYear);
+                const credit = medicalSchemeFeesCredit(expenses, parseFloat(taxMedMonthly) || 0, taxDependants, activeTaxYear);
                 const dobIso = dateOfBirth ? displayDateToISO(dateOfBirth) : null;
                 const age = dobIso && !validateDateOfBirth(dobIso)
                   ? Math.floor((Date.now() - new Date(dobIso).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
@@ -570,7 +572,9 @@ export default function ProfileScreen() {
                       <Text style={{ fontSize: 13, fontWeight: "400", color: colour.onNoir2 }}> /year</Text>
                     </Text>
                     <Text style={{ fontSize: 11, color: colour.onNoir2, marginBottom: 6 }}>
-                      {taxDependants === 0
+                      {credit === 0
+                        ? "You only get this credit if you pay a medical aid. Add your monthly amount above."
+                        : taxDependants === 0
                         ? "Main member only"
                         : taxDependants === 1
                           ? "Main member + 1 dependant"
