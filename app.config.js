@@ -35,7 +35,6 @@ const config = {
   orientation: "portrait",
   icon: "./assets/images/icon.png",
   scheme: "myexpense",
-  newArchEnabled: true,
   ios: {
     supportsTablet: true,
     requiresFullScreen: true,
@@ -73,7 +72,6 @@ const config = {
       foregroundImage: "./assets/images/adaptive-icon.png",
       backgroundColor: "#FFFFFF",
     },
-    edgeToEdgeEnabled: true,
     predictiveBackGestureEnabled: false,
     intentFilters: [
       {
