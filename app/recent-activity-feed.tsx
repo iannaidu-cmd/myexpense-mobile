@@ -1,7 +1,7 @@
 import { MXTabBar } from "@/components/MXTabBar";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { colour } from "@/tokens";
-import { NavigationProp } from "@react-navigation/native";
+import { NavigationProp } from "expo-router/react-navigation";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import { ScrollView, Text, TouchableOpacity, View } from "react-native";

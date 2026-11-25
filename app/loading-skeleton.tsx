@@ -1,4 +1,4 @@
-import { NavigationProp } from "@react-navigation/native";
+import { NavigationProp } from "expo-router/react-navigation";
 import React, { useEffect, useRef } from "react";
 import { Animated, Easing, ScrollView, View } from "react-native";
 
