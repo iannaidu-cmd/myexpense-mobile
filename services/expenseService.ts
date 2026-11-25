@@ -5,6 +5,7 @@ import { allRows } from "@/lib/allRows";
 import { claimableInputVat } from "@/lib/vat";
 import { HOME_OFFICE_CATEGORY, setupClaimDescription, setupClaimForYear } from "@/lib/homeOffice";
 import { isMedicalCategory } from "@/lib/itr12Summary";
+import { taxYearForDate } from "@/lib/taxRules";
 import { homeOfficeService, type HomeOfficeSetting } from "@/services/homeOfficeService";
 import type { Expense, NewExpense, UpdateExpense } from "@/types/database";
 
@@ -224,6 +225,10 @@ export const expenseService = {
   updateExpense: async (expense: UpdateExpense): Promise<Expense> => {
     const { id, ...fields } = expense;
     if (fields.category && isMedicalCategory(fields.category)) fields.is_deductible = false;
+    // A new date can move the expense into another tax year. Without this it
+    // stayed in the old year's totals and ITR12 export (and a mistyped year,
+    // corrected later, left rows with tax years like "8/9").
+    if (fields.expense_date) fields.tax_year = taxYearForDate(fields.expense_date);
     const { data, error } = await supabase
       .from("expenses")
       .update(fields)

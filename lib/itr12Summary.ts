@@ -379,7 +379,9 @@ interface IncomeLike {
 }
 
 // Declared in their own ITR12 sections, not as business turnover.
-const OTHER_SECTION_SOURCES = /Rental Income|Interest Received|Investment Income|Beneficiary of a Trust|Annuities|Royalties/i;
+// Dividends (local and foreign) have their own ITR12 sections too; bank
+// imports name them like "OMDIVIDEND 439723", so match the word anywhere.
+const OTHER_SECTION_SOURCES = /Rental Income|Interest Received|Investment Income|Dividend|Beneficiary of a Trust|Annuities|Royalties/i;
 
 export function classifyIncome(i: Omit<IncomeLike, "amount"> & { amount?: number | string }): IncomeKind {
   if (i.recoupment_vehicle_id) return "recoupment";

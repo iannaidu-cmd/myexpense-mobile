@@ -107,6 +107,9 @@ describe("income", () => {
     expect(classifyIncome({ amount: 1, source: "Income of Employment (Salary / Wage)" })).toBe("employment");
     expect(classifyIncome({ amount: 1, source: "Interest Received" })).toBe("otherSection");
     expect(classifyIncome({ amount: 1, source: "Rental Income" })).toBe("otherSection");
+    // Dividends have their own ITR12 section; a bank import names them like this.
+    expect(classifyIncome({ amount: 1, source: "OMDIVIDEND 439723" })).toBe("otherSection");
+    expect(classifyIncome({ amount: 1, source: "Local Dividends" })).toBe("otherSection");
     expect(classifyIncome({ amount: 1, source: "Other", recoupment_vehicle_id: "v1" })).toBe("recoupment");
   });
 
