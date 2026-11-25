@@ -6,7 +6,8 @@ import { GroupRow, GroupTotal, NoteCard, SectionCard } from "@/components/MXSect
 import { MXTabBar } from "@/components/MXTabBar";
 import { SuccessModal } from "@/components/SuccessModal";
 import { useNotice } from "@/components/useNotice";
-import { displayDateToISO, formatDateInputDDMMYYYY, isoToDisplayDate } from "@/lib/dateInput";
+import { displayDateToISO, formatDateInputDDMMYYYY, isoToDisplayDate, localISODate } from "@/lib/dateInput";
+import { taxYearEndISO } from "@/lib/vehicleClaim";
 import { safeBack } from "@/lib/navigation";
 import { taxYearForDate } from "@/lib/taxRules";
 import {
@@ -488,7 +489,7 @@ export default function VehicleFormScreen() {
           {/* ── Km readings ─────────────────────────────────────────────── */}
           <SectionCard
             title={`Km readings for ${activeTaxYear}`}
-            subtitle="You need both readings to claim for your vehicle. Take a photo of your dashboard on both dates, just in case."
+            subtitle="You need both readings to claim for your vehicle. Take a photo of your dashboard on both dates, just in case. You don't need a reading after every trip."
           >
             <MXInput
               label="Start-of-year km reading"
@@ -500,16 +501,19 @@ export default function VehicleFormScreen() {
               error={errors.openingKm ?? undefined}
             />
             <MXInput
-              label="End-of-year km reading"
+              label="Latest km reading"
               value={closingKm}
               onChangeText={setClosingKm}
-              placeholder="Add this at the end of the tax year"
+              placeholder="e.g. today's reading"
               keyboardType="decimal-pad"
-              hint={`The km on your dashboard on ${dates.closing}. Leave it blank until then.`}
+              hint={`Enter today's reading any time to see a running estimate of your vehicle claim. On ${dates.closing}, update it to that day's reading: your final claim depends on it.`}
               error={errors.closingKm ?? undefined}
             />
             {yearKm != null && (
-              <GroupTotal label="Total km driven this tax year" value={fmtKm(yearKm)} />
+              <GroupTotal
+                label={localISODate(new Date()) < taxYearEndISO(activeTaxYear) ? "Km driven so far this tax year" : "Total km driven this tax year"}
+                value={fmtKm(yearKm)}
+              />
             )}
           </SectionCard>
 

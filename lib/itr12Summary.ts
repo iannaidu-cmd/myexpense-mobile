@@ -19,7 +19,7 @@ import { CATEGORY_PARTIAL_CAPS, NON_DEDUCTIBLE_LABEL } from "@/constants/categor
 import { medicalTaxCreditForYear } from "@/lib/taxRules";
 import { claimableInputVat, countsTowardVatTurnover, incomeExVat, incomeVat } from "@/lib/vat";
 import { ITR12_CATEGORIES } from "@/types/database";
-import { waitingForLogbook, withLogbookShare, type VehicleLogbook } from "@/lib/vehicleClaim";
+import { isVehicleRunningCost, waitingForLogbook, withLogbookShare, type VehicleLogbook } from "@/lib/vehicleClaim";
 
 /** Expenditure fields in the order they appear on the ITR12. */
 export const SARS_EXPENDITURE_FIELDS = [
@@ -485,6 +485,8 @@ export type FilingCheck =
   | { kind: "typeNotChosen"; vendor: string; date: string; amount: number; category: string; field: SarsExpenditureField }
   // Vehicle running costs that claim R0 until the closing odometer reading is in.
   | { kind: "logbookIncomplete"; amount: number; count: number }
+  // Vehicle claim worked out from a reading taken before the tax year ended.
+  | { kind: "logbookEstimate"; readingDate: string; yearEnd: string }
   // Phone costs saved before the work share was asked for (claimed in full).
   | { kind: "phoneShareNotSet"; vendor: string; date: string; amount: number };
 
@@ -498,6 +500,9 @@ export function filingChecks(expenses: ExpenseLike[], logbook?: VehicleLogbook):
   if (logbook) {
     const waiting = waitingForLogbook(expenses, logbook);
     if (waiting.count > 0) checks.push({ kind: "logbookIncomplete", ...waiting });
+    else if (logbook.estimateFrom && logbook.yearEnd && expenses.some((e) => e.is_deductible && isVehicleRunningCost(e))) {
+      checks.push({ kind: "logbookEstimate", readingDate: logbook.estimateFrom, yearEnd: logbook.yearEnd });
+    }
   }
   const deductible = expenses.filter((e) => e.is_deductible);
 

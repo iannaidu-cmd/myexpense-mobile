@@ -1,4 +1,5 @@
 import { isoToDisplayDate } from "@/lib/dateInput";
+import { taxYearEndISO } from "@/lib/vehicleClaim";
 import { supabase } from "@/lib/supabase";
 import { workTypeLabel } from "@/lib/workType";
 import { mileageService, missingLogbookFields, type MileageTrip } from "@/services/mileageService";
@@ -88,8 +89,12 @@ const esc = (s: unknown) =>
   String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 
 function buildHTML(lb: Logbook): string {
+  const yearEnd = taxYearEndISO(lb.taxYear);
   const sections = lb.sections.map((s) => {
     const v = s.vehicle;
+    // A "closing" reading saved before the tax year ended is only the latest so far.
+    const savedOn = s.reading?.updatedAt?.slice(0, 10) ?? null;
+    const interimClosing = s.reading?.closingKm != null && savedOn != null && savedOn < yearEnd;
     const rows = s.trips.map((t) => {
       const missing = missingLogbookFields(t);
       return `<tr${missing.length ? ' class="incomplete"' : ""}>
@@ -108,7 +113,7 @@ function buildHTML(lb: Logbook): string {
         <tr><th>Make</th><td>${esc(v.make)}</td><th>Model</th><td>${esc(v.model)}</td></tr>
         <tr><th>Year</th><td>${esc(v.year)}</td><th>Registration</th><td>${esc(v.registration)}</td></tr>
         <tr><th>Opening km (start of tax year)</th><td>${esc(km(s.reading?.openingKm)) || "<span class=\"miss\">Not recorded</span>"}</td>
-            <th>Closing km (end of tax year)</th><td>${esc(km(s.reading?.closingKm)) || "<span class=\"miss\">Not recorded</span>"}</td></tr>
+            <th>${interimClosing ? "Latest km reading" : "Closing km (end of tax year)"}</th><td>${esc(km(s.reading?.closingKm)) || "<span class=\"miss\">Not recorded</span>"}${interimClosing ? `<div class="miss">Taken on ${esc(isoToDisplayDate(savedOn!))}. Add your reading from ${esc(isoToDisplayDate(yearEnd))} before you file.</div>` : ""}</td></tr>
         <tr><th>Total km for the year</th><td>${esc(km(s.totalKm))}</td><th>Work km</th><td>${esc(km(s.businessKm))}</td></tr>
         <tr><th>Work use</th><td>${esc(pct(s))}</td><th>${v.soldDate ? "Sold" : ""}</th><td>${v.soldDate ? esc(isoToDisplayDate(v.soldDate)) : ""}</td></tr>
       </table>` : ""}

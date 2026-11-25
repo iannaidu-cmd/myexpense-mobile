@@ -18,7 +18,7 @@ export async function loadVehicleLogbook(userId: string, taxYear: string): Promi
     vehicleService.getOdometerReadings(userId, taxYear),
     profileService.getProfile(userId),
   ]);
-  const logbook = vehicleLogbook(trips, readings, claimsVehicleCostsAsBusiness(profile?.work_type));
+  const logbook = vehicleLogbook(trips, readings, claimsVehicleCostsAsBusiness(profile?.work_type), taxYear);
   setCached(key, logbook);
   return logbook;
 }

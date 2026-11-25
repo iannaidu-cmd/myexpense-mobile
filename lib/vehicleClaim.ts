@@ -8,9 +8,14 @@
 // saved, so it always uses the current logbook (a trip or odometer reading
 // added later updates every figure) and every entry path (typed, scanned,
 // bank import) gets the same %. Decided by Ian on 2026-11-25:
-// • until the logbook % can be worked out (no closing odometer reading yet)
-//   the running costs claim R0, the same rule wear & tear already follows;
-// • once it can, it replaces any % typed in by hand.
+// • until there is a second odometer reading the running costs claim R0,
+//   the same rule wear & tear already follows;
+// • once it can be worked out it replaces any % typed in by hand;
+// • during the year the "closing" field holds the latest reading the user
+//   entered, giving a running estimate (SARS only asks for the readings on
+//   1 March and the end of February, not one per trip). A reading saved
+//   before the tax year ended is treated as that, and figures say they are
+//   an estimate until the year-end reading is in.
 // The yearly wear & tear row already holds its logbook share and is left alone.
 // Salaried employees claim no vehicle costs (lib/workType.ts).
 // ─────────────────────────────────────────────────────────────────────────────
@@ -26,28 +31,50 @@ export interface VehicleLogbook {
   overall: number | null;
   /** False for salaried employees: no vehicle deduction at all. */
   claimsVehicleCosts: boolean;
+  /** Date (YYYY-MM-DD) of the latest reading used, when it was saved before
+   *  the tax year ended: the shares are a running estimate. Null when final. */
+  estimateFrom: string | null;
+  /** Last day of the tax year (YYYY-MM-DD), when known. */
+  yearEnd: string | null;
+}
+
+/** Last day of the tax year, e.g. "2026/27" → "2027-02-28" (29th in a leap year). */
+export function taxYearEndISO(taxYear: string): string {
+  const end = parseInt(taxYear.split("/")[0], 10) + 1;
+  const febDays = new Date(end, 2, 0).getDate();
+  return `${end}-02-${String(febDays).padStart(2, "0")}`;
 }
 
 interface TripLike { vehicle_id: string | null; distance_km: number | string }
-interface ReadingLike { vehicleId: string; openingKm: number | null; closingKm: number | null }
+interface ReadingLike { vehicleId: string; openingKm: number | null; closingKm: number | null; updatedAt?: string | null }
 
 const kmOnOdometer = (r: ReadingLike) =>
   r.openingKm == null || r.closingKm == null ? null : Math.max(r.closingKm - r.openingKm, 0);
 
 /** Logbook shares for one tax year, from its trips and odometer readings. */
-export function vehicleLogbook(trips: TripLike[], readings: ReadingLike[], claimsVehicleCosts: boolean): VehicleLogbook {
+export function vehicleLogbook(
+  trips: TripLike[],
+  readings: ReadingLike[],
+  claimsVehicleCosts: boolean,
+  /** Without it, every reading is taken as final. */
+  taxYear?: string,
+): VehicleLogbook {
   const byVehicle: Record<string, number> = {};
   let totalKm = 0;
   let businessKm = 0;
+  let estimateFrom: string | null = null;
+  const yearEnd = taxYear ? taxYearEndISO(taxYear) : null;
   for (const r of readings) {
     const km = kmOnOdometer(r);
     if (km == null || km <= 0) continue;
+    const savedOn = r.updatedAt ? r.updatedAt.slice(0, 10) : null;
+    if (yearEnd && savedOn && savedOn < yearEnd && (!estimateFrom || savedOn > estimateFrom)) estimateFrom = savedOn;
     const vKm = trips.filter((t) => t.vehicle_id === r.vehicleId).reduce((s, t) => s + Number(t.distance_km), 0);
     byVehicle[r.vehicleId] = Math.min(vKm / km, 1);
     totalKm += km;
     businessKm += vKm;
   }
-  return { byVehicle, overall: totalKm > 0 ? Math.min(businessKm / totalKm, 1) : null, claimsVehicleCosts };
+  return { byVehicle, overall: totalKm > 0 ? Math.min(businessKm / totalKm, 1) : null, claimsVehicleCosts, estimateFrom, yearEnd };
 }
 
 interface RowLike {
@@ -98,4 +125,29 @@ export function waitingForLogbook(expenses: (RowLike & { is_deductible: boolean 
       (e.vehicle_id == null || logbook.byVehicle[e.vehicle_id] == null) && logbook.overall == null,
   );
   return { amount: rows.reduce((s, e) => s + fullCost(e), 0), count: rows.length };
+}
+
+const longDate = (iso: string) =>
+  new Date(`${iso}T12:00:00`).toLocaleDateString("en-ZA", { day: "numeric", month: "long", year: "numeric" });
+
+/**
+ * The one line every screen shows about the vehicle claim, or null when there
+ * is nothing to say (no vehicle costs, a final logbook, or an employee).
+ */
+export function vehicleClaimNote(
+  expenses: (RowLike & { is_deductible: boolean })[],
+  logbook: VehicleLogbook,
+  taxYear: string,
+): string | null {
+  if (!logbook.claimsVehicleCosts) return null;
+  if (!expenses.some((e) => e.is_deductible && isVehicleRunningCost(e))) return null;
+  const waiting = waitingForLogbook(expenses, logbook);
+  if (waiting.count > 0) {
+    const rands = `R ${Math.round(waiting.amount).toLocaleString("en-ZA")}`;
+    return `${rands} of vehicle costs isn't included yet. Add your latest odometer reading on your vehicle to include an estimate.`;
+  }
+  if (logbook.estimateFrom) {
+    return `Your vehicle claim is an estimate from your odometer reading on ${longDate(logbook.estimateFrom)}. The final amount depends on your reading on ${longDate(taxYearEndISO(taxYear))}.`;
+  }
+  return null;
 }

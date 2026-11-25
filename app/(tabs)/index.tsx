@@ -4,6 +4,8 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { UpdateAvailableBanner } from "@/components/UpdateAvailableBanner";
 import { appVersionService } from "@/services/appVersionService";
 import { expenseService } from "@/services/expenseService";
+import { loadVehicleLogbook } from "@/services/vehicleLogbookService";
+import { vehicleClaimNote } from "@/lib/vehicleClaim";
 import { incomeService } from "@/services/incomeService";
 import { mileageService } from "@/services/mileageService";
 import { updateWeeklySummary } from "@/services/notificationService";
@@ -179,6 +181,9 @@ export default function HomeScreen() {
   const [recentExpenses, setRecentExpenses] = useState<Expense[]>([]);
   const [recentIncome, setRecentIncome] = useState<any[]>([]);
   const [taxLiability, setTaxLiability] = useState<TaxLiabilityEstimate | null>(null);
+  // Caveat under the figure when the vehicle claim is an estimate or waiting
+  // for an odometer reading (lib/vehicleClaim.ts).
+  const [vehicleNote, setVehicleNote] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showRefreshHint, setShowRefreshHint] = useState(false);
@@ -241,6 +246,9 @@ export default function HomeScreen() {
       setRecentExpenses(recent);
       setRecentIncome(recentInc);
       setTaxLiability(liabilityEstimate);
+      Promise.all([expenseService.getExpenses(user.id, activeTaxYear), loadVehicleLogbook(user.id, activeTaxYear)])
+        .then(([rows, logbook]) => setVehicleNote(vehicleClaimNote(rows, logbook, activeTaxYear)))
+        .catch(() => setVehicleNote(null));
       if (profile?.vat_registered) {
         incomeService
           .getIncome(user.id, INCOME_VAT_CHECK_TAX_YEAR)
@@ -570,6 +578,12 @@ export default function HomeScreen() {
                 ) : (
                   <Text style={{ fontSize: 24, lineHeight: 30, letterSpacing: -0.5, fontWeight: "800", color: colour.onNoir, marginBottom: 6 }}>
                     Add your info to see what you owe or get back
+                  </Text>
+                )}
+
+                {taxLiability && vehicleNote && (
+                  <Text style={{ fontSize: 12, lineHeight: 17, color: colour.onNoir2, fontWeight: "400", marginBottom: 16, opacity: 0.7 }}>
+                    {vehicleNote}
                   </Text>
                 )}
 

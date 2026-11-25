@@ -75,8 +75,11 @@ const fmtDate = (iso: string) =>
   new Date(iso).toLocaleDateString("en-ZA", { day: "2-digit", month: "short", year: "numeric" });
 
 function checkText(c: FilingCheck): string {
+  if (c.kind === "logbookEstimate") {
+    return `<strong>Vehicle claim is an estimate:</strong> it is worked out from your odometer reading on ${fmtDate(c.readingDate)}. Your final claim depends on your reading on ${fmtDate(c.yearEnd)}. Update it on your vehicle before you file.`;
+  }
   if (c.kind === "logbookIncomplete") {
-    return `<strong>Vehicle costs not claimed yet:</strong> ${fmtZAR(c.amount)} from ${c.count} ${c.count === 1 ? "expense" : "expenses"}. You claim the share of your driving that was for work, from your mileage logbook. Add your vehicle's opening and closing odometer readings for the tax year so this can be worked out.`;
+    return `<strong>Vehicle costs not claimed yet:</strong> ${fmtZAR(c.amount)} from ${c.count} ${c.count === 1 ? "expense" : "expenses"}. You claim the share of your driving that was for work, from your mileage logbook. Add your latest odometer reading on your vehicle (and the one from the end of February before you file) so it can be worked out.`;
   }
   const what = `${esc(c.vendor)}, ${fmtDate(c.date)}, ${fmtZAR(c.amount)}`;
   switch (c.kind) {
