@@ -109,7 +109,7 @@ export default function ProfileSetupScreen() {
       edges={["top"]}
       style={{ flex: 1, backgroundColor: colour.heroDark }}
     >
-      <StatusBar barStyle="light-content" backgroundColor={colour.heroDark} />
+      <StatusBar barStyle="light-content" />
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}

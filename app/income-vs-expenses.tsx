@@ -354,7 +354,7 @@ export default function IncomeVsExpensesScreen() {
       edges={["top"]}
       style={{ flex: 1, backgroundColor: colour.background }}
     >
-      <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
+      <StatusBar barStyle="dark-content" />
       <MXBackHeader title="Income vs expenses" />
 
       <ScrollView

@@ -144,7 +144,7 @@ export default function EmptyStateNoReportsScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colour.background }}>
-      <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
+      <StatusBar barStyle="dark-content" />
 
       {/* ── Blue header ── */}
       <View

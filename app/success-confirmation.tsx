@@ -105,7 +105,7 @@ export default function SuccessConfirmationScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colour.background }}>
-      <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
+      <StatusBar barStyle="dark-content" />
 
       {/* Main centred content */}
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: space.xl }}>

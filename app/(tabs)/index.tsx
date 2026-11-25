@@ -271,7 +271,7 @@ export default function HomeScreen() {
   // Show refresh hint + attempt auto-reload when app returns from background
   useEffect(() => {
     const sub = AppState.addEventListener('change', (next) => {
-      if (appStateRef.current.match(/inactive|background/) && next === 'active') {
+      if (appStateRef.current?.match(/inactive|background/) && next === 'active') {
         setShowRefreshHint(true);
         loadData(true);
       }
@@ -435,7 +435,7 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colour.background }}>
-      <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
+      <StatusBar barStyle="dark-content" />
 
       <ScrollView
         contentContainerStyle={{ paddingHorizontal: 18, paddingTop: 8, paddingBottom: space.xxxl }}

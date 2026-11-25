@@ -163,7 +163,7 @@ export default function AddIRP5IncomeScreen() {
 
   return (
     <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colour.background }}>
-      <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
+      <StatusBar barStyle="dark-content" />
       <MXHeader
         title="Add IRP5 income"
         subtitle="Employment income from IRP5 certificate"

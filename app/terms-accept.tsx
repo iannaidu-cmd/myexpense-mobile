@@ -34,7 +34,7 @@ export default function TermsAcceptScreen() {
 
   return (
     <SafeAreaView edges={["top", "bottom"]} style={{ flex: 1, backgroundColor: colour.background }}>
-      <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
+      <StatusBar barStyle="dark-content" />
 
       <View style={{ flex: 1, paddingHorizontal: space.lg, justifyContent: "space-between", paddingTop: space["2xl"], paddingBottom: space.xl }}>
 

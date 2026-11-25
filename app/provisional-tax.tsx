@@ -281,7 +281,7 @@ export default function ProvisionalTaxScreen() {
 
   return (
     <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colour.background }}>
-      <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
+      <StatusBar barStyle="dark-content" />
       <MXHeader
         title="Provisional tax"
         subtitle="How much you owe and when to pay"

@@ -44,7 +44,7 @@ export function VerifyEmailScreen({
       "change",
       async (nextState: AppStateStatus) => {
         if (
-          appState.current.match(/inactive|background/) &&
+          appState.current?.match(/inactive|background/) &&
           nextState === "active"
         ) {
           await checkConfirmed();

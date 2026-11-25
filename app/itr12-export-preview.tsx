@@ -177,7 +177,7 @@ export default function ITR12ExportPreviewScreen() {
       edges={["top"]}
       style={{ flex: 1, backgroundColor: colour.background }}
     >
-      <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
+      <StatusBar barStyle="dark-content" />
       <MXHeader
         title="Export preview"
         subtitle={`Year of Assessment ${yoa} · ITR12`}

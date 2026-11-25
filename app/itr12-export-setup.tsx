@@ -237,7 +237,7 @@ export default function ITR12ExportSetupScreen() {
   if (exportLimitReached) {
     return (
       <SafeAreaView edges={["top", "bottom"]} style={{ flex: 1, backgroundColor: colour.background }}>
-        <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
+        <StatusBar barStyle="dark-content" />
         <MXHeader title="Export setup" showBack />
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 32 }}>
           <Text style={{ ...typography.bodyM, fontWeight: "800", fontSize: 20, color: colour.text, marginBottom: 12, textAlign: "center" }}>
@@ -274,7 +274,7 @@ export default function ITR12ExportSetupScreen() {
       edges={["top"]}
       style={{ flex: 1, backgroundColor: colour.background }}
     >
-      <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
+      <StatusBar barStyle="dark-content" />
       <MXHeader
         title="Export setup"
         subtitle="Configure your ITR12 export"

@@ -198,7 +198,7 @@ export default function UploadFromGalleryScreen() {
   if (scanBlocked) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: colour.background }}>
-        <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
+        <StatusBar barStyle="dark-content" />
         <MXHeader title="Upload receipt" showBack />
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 32 }}>
           <Text style={[typography.bodyM, { fontWeight: "800", fontSize: 20, color: colour.text, marginBottom: 12, textAlign: "center" }]}>
@@ -241,7 +241,7 @@ export default function UploadFromGalleryScreen() {
           justifyContent: "center",
         }}
       >
-        <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
+        <StatusBar barStyle="dark-content" />
         <ActivityIndicator color={colour.textOnPrimary} size="large" />
         <Text
           style={[
@@ -257,7 +257,7 @@ export default function UploadFromGalleryScreen() {
 
   return (
     <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colour.background }}>
-      <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
+      <StatusBar barStyle="dark-content" />
 
       <MXHeader title="Upload receipt" showBack />
 

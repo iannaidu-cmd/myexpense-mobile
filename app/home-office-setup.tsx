@@ -204,7 +204,7 @@ export default function HomeOfficeSetupScreen() {
 
   return (
     <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colour.background }}>
-      <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
+      <StatusBar barStyle="dark-content" />
       <MXHeader
         title="Home office setup"
         subtitle="Claim the share of your home you work in"

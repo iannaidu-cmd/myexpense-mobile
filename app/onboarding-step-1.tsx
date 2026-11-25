@@ -26,6 +26,7 @@ import {
   NativeScrollEvent,
   NativeSyntheticEvent,
   ScrollView,
+  type ScrollViewInstance,
   Text,
   TouchableOpacity,
   View,
@@ -48,7 +49,7 @@ type ChoiceId = (typeof CHOICES)[number]['id'];
 
 export default function OnboardingScreen() {
   const router = useRouter();
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<ScrollViewInstance>(null);
   const [page, setPage] = useState(0);
   const [selected, setSelected] = useState<ChoiceId | null>(null);
   const choice = CHOICES.find((c) => c.id === selected);

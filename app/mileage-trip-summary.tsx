@@ -102,7 +102,7 @@ export default function MileageTripSummaryScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colour.background }}>
-      <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
+      <StatusBar barStyle="dark-content" />
 
       {/* Primary-blue header area */}
       <SafeAreaView edges={["top"]} style={{ backgroundColor: colour.background }}>

@@ -13,7 +13,7 @@ export function useAppForeground(onForeground: () => void) {
   useEffect(() => {
     const appStateRef = { current: AppState.currentState };
     const sub = AppState.addEventListener("change", (nextState) => {
-      if (appStateRef.current.match(/inactive|background/) && nextState === "active") {
+      if (appStateRef.current?.match(/inactive|background/) && nextState === "active") {
         callbackRef.current();
       }
       appStateRef.current = nextState;

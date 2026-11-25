@@ -1,6 +1,7 @@
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { colour } from "@/tokens";
 import { Tabs, useRouter } from "expo-router";
+import type { BottomTabBarProps } from "expo-router/tabs";
 import React, { useState } from "react";
 import { Modal, Platform, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -26,11 +27,10 @@ const FAB_ACTIONS = [
 
 function CustomTabBar({
   state,
-  navigation,
+  emitter,
+  navigateToTab,
   onFabPress,
-}: {
-  state: any;
-  navigation: any;
+}: BottomTabBarProps & {
   onFabPress: () => void;
 }) {
   const insets = useSafeAreaInsets();
@@ -74,13 +74,14 @@ function CustomTabBar({
               router.push("/mileage-tracker" as any);
               return;
             }
-            const event = navigation.emit({
+            // SDK 58 tab bars get emitter/navigateToTab instead of navigation.
+            const event = emitter.emit({
               type: "tabPress",
               target: route.key,
               canPreventDefault: true,
             });
             if (!isFocused && !event.defaultPrevented) {
-              navigation.navigate(route.name);
+              navigateToTab(route.key);
             }
           };
 

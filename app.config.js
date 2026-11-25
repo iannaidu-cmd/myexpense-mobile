@@ -124,6 +124,9 @@ const config = {
     // Transparency prompt is needed (matches the Meta setup above).
     ["@react-native-firebase/app", { ios: { disableSPM: true } }],
     ["@react-native-firebase/analytics", { ios: { withoutAdIdSupport: true } }],
+    // RNFB 26's plugin can't find the SDK 58 scene-based AppDelegate, so this
+    // adds FirebaseApp.configure() itself. See the file for details.
+    "./plugins/withFirebaseSceneConfigure",
     [
       "expo-splash-screen",
       {

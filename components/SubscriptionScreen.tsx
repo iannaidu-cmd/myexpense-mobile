@@ -39,7 +39,6 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  InteractionManager,
   Platform,
   ScrollView,
   StatusBar,
@@ -378,7 +377,8 @@ export function SubscriptionScreen({ defaultFrom }: { defaultFrom: string }) {
 
   // Notices go up only once any screen transition has settled.
   const notifyAfterInteractions = (notice: Parameters<typeof showNotice>[0]) => {
-    InteractionManager.runAfterInteractions(() => {
+    // InteractionManager was removed in RN 0.88; an idle callback replaces it.
+    requestIdleCallback(() => {
       setTimeout(() => {
         Sentry.addBreadcrumb({ category: "paywall", message: "notice shown", data: { title: notice.title } });
         showNotice(notice);
@@ -571,7 +571,7 @@ export function SubscriptionScreen({ defaultFrom }: { defaultFrom: string }) {
 
   return (
     <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colour.background }}>
-      <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
+      <StatusBar barStyle="dark-content" />
 
       <ScrollView
         contentContainerStyle={{

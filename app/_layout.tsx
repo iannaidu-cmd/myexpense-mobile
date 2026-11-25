@@ -61,7 +61,8 @@ LogBox.ignoreLogs([
 
 // Records screen changes as breadcrumbs so native crashes with no JS frames
 // (e.g. REACT-NATIVE-G, getChildDrawingOrder) show which screen was open.
-const navigationIntegration = Sentry.reactNavigationIntegration();
+// Sentry 8's Expo Router integration registers the navigation container itself.
+const navigationIntegration = Sentry.expoRouterIntegration();
 
 Sentry.init({
   dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
@@ -254,7 +255,7 @@ function OAuthHandler() {
   readyRef.current = !!navigationState?.key;
 
   useEffect(() => {
-    const handle = async (url: string | null) => {
+    const handle = async (url: string | null | undefined) => {
       if (!url) return;
 
       // Custom scheme (email confirmation, Google/email OAuth) or the
@@ -474,11 +475,6 @@ function RootLayout() {
   const { initialise } = useAuthStore();
   const [splashDone, setSplashDone] = useState(false);
   const splashOpacity = useRef(new Animated.Value(1)).current;
-  const navContainerRef = useNavigationContainerRef();
-
-  useEffect(() => {
-    if (navContainerRef) navigationIntegration.registerNavigationContainer(navContainerRef);
-  }, [navContainerRef]);
   useFonts({
     Inter_400Regular,
     Inter_500Medium,

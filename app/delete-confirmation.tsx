@@ -88,7 +88,7 @@ export default function DeleteConfirmationScreen() {
       edges={["top"]}
       style={{ flex: 1, backgroundColor: colour.bgPage }}
     >
-      <StatusBar barStyle="dark-content" backgroundColor={colour.bgPage} />
+      <StatusBar barStyle="dark-content" />
 
       <MXHeader title="Delete expense" showBack />
 
