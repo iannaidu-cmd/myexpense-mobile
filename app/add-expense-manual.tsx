@@ -29,7 +29,7 @@ import {
   isValidISODate,
   localISODate,
 } from "@/lib/dateInput";
-import { taxYearForDate } from "@/lib/taxRules";
+import { taxDataForYear, taxYearForDate } from "@/lib/taxRules";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
@@ -244,6 +244,10 @@ export default function AddExpenseScreen() {
 
     try {
       const rawAmount = parseFloat(amount);
+      // A typed 0% must stay 0% (previously `|| 100` turned it into 100%).
+      // Only a blank field falls back to the 100% the field starts with.
+      const parsedPct = parseFloat(businessUsePct);
+      const businessUseRatio = Math.min(Math.max(Number.isNaN(parsedPct) ? 100 : parsedPct, 0), 100) / 100;
       const ratio = homeOfficeSetting ? floorRatio(homeOfficeSetting) : 1;
       let pct = 1;
       let overrideDeductible: boolean | undefined;
@@ -252,7 +256,7 @@ export default function AddExpenseScreen() {
       let apportioned = false;
 
       if (category === "Telephone & Cell" || category === "Telephone & Internet") {
-        pct = Math.min(Math.max(parseFloat(businessUsePct) || 100, 0), 100) / 100;
+        pct = businessUseRatio;
         apportioned = true;
       } else if (isHomeOfficeCategory(category)) {
         pct = ratio;
@@ -260,7 +264,7 @@ export default function AddExpenseScreen() {
       } else if (category === "Insurance") {
         pct = insuranceSubType === "property_contents"
           ? ratio
-          : Math.min(Math.max(parseFloat(businessUsePct) || 100, 0), 100) / 100;
+          : businessUseRatio;
         apportioned = true;
       } else if (category === "Interest & Finance Charges") {
         if (interestSubType === "personal") {
@@ -271,7 +275,7 @@ export default function AddExpenseScreen() {
           overrideDeductible = false;
         }
       } else if (category === "Vehicle Expenses") {
-        pct = Math.min(Math.max(parseFloat(businessUsePct) || 100, 0), 100) / 100;
+        pct = businessUseRatio;
         apportioned = true;
       }
 
@@ -614,7 +618,7 @@ export default function AddExpenseScreen() {
           {category === "Retirement Annuity" && (
             <View style={{ backgroundColor: colour.primary + "17", borderWidth: 1, borderColor: colour.primary + "29", borderRadius: radius.note, padding: 10, marginBottom: 10 }}>
               <Text style={{ fontSize: 12, color: colour.text, lineHeight: 18 }}>
-                You can claim up to 27.5% of your income (max R350,000/year) for RA contributions. You'll need a certificate (IT3a) from your RA provider to submit with your tax return.
+                {`You can claim up to 27.5% of your income (max R${taxDataForYear(activeTaxYear).raDeductionAnnualCap.toLocaleString("en-ZA")} a year) for RA contributions. You'll need a certificate (IT3a) from your RA provider to submit with your tax return.`}
               </Text>
             </View>
           )}

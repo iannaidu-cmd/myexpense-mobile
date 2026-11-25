@@ -16,6 +16,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { CATEGORY_PARTIAL_CAPS, NON_DEDUCTIBLE_LABEL } from "@/constants/categories";
+import { medicalTaxCreditForYear } from "@/lib/taxRules";
 import { claimableInputVat, countsTowardVatTurnover, incomeExVat, incomeVat } from "@/lib/vat";
 import { ITR12_CATEGORIES } from "@/types/database";
 
@@ -347,6 +348,22 @@ export function medicalTotals(expenses: ExpenseLike[]): MedicalTotals {
 export function annualMedicalContributions(t: MedicalTotals, medicalAidMonthly: number | null | undefined): number {
   if (t.contributions > 0) return t.contributions;
   return Math.max(0, Number(medicalAidMonthly ?? 0)) * 12;
+}
+
+/**
+ * The s6A medical scheme fees credit for display. Only someone who actually
+ * pays a medical aid gets it, so it is 0 until there are contributions
+ * (logged medical aid expenses or a monthly amount). Mirrors the gate in
+ * calculateTaxLiability so screens never show a credit the estimate omits.
+ */
+export function medicalSchemeFeesCredit(
+  expenses: ExpenseLike[],
+  medicalAidMonthly: number | null | undefined,
+  dependants: number,
+  taxYear: string,
+): number {
+  const contributions = annualMedicalContributions(medicalTotals(expenses), medicalAidMonthly);
+  return contributions > 0 ? medicalTaxCreditForYear(dependants, taxYear) : 0;
 }
 
 // ─── Income ──────────────────────────────────────────────────────────────────

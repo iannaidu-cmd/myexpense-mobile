@@ -6,11 +6,11 @@
 // (see __tests__/lib/taxLiability.test.ts).
 
 import {
+  computeGrossTax,
   medicalTaxCreditForYear,
   raDeductionCap,
   retirementSeveranceLumpSumTax,
   taxDataForYear,
-  TaxBracket,
 } from "@/lib/taxRules";
 
 export interface TaxLiabilityInput {
@@ -201,16 +201,6 @@ export function ageAtTaxYearEnd(dateOfBirth: string | null, taxYear: string): nu
   return age;
 }
 
-function computeGrossTax(taxableIncome: number, brackets: TaxBracket[]): number {
-  for (let i = 0; i < brackets.length; i++) {
-    const bracket = brackets[i];
-    if (taxableIncome <= bracket.limit) {
-      const lowerLimit = i === 0 ? 0 : brackets[i - 1].limit;
-      return Math.round(bracket.base + (taxableIncome - lowerLimit) * bracket.rate);
-    }
-  }
-  return 0; // unreachable — the top bracket's limit is Infinity
-}
 
 export function calculateTaxLiability(input: TaxLiabilityInput): TaxLiabilityResult {
   const yearData = taxDataForYear(input.taxYear);

@@ -3,7 +3,8 @@ import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { expenseService } from "@/services/expenseService";
 import { incomeService } from "@/services/incomeService";
-import { medicalTaxCreditForYear, raDeductionCap } from "@/lib/taxRules";
+import { raDeductionCap } from "@/lib/taxRules";
+import { medicalSchemeFeesCredit } from "@/lib/itr12Summary";
 import { profileService } from "@/services/profileService";
 import { taxLiabilityService } from "@/services/taxLiabilityService";
 import { taxService } from "@/services/taxService";
@@ -95,6 +96,7 @@ export default function TaxSummaryScreen() {
   const [itr12Readiness, setItr12Readiness] = useState(0);
   const [medicalAidDependants, setMedicalAidDependants] = useState(0);
   const [medicalAidMonthly, setMedicalAidMonthly] = useState(0);
+  const [expenses, setExpenses] = useState<Awaited<ReturnType<typeof expenseService.getExpenses>>>([]);
   const [hasDisability, setHasDisability] = useState(false);
   const [vatRegistered, setVatRegistered] = useState(false);
   const [taxLiability, setTaxLiability] = useState<TaxLiabilityEstimate | null>(null);
@@ -105,14 +107,16 @@ export default function TaxSummaryScreen() {
     try {
       const profile = await profileService.getProfile(user.id);
       const vatReg = profile?.vat_registered ?? false;
-      const [expenseTotals, incomeTotals, breakdown, summary, liabilityEstimate] =
+      const [expenseTotals, incomeTotals, breakdown, summary, liabilityEstimate, yearExpenses] =
         await Promise.all([
           expenseService.getTotals(user.id, activeTaxYear, vatReg),
           incomeService.getTotals(user.id, activeTaxYear),
           expenseService.getByCategory(user.id, activeTaxYear, vatReg),
           taxService.recalculateSummary(user.id, activeTaxYear),
           taxLiabilityService.getEstimate(user.id, activeTaxYear).catch(() => null),
+          expenseService.getExpenses(user.id, activeTaxYear),
         ]);
+      setExpenses(yearExpenses);
 
       setTotalExpenses(expenseTotals.totalExpenses);
       setTotalDeductions(expenseTotals.totalDeductions);
@@ -140,7 +144,8 @@ export default function TaxSummaryScreen() {
 
   // Medical Aid Tax Credit (MTC) — SARS S6A, persisted from tax profile
   const medAidInExpenses = categoryBreakdown["Medical Aid"] ?? 0;
-  const annualMTC = medicalTaxCreditForYear(medicalAidDependants, activeTaxYear);
+  // 0 unless the user actually pays a medical aid — same gate as the estimate.
+  const annualMTC = medicalSchemeFeesCredit(expenses, medicalAidMonthly, medicalAidDependants, activeTaxYear);
 
   // RA: total RA contributions from expenses, cap = 27.5% of income up to the
   // tax year's absolute S11F cap (lib/taxRules.ts — previously hardcoded to
@@ -653,7 +658,9 @@ export default function TaxSummaryScreen() {
                   />
                 </View>
                 <Text style={{ fontSize: 11, color: colour.textSub }}>
-                  {itr12Readiness < 100
+                  {expenses.length === 0
+                    ? "No expenses logged yet for this tax year"
+                    : itr12Readiness < 100
                     ? `${100 - Math.round(itr12Readiness)}% of expenses still need receipts attached`
                     : "All expenses have receipts - ready to export!"}
                 </Text>

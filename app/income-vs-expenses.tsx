@@ -411,7 +411,9 @@ export default function IncomeVsExpensesScreen() {
                 {totalNet >= 0 ? "+" : ""}{fmt(totalNet)}
               </Text>
               <Text style={{ fontSize: 11, color: colour.textSub, marginBottom: space.md }}>
-                You kept {keepPct}% of your income over 6 months
+                {totalIncome > 0
+                  ? `You kept ${keepPct}% of your income over 6 months`
+                  : "No income logged in the last 6 months"}
               </Text>
 
               {/* Proportional bar */}

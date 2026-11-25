@@ -8,6 +8,7 @@ import { incomeService } from "@/services/incomeService";
 import { useAuthStore } from "@/stores/authStore";
 import { irp5TotalGross, useIRP5Store } from "@/stores/irp5Store";
 import { colour, radius, space, typography } from "@/tokens";
+import { taxDataForYear } from "@/lib/taxRules";
 import { ACTIVE_TAX_YEAR, TAX_YEARS } from "@/types/database";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -375,7 +376,7 @@ export default function AddIRP5IncomeScreen() {
 
           <InfoBanner
             icon="info.circle.fill"
-            body="Pension/provident contributions (code 4001) are deductible up to 27.5% of gross income, capped at R350,000 per year. These reduce your taxable income on your ITR12."
+            body={`Pension/provident contributions (code 4001) are deductible up to 27.5% of gross income, capped at R${taxDataForYear(taxYear).raDeductionAnnualCap.toLocaleString("en-ZA")} a year. These reduce your taxable income on your ITR12.`}
             style={{ marginBottom: space.xl }}
           />
 
