@@ -637,7 +637,7 @@ export default function AddIncomeScreen() {
         primaryLabel={isEditing ? "Back to details" : "Go to dashboard"}
         onPrimary={() => {
           setSuccessVisible(false);
-          isEditing ? safeBack(router) : router.replace("/(tabs)");
+          isEditing ? safeBack(router) : router.dismissTo("/(tabs)");
         }}
         secondaryLabel={isEditing ? undefined : "Add another"}
         onSecondary={isEditing ? undefined : () => setSuccessVisible(false)}

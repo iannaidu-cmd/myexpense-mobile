@@ -13,6 +13,9 @@
       "ios": {
         "image": "sdk-58",
         "simulator": false
+      },
+      "env": {
+        "EXPO_PUBLIC_USE_RN_FETCH": "1"
       }
     },
     "preview": {
@@ -23,7 +26,8 @@
       "env": {
         "SENTRY_DISABLE_AUTO_UPLOAD": "true",
         "EXPO_PUBLIC_SUPABASE_URL": "https://hhfbbbxgmovfpaziebsw.supabase.co",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_HsDSnjnT6i1DOlx7wo8lwA_56GTdNu9"
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_HsDSnjnT6i1DOlx7wo8lwA_56GTdNu9",
+        "EXPO_PUBLIC_USE_RN_FETCH": "1"
       },
       "ios": {
         "image": "sdk-58"
@@ -38,7 +42,8 @@
       },
       "env": {
         "EXPO_PUBLIC_SUPABASE_URL": "https://hhfbbbxgmovfpaziebsw.supabase.co",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_HsDSnjnT6i1DOlx7wo8lwA_56GTdNu9"
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_HsDSnjnT6i1DOlx7wo8lwA_56GTdNu9",
+        "EXPO_PUBLIC_USE_RN_FETCH": "1"
       }
     }
   },

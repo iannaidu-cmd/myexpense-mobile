@@ -892,7 +892,7 @@ export default function AddExpenseScreen() {
         title="Expense saved"
         message={successMessage}
         primaryLabel="Go to dashboard"
-        onPrimary={() => { setSuccessVisible(false); router.replace("/(tabs)" as any); }}
+        onPrimary={() => { setSuccessVisible(false); router.dismissTo("/(tabs)" as any); }}
         secondaryLabel="Add another"
         onSecondary={() => setSuccessVisible(false)}
       />

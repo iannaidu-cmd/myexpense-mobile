@@ -859,7 +859,7 @@ export default function ReceiptReviewScreen() {
         </TouchableOpacity>
 
         <TouchableOpacity
-          onPress={() => router.replace("/(tabs)")}
+          onPress={() => router.dismissTo("/(tabs)")}
           style={{ alignItems: "center", paddingVertical: space.sm }}
         >
           <Text style={{ ...typography.bodyS, color: colour.textSub }}>
@@ -875,7 +875,7 @@ export default function ReceiptReviewScreen() {
         title="Expense saved"
         message={successMessage}
         primaryLabel="Go to dashboard"
-        onPrimary={() => { setSuccessVisible(false); router.replace("/(tabs)"); }}
+        onPrimary={() => { setSuccessVisible(false); router.dismissTo("/(tabs)"); }}
       />
 
       <ConfirmModal

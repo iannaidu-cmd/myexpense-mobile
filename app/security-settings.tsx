@@ -254,6 +254,8 @@ export default function SecuritySettingsScreen() {
     try {
       const { supabase } = await import("@/lib/supabase");
       await supabase.auth.signOut({ scope: "global" });
+      // Every session is revoked, including the one Face ID would restore.
+      await clearBiometricSession();
       router.replace("/sign-in");
     } catch {
       showNotice({ title: "Couldn't sign you out", message: "Please check your internet connection and try again." });

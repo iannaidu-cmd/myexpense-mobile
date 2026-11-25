@@ -23,6 +23,7 @@ import {
   ActivityIndicator,
   Animated,
   Linking,
+  StyleSheet,
   Text,
   TouchableOpacity,
   useWindowDimensions,
@@ -481,13 +482,17 @@ export default function ScanReceiptCameraScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: "#000" }}>
-      {isFocused ? <CameraView
+      {/* CameraView does not support children: on iOS (SDK 58) the preview
+          hides them. The overlay is a sibling laid over it instead. */}
+      {isFocused ? <>
+      <CameraView
         ref={cameraRef}
-        style={{ flex: 1 }}
+        style={StyleSheet.absoluteFill}
         facing={facing}
         enableTorch={torchOn}
         onCameraReady={() => setCameraReady(true)}
-      >
+      />
+      <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
         {/* Top bar */}
         <View
           style={{
@@ -725,7 +730,8 @@ export default function ScanReceiptCameraScreen() {
             </TouchableOpacity>
           </View>
         </View>
-      </CameraView> : null}
+      </View>
+      </> : null}
 
       <AnnouncementModal
         visible={showAllowanceNotice}

@@ -265,6 +265,11 @@ export function SigninScreen() {
         if (sd.session) await saveBiometricSession(email, sd.session.access_token, sd.session.refresh_token);
       }
       if (available && !alreadyEnabled) {
+        // Wait for the sign-in → Home transition to settle first (the same
+        // pattern as SubscriptionScreen): a native modal presented mid
+        // transition can fail to appear on iOS, and then Face ID never gets
+        // switched on.
+        await new Promise<void>((resolve) => requestIdleCallback(() => setTimeout(resolve, 300)));
         showNotice({
           title: `Use ${biometricLabel}?`,
           message: `Sign in faster next time with ${biometricLabel}.`,

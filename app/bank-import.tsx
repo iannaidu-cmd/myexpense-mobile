@@ -1084,7 +1084,7 @@ export default function BankImportScreen() {
         primaryLabel="Done"
         onPrimary={() => {
           setShowSuccess(false);
-          router.replace("/(tabs)");
+          router.dismissTo("/(tabs)");
         }}
       />
 

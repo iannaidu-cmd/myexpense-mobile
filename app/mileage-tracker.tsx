@@ -1104,6 +1104,13 @@ export default function MileageTrackerScreen() {
             backgroundColor: "rgba(0,0,0,0.45)",
           }}
         >
+          {/* Tapping the dimmed area above the sheet closes it. */}
+          <TouchableOpacity
+            style={{ flex: 1 }}
+            activeOpacity={1}
+            onPress={() => setShowPurpose(false)}
+            accessibilityLabel="Close"
+          />
           <View
             style={{
               backgroundColor: colour.white,
@@ -1272,6 +1279,12 @@ export default function MileageTrackerScreen() {
                 {!selectedVehicleId ? "Add your vehicle to start." : "Say why you're going to start."}
               </Text>
             )}
+            <TouchableOpacity
+              onPress={() => setShowPurpose(false)}
+              style={{ alignItems: "center", paddingVertical: space.sm, marginTop: space.sm }}
+            >
+              <Text style={{ color: colour.textSub, fontSize: 13 }}>Cancel</Text>
+            </TouchableOpacity>
             </ScrollView>
           </View>
         </View>

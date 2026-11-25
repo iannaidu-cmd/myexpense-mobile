@@ -6,11 +6,24 @@ import { supabase, setVerifierWriteHook } from "@/lib/supabase";
 import { ACTIVE_TAX_YEAR } from "@/types/database";
 import { create } from "zustand";
 import { deriveProfileFlags, SIGNED_OUT_FLAGS, type ProfileFlags } from "@/lib/accessFlags";
+import { getBiometricSession, isBiometricEnabled, saveBiometricSession } from "@/services/biometricService";
+import * as Sentry from "@sentry/react-native";
 
 // @supabase/supabase-js derives the storage key from the project URL:
 // sb-{project-ref}-auth-token  →  sb-{project-ref}-auth-token-code-verifier
 const _projectRef = new URL(process.env.EXPO_PUBLIC_SUPABASE_URL!).hostname.split(".")[0];
 const SUPABASE_CV_KEY = `sb-${_projectRef}-auth-token-code-verifier`;
+// Where auth-js keeps the session (and, separately, the user) on this device.
+const SUPABASE_SESSION_KEY = `sb-${_projectRef}-auth-token`;
+
+// The Face ID / fingerprint copy of the session lives in the keychain. Supabase
+// rotates the refresh token on every refresh, so the copy must follow each
+// rotation or it goes stale within the hour and Face ID sign-in fails.
+function syncBiometricSession(email: string, accessToken: string, refreshToken: string) {
+  isBiometricEnabled()
+    .then((on) => (on ? saveBiometricSession(email, accessToken, refreshToken) : undefined))
+    .catch(() => {});
+}
 // Backup key outside Supabase's namespace. In auth-js v2.105+, _removeSession()
 // deletes the verifier when the temporary unconfirmed session expires. We save
 // a copy here so auth/callback can restore it before the PKCE exchange.
@@ -225,6 +238,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         // INITIAL_SESSION fires immediately on registration and duplicates the
         // getSession() call above, skip it to avoid a double state update.
         if (event === 'INITIAL_SESSION') return;
+        // Event names only (no tokens), so an unexpected sign-out can be traced.
+        Sentry.addBreadcrumb({ category: "auth", message: event, data: { hasSession: !!session } });
+        if (session && (event === "TOKEN_REFRESHED" || event === "SIGNED_IN")) {
+          syncBiometricSession(session.user.email ?? "", session.access_token, session.refresh_token);
+        }
         if (session?.user) {
           // Guard: only authenticate if the email is confirmed (or there is no
           // email, e.g. anonymous / OAuth without email). When email
@@ -403,7 +421,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   // ── Sign Out ──────────────────────────────────────────────────────────────
   signOut: async () => {
     _memPkceVerifier = null;
-    await supabase.auth.signOut();
+    // With Face ID / fingerprint sign-in on, the keychain holds this session so
+    // "Sign in with Face ID" can restore it. supabase.auth.signOut() revokes it
+    // on the server, which made every Face ID sign-in after signing out fail.
+    // So sign out on this device only: auth-js reads the session from storage
+    // each time, so removing it signs this device out without revoking it.
+    const keepForBiometric =
+      (await isBiometricEnabled().catch(() => false)) && !!(await getBiometricSession());
+    if (keepForBiometric) {
+      await AsyncStorage.multiRemove([SUPABASE_SESSION_KEY, `${SUPABASE_SESSION_KEY}-user`]).catch(() => {});
+    } else {
+      await supabase.auth.signOut();
+    }
     set({
       user: null,
       isAuthenticated: false,

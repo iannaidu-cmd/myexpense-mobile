@@ -233,7 +233,7 @@ export default function ErrorGenericScreen({
   const displayMessage = message ?? defaults.message;
 
   const handleRetry = onRetry ?? (() => safeBack(router));
-  const handleHome = onGoHome ?? (() => router.replace("/(tabs)" as any));
+  const handleHome = onGoHome ?? (() => router.dismissTo("/(tabs)" as any));
   const handleSupport =
     onContactSupport ?? (() => router.push("/help-support" as any));
 
