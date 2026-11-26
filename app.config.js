@@ -40,7 +40,7 @@ const config = {
     requiresFullScreen: true,
     bundleIdentifier: "co.za.myexpense",
     googleServicesFile: process.env.GOOGLE_SERVICES_PLIST ?? "./GoogleService-Info.plist",
-    buildNumber: "119",
+    buildNumber: "120",
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false,
       NSCameraUsageDescription:
@@ -62,7 +62,7 @@ const config = {
   android: {
     package: "co.za.myexpense.myapp",
     googleServicesFile: process.env.GOOGLE_SERVICES_JSON ?? "./google-services.json",
-    versionCode: 76,
+    versionCode: 77,
     config: {
       googleMaps: {
         apiKey: process.env.GOOGLE_MAPS_API_KEY,
