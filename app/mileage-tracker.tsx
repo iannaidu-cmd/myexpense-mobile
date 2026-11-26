@@ -18,7 +18,10 @@ import { localISODate } from "@/lib/dateInput";
 import { taxYearForDate } from "@/lib/taxRules";
 import { addressForCoords } from "@/lib/tripAddress";
 import { validateTripReason } from "@/lib/validation";
+import { vehicleClaimNote, waitingForLogbook } from "@/lib/vehicleClaim";
+import { expenseService } from "@/services/expenseService";
 import { mileageService } from "@/services/mileageService";
+import { loadVehicleLogbook } from "@/services/vehicleLogbookService";
 import { useAuthStore } from "@/stores/authStore";
 import { useExpenseStore } from "@/stores/expenseStore";
 import { activeVehicles, useVehicleStore, vehicleLabel } from "@/stores/vehicleStore";
@@ -97,6 +100,9 @@ const platformShadow =
   }) ?? {};
 
 const TRIP_STORAGE_KEY = "mx_trip_in_progress";
+// The user + tax year the vehicle claim pop-up was last shown for, so it
+// appears once per app session rather than on every visit.
+let vehicleNoteShownFor: string | null = null;
 
 type TripStatus = "idle" | "running" | "paused";
 interface Coord {
@@ -200,6 +206,41 @@ export default function MileageTrackerScreen() {
   }
 
   const [locationReady, setLocationReady] = useState(false);
+
+  // Vehicle claim pop-up: how much of the vehicle costs is waiting for an
+  // odometer reading, or that the claim is an estimate (lib/vehicleClaim.ts).
+  // Shown here rather than on Home, once per app session per tax year, and
+  // only when the screen is idle and no other notice is likely to be open.
+  useEffect(() => {
+    if (!user || !mileageGateReady || tripLimitReached || !locationReady || status !== "idle") return;
+    const key = `${user.id}|${activeTaxYear}`;
+    if (vehicleNoteShownFor === key) return;
+    let cancelled = false;
+    Promise.all([expenseService.getExpenses(user.id, activeTaxYear), loadVehicleLogbook(user.id, activeTaxYear)])
+      .then(([rows, logbook]) => {
+        if (cancelled || vehicleNoteShownFor === key) return;
+        const message = vehicleClaimNote(rows, logbook, activeTaxYear);
+        const active = activeVehicles(useVehicleStore.getState().vehicles);
+        if (!message || active.length === 0) return;
+        vehicleNoteShownFor = key;
+        const waiting = waitingForLogbook(rows, logbook).count > 0;
+        const target = active.find((v) => logbook.byVehicle[v.id] == null) ?? active[active.length - 1];
+        showNotice({
+          title: waiting ? "Vehicle costs not included yet" : "Your vehicle claim is an estimate",
+          message,
+          tone: "info",
+          icon: "car.fill",
+          confirmLabel: waiting ? "Add reading" : "Update reading",
+          onConfirm: () => router.push({ pathname: "/vehicle-form", params: { id: target.id } }),
+          cancelLabel: "Not now",
+        });
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [user, activeTaxYear, mileageGateReady, tripLimitReached, locationReady, status]);
+
   const [showEndConfirm, setShowEndConfirm] = useState(false);
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
 
