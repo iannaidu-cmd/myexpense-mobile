@@ -190,24 +190,6 @@ export function SigninScreen() {
   const [biometricLabel, setBiometricLabel] = useState("Biometrics");
   const [appleAvailable, setAppleAvailable] = useState(false);
 
-  useEffect(() => {
-    (async () => {
-      const available = await isBiometricAvailable();
-      const enabled = await isBiometricEnabled();
-      const label = await getBiometricLabel();
-      setBiometricAvailable(available);
-      setBiometricEnabledState(enabled);
-      setBiometricLabel(label);
-      if (available && enabled) {
-        const stored = await getBiometricSession();
-        if (stored) handleBiometricLogin(true);
-      }
-    })();
-    if (Platform.OS === "ios") {
-      AppleAuthentication.isAvailableAsync().then(setAppleAvailable).catch(() => setAppleAvailable(false));
-    }
-  }, []);
-
   const handleBiometricLogin = async (auto = false) => {
     const authenticated = await authenticateWithBiometrics("Sign in to MyExpense");
     if (!authenticated) return;
@@ -234,6 +216,24 @@ export function SigninScreen() {
       showNotice({ title: "Couldn't sign you in", message: "Please sign in with your email and password." });
     }
   };
+
+  useEffect(() => {
+    (async () => {
+      const available = await isBiometricAvailable();
+      const enabled = await isBiometricEnabled();
+      const label = await getBiometricLabel();
+      setBiometricAvailable(available);
+      setBiometricEnabledState(enabled);
+      setBiometricLabel(label);
+      if (available && enabled) {
+        const stored = await getBiometricSession();
+        if (stored) handleBiometricLogin(true);
+      }
+    })();
+    if (Platform.OS === "ios") {
+      AppleAuthentication.isAvailableAsync().then(setAppleAvailable).catch(() => setAppleAvailable(false));
+    }
+  }, []);
 
   const handleSubmit = async () => {
     const e: typeof errors = {};
@@ -265,6 +265,11 @@ export function SigninScreen() {
         if (sd.session) await saveBiometricSession(email, sd.session.access_token, sd.session.refresh_token);
       }
       if (available && !alreadyEnabled) {
+        // Wait for the sign-in → Home transition to settle first (the same
+        // pattern as SubscriptionScreen): a native modal presented mid
+        // transition can fail to appear on iOS, and then Face ID never gets
+        // switched on.
+        await new Promise<void>((resolve) => requestIdleCallback(() => setTimeout(resolve, 300)));
         showNotice({
           title: `Use ${biometricLabel}?`,
           message: `Sign in faster next time with ${biometricLabel}.`,
@@ -324,7 +329,7 @@ export function SigninScreen() {
 
   return (
     <SafeAreaView edges={["bottom"]} style={{ flex: 1, backgroundColor: colour.primary }}>
-      <StatusBar barStyle="light-content" backgroundColor={colour.primary} />
+      <StatusBar barStyle="light-content" />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
         <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} bounces={false}>
 

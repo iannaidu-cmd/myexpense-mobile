@@ -248,7 +248,7 @@ export default function AddIncomeScreen() {
   if (loadingExisting) {
     return (
       <SafeAreaView edges={["top", "bottom"]} style={{ flex: 1, backgroundColor: colour.background }}>
-        <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
+        <StatusBar barStyle="dark-content" />
         <MXHeader title="Edit income" subtitle="Update your income entry" showBack />
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
           <ActivityIndicator color={colour.primary} size="large" />
@@ -262,7 +262,7 @@ export default function AddIncomeScreen() {
       edges={["top"]}
       style={{ flex: 1, backgroundColor: colour.background }}
     >
-      <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
+      <StatusBar barStyle="dark-content" />
 
       <MXHeader
         title={isEditing ? "Edit income" : "Add income"}
@@ -637,7 +637,7 @@ export default function AddIncomeScreen() {
         primaryLabel={isEditing ? "Back to details" : "Go to dashboard"}
         onPrimary={() => {
           setSuccessVisible(false);
-          isEditing ? safeBack(router) : router.replace("/(tabs)");
+          isEditing ? safeBack(router) : router.dismissTo("/(tabs)");
         }}
         secondaryLabel={isEditing ? undefined : "Add another"}
         onSecondary={isEditing ? undefined : () => setSuccessVisible(false)}

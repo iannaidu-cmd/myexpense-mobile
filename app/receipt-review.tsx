@@ -14,8 +14,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { floorRatio, useHomeOfficeStore } from "@/stores/homeOfficeStore";
 import { isHomeOfficeCategory } from "@/lib/homeOffice";
 import { ConfirmModal } from "@/components/ConfirmModal";
-import { logbookBusinessUse, useVehicleStore } from "@/stores/vehicleStore";
-import { mileageService } from "@/services/mileageService";
+import { useVehicleStore } from "@/stores/vehicleStore";
 import { colour, radius, space, typography } from "@/tokens";
 import { displayDateToISO, formatDateInputDDMMYYYY, isoToDisplayDate, isValidISODate, localISODate } from "@/lib/dateInput";
 import { taxYearForDate } from "@/lib/taxRules";
@@ -169,14 +168,18 @@ export default function ReceiptReviewScreen() {
   const isHomeOfficeCat = expenseType === "business" && isHomeOfficeCategory(category);
   const homeOfficeRatio = homeOfficeSetting ? floorRatio(homeOfficeSetting) : 1;
 
-  // Vehicle costs only count at the business-use % (same as manual entry).
-  // Scanned vehicle receipts used to be saved at 100%. Prefilled from the
-  // logbook when there's one vehicle with both odometer readings, else all
-  // vehicles combined; editable.
+  // Vehicle costs are saved at their full cost; the logbook share is applied
+  // wherever they are claimed (lib/vehicleClaim.ts). Linked to the vehicle
+  // when there's only one, so its own logbook % is used.
   const isVehicleCat = expenseType === "business" && category === "Vehicle Expenses";
-  const [vehicleBusinessPct, setVehicleBusinessPct] = useState("100");
-  const [vehiclePctFromLogbook, setVehiclePctFromLogbook] = useState(false);
   const [vehicleId, setVehicleId] = useState<string | null>(null);
+  // Phone costs only count at the work share. Scans used to save them at 100%.
+  const isPhoneCat =
+    expenseType === "business" && (category === "Telephone & Internet" || category === "Telephone & Cell");
+  const [phoneWorkPct, setPhoneWorkPct] = useState("");
+  const phonePctValue = parseFloat(phoneWorkPct);
+  const phonePctValid = !Number.isNaN(phonePctValue) && phonePctValue >= 0 && phonePctValue <= 100;
+  const phoneRatio = phonePctValid ? phonePctValue / 100 : 0;
   // Only a complete date picks the tax year; until then, use today's.
   const typedIso = displayDateToISO(date);
   const receiptTaxYear = taxYearForDate(
@@ -187,28 +190,15 @@ export default function ReceiptReviewScreen() {
     let cancelled = false;
     (async () => {
       try {
-        const [trips] = await Promise.all([
-          mileageService.getTrips(user.id, receiptTaxYear),
-          useVehicleStore.getState().load(user.id, receiptTaxYear, true),
-        ]);
-        const { vehicles, readings } = useVehicleStore.getState();
-        const inUse = vehicles.filter((v) => !v.isArchived);
-        const only = inUse.length === 1 ? inUse[0].id : null;
-        if (!cancelled) setVehicleId(only);
-        const logbook = only
-          ? logbookBusinessUse(trips.filter((t) => t.vehicle_id === only), readings[only] ? { [only]: readings[only] } : {})
-          : logbookBusinessUse(trips, readings);
-        if (logbook && logbook.ratio > 0 && !cancelled) {
-          setVehicleBusinessPct(String(Math.round(logbook.ratio * 100)));
-          setVehiclePctFromLogbook(true);
-        }
-      } catch { /* keep 100% — the user can change it */ }
+        await useVehicleStore.getState().load(user.id, receiptTaxYear, true);
+        const inUse = useVehicleStore.getState().vehicles.filter((v) => !v.isArchived);
+        if (!cancelled) setVehicleId(inUse.length === 1 ? inUse[0].id : null);
+      } catch { /* not linked to a vehicle: the overall logbook % applies */ }
     })();
     return () => { cancelled = true; };
   }, [isVehicleCat, user, receiptTaxYear]);
-  const vehicleRatio = Math.min(Math.max(parseFloat(vehicleBusinessPct) || 0, 0), 100) / 100;
 
-  const canSave = !!amount && parseFloat(amount) > 0 && !!vendor && !!category;
+  const canSave = !!amount && parseFloat(amount) > 0 && !!vendor && !!category && (!isPhoneCat || phonePctValid);
   const hasReceipt = !!params.storagePath && params.storagePath !== "";
 
   const ocrFields = {
@@ -264,8 +254,8 @@ export default function ReceiptReviewScreen() {
       }
 
       const rawAmount = parseFloat(amount);
-      const share = isHomeOfficeCat ? homeOfficeRatio : isVehicleCat ? vehicleRatio : 1;
-      const apportioned = isHomeOfficeCat || isVehicleCat;
+      const share = isHomeOfficeCat ? homeOfficeRatio : isPhoneCat ? phoneRatio : 1;
+      const apportioned = isHomeOfficeCat || isPhoneCat;
       const savedAmount = apportioned ? parseFloat((rawAmount * share).toFixed(2)) : rawAmount;
       const expenseDateIso = displayDateToISO(date.trim());
 
@@ -315,7 +305,7 @@ export default function ReceiptReviewScreen() {
       edges={["top"]}
       style={{ flex: 1, backgroundColor: colour.background }}
     >
-      <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
+      <StatusBar barStyle="dark-content" />
 
       <MXHeader
         title="Confirm details"
@@ -712,18 +702,21 @@ export default function ReceiptReviewScreen() {
           )}
 
           {isVehicleCat && (
+            <InfoBanner
+              icon="car.fill"
+              title="Claimed from your logbook"
+              body="You can only claim the work part of a vehicle cost. We work it out from your mileage logbook: the km you log for work compared to all the km on your odometer this tax year. Save the full amount."
+              style={{ marginBottom: space.md }}
+            />
+          )}
+
+          {isPhoneCat && (
             <>
-              <InfoBanner
-                icon="car.fill"
-                title={vehiclePctFromLogbook ? `We'll claim ${vehicleBusinessPct}%, based on your logbook` : "How much was for work?"}
-                body={`You can only claim the work part of a vehicle cost: your work km compared to all your km. Change the % if this cost is different.${amount && parseFloat(amount) > 0 ? ` Claimable amount: R ${Math.round(parseFloat(amount) * vehicleRatio).toLocaleString("en-ZA")}` : ""}`}
-                style={{ marginBottom: space.sm }}
-              />
               <FieldLabel label="Work use %" />
               <TextInput
-                value={vehicleBusinessPct}
-                onChangeText={setVehicleBusinessPct}
-                placeholder="e.g. 80"
+                value={phoneWorkPct}
+                onChangeText={setPhoneWorkPct}
+                placeholder="e.g. 60"
                 placeholderTextColor={colour.textHint}
                 keyboardType="decimal-pad"
                 style={{
@@ -732,9 +725,14 @@ export default function ReceiptReviewScreen() {
                   borderBottomWidth: 1,
                   borderBottomColor: colour.border,
                   paddingVertical: space.sm,
-                  marginBottom: space.md,
+                  marginBottom: space.xs,
                 }}
               />
+              <Text style={{ ...typography.bodyXS, color: colour.textSub, marginBottom: space.md }}>
+                {phonePctValid && amount && parseFloat(amount) > 0
+                  ? `You can claim the part of your phone use that is for work. Claimable amount: R ${Math.round(parseFloat(amount) * phoneRatio).toLocaleString("en-ZA")}`
+                  : "You can claim the part of your phone use that is for work. Enter it from 0 to 100."}
+              </Text>
             </>
           )}
 
@@ -859,7 +857,7 @@ export default function ReceiptReviewScreen() {
         </TouchableOpacity>
 
         <TouchableOpacity
-          onPress={() => router.replace("/(tabs)")}
+          onPress={() => router.dismissTo("/(tabs)")}
           style={{ alignItems: "center", paddingVertical: space.sm }}
         >
           <Text style={{ ...typography.bodyS, color: colour.textSub }}>
@@ -875,7 +873,7 @@ export default function ReceiptReviewScreen() {
         title="Expense saved"
         message={successMessage}
         primaryLabel="Go to dashboard"
-        onPrimary={() => { setSuccessVisible(false); router.replace("/(tabs)"); }}
+        onPrimary={() => { setSuccessVisible(false); router.dismissTo("/(tabs)"); }}
       />
 
       <ConfirmModal

@@ -188,7 +188,7 @@ export default function CategoryBreakdownScreen() {
       edges={["top"]}
       style={{ flex: 1, backgroundColor: C.background }}
     >
-      <StatusBar barStyle="dark-content" backgroundColor={C.background} />
+      <StatusBar barStyle="dark-content" />
       <MXHeader
         title="Category breakdown"
         subtitle={`SARS ITR12 · Tax Year ${activeTaxYear}`}

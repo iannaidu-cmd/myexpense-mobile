@@ -147,7 +147,7 @@ export default function SettingsTabScreen() {
 
   return (
     <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colour.background }}>
-      <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
+      <StatusBar barStyle="dark-content" />
 
       <ScrollView
         contentContainerStyle={{ paddingHorizontal: 18, paddingBottom: space["5xl"] }}

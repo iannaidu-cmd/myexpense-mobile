@@ -8,12 +8,14 @@ import { AppState } from "react-native";
  */
 export function useAppForeground(onForeground: () => void) {
   const callbackRef = useRef(onForeground);
-  callbackRef.current = onForeground;
+  useEffect(() => {
+    callbackRef.current = onForeground;
+  }, [onForeground]);
 
   useEffect(() => {
     const appStateRef = { current: AppState.currentState };
     const sub = AppState.addEventListener("change", (nextState) => {
-      if (appStateRef.current.match(/inactive|background/) && nextState === "active") {
+      if (appStateRef.current?.match(/inactive|background/) && nextState === "active") {
         callbackRef.current();
       }
       appStateRef.current = nextState;

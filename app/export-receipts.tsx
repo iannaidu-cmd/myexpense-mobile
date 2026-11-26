@@ -12,7 +12,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { colour, radius, space, typography } from "@/tokens";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useFocusEffect } from "expo-router";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Modal,
@@ -174,7 +174,7 @@ export default function ExportReceiptsScreen() {
     }
   }, [user, startDate, endDate]);
 
-  useEffect(() => { loadCount(); }, [loadCount]);
+  // Runs on mount and whenever the date range changes (loadCount changes).
   useFocusEffect(useCallback(() => { loadCount(); }, [loadCount]));
 
   const selectQuickRange = (key: "current" | "previous" | "all") => {
@@ -240,7 +240,7 @@ export default function ExportReceiptsScreen() {
 
   return (
     <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colour.background }}>
-      <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
+      <StatusBar barStyle="dark-content" />
       <MXHeader title="Export receipts" subtitle="Proof of expense for SARS" showBack />
 
       <ScrollView

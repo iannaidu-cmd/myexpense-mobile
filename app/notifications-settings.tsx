@@ -163,7 +163,7 @@ export default function NotificationsSettingsScreen() {
       edges={["top"]}
       style={{ flex: 1, backgroundColor: colour.background }}
     >
-      <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
+      <StatusBar barStyle="dark-content" />
       <MXBackHeader title="Notifications" />
 
       <ScrollView

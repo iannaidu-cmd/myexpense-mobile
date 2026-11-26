@@ -254,6 +254,8 @@ export default function SecuritySettingsScreen() {
     try {
       const { supabase } = await import("@/lib/supabase");
       await supabase.auth.signOut({ scope: "global" });
+      // Every session is revoked, including the one Face ID would restore.
+      await clearBiometricSession();
       router.replace("/sign-in");
     } catch {
       showNotice({ title: "Couldn't sign you out", message: "Please check your internet connection and try again." });
@@ -265,7 +267,7 @@ export default function SecuritySettingsScreen() {
       edges={["top"]}
       style={{ flex: 1, backgroundColor: colour.background }}
     >
-      <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
+      <StatusBar barStyle="dark-content" />
       <MXBackHeader title="Security" />
 
       <ScrollView

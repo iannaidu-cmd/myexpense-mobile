@@ -17,6 +17,8 @@ import {
 } from "@/lib/vat";
 import { validateVATNumber } from "@/lib/validation";
 import { expenseService } from "@/services/expenseService";
+import { loadVehicleLogbook } from "@/services/vehicleLogbookService";
+import { withLogbookShare, type VehicleLogbook } from "@/lib/vehicleClaim";
 import { incomeService } from "@/services/incomeService";
 import { profileService } from "@/services/profileService";
 import { useAuthStore } from "@/stores/authStore";
@@ -79,15 +81,19 @@ export default function VATSummaryScreen() {
   const VAT_THRESHOLD = VAT_COMPULSORY_THRESHOLD;
   const fmtRand = (n: number) => `R${Math.round(n).toLocaleString("en-ZA")}`;
 
+  const [logbook, setLogbook] = useState<VehicleLogbook | null>(null);
+
   const loadData = useCallback(async () => {
     if (!user) { setLoading(false); return; }
     setLoading(true);
     try {
-      const [data, allIncome, profile] = await Promise.all([
+      const [data, allIncome, profile, lb] = await Promise.all([
         expenseService.getExpenses(user.id, activeTaxYear),
         incomeService.getIncome(user.id),
         profileService.getProfile(user.id),
+        loadVehicleLogbook(user.id, activeTaxYear),
       ]);
+      setLogbook(lb);
       setExpenses(data.filter((e) => e.vat_amount && Number(e.vat_amount) > 0));
       setVatIncome(allIncome.filter((i) => i.tax_year === activeTaxYear && incomeVat(i) > 0));
       setVatRegistered(profile?.vat_registered ?? false);
@@ -161,7 +167,9 @@ export default function VATSummaryScreen() {
   // Input tax can only be claimed back from SARS by a registered VAT vendor —
   // an unregistered user's VAT is just a cost, regardless of is_deductible.
   // Only the business share counts, and never entertainment (lib/vat.ts).
-  const entryClaimable = (e: any) => (vatRegistered ? claimableInputVat(e) : 0);
+  // Vehicle running costs: only the logbook share of the VAT (lib/vehicleClaim.ts).
+  const entryClaimable = (e: any) =>
+    vatRegistered ? claimableInputVat(logbook ? withLogbookShare(e, logbook) : e) : 0;
   const claimableVAT = filtered.reduce((s, e) => s + entryClaimable(e), 0);
   const nonClaimable = totalVAT - claimableVAT;
   // Positive: pay SARS. Negative: SARS refunds the difference.
@@ -247,7 +255,7 @@ export default function VATSummaryScreen() {
       edges={["top"]}
       style={{ flex: 1, backgroundColor: colour.background }}
     >
-      <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
+      <StatusBar barStyle="dark-content" />
       <MXHeader
         title="VAT summary"
         subtitle={

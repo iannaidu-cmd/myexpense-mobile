@@ -5,6 +5,9 @@ import { allRows } from "@/lib/allRows";
 import { claimableInputVat } from "@/lib/vat";
 import { HOME_OFFICE_CATEGORY, setupClaimDescription, setupClaimForYear } from "@/lib/homeOffice";
 import { isMedicalCategory } from "@/lib/itr12Summary";
+import { taxYearForDate } from "@/lib/taxRules";
+import { withLogbookShare } from "@/lib/vehicleClaim";
+import { loadVehicleLogbook } from "@/services/vehicleLogbookService";
 import { homeOfficeService, type HomeOfficeSetting } from "@/services/homeOfficeService";
 import type { Expense, NewExpense, UpdateExpense } from "@/types/database";
 
@@ -156,13 +159,14 @@ export const expenseService = {
     const cached = getCached<ExpenseTotals>(key);
     if (cached) return cached;
 
-    const [{ data, error }, homeOffice] = await Promise.all([
+    const [{ data, error }, homeOffice, logbook] = await Promise.all([
       allRows(supabase
         .from("expenses")
-        .select("amount, is_deductible, category, vat_amount, business_use_pct")
+        .select("amount, is_deductible, category, vat_amount, business_use_pct, gross_amount, vehicle_id, wear_and_tear_vehicle_id")
         .eq("user_id", userId)
         .eq("tax_year", taxYear)),
       loadHomeOfficeSetting(userId),
+      loadVehicleLogbook(userId, taxYear),
     ]);
 
     if (error) throw new Error(error.message);
@@ -180,7 +184,8 @@ export const expenseService = {
           .filter((e) => e.is_deductible && !isMedicalCategory(e.category))
           .reduce((sum, e) => {
             const cap = CATEGORY_PARTIAL_CAPS[e.category] ?? 1;
-            return sum + deductibleBase(e, vatRegistered) * cap;
+            // Vehicle running costs: logbook share only (lib/vehicleClaim.ts).
+            return sum + deductibleBase(withLogbookShare(e, logbook), vatRegistered) * cap;
           }, 0) + setupClaim,
       receiptCount: expenses.length,
     };
@@ -224,6 +229,10 @@ export const expenseService = {
   updateExpense: async (expense: UpdateExpense): Promise<Expense> => {
     const { id, ...fields } = expense;
     if (fields.category && isMedicalCategory(fields.category)) fields.is_deductible = false;
+    // A new date can move the expense into another tax year. Without this it
+    // stayed in the old year's totals and ITR12 export (and a mistyped year,
+    // corrected later, left rows with tax years like "8/9").
+    if (fields.expense_date) fields.tax_year = taxYearForDate(fields.expense_date);
     const { data, error } = await supabase
       .from("expenses")
       .update(fields)
@@ -297,14 +306,15 @@ export const expenseService = {
     const cached = getCached<Record<string, number>>(key);
     if (cached) return cached;
 
-    const [{ data, error }, homeOffice] = await Promise.all([
+    const [{ data, error }, homeOffice, logbook] = await Promise.all([
       allRows(supabase
         .from("expenses")
-        .select("category, amount, vat_amount, business_use_pct, is_deductible")
+        .select("category, amount, vat_amount, business_use_pct, is_deductible, gross_amount, vehicle_id, wear_and_tear_vehicle_id")
         .eq("user_id", userId)
         .eq("tax_year", taxYear)
         .eq("is_deductible", true)),
       loadHomeOfficeSetting(userId),
+      loadVehicleLogbook(userId, taxYear),
     ]);
 
     if (error) throw new Error(error.message);
@@ -313,7 +323,7 @@ export const expenseService = {
     const rows = (data ?? []).filter((e) => !isMedicalCategory(e.category));
     const result = rows.reduce<Record<string, number>>((acc, e) => {
       const cap = CATEGORY_PARTIAL_CAPS[e.category] ?? 1;
-      acc[e.category] = (acc[e.category] ?? 0) + deductibleBase(e, vatRegistered) * cap;
+      acc[e.category] = (acc[e.category] ?? 0) + deductibleBase(withLogbookShare(e, logbook), vatRegistered) * cap;
       return acc;
     }, {});
     // Same rule as getTotals, so the categories always add up to the total.

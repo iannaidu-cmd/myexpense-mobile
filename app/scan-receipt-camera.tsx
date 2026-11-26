@@ -16,13 +16,14 @@ import { CameraType, CameraView, useCameraPermissions } from "expo-camera";
 import * as Haptics from "expo-haptics";
 import * as ImageManipulator from "expo-image-manipulator";
 import * as ImagePicker from "expo-image-picker";
-import { useIsFocused } from "@react-navigation/native";
+import { useIsFocused } from "expo-router/react-navigation";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Animated,
   Linking,
+  StyleSheet,
   Text,
   TouchableOpacity,
   useWindowDimensions,
@@ -108,11 +109,11 @@ export default function ScanReceiptCameraScreen() {
   // up again each time you come back. Tapping the shutter before it's ready
   // makes takePictureAsync fail, so capture waits for onCameraReady.
   const [cameraReady, setCameraReady] = useState(false);
-  const captureAnim = useRef(new Animated.Value(1)).current;
+  const [captureAnim] = useState(() => new Animated.Value(1));
 
   const [premiumChecked, setPremiumChecked] = useState(false);
   const [scanBlocked, setScanBlocked] = useState(false);
-  const [scanGateReady, setScanGateReady] = useState(false);
+  const [freeCountChecked, setFreeCountChecked] = useState(false);
   const [showAllowanceNotice, setShowAllowanceNotice] = useState(false);
   const [showUploadFailedChoice, setShowUploadFailedChoice] = useState(false);
 
@@ -125,11 +126,7 @@ export default function ScanReceiptCameraScreen() {
   // Enforce the shared free-use cap once premium status is known.
   // Fails open on a count-check error — a network blip shouldn't block a scan.
   useEffect(() => {
-    if (!premiumChecked || !user) return;
-    if (isPremium) {
-      setScanGateReady(true);
-      return;
-    }
+    if (!premiumChecked || !user || isPremium) return;
     countFreeUses(user.id)
       .then((count) => {
         if (count >= FREE_USE_LIMIT) {
@@ -138,8 +135,16 @@ export default function ScanReceiptCameraScreen() {
         }
       })
       .catch(() => {})
-      .finally(() => setScanGateReady(true));
+      .finally(() => setFreeCountChecked(true));
   }, [premiumChecked, isPremium, user]);
+  // Premium users are ready as soon as we know they're premium; free users
+  // once their use count is in. Sticky once open (set during render, not in
+  // an effect), so a premium status change mid-session can't pull the screen
+  // back to the spinner or, on mileage, stop a trip in progress.
+  const [scanGateReady, setScanGateReady] = useState(false);
+  if (!scanGateReady && premiumChecked && !!user && (isPremium || freeCountChecked)) {
+    setScanGateReady(true);
+  }
 
   // One-off heads-up telling free users about their free uses, shown the
   // first time they reach Scan - not shown once they've already hit the cap,
@@ -151,9 +156,9 @@ export default function ScanReceiptCameraScreen() {
     });
   }, [scanGateReady, isPremium, scanBlocked]);
 
-  useEffect(() => {
-    if (!isFocused) setCameraReady(false);
-  }, [isFocused]);
+  // The camera unmounts when the screen loses focus, so it must report ready
+  // again. Adjusted during render rather than in an effect.
+  if (!isFocused && cameraReady) setCameraReady(false);
 
   const dismissAllowanceNotice = () => {
     setShowAllowanceNotice(false);
@@ -477,13 +482,17 @@ export default function ScanReceiptCameraScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: "#000" }}>
-      {isFocused ? <CameraView
+      {/* CameraView does not support children: on iOS (SDK 58) the preview
+          hides them. The overlay is a sibling laid over it instead. */}
+      {isFocused ? <>
+      <CameraView
         ref={cameraRef}
-        style={{ flex: 1 }}
+        style={StyleSheet.absoluteFill}
         facing={facing}
         enableTorch={torchOn}
         onCameraReady={() => setCameraReady(true)}
-      >
+      />
+      <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
         {/* Top bar */}
         <View
           style={{
@@ -721,7 +730,8 @@ export default function ScanReceiptCameraScreen() {
             </TouchableOpacity>
           </View>
         </View>
-      </CameraView> : null}
+      </View>
+      </> : null}
 
       <AnnouncementModal
         visible={showAllowanceNotice}

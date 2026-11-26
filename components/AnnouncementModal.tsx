@@ -1,6 +1,6 @@
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { colour, radius, typography } from "@/tokens";
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Animated,
   Modal,
@@ -41,8 +41,8 @@ export function AnnouncementModal({
   onClose,
 }: AnnouncementModalProps) {
   const insets = useSafeAreaInsets();
-  const backdropOpacity = useRef(new Animated.Value(0)).current;
-  const sheetTranslateY = useRef(new Animated.Value(400)).current;
+  const [backdropOpacity] = useState(() => new Animated.Value(0));
+  const [sheetTranslateY] = useState(() => new Animated.Value(400));
 
   useEffect(() => {
     if (visible) {

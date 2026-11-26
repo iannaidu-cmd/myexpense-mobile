@@ -191,7 +191,12 @@ export function MXTabBar() {
           return (
             <TouchableOpacity
               key={tab.name}
-              onPress={() => router.navigate(tab.route as any)}
+              // dismissTo, not navigate: in Expo Router 58 navigate() no longer
+              // pops back to a route already in the stack, so the screen you
+              // came from (e.g. the paywall) stayed underneath and "back"
+              // returned to it. dismissTo goes back to the route if it's in the
+              // history (keeping a running trip's tracker), else replaces.
+              onPress={() => router.dismissTo(tab.route as any)}
               activeOpacity={0.7}
               style={{
                 flex: 1,

@@ -47,6 +47,8 @@ const ITR12_CATEGORIES = CATEGORIES.map((c) => ({
   examples: c.examples,
 }));
 
+const isPhoneCategory = (c: string | null | undefined) => c === "Telephone & Internet" || c === "Telephone & Cell";
+
 export default function EditExpenseScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -68,6 +70,9 @@ export default function EditExpenseScreen() {
   const [sarsField, setSarsField] = useState<string | null>(null);
   // % applied when the expense was first saved (null if never apportioned).
   const [businessUsePct, setBusinessUsePct] = useState<number | null>(null);
+  // Work share for phone costs. Blank when it was never set (bank imports and
+  // scans used to save phone costs at 100%).
+  const [phonePct, setPhonePct] = useState("");
   // Category the expense was saved with, to spot moves into or out of home office.
   const [originalCategory, setOriginalCategory] = useState("");
   const [showCatModal, setShowCatModal] = useState(false);
@@ -91,6 +96,7 @@ export default function EditExpenseScreen() {
         setNotes(expense.notes ?? "");
         setSarsField(expense.sars_field ?? null);
         setBusinessUsePct(expense.business_use_pct != null ? Number(expense.business_use_pct) : null);
+        setPhonePct(isPhoneCategory(expense.category) && expense.business_use_pct != null ? String(Number(expense.business_use_pct)) : "");
         // Derive toggle state from saved is_deductible flag
         setExpenseType(expense.is_deductible ? "business" : "personal");
         setLoadingExpense(false);
@@ -118,7 +124,13 @@ export default function EditExpenseScreen() {
       : entered;
   const movedIntoHomeOffice = isHomeOfficeCategory(category) && !isHomeOfficeCategory(originalCategory);
   const movedOutOfHomeOffice = !isHomeOfficeCategory(category) && isHomeOfficeCategory(originalCategory);
+  const isPhoneCat = expenseType === "business" && isPhoneCategory(category);
+  const phonePctValue = parseFloat(phonePct);
+  const phonePctValid = !Number.isNaN(phonePctValue) && phonePctValue >= 0 && phonePctValue <= 100;
   const amountFields = (): { amount: number; gross_amount?: number | null; business_use_pct?: number | null } => {
+    if (isPhoneCat && phonePctValid) {
+      return { amount: apportion(fullAmount, phonePctValue / 100), gross_amount: fullAmount, business_use_pct: phonePctValue };
+    }
     if (movedIntoHomeOffice) {
       return { amount: apportion(fullAmount, homeOfficeRatio), gross_amount: fullAmount, business_use_pct: pctFromRatio(homeOfficeRatio) };
     }
@@ -195,7 +207,7 @@ export default function EditExpenseScreen() {
       edges={["top"]}
       style={{ flex: 1, backgroundColor: colour.background }}
     >
-      <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
+      <StatusBar barStyle="dark-content" />
 
       <MXHeader title="Update details" showBack />
 
@@ -397,6 +409,34 @@ export default function EditExpenseScreen() {
             }
             style={{ marginBottom: space.lg }}
           />
+        )}
+
+        {/* Phone work share */}
+        {isPhoneCat && (
+          <View style={{ marginBottom: space.lg }}>
+            <Text style={{ ...typography.labelM, color: colour.textSecondary, marginBottom: space.xs }}>
+              Work use %
+            </Text>
+            <TextInput
+              value={phonePct}
+              onChangeText={setPhonePct}
+              placeholder="e.g. 60"
+              placeholderTextColor={colour.textHint}
+              keyboardType="decimal-pad"
+              style={{
+                ...typography.bodyL,
+                color: colour.text,
+                borderBottomWidth: 1,
+                borderBottomColor: colour.border,
+                paddingVertical: space.sm,
+              }}
+            />
+            <Text style={{ ...typography.bodyXS, color: colour.textSub, marginTop: space.xs }}>
+              {phonePctValid && fullAmount > 0
+                ? `You can claim the part of your phone use that is for work. Claimable amount: R ${apportion(fullAmount, phonePctValue / 100).toLocaleString("en-ZA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                : "You can claim the part of your phone use that is for work. Enter it from 0 to 100 so only that part is claimed."}
+            </Text>
+          </View>
         )}
 
         {/* Vendor */}

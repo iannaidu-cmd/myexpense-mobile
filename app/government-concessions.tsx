@@ -99,7 +99,7 @@ function Note({ text }: { text: string }) {
 export default function GovernmentConcessionsScreen() {
   return (
     <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colour.background }}>
-      <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
+      <StatusBar barStyle="dark-content" />
       <MXHeader
         title="Government concessions"
         subtitle="Tax breaks explained simply"

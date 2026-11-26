@@ -3,7 +3,7 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { colour, radius, space, typography } from "@/tokens";
 import { ACTIVE_TAX_YEAR } from "@/types/database";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import {
     Animated,
     StatusBar,
@@ -79,12 +79,12 @@ export default function SuccessConfirmationScreen() {
   const accent = config.accentColour;
 
   // Staggered entrance animations
-  const iconScale = useRef(new Animated.Value(0)).current;
-  const iconOpacity = useRef(new Animated.Value(0)).current;
-  const contentY = useRef(new Animated.Value(24)).current;
-  const contentOpacity = useRef(new Animated.Value(0)).current;
-  const buttonsY = useRef(new Animated.Value(16)).current;
-  const buttonsOpacity = useRef(new Animated.Value(0)).current;
+  const [iconScale] = useState(() => new Animated.Value(0));
+  const [iconOpacity] = useState(() => new Animated.Value(0));
+  const [contentY] = useState(() => new Animated.Value(24));
+  const [contentOpacity] = useState(() => new Animated.Value(0));
+  const [buttonsY] = useState(() => new Animated.Value(16));
+  const [buttonsOpacity] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
     Animated.sequence([
@@ -105,7 +105,7 @@ export default function SuccessConfirmationScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colour.background }}>
-      <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
+      <StatusBar barStyle="dark-content" />
 
       {/* Main centred content */}
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: space.xl }}>

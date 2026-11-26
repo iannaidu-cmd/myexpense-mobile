@@ -3,6 +3,8 @@ import { MXHeader } from "@/components/MXHeader";
 import { MXTabBar } from "@/components/MXTabBar";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { expenseService } from "@/services/expenseService";
+import { loadVehicleLogbook } from "@/services/vehicleLogbookService";
+import { withLogbookShare, type VehicleLogbook } from "@/lib/vehicleClaim";
 import { cancelReceiptReminders } from "@/services/notificationService";
 import { useAuthStore } from "@/stores/authStore";
 import { colour, radius, space, typography } from "@/tokens";
@@ -56,6 +58,8 @@ export default function ExpenseHistoryScreen() {
   const [error, setError] = useState<string | null>(null);
   const hasLoaded = useRef(false);
   const [expenses, setExpenses] = useState<any[]>([]);
+  // One logbook per tax year shown, for the vehicle share in "claimable".
+  const [logbooks, setLogbooks] = useState<Record<string, VehicleLogbook>>({});
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState<Filter>("all");
 
@@ -120,6 +124,14 @@ export default function ExpenseHistoryScreen() {
     }
   };
 
+  const loadLogbooks = useCallback((rows: { tax_year: string }[]) => {
+    if (!user) return;
+    const years = [...new Set(rows.map((r) => r.tax_year))];
+    Promise.all(years.map(async (y) => [y, await loadVehicleLogbook(user.id, y)] as const))
+      .then((pairs) => setLogbooks(Object.fromEntries(pairs)))
+      .catch(() => {});
+  }, [user]);
+
   const loadData = useCallback(async (silent = false) => {
     if (!user) { setLoading(false); return; }
     if (!silent) setLoading(true);
@@ -127,6 +139,7 @@ export default function ExpenseHistoryScreen() {
     try {
       const data = await expenseService.getAllExpenses(user.id);
       setExpenses(data);
+      loadLogbooks(data);
       hasLoaded.current = true;
     } catch (e) {
       console.error("ExpenseHistory load error:", e);
@@ -134,7 +147,7 @@ export default function ExpenseHistoryScreen() {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, loadLogbooks]);
 
   const handleRefresh = useCallback(async () => {
     if (!user) return;
@@ -143,13 +156,14 @@ export default function ExpenseHistoryScreen() {
     try {
       const data = await expenseService.getAllExpenses(user.id);
       setExpenses(data);
+      loadLogbooks(data);
     } catch (e) {
       console.error("ExpenseHistory refresh error:", e);
       setError("Failed to load expenses. Pull down to retry.");
     } finally {
       setRefreshing(false);
     }
-  }, [user]);
+  }, [user, loadLogbooks]);
 
   useFocusEffect(
     useCallback(() => {
@@ -181,8 +195,11 @@ export default function ExpenseHistoryScreen() {
   );
 
   const claimable = useMemo(
-    () => filtered.filter((e) => e.is_deductible).reduce((s, e) => s + Number(e.amount), 0),
-    [filtered],
+    () =>
+      filtered
+        .filter((e) => e.is_deductible)
+        .reduce((s, e) => s + Number((logbooks[e.tax_year] ? withLogbookShare(e, logbooks[e.tax_year]) : e).amount), 0),
+    [filtered, logbooks],
   );
 
   const allVisibleSelected =
@@ -201,7 +218,7 @@ export default function ExpenseHistoryScreen() {
       edges={["top"]}
       style={{ flex: 1, backgroundColor: colour.background }}
     >
-      <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
+      <StatusBar barStyle="dark-content" />
 
       <MXHeader
         title="Expense history"

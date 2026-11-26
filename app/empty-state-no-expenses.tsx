@@ -3,7 +3,7 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { colour, space } from "@/tokens";
 import { useRouter } from "expo-router";
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import { Animated, Easing, TouchableOpacity, View } from "react-native";
 import { safeBack } from "@/lib/navigation";
 
@@ -40,7 +40,7 @@ function PhoneShell({
 
 // ─── Animated Receipt Illustration ───────────────────────────────────────────
 function ReceiptIllustration() {
-  const float = useRef(new Animated.Value(0)).current;
+  const [float] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
     Animated.loop(

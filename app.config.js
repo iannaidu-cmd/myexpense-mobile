@@ -31,17 +31,16 @@ const facebookPlugin =
 const config = {
   name: "MyExpense",
   slug: "MyExpense",
-  version: "1.2.30",
+  version: "1.2.31",
   orientation: "portrait",
   icon: "./assets/images/icon.png",
   scheme: "myexpense",
-  newArchEnabled: true,
   ios: {
     supportsTablet: true,
     requiresFullScreen: true,
     bundleIdentifier: "co.za.myexpense",
     googleServicesFile: process.env.GOOGLE_SERVICES_PLIST ?? "./GoogleService-Info.plist",
-    buildNumber: "118",
+    buildNumber: "120",
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false,
       NSCameraUsageDescription:
@@ -63,7 +62,7 @@ const config = {
   android: {
     package: "co.za.myexpense.myapp",
     googleServicesFile: process.env.GOOGLE_SERVICES_JSON ?? "./google-services.json",
-    versionCode: 75,
+    versionCode: 77,
     config: {
       googleMaps: {
         apiKey: process.env.GOOGLE_MAPS_API_KEY,
@@ -73,7 +72,6 @@ const config = {
       foregroundImage: "./assets/images/adaptive-icon.png",
       backgroundColor: "#FFFFFF",
     },
-    edgeToEdgeEnabled: true,
     predictiveBackGestureEnabled: false,
     intentFilters: [
       {
@@ -126,6 +124,9 @@ const config = {
     // Transparency prompt is needed (matches the Meta setup above).
     ["@react-native-firebase/app", { ios: { disableSPM: true } }],
     ["@react-native-firebase/analytics", { ios: { withoutAdIdSupport: true } }],
+    // RNFB 26's plugin can't find the SDK 58 scene-based AppDelegate, so this
+    // adds FirebaseApp.configure() itself. See the file for details.
+    "./plugins/withFirebaseSceneConfigure",
     [
       "expo-splash-screen",
       {

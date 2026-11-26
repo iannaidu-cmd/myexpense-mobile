@@ -94,11 +94,22 @@ function ReceiptViewer({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
 
+  // Clear the previous receipt as soon as the viewer opens (or the receipt
+  // changes). Done during render rather than in the fetch effect below, so the
+  // old image never shows for a frame.
+  const openKey = visible && storagePath ? storagePath : null;
+  const [prevOpenKey, setPrevOpenKey] = useState<string | null>(null);
+  if (openKey !== prevOpenKey) {
+    setPrevOpenKey(openKey);
+    if (openKey) {
+      setSignedUrl(null);
+      setError(false);
+      setLoading(true);
+    }
+  }
+
   useEffect(() => {
     if (!visible || !storagePath) return;
-    setSignedUrl(null);
-    setError(false);
-    setLoading(true);
 
     const generate = async () => {
       try {
@@ -360,7 +371,7 @@ export default function ExpenseDetailScreen() {
       edges={["top"]}
       style={{ flex: 1, backgroundColor: colour.background }}
     >
-      <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
+      <StatusBar barStyle="dark-content" />
 
       {/* Receipt viewer modal */}
       <ReceiptViewer

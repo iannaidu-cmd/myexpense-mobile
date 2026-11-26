@@ -176,7 +176,7 @@ export default function IncomeHistoryScreen() {
       edges={["top"]}
       style={{ flex: 1, backgroundColor: colour.background }}
     >
-      <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
+      <StatusBar barStyle="dark-content" />
 
       <MXHeader
         title="Income history"
@@ -428,7 +428,7 @@ export default function IncomeHistoryScreen() {
                     Import a bank statement to pull deposits in automatically, or add an IRP5 to capture source codes and PAYE.
                   </Text>
                 </View>
-              ) : null
+              ) : undefined
             }
             ListEmptyComponent={
               <View style={{ alignItems: "center", paddingTop: space["4xl"] }}>

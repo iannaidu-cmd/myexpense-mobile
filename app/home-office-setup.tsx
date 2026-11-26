@@ -79,8 +79,13 @@ export default function HomeOfficeSetupScreen() {
   // Separate from the load effect above: `load()` updates the store
   // asynchronously, so prefilling inside its .then() would read `setting`
   // from a stale render closure (still null) instead of the loaded value.
-  // Reacting to `setting` itself always sees the current value.
-  useEffect(() => {
+  // Reacting to `setting` itself always sees the current value. Done during
+  // render when `setting` changes (React's pattern for state that follows
+  // other values) rather than in an effect, so there's no extra render.
+  // `undefined` start so the first render also prefills a cached setting.
+  const [prefilledFrom, setPrefilledFrom] = useState<typeof setting | undefined>(undefined);
+  if (setting !== prefilledFrom) {
+    setPrefilledFrom(setting);
     if (setting) {
       setOfficeM2(String(setting.officeM2));
       setTotalM2(String(setting.totalM2));
@@ -90,7 +95,7 @@ export default function HomeOfficeSetupScreen() {
       const shown = setting.arrangementType === "renting" ? setting.annualCost / 12 : setting.annualCost;
       setAnnualCost(shown > 0 ? String(Math.round(shown * 100) / 100) : "");
     }
-  }, [setting]);
+  }
 
   const office = parseFloat(officeM2) || 0;
   const total = parseFloat(totalM2) || 0;
@@ -204,7 +209,7 @@ export default function HomeOfficeSetupScreen() {
 
   return (
     <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colour.background }}>
-      <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
+      <StatusBar barStyle="dark-content" />
       <MXHeader
         title="Home office setup"
         subtitle="Claim the share of your home you work in"

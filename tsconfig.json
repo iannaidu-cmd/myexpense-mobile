@@ -2,15 +2,15 @@
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true,
-    "baseUrl": ".",
+    "types": ["jest"],
     "paths": {
       "@/*": ["./*"],
       "@/lib/*": ["./lib/*"],
       "@/types/*": ["./types/*"],
       "@/services/*": ["./services/*"],
       "@/stores/*": ["./stores/*"],
-      "@/components/*": ["components/*"],
-      "@/tokens/*": ["tokens/*"]
+      "@/components/*": ["./components/*"],
+      "@/tokens/*": ["./tokens/*"]
     }
   },
   "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"],

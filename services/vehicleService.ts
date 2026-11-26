@@ -31,6 +31,9 @@ export interface OdometerReading {
   taxYear: string;
   openingKm: number | null;
   closingKm: number | null;
+  /** When the row was last saved. A closing reading saved before the tax
+   *  year ended is the latest reading so far, not the closing one. */
+  updatedAt?: string | null;
 }
 
 // "2019 Toyota Hilux"
@@ -158,6 +161,7 @@ export const vehicleService = {
       taxYear: row.tax_year,
       openingKm: row.opening_km != null ? Number(row.opening_km) : null,
       closingKm: row.closing_km != null ? Number(row.closing_km) : null,
+      updatedAt: row.updated_at ?? null,
     }));
   },
 
@@ -176,6 +180,7 @@ export const vehicleService = {
       taxYear: row.tax_year,
       openingKm: row.opening_km != null ? Number(row.opening_km) : null,
       closingKm: row.closing_km != null ? Number(row.closing_km) : null,
+      updatedAt: row.updated_at ?? null,
     }));
   },
 

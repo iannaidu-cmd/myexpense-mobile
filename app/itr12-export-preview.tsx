@@ -18,6 +18,8 @@ import { incomeService } from "@/services/incomeService";
 import { generateITR12PDF } from "@/services/pdfExportService";
 import { profileService } from "@/services/profileService";
 import { taxLiabilityService } from "@/services/taxLiabilityService";
+import { loadVehicleLogbook } from "@/services/vehicleLogbookService";
+import { vehicleClaimNote } from "@/lib/vehicleClaim";
 import { useAuthStore } from "@/stores/authStore";
 import { colour, radius, space, typography } from "@/tokens";
 import { ACTIVE_TAX_YEAR, TaxLiabilityEstimate } from "@/types/database";
@@ -65,6 +67,8 @@ export default function ITR12ExportPreviewScreen() {
   const [pdfLoading, setPdfLoading] = useState(false);
   // "Home office setup: 10% of R 120 000 annual rent" when that's the claim.
   const [homeOfficeSetupLabel, setHomeOfficeSetupLabel] = useState<string | null>(null);
+  // Caveat when the vehicle claim is an estimate or waiting for a reading.
+  const [vehicleNote, setVehicleNote] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     if (!user) {
@@ -75,13 +79,15 @@ export default function ITR12ExportPreviewScreen() {
     try {
       const prof = await profileService.getProfile(user.id);
       const vatRegistered = prof?.vat_registered ?? false;
-      const [expenses, incomeEntries, liabilityEstimate, setupClaim] = await Promise.all([
+      const [expenses, incomeEntries, liabilityEstimate, setupClaim, logbook] = await Promise.all([
         expenseService.getExpenses(user.id, taxYear),
         incomeService.getIncome(user.id, taxYear),
         taxLiabilityService.getEstimate(user.id, taxYear).catch(() => null),
         expenseService.getHomeOfficeSetupClaim(user.id, taxYear).catch(() => null),
+        loadVehicleLogbook(user.id, taxYear),
       ]);
-      const exp = buildExpenditure(expenses, vatRegistered, setupClaim?.amount ?? 0);
+      const exp = buildExpenditure(expenses, vatRegistered, setupClaim?.amount ?? 0, logbook);
+      setVehicleNote(vehicleClaimNote(expenses, logbook, taxYear));
       setProfile(prof);
       setExpenditure(exp);
       const med = medicalTotals(expenses);
@@ -143,6 +149,7 @@ export default function ITR12ExportPreviewScreen() {
         ...fieldRows.map((r) => `${r.field.padEnd(30)} ${fmt(r.rands)}`),
         ...(expenditure?.otherDescription ? [`Description relating to other: ${expenditure.otherDescription}`] : []),
         ...(homeOfficeSetupLabel ? [`(${homeOfficeSetupLabel})`] : []),
+        ...(vehicleNote ? [`(${vehicleNote})`] : []),
         `${"Total".padEnd(30)} ${fmt(totalRands)}`,
         "",
         `${((result?.accountingRands ?? 0) >= 0 ? "Accounting Profit" : "Accounting Loss").padEnd(30)} ${fmt(Math.abs(result?.accountingRands ?? 0))}`,
@@ -177,7 +184,7 @@ export default function ITR12ExportPreviewScreen() {
       edges={["top"]}
       style={{ flex: 1, backgroundColor: colour.background }}
     >
-      <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
+      <StatusBar barStyle="dark-content" />
       <MXHeader
         title="Export preview"
         subtitle={`Year of Assessment ${yoa} · ITR12`}
@@ -477,6 +484,11 @@ export default function ITR12ExportPreviewScreen() {
                       </Text>
                     </View>
                   ))}
+                  {vehicleNote && (
+                    <View style={{ paddingHorizontal: space.md, paddingVertical: 11, borderTopWidth: 1, borderTopColor: colour.borderLight }}>
+                      <Text style={{ ...typography.bodyXS, color: colour.textSub }}>{vehicleNote}</Text>
+                    </View>
+                  )}
                   <View
                     style={{
                       flexDirection: "row",

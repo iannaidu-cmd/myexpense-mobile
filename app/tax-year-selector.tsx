@@ -143,7 +143,7 @@ export default function TaxYearSelectorScreen() {
       edges={["top", "bottom"]}
       style={{ flex: 1, backgroundColor: colour.background }}
     >
-      <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
+      <StatusBar barStyle="dark-content" />
 
       <MXHeader title="Tax year" showBack />
 

@@ -38,12 +38,14 @@ export default function ProfileScreen() {
   const { user } = useAuthStore();
   const { activeTaxYear, expenses, loadExpenses } = useExpenseStore();
   const [loading, setLoading] = useState(true);
+  // Taken once per visit; the age preview only needs day-level accuracy.
+  const [now] = useState(() => Date.now());
   const [saving, setSaving] = useState(false);
   const [successVisible, setSuccessVisible] = useState(false);
 
   // Profile fields
   const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(user?.email ?? "");
   const [businessName, setBusinessName] = useState("");
   const [phone, setPhone] = useState("");
   const [taxNumber, setTaxNumber] = useState("");
@@ -60,8 +62,7 @@ export default function ProfileScreen() {
   const [savedWorkType, setSavedWorkType] = useState("");
 
   useEffect(() => {
-    if (!user) { setLoading(false); return; }
-    setEmail(user.email ?? "");
+    if (!user) return; // the spinner only shows with a user (see render)
     // Logged medical aid expenses count as contributions for the credit preview.
     loadExpenses(user.id, activeTaxYear);
     profileService
@@ -190,7 +191,7 @@ export default function ProfileScreen() {
             overflow: "hidden",
           }}
         >
-          {loading ? (
+          {loading && user ? (
             <View
               style={{
                 flex: 1,
@@ -553,7 +554,7 @@ export default function ProfileScreen() {
                 const credit = medicalSchemeFeesCredit(expenses, parseFloat(taxMedMonthly) || 0, taxDependants, activeTaxYear);
                 const dobIso = dateOfBirth ? displayDateToISO(dateOfBirth) : null;
                 const age = dobIso && !validateDateOfBirth(dobIso)
-                  ? Math.floor((Date.now() - new Date(dobIso).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
+                  ? Math.floor((now - new Date(dobIso).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
                   : 0;
                 return (
                   <View

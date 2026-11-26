@@ -1,7 +1,6 @@
 import { errorText, trackFunnel, trackFirstAction } from "@/services/funnelService";
 import { logExpenseCreated } from "@/lib/analytics";
 import { showNotice } from "@/components/NoticeHost";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ConfirmModal } from "@/components/ConfirmModal";
 import { InfoBanner } from "@/components/InfoBanner";
 import { SarsFieldPicker } from "@/components/SarsFieldPicker";
@@ -19,8 +18,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { useExpenseStore } from "@/stores/expenseStore";
 import { floorRatio, useHomeOfficeStore } from "@/stores/homeOfficeStore";
 import { isHomeOfficeCategory } from "@/lib/homeOffice";
-import { logbookBusinessUse, useVehicleStore, vehicleLabel } from "@/stores/vehicleStore";
-import { mileageService } from "@/services/mileageService";
+import { useVehicleStore, vehicleLabel } from "@/stores/vehicleStore";
 import { colour, radius } from "@/tokens";
 import {
   displayDateToISO,
@@ -170,44 +168,28 @@ export default function AddExpenseScreen() {
   // real deduction totals, since it's applied at save time below.
   // Prefers the logbook's odometer readings (synced, per vehicle); falls back
   // to the last % worked out on the Category Breakdown calculator.
-  const loadVehicles = useVehicleStore((s) => s.load);
   const allVehicles = useVehicleStore((s) => s.vehicles);
   const pickableVehicles = allVehicles.filter((v) => !v.isArchived);
+  const loadVehicles = useVehicleStore((s) => s.load);
+  // The vehicle picker needs the list. (The work share comes from the
+  // logbook when the cost is claimed, so nothing else is loaded here.)
+  React.useEffect(() => {
+    if (category === "Vehicle Expenses" && user) loadVehicles(user.id, activeTaxYear, true).catch(() => {});
+  }, [category, activeTaxYear, user, loadVehicles]);
   // Which vehicle this cost was for. Saved on the expense so per-vehicle
   // actual costs are available later (e.g. the employee travel-allowance claim).
   const [vehicleId, setVehicleId] = useState<string | null>(null);
-  React.useEffect(() => {
+  // Default to the newest vehicle when the category or vehicle list changes.
+  // Adjusted during render rather than in an effect (React's pattern for
+  // state that follows other values), so there's no extra render.
+  const vehicleDefaultKey = `${category}|${pickableVehicles.length}`;
+  const [prevVehicleDefaultKey, setPrevVehicleDefaultKey] = useState<string | null>(null);
+  if (vehicleDefaultKey !== prevVehicleDefaultKey) {
+    setPrevVehicleDefaultKey(vehicleDefaultKey);
     if (category === "Vehicle Expenses" && !vehicleId && pickableVehicles.length) {
       setVehicleId(pickableVehicles[pickableVehicles.length - 1].id);
     }
-  }, [category, pickableVehicles.length]);
-  React.useEffect(() => {
-    if (category !== "Vehicle Expenses" || !user) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const [trips] = await Promise.all([
-          mileageService.getTrips(user.id, activeTaxYear),
-          loadVehicles(user.id, activeTaxYear, true),
-        ]);
-        // That vehicle's own logbook % when one is chosen, else all vehicles.
-        const { readings } = useVehicleStore.getState();
-        const logbook = vehicleId
-          ? logbookBusinessUse(
-              trips.filter((t) => t.vehicle_id === vehicleId),
-              readings[vehicleId] ? { [vehicleId]: readings[vehicleId] } : {},
-            )
-          : logbookBusinessUse(trips, readings);
-        if (logbook && logbook.ratio > 0) {
-          if (!cancelled) setBusinessUsePct(String(Math.round(logbook.ratio * 100)));
-          return;
-        }
-      } catch { /* fall back to the saved estimate */ }
-      const v = await AsyncStorage.getItem(`@mx_vehicle_business_pct:${activeTaxYear}`);
-      if (v && !cancelled) setBusinessUsePct(v);
-    })();
-    return () => { cancelled = true; };
-  }, [category, activeTaxYear, user, vehicleId]);
+  }
 
   const selectedCat = ITR12_CATEGORIES.find((c) => c.label === category);
   const canSave = !!amount && parseFloat(amount) > 0 && !!vendor && !!category;
@@ -274,10 +256,9 @@ export default function AddExpenseScreen() {
           // assessment (SARS ITR12 guide, home office expenses).
           overrideDeductible = false;
         }
-      } else if (category === "Vehicle Expenses") {
-        pct = businessUseRatio;
-        apportioned = true;
       }
+      // Vehicle Expenses are saved at their full cost: the logbook share is
+      // applied wherever they are claimed (lib/vehicleClaim.ts).
 
       const savedAmount = parseFloat((rawAmount * pct).toFixed(2));
 
@@ -326,7 +307,7 @@ export default function AddExpenseScreen() {
 
   return (
     <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colour.surface1 }}>
-      <StatusBar barStyle="dark-content" backgroundColor={colour.surface1} />
+      <StatusBar barStyle="dark-content" />
       <MXHeader title="Add expense" showBack />
       <PhoneShell>
 
@@ -575,7 +556,7 @@ export default function AddExpenseScreen() {
             <View>
               <InfoBanner
                 icon="car.fill"
-                body={`You can only claim the work part of a vehicle cost. We've filled in the % from your logbook (your work km compared to all your km). Change it if this cost is different. Add real costs here, like fuel, insurance, repairs, licence and finance charges.`}
+                body={`You can only claim the work part of a vehicle cost. We work it out from your mileage logbook: the km you log for work compared to all the km on your odometer this tax year. Add the full cost here, like fuel, insurance, repairs, licence and finance charges.`}
                 style={{ marginBottom: 10 }}
               />
               {pickableVehicles.length > 0 && (
@@ -606,13 +587,6 @@ export default function AddExpenseScreen() {
                   </View>
                 </>
               )}
-              <FieldLabel label="Business use %" />
-              <UnderlineInput
-                value={businessUsePct}
-                onChangeText={setBusinessUsePct}
-                placeholder="e.g. 80"
-                keyboardType="decimal-pad"
-              />
             </View>
           )}
           {category === "Retirement Annuity" && (
@@ -886,7 +860,7 @@ export default function AddExpenseScreen() {
         title="Expense saved"
         message={successMessage}
         primaryLabel="Go to dashboard"
-        onPrimary={() => { setSuccessVisible(false); router.replace("/(tabs)" as any); }}
+        onPrimary={() => { setSuccessVisible(false); router.dismissTo("/(tabs)" as any); }}
         secondaryLabel="Add another"
         onSecondary={() => setSuccessVisible(false)}
       />

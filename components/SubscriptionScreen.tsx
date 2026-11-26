@@ -39,7 +39,6 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  InteractionManager,
   Platform,
   ScrollView,
   StatusBar,
@@ -266,11 +265,13 @@ export function SubscriptionScreen({ defaultFrom }: { defaultFrom: string }) {
   const params = useLocalSearchParams<{ from?: string }>();
   const from = (Array.isArray(params.from) ? params.from[0] : params.from) || defaultFrom;
   const tracked = useRef(!hasPaidSubscription && !isDevUser);
-  const openedAt = useRef(Date.now());
+  const [openedAt] = useState(() => Date.now());
   const viewedSent = useRef(false);
   const closeVia = useRef("back");
   const planRef = useRef(selectedPlan);
-  planRef.current = selectedPlan;
+  useEffect(() => {
+    planRef.current = selectedPlan;
+  }, [selectedPlan]);
 
   useEffect(() => {
     return () => {
@@ -286,7 +287,7 @@ export function SubscriptionScreen({ defaultFrom }: { defaultFrom: string }) {
       }
       trackFunnel("paywall_closed", {
         via: closeVia.current,
-        seconds: Math.round((Date.now() - openedAt.current) / 1000),
+        seconds: Math.round((Date.now() - openedAt) / 1000),
         plan: planRef.current,
       });
     };
@@ -378,7 +379,8 @@ export function SubscriptionScreen({ defaultFrom }: { defaultFrom: string }) {
 
   // Notices go up only once any screen transition has settled.
   const notifyAfterInteractions = (notice: Parameters<typeof showNotice>[0]) => {
-    InteractionManager.runAfterInteractions(() => {
+    // InteractionManager was removed in RN 0.88; an idle callback replaces it.
+    requestIdleCallback(() => {
       setTimeout(() => {
         Sentry.addBreadcrumb({ category: "paywall", message: "notice shown", data: { title: notice.title } });
         showNotice(notice);
@@ -571,7 +573,7 @@ export function SubscriptionScreen({ defaultFrom }: { defaultFrom: string }) {
 
   return (
     <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colour.background }}>
-      <StatusBar barStyle="dark-content" backgroundColor={colour.background} />
+      <StatusBar barStyle="dark-content" />
 
       <ScrollView
         contentContainerStyle={{

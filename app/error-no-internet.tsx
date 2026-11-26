@@ -162,7 +162,7 @@ export default function ErrorNoInternetScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colour.background }}>
-      <StatusBar barStyle="light-content" backgroundColor={colour.danger} />
+      <StatusBar barStyle="light-content" />
 
       {/* ── Red-tinted header ── */}
       <View

@@ -286,7 +286,7 @@ export function SignupScreen() {
 
   return (
     <SafeAreaView edges={["bottom"]} style={{ flex: 1, backgroundColor: colour.primary }}>
-      <StatusBar barStyle="light-content" backgroundColor={colour.primary} />
+      <StatusBar barStyle="light-content" />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
         <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} bounces={false}>
 
